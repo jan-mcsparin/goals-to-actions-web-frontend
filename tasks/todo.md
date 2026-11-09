@@ -74,12 +74,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Configure oxlint `no-restricted-imports` so only `src/api/` can import `mockData` or `mockStore`.
 
 **Acceptance criteria:**
-- [ ] `npm run lint` passes on the branch
-- [ ] A temporary `import ... from './api/mockData.ts'` in `src/App.tsx` makes `npm run lint` fail (then removed)
-- [ ] If oxlint can't express this, a Vitest test enforces it instead (no new dependency)
+- [x] `npm run lint` passes on the branch
+- [x] A temporary `import ... from './api/mockData.ts'` in `src/App.tsx` makes `npm run lint` fail (then removed)
+- [x] ~~If oxlint can't express this, a Vitest test enforces it instead (no new dependency)~~ not needed
 
 **Verification:**
-- [ ] Manual check above, plus `npm run lint`
+- [x] Manual check above, plus `npm run lint`
 
 **Dependencies:** Task 1
 
