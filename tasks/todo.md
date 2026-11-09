@@ -11,13 +11,13 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Add the types `getToday` needs, a mock dataset for today built from a reference date, the store, and `getToday`.
 
 **Acceptance criteria:**
-- [ ] `types.ts` has `Task`, `Goal`, `Aspiration`, `RecurringItem`, `TimeOfDay`, `TodayPlan` per the spec
-- [ ] Today's mock tasks include one "by" timed, one "at" timed, one untimed, one maintenance, one goal task, and one task with no goal or recurring item
-- [ ] `getToday()` returns only tasks planned for today plus exactly the goals, aspirations and recurring items they reference, as copies
+- [x] `types.ts` has `Task`, `Goal`, `Aspiration`, `RecurringItem`, `TimeOfDay`, `TodayPlan` per the spec
+- [x] Today's mock tasks include one "by" timed, one "at" timed, one untimed, one maintenance, one goal task, and one task with no goal or recurring item
+- [x] `getToday()` returns only tasks planned for today plus exactly the goals, aspirations and recurring items they reference, as copies
 
 **Verification:**
-- [ ] `npm test`: `client.test.ts` covers filtering, related records, copies, and a late-evening fake time (local date, not UTC)
-- [ ] `npm run build` type-checks
+- [x] `npm test`: `client.test.ts` covers filtering, related records, copies, and a late-evening fake time (local date, not UTC)
+- [x] `npm run build` type-checks
 
 **Dependencies:** None
 
