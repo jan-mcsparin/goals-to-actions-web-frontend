@@ -75,7 +75,7 @@ export function buildMockData(today: Date): MockData {
       plannedDay: day(0),
       goalId: 'goal-strong',
       rolloverCount: 0,
-      completedAt: `${day(0)}T18:40:00`,
+      completedAt: atTime(monday, 18, 40),
     },
     {
       id: 'task-trash',
@@ -127,4 +127,8 @@ export function buildMockData(today: Date): MockData {
   ]
 
   return { aspirations, goals, recurringItems, tasks }
+}
+
+function atTime(day: Date, hours: number, minutes: number): string {
+  return new Date(day.getFullYear(), day.getMonth(), day.getDate(), hours, minutes).toISOString()
 }
