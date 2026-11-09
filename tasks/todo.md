@@ -11,7 +11,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Add React Testing Library and jsdom, configure Vitest so `*.test.tsx` runs in jsdom and `*.test.ts` stays in Node, and prove it with a smoke test of `App`.
 
 **Acceptance criteria:**
-- [x] Dev deps added at pinned current versions: `@testing-library/react`, `@testing-library/dom` (its required peer), `@testing-library/user-event`, `jsdom` (28, not 31: 31 needs Node ≥ 22.22.2). `dom` peer approved 2026-11-09.
+- [x] Dev deps added at pinned current versions: `@testing-library/react`, `@testing-library/dom` (its required peer), `@testing-library/user-event`, `jsdom` 31 (needs Node ≥ 22.22.2). `dom` peer approved 2026-11-09.
 - [x] `src/App.test.tsx` renders `App` and finds the app name; existing Node tests are unaffected.
 - [x] Setup cleans up between tests (RTL `cleanup`, or `globals` as the docs say).
 
