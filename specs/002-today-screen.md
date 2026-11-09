@@ -177,4 +177,4 @@ export function TaskRow({ task, subline, onToggle }: TaskRowProps) {
 
 ## Plan
 
-To follow in [`tasks/plan.md`](../tasks/plan.md) and [`tasks/todo.md`](../tasks/todo.md).
+See [`tasks/plan.md`](../tasks/plan.md) and [`tasks/todo.md`](../tasks/todo.md).

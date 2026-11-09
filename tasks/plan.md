@@ -1,61 +1,66 @@
-# Implementation Plan: Mock data and API client (#1)
+# Implementation Plan: Today screen (#2)
 
-Spec: [`specs/001-mock-api-client.md`](../specs/001-mock-api-client.md). Issue: [#1](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/1). Branch: `mock-api-client`, one PR.
-
-Tasks are tracked in [`tasks/todo.md`](todo.md). They are steps inside issue #1, so they don't get their own GitHub issues.
+Spec: [`../specs/002-today-screen.md`](../specs/002-today-screen.md). Tasks: [`todo.md`](todo.md). (The plan for #1 is in git history at `afa9830`.)
 
 ## Overview
 
-Build `src/api/`: the seven entity types, a coherent "Be fit / Be strong" mock dataset, an in-memory store, and the first two client functions (`getToday`, `checkOffTask`). Screens import only `client.ts` and `types.ts`, and the linter enforces it.
+Build the home screen: today's tasks in three groups, one-tap check-off with undo, a remembered List / By goal toggle, and working skip, swap and pull-from-bank against the mock store. Logic lives in `domain/today.ts` and `hooks/useToday.ts`; components only render.
 
 ## Dependency graph
 
 ```
-types.ts (Task, Goal, Aspiration, RecurringItem, TimeOfDay, TodayPlan)
-    │
-    ├── mockData.ts (today's tasks + what they reference)
-    │       │
-    │       └── mockStore.ts (copy + reset)
-    │               │
-    │               ├── client.getToday ──── Today screen (#2) can start
-    │               └── client.checkOffTask
-    │
-    └── remaining types (Milestone, WeeklyTarget, Settings) + rest of the dataset
-            └── dataset consistency test
-
-.oxlintrc.json boundary rule ─ independent, needs mockData/mockStore to exist
-../ docs updates ─ independent (parent repo)
+Test tooling (RTL + jsdom)          domain/today.ts           api: bank functions
+        │                                 │                          │
+        └──────────────┬──────────────────┘                          │
+                       ▼                                             │
+        Today screen, read-only (List view) ──► check-off + undo     │
+                       │                                             │
+                       ├──► By goal view + remembered toggle         │
+                       │                                             │
+                       └──────────────► Pull from bank ◄─────────────┘
+                                               │
+                                               ▼
+                                        Skip + Swap (⋯ menu)
+                                               │
+                                               ▼
+                                     Docs + iPhone-width pass
 ```
+
+Tasks 1, 2 and 5 have no dependencies on each other and could run in parallel; everything else is sequential because it all edits `useToday.ts` and `Today.tsx`.
 
 ## Architecture decisions
 
-- **Vertical slices:** each task ends with a working, tested client function or a complete dataset, not a layer of types with nothing using them. Task 1 builds only the types and data `getToday` needs; Task 3 fills in the rest.
-- **The store is a module-level object** with `reset()`, deep-cloned from `mockData` and cloned again on the way out. No class and no async simulation. Swapping in real `fetch` calls later changes only `client.ts`.
-- **Dates are local `YYYY-MM-DD` strings** built from `Date` parts by a small helper in `src/api/` (the only date code in this task). If `domain/` needs the same helper later, it moves there.
-- **camelCase, string IDs, string-literal unions, optional fields as `?:`** (spec, Data shapes).
+- **One hook, one screen state.** `useToday` owns the plan, the view and all actions. Optimistic updates replace the affected task in state, then call the client; on rejection they restore that task's previous value and set a calm message. A per-task request counter makes rapid taps settle on the last one.
+- **Domain returns view models.** `groupForList(plan)` and `groupByGoal(plan)` return ready-to-render sections (`{ title, rows: { task, timeLabel?, subline? }[] }`), so components only map.
+- **Weekday from the day string, not `new Date('YYYY-MM-DD')`** (that parses as UTC and can show the wrong day in the evening). Reuse `src/api/dates.ts` patterns; add a local-day parser in `domain/` if needed.
+- **API-first for bank actions.** `getBank`, `skipTask`, `swapTask`, `pullFromBank` land together in one task so the contract is fixed before two UI slices use it. `uncheckTask` lands with the check-off slice.
+- **View preference in `localStorage`**, key `gta.todayView`, wrapped in try/catch. IndexedDB arrives with #8 and may absorb it then.
+- **jsdom only where needed.** Component and hook tests are `*.test.tsx` and run in jsdom; existing `*.test.ts` stay in Node. Configure per Vitest 5 docs (a `jsdom` project in `test.projects`, or a per-file environment comment if that's what the docs recommend).
+- **Bank sheet is reused** for both Pull from bank and Swap (a "pick a bank task" sheet with an `onPick` callback).
+- **No router.** `App.tsx` renders `<Today />`. Persisting the current screen comes with navigation (#3+ / #8).
 
-## Task list
+## Phases
 
-Order and checkpoints only; tick boxes in [`todo.md`](todo.md).
-
-1. `getToday` returns today's tasks with what they reference
-2. `checkOffTask` marks a task done
-   - **Checkpoint A:** review; Today (#2) can start
-3. Remaining types and the full week's dataset
-4. Lint rule for the mock-data boundary
-   - **Checkpoint B:** spec success criteria met; open the web-frontend PR
-5. Record the decisions in the parent docs
-   - **Checkpoint C:** parent-repo PR open
+1. **Foundation:** test tooling, `domain/today.ts`. → Checkpoint: tests green.
+2. **Core:** read-only List view, check-off with undo. → Checkpoint A: review on the phone.
+3. **Views and bank:** By goal toggle, bank API, Pull from bank, Skip and Swap. → Checkpoint B: all spec criteria met.
+4. **Wrap-up:** docs and polish. → Checkpoint C: PRs open.
 
 ## Risks and mitigations
 
 | Risk | Impact | Mitigation |
-| --- | --- | --- |
-| UTC vs local date: `toISOString()` gives the wrong day near midnight | High: Today shows the wrong tasks | Local date helper; tests fake system time, including a late-evening time |
-| oxlint's `no-restricted-imports` may not support patterns plus a per-folder override | Low | Check in Task 4. Fallback: a Vitest test that scans `src/` for forbidden imports (no new dependency) |
-| Mock data generated "relative to this week" changes per run and makes tests flaky | Medium | Data is built by a function of a reference date; tests fix the date |
-| Hand-written types drift from the future generated ones | Medium | Follow the spec conventions; the camelCase decision is recorded in Task 5 |
+|---|---|---|
+| RTL / jsdom friction with TypeScript 7, React 19.3 or Vitest 5 | Med | Task 1 first, with a smoke test; if it fights back, stop and report before building on it. |
+| `@testing-library/react` needs `@testing-library/dom` as a peer: a 4th new package | Low | Called out in Task 1; confirm before installing. |
+| Fake timers plus `userEvent` hang | Low | `userEvent.setup({ advanceTimers: vi.advanceTimersByTime })`, or fix only the date with `vi.setSystemTime` and `shouldAdvanceTime`. |
+| Optimistic race: tap, tap again before the first call settles | Med | Request counter per task; hook test covers it. |
+| Wrong weekday or "today" late in the evening | Med | Local-day parsing; tests at 11:30 p.m., like #1. |
+| Layout breaks at 375 px with long titles or the ⋯ menu | Low | Titles wrap, time label doesn't; manual check at 375 and 390 px in Task 8. |
+
+## Verification
+
+Every task: tests first, then `npm test && npm run lint && npm run build`, then one commit. The work stays on `today-screen-spec` (it holds the spec) and becomes one PR referencing #2; doc changes in the parent repo get their own branch and PR.
 
 ## Open questions
 
-None blocking.
+None. Settled in the spec's Decisions section.
