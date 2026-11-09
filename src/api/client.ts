@@ -10,6 +10,16 @@ export async function getToday(): Promise<TodayPlan> {
   return structuredClone({ date, tasks, ...recordsReferencedBy(tasks) })
 }
 
+export async function checkOffTask(taskId: string, valueLogged?: number): Promise<Task> {
+  const task = store.tasks.find((candidate) => candidate.id === taskId)
+  if (!task) throw new Error(`No task with id ${taskId}`)
+
+  task.status = 'done'
+  task.completedAt = new Date().toISOString()
+  if (valueLogged !== undefined) task.valueLogged = valueLogged
+  return structuredClone(task)
+}
+
 function recordsReferencedBy(tasks: Task[]) {
   const goals = store.goals.filter((goal) => tasks.some((task) => task.goalId === goal.id))
   const recurringItems = store.recurringItems.filter((item) =>

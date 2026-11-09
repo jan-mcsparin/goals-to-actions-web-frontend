@@ -30,13 +30,13 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Add `checkOffTask(taskId, valueLogged?)`, which updates the store.
 
 **Acceptance criteria:**
-- [ ] Sets `status: 'done'` and `completedAt`, stores `valueLogged` when given, returns the updated task
-- [ ] The next `getToday()` shows the task as done; `reset()` restores it
-- [ ] An unknown ID rejects with an `Error`
+- [x] Sets `status: 'done'` and `completedAt`, stores `valueLogged` when given, returns the updated task
+- [x] The next `getToday()` shows the task as done; `reset()` restores it
+- [x] An unknown ID rejects with an `Error`
 
 **Verification:**
-- [ ] `npm test`: one test per criterion
-- [ ] `npm run build` type-checks
+- [x] `npm test`: one test per criterion
+- [x] `npm run build` type-checks
 
 **Dependencies:** Task 1
 
@@ -45,7 +45,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** S (2 files)
 
 ## Checkpoint A
-- [ ] Tests, lint and build pass
+- [x] Tests, lint and build pass
 - [ ] Review with Jan; #2 (Today) can start
 
 ## Phase 2: Complete the foundation

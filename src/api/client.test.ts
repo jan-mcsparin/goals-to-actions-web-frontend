@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getToday } from './client.ts'
+import { checkOffTask, getToday } from './client.ts'
 import { resetStore } from './mockStore.ts'
 
 // Wednesday 11 Nov 2026, 9 a.m. local time.
@@ -68,5 +68,47 @@ describe('getToday', () => {
     const second = await getToday()
     expect(second.tasks[0].title).not.toBe('changed')
     expect(second.goals[0].label).not.toBe('changed')
+  })
+})
+
+describe('checkOffTask', () => {
+  it('marks the task done with a completion time and returns it', async () => {
+    const task = await checkOffTask('task-lift-today')
+
+    expect(task.status).toBe('done')
+    expect(task.completedAt).toBe(WEDNESDAY.toISOString())
+  })
+
+  it('stores a logged value when given', async () => {
+    const task = await checkOffTask('task-lift-today', 155)
+
+    expect(task.valueLogged).toBe(155)
+  })
+
+  it('is reflected in the next getToday', async () => {
+    await checkOffTask('task-laundry')
+
+    const { tasks } = await getToday()
+    expect(tasks.find((task) => task.id === 'task-laundry')?.status).toBe('done')
+  })
+
+  it('is undone by resetStore', async () => {
+    await checkOffTask('task-laundry')
+    resetStore()
+
+    const { tasks } = await getToday()
+    expect(tasks.find((task) => task.id === 'task-laundry')?.status).toBe('planned')
+  })
+
+  it('rejects an unknown task id', async () => {
+    await expect(checkOffTask('no-such-task')).rejects.toThrow('no-such-task')
+  })
+
+  it('returns a copy, so changing it does not change the store', async () => {
+    const task = await checkOffTask('task-laundry')
+    task.status = 'skipped'
+
+    const { tasks } = await getToday()
+    expect(tasks.find((t) => t.id === 'task-laundry')?.status).toBe('done')
   })
 })
