@@ -18,7 +18,7 @@
   },
   "overrides": [
     {
-      "files": ["src/api/**"],
+      "files": ["src/api/**", "src/**/*.test.ts", "src/**/*.test.tsx"],
       "rules": { "no-restricted-imports": "off" }
     }
   ]
