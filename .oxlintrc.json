@@ -3,6 +3,23 @@
   "plugins": ["react", "typescript", "oxc"],
   "rules": {
     "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+    "react/only-export-components": ["warn", { "allowConstantExport": true }],
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["**/mockData*", "**/mockStore*"],
+            "message": "Mock data stays behind src/api/client.ts. Import from the client instead."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["src/api/**"],
+      "rules": { "no-restricted-imports": "off" }
+    }
+  ]
 }
