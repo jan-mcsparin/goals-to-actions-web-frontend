@@ -4,7 +4,7 @@ import { useToday } from '../hooks/useToday.ts'
 import './Today.css'
 
 export function Today() {
-  const { today, message } = useToday()
+  const { today, message, toggleDone } = useToday()
 
   if (!today) {
     return (
@@ -24,6 +24,12 @@ export function Today() {
         {!isEmpty && <p className="today-count">{`${progress.done} of ${progress.total} done`}</p>}
       </header>
 
+      {message && (
+        <p className="today-message" role="status">
+          {message}
+        </p>
+      )}
+
       {!isEmpty && (
         <progress className="today-progress" value={progress.done} max={progress.total} aria-label="Done today" />
       )}
@@ -33,7 +39,7 @@ export function Today() {
       ) : (
         <>
           {sections.map((section) => (
-            <TaskGroup key={section.id} section={section} />
+            <TaskGroup key={section.id} section={section} onToggle={toggleDone} />
           ))}
           <section className="today-group" aria-labelledby="free-time">
             <h2 id="free-time">Free time</h2>
@@ -49,14 +55,19 @@ export function Today() {
   )
 }
 
-function TaskGroup({ section }: { section: Section }) {
+type TaskGroupProps = {
+  section: Section
+  onToggle: (taskId: string) => void
+}
+
+function TaskGroup({ section, onToggle }: TaskGroupProps) {
   const headingId = `group-${section.id}`
   return (
     <section className="today-group" aria-labelledby={headingId}>
       <h2 id={headingId}>{section.title}</h2>
       <ul className="task-list">
         {section.rows.map((row) => (
-          <TaskRow key={row.task.id} row={row} />
+          <TaskRow key={row.task.id} row={row} onToggle={() => onToggle(row.task.id)} />
         ))}
       </ul>
     </section>

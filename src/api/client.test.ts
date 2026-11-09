@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { checkOffTask, getToday } from './client.ts'
+import { checkOffTask, getToday, uncheckTask } from './client.ts'
 import { resetStore } from './mockStore.ts'
 
 // Wednesday 11 Nov 2026, 9 a.m. local time.
@@ -110,5 +110,33 @@ describe('checkOffTask', () => {
 
     const { tasks } = await getToday()
     expect(tasks.find((t) => t.id === 'task-laundry')?.status).toBe('done')
+  })
+})
+
+describe('uncheckTask', () => {
+  it('puts a done task back to planned and clears what check-off set', async () => {
+    await checkOffTask('task-lift-today', 155)
+
+    const task = await uncheckTask('task-lift-today')
+
+    expect(task.status).toBe('planned')
+    expect(task.completedAt).toBeUndefined()
+    expect(task.valueLogged).toBeUndefined()
+  })
+
+  it('is reflected in the next getToday', async () => {
+    await checkOffTask('task-laundry')
+    await uncheckTask('task-laundry')
+
+    const { tasks } = await getToday()
+    expect(tasks.find((task) => task.id === 'task-laundry')?.status).toBe('planned')
+  })
+
+  it('rejects an unknown task id', async () => {
+    await expect(uncheckTask('no-such-task')).rejects.toThrow('no-such-task')
+  })
+
+  it('rejects a task that is not done', async () => {
+    await expect(uncheckTask('task-laundry')).rejects.toThrow('not done')
   })
 })

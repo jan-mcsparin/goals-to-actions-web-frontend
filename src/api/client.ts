@@ -11,13 +11,27 @@ export async function getToday(): Promise<TodayPlan> {
 }
 
 export async function checkOffTask(taskId: string, valueLogged?: number): Promise<Task> {
-  const task = store.tasks.find((candidate) => candidate.id === taskId)
-  if (!task) throw new Error(`No task with id ${taskId}`)
-
+  const task = findTask(taskId)
   task.status = 'done'
   task.completedAt = new Date().toISOString()
   if (valueLogged !== undefined) task.valueLogged = valueLogged
   return structuredClone(task)
+}
+
+export async function uncheckTask(taskId: string): Promise<Task> {
+  const task = findTask(taskId)
+  if (task.status !== 'done') throw new Error(`Task ${taskId} is not done`)
+
+  task.status = 'planned'
+  delete task.completedAt
+  delete task.valueLogged
+  return structuredClone(task)
+}
+
+function findTask(taskId: string): Task {
+  const task = store.tasks.find((candidate) => candidate.id === taskId)
+  if (!task) throw new Error(`No task with id ${taskId}`)
+  return task
 }
 
 function recordsReferencedBy(tasks: Task[]) {

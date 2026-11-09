@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getToday } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
@@ -48,6 +49,22 @@ describe('Today', () => {
     const freeTime = screen.getByRole('region', { name: 'Free time' })
     expect(within(freeTime).getByText('The rest is yours.')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Pull from bank' })).toBeDefined()
+  })
+
+  it('marks a task done with one tap and undoes it with another', async () => {
+    const user = userEvent.setup()
+    render(<Today />)
+    const laundry = await screen.findByRole('checkbox', { name: 'Laundry' })
+
+    await user.click(laundry)
+
+    expect(laundry.getAttribute('aria-checked')).toBe('true')
+    expect(screen.getByText('1 of 4 done')).toBeDefined()
+
+    await user.click(laundry)
+
+    expect(laundry.getAttribute('aria-checked')).toBe('false')
+    expect(screen.getByText('0 of 4 done')).toBeDefined()
   })
 
   it('shows a warm empty state when nothing is planned', async () => {
