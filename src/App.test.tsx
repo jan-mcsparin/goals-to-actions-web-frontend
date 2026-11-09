@@ -1,10 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import { expect, it } from 'vitest'
 import App from './App.tsx'
-import { APP_NAME } from './config.ts'
 
-it('renders the app name', () => {
+it('opens on Today', async () => {
   render(<App />)
 
-  expect(screen.getByRole('heading', { name: APP_NAME })).toBeDefined()
+  expect(await screen.findByRole('heading', { level: 1, name: /^Today · / })).toBeDefined()
 })
