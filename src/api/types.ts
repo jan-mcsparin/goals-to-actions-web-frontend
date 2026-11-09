@@ -28,6 +28,27 @@ export type Goal = {
   aspirationId?: string
 }
 
+export type MilestoneStatus = 'upcoming' | 'hit' | 'notYet'
+
+export type Milestone = {
+  id: string
+  goalId: string
+  measurableLine: string
+  status: MilestoneStatus
+  result?: string
+  targetDate?: string
+  checkedInOn?: string
+}
+
+// A change adds a new row with a later effectiveFrom, so history is kept.
+export type WeeklyTarget = {
+  id: string
+  goalId: string
+  amount: number
+  unit: string
+  effectiveFrom: string
+}
+
 export type RecurringItem = {
   id: string
   name: string
@@ -58,6 +79,15 @@ export type Task = {
   valueLogged?: number
   rolloverCount: number
   completedAt?: string
+}
+
+export type Intensity = 'easingOff' | 'normal' | 'goingHard'
+
+// Free time has no setting: it's whatever the intensity's task cap leaves open.
+export type Settings = {
+  intensity: Intensity
+  intensitySetOn: string
+  weekStartsOn: 'monday'
 }
 
 export type TodayPlan = {

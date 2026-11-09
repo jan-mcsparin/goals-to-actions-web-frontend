@@ -1,13 +1,24 @@
 // The "Be fit / Be strong" example, built around a given day so the current
 // week always has data. Only mockStore.ts imports this.
 import { addDays, mondayOf, toLocalDay } from './dates.ts'
-import type { Aspiration, Goal, RecurringItem, Task } from './types.ts'
+import type {
+  Aspiration,
+  Goal,
+  Milestone,
+  RecurringItem,
+  Settings,
+  Task,
+  WeeklyTarget,
+} from './types.ts'
 
 export type MockData = {
   aspirations: Aspiration[]
   goals: Goal[]
+  milestones: Milestone[]
+  weeklyTargets: WeeklyTarget[]
   recurringItems: RecurringItem[]
   tasks: Task[]
+  settings: Settings
 }
 
 export function buildMockData(today: Date): MockData {
@@ -43,6 +54,51 @@ export function buildMockData(today: Date): MockData {
       startDate: '2026-10-05',
       aspirationId: 'asp-fit',
     },
+    {
+      id: 'goal-garage',
+      label: 'Clear out the garage',
+      measurableLine: 'The car fits in the garage',
+      type: 'oneOff',
+      status: 'active',
+      startDate: '2026-11-02',
+      deadline: toLocalDay(addDays(monday, 25)),
+      aspirationId: 'asp-home',
+    },
+  ]
+
+  const milestones: Milestone[] = [
+    {
+      id: 'ms-strong-1',
+      goalId: 'goal-strong',
+      measurableLine: 'Bench 150, squat 285, deadlift 325',
+      status: 'hit',
+      result: 'Bench 150, squat 290, deadlift 330',
+      targetDate: '2026-11-02',
+      checkedInOn: '2026-11-02',
+    },
+    {
+      id: 'ms-strong-2',
+      goalId: 'goal-strong',
+      measurableLine: 'Bench 155, squat 300, deadlift 345',
+      status: 'upcoming',
+      targetDate: toLocalDay(addDays(monday, 21)),
+    },
+    {
+      id: 'ms-strong-3',
+      goalId: 'goal-strong',
+      measurableLine: 'Bench 165, squat 325, deadlift 370',
+      status: 'upcoming',
+    },
+  ]
+
+  const weeklyTargets: WeeklyTarget[] = [
+    {
+      id: 'wt-strong',
+      goalId: 'goal-strong',
+      amount: 3,
+      unit: 'lifting sessions',
+      effectiveFrom: '2026-10-05',
+    },
   ]
 
   const recurringItems: RecurringItem[] = [
@@ -63,6 +119,14 @@ export function buildMockData(today: Date): MockData {
       active: true,
       nextDue: day(6),
       aspirationId: 'asp-home',
+    },
+    {
+      id: 'rec-rent',
+      name: 'Pay rent',
+      repeatRule: 'Monthly on the 1st',
+      fixedDay: true,
+      active: true,
+      nextDue: toLocalDay(new Date(today.getFullYear(), today.getMonth() + 1, 1)),
     },
   ]
 
@@ -124,9 +188,38 @@ export function buildMockData(today: Date): MockData {
       dueDate: toLocalDay(addDays(today, 2)),
       rolloverCount: 0,
     },
+    {
+      id: 'task-lift-bank',
+      title: 'Lift: deadlift day',
+      status: 'inBank',
+      weekOf,
+      goalId: 'goal-strong',
+      rolloverCount: 0,
+    },
+    {
+      id: 'task-garage-shelves',
+      title: 'Sort the garage shelves',
+      status: 'inBank',
+      weekOf,
+      goalId: 'goal-garage',
+      rolloverCount: 0,
+    },
+    {
+      id: 'task-dentist',
+      title: 'Call the dentist',
+      status: 'inBank',
+      weekOf,
+      rolloverCount: 2,
+    },
   ]
 
-  return { aspirations, goals, recurringItems, tasks }
+  const settings: Settings = {
+    intensity: 'normal',
+    intensitySetOn: '2026-10-01',
+    weekStartsOn: 'monday',
+  }
+
+  return { aspirations, goals, milestones, weeklyTargets, recurringItems, tasks, settings }
 }
 
 function atTime(day: Date, hours: number, minutes: number): string {

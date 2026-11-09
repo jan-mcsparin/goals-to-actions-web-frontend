@@ -55,13 +55,13 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Add `Milestone`, `WeeklyTarget`, `Settings` and fill out the dataset to match the spec's Mock dataset section.
 
 **Acceptance criteria:**
-- [ ] All seven entities from `../docs/data-model.md` are typed (quitting-goal log omitted)
-- [ ] The dataset has the second aspiration and goal, three milestones (hit, upcoming dated, undated), the weekly target, three recurring items, done past-day tasks, bank tasks, a task with `rolloverCount: 2`, and settings
-- [ ] A consistency test passes: every reference ID resolves, every `weekOf` is a Monday
+- [x] All seven entities from `../docs/data-model.md` are typed (quitting-goal log omitted)
+- [x] The dataset has the second aspiration and goal, three milestones (hit, upcoming dated, undated), the weekly target, three recurring items, done past-day tasks, bank tasks, a task with `rolloverCount: 2`, and settings
+- [x] A consistency test passes: every reference ID resolves, every `weekOf` is a Monday
 
 **Verification:**
-- [ ] `npm test`: consistency test, and Task 1–2 tests still pass
-- [ ] `npm run build` type-checks
+- [x] `npm test`: consistency test, and Task 1–2 tests still pass
+- [x] `npm run build` type-checks
 
 **Dependencies:** Task 1
 
