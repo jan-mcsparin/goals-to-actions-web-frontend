@@ -88,8 +88,8 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** XS (1 file)
 
 ## Checkpoint B
-- [ ] Every success criterion in the spec is met
-- [ ] Tests, lint and build pass; open the web-frontend PR referencing #1
+- [x] Every success criterion in the spec is met
+- [x] Tests, lint and build pass; open the web-frontend PR referencing #1
 
 ## Phase 3: Docs
 
@@ -98,11 +98,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** In the parent repo, on its own branch: note camelCase JSON in `CLAUDE.md`, and clarify in `docs/screens/README.md` and `docs/flows.md` that free time is time tasks don't fill.
 
 **Acceptance criteria:**
-- [ ] `../CLAUDE.md` Stack section says JSON is camelCase and the API aliases Pydantic fields (`alias_generator=to_camel`)
-- [ ] Both docs describe free time as unfilled time, not a group of tasks
+- [x] `../CLAUDE.md` Stack section says JSON is camelCase and the API aliases Pydantic fields (`alias_generator=to_camel`)
+- [x] Both docs describe free time as unfilled time, not a group of tasks
 
 **Verification:**
-- [ ] Manual read-through; the wording matches the spec's Decisions section
+- [x] Manual read-through; the wording matches the spec's Decisions section
 
 **Dependencies:** None (can run in parallel with Tasks 1–4)
 
@@ -111,4 +111,4 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** S (3 files)
 
 ## Checkpoint C
-- [ ] Parent-repo PR open, referencing #1
+- [x] Parent-repo PR open, referencing #1
