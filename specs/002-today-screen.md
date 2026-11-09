@@ -77,7 +77,7 @@ Exact return shape of `getBank` is settled in the plan; it must match what a RES
 
 ## Tech stack
 
-React 19, TypeScript 7, Vite 8, Vitest 5, oxlint. Node 22 (`.nvmrc`). New dev deps: `@testing-library/react`, `@testing-library/user-event`, `jsdom` (exact versions pinned in the plan; Vitest `environment: 'jsdom'` only for `*.test.tsx`).
+React 19, TypeScript 7, Vite 8, Vitest 5, oxlint. Node 24 (`.nvmrc`). New dev deps: `@testing-library/react`, `@testing-library/user-event`, `jsdom` (exact versions pinned in the plan; Vitest `environment: 'jsdom'` only for `*.test.tsx`).
 
 ## Commands
 
