@@ -11,13 +11,13 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Add React Testing Library and jsdom, configure Vitest so `*.test.tsx` runs in jsdom and `*.test.ts` stays in Node, and prove it with a smoke test of `App`.
 
 **Acceptance criteria:**
-- [ ] Dev deps added at pinned current versions: `@testing-library/react`, `@testing-library/dom` (its required peer), `@testing-library/user-event`, `jsdom`. Confirm the `dom` peer with Jan before installing.
-- [ ] `src/App.test.tsx` renders `App` and finds the app name; existing Node tests are unaffected.
-- [ ] Setup cleans up between tests (RTL `cleanup`, or `globals` as the docs say).
+- [x] Dev deps added at pinned current versions: `@testing-library/react`, `@testing-library/dom` (its required peer), `@testing-library/user-event`, `jsdom` (28, not 31: 31 needs Node ≥ 22.22.2). `dom` peer approved 2026-11-09.
+- [x] `src/App.test.tsx` renders `App` and finds the app name; existing Node tests are unaffected.
+- [x] Setup cleans up between tests (RTL `cleanup`, or `globals` as the docs say).
 
 **Verification:**
-- [ ] `npm test` runs both environments green
-- [ ] `npm run build` type-checks the `.tsx` test
+- [x] `npm test` runs both environments green
+- [x] `npm run build` type-checks the `.tsx` test
 
 **Dependencies:** None
 
@@ -30,12 +30,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Pure functions that turn a `TodayPlan` into what the screen renders, for both views.
 
 **Acceptance criteria:**
-- [ ] `groupForList(plan)` returns Keep life running (recurring and unattached tasks), Move forward (goal tasks); within each, timed tasks by time, then untimed in plan order. `groupByGoal(plan)` returns Keep life running, then one section per goal titled "Goal · Aspiration", ordered by aspiration priority. Skipped tasks are excluded.
-- [ ] `timeLabel` gives "by 7 a.m.", "at 6 p.m.", "at 6:30 p.m.", "at 12 p.m.", "at 12 a.m."; `goalSubline` gives "Be strong · Be fit" or the goal alone.
-- [ ] `progress(plan)` returns `{ done, total }` over planned + done; `dayHeading(date)` gives "Today · Wednesday" from a local day string, correct at 11:30 p.m.
+- [x] `groupForList(plan)` returns Keep life running (recurring and unattached tasks), Move forward (goal tasks); within each, timed tasks by time, then untimed in plan order. `groupByGoal(plan)` returns Keep life running, then one section per goal titled "Goal · Aspiration", ordered by aspiration priority. Skipped tasks are excluded.
+- [x] `timeLabel` gives "by 7 a.m.", "at 6 p.m.", "at 6:30 p.m.", "at 12 p.m.", "at 12 a.m."; `goalSubline` gives "Be strong · Be fit" or the goal alone.
+- [x] `progress(plan)` returns `{ done, total }` over planned + done; `dayHeading(date)` gives "Today · Wednesday" from a local day string, correct at 11:30 p.m.
 
 **Verification:**
-- [ ] `npm test`: `domain/today.test.ts` covers each bullet, using hand-built plans (no mock store)
+- [x] `npm test`: `domain/today.test.ts` covers each bullet, using hand-built plans (no mock store)
 
 **Dependencies:** None
 
@@ -44,7 +44,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** S (2 files, most of the logic)
 
 ## Checkpoint: Foundation
-- [ ] Tests, lint and build pass
+- [x] Tests, lint and build pass
 
 ## Phase 2: Core
 
@@ -53,12 +53,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `useToday` loads the plan; `Today` shows the heading, "N of M done", the progress bar, the List groups with time labels and sublines, the Free time line "The rest is yours", a Pull from bank button (inert for now), and the empty-day state. `App` renders `Today`.
 
 **Acceptance criteria:**
-- [ ] With the mock store on Wednesday, the screen shows both groups with the right tasks in the right order and "0 of 4 done".
-- [ ] No tasks today → a warm line and the Pull from bank button; no progress bar.
-- [ ] Components hold no grouping or formatting logic (they call `domain/`).
+- [x] With the mock store on Wednesday, the screen shows both groups with the right tasks in the right order and "0 of 4 done".
+- [x] No tasks today → a warm line and the Pull from bank button; no progress bar.
+- [x] Components hold no grouping or formatting logic (they call `domain/`).
 
 **Verification:**
-- [ ] `npm test`: `screens/Today.test.tsx` covers both bullets
+- [x] `npm test`: `screens/Today.test.tsx` covers both bullets
 - [ ] Manual: `npm run dev`, looks right at 390 px
 
 **Dependencies:** Tasks 1, 2
@@ -72,12 +72,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Add `uncheckTask` to the client. `useToday.toggleDone` updates state immediately, then calls `checkOffTask` / `uncheckTask`; on rejection it restores the task and shows "Couldn't save that. Try again."
 
 **Acceptance criteria:**
-- [ ] `uncheckTask` sets status `planned`, clears `completedAt` and `valueLogged`; unknown ID or a task that isn't done rejects.
-- [ ] Tapping a row marks it done before the client resolves and updates "N of M done"; tapping again undoes it. On rejection the row reverts and the message shows.
-- [ ] Two quick taps settle on the second tap's state. The row is a checkbox (`role="checkbox"`, `aria-checked`, named by the title); done isn't shown by colour alone.
+- [x] `uncheckTask` sets status `planned`, clears `completedAt` and `valueLogged`; unknown ID or a task that isn't done rejects.
+- [x] Tapping a row marks it done before the client resolves and updates "N of M done"; tapping again undoes it. On rejection the row reverts and the message shows.
+- [x] Two quick taps settle on the second tap's state. The row is a checkbox (`role="checkbox"`, `aria-checked`, named by the title); done isn't shown by colour alone.
 
 **Verification:**
-- [ ] `npm test`: client tests for `uncheckTask`; `hooks/useToday.test.tsx` with a deferred client mock for optimistic, rollback and double-tap; screen test for tap → count
+- [x] `npm test`: client tests for `uncheckTask`; `hooks/useToday.test.tsx` with a deferred client mock for optimistic, rollback and double-tap; screen test for tap → count
 
 **Dependencies:** Task 3
 
@@ -86,7 +86,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M
 
 ## Checkpoint A
-- [ ] Tests, lint and build pass
+- [x] Tests, lint and build pass
 - [ ] Review with Jan on the phone (`npm run dev -- --host`): read and check off
 
 ## Phase 3: Views and bank
