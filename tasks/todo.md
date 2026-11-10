@@ -150,11 +150,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `useWeek` loads the week and maps it through `domain/week.ts`. `Week` replaces the placeholder: header with range, progress rows with bars and pacing, seven day rows. Tapping a day opens it.
 
 **Acceptance criteria:**
-- [ ] On Wednesday: "Be strong · Be fit", "1 of 3", "5 days left · 1 more to plan"; seven day rows, Wednesday marked `aria-current="date"`, Monday and Tuesday dimmed.
-- [ ] Tapping Thursday opens the Thursday day screen; "‹ Week" comes back.
+- [x] On Wednesday: "Be strong · Be fit", "1 of 3", "5 days left · 1 more to plan"; seven day rows, Wednesday marked `aria-current="date"`, Monday and Tuesday dimmed.
+- [x] Tapping Thursday opens the Thursday day screen; "‹ Week" comes back.
 
 **Verification:**
-- [ ] `npm test`: `screens/Week.test.tsx`; `App.test.tsx` open-a-day round trip
+- [x] `npm test`: `screens/Week.test.tsx`; `App.test.tsx` open-a-day round trip
 - [ ] Manual: 390 px, light and dark
 
 **Dependencies:** Tasks 5, 7

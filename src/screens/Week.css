@@ -1,0 +1,128 @@
+.week {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.week-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.week-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.week-range {
+  margin: 0;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.week-section h2 {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.week-goal + .week-goal {
+  margin-top: 0.75rem;
+}
+
+.week-goal-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.week-goal-count {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.week-goal-bar {
+  appearance: none;
+  width: 100%;
+  height: 0.5rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.week-goal-bar::-webkit-progress-bar {
+  background: var(--line);
+}
+
+.week-goal-bar::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.week-goal-bar::-moz-progress-bar {
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.week-goal-pacing {
+  margin: 0.125rem 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.week-days {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.week-day {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.625rem 0.5rem;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.week-day[aria-current='date'] {
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+}
+
+.week-day[data-past='true'] {
+  color: var(--muted);
+}
+
+.week-day:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.week-day-name {
+  flex: none;
+  width: 2.5rem;
+  font-weight: 600;
+}
+
+.week-day-summary {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.week-day-done {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.875rem;
+}

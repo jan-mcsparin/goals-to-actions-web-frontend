@@ -13,11 +13,16 @@ function App() {
   return (
     <div className="app">
       {current.screen === 'today' && <Day key="today" date={today} today={today} />}
-      {current.screen === 'week' && <Week />}
+      {current.screen === 'week' && (
+        <Week today={today} onOpenDay={(date) => goTo({ screen: 'day', date })} />
+      )}
       {current.screen === 'day' && (
         <Day key={current.date} date={current.date} today={today} onBack={() => goTo({ screen: 'week' })} />
       )}
-      <TabBar current={current.screen === 'today' ? 'today' : 'week'} onSelect={(tab) => goTo({ screen: tab })} />
+      <TabBar
+        current={current.screen === 'today' ? 'today' : 'week'}
+        onSelect={(tab) => goTo({ screen: tab })}
+      />
     </div>
   )
 }
