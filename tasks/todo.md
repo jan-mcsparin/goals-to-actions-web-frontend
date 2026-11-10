@@ -190,4 +190,4 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** S
 
 ## Checkpoint C
-- [ ] Web-frontend PR open, referencing #2; parent-repo PR open, referencing #2
+- [x] Web-frontend PR open, referencing #2 (#10); parent-repo PR open, referencing #2 (goals-to-actions#3)
