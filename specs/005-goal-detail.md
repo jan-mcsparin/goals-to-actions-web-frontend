@@ -19,7 +19,7 @@ References: [Flow 2](../../docs/flows.md#flow-2-set-a-goal-and-its-milestones), 
   - when: "Wk 8 · Nov 30" (weeks counted from the goal's start date), or "No date";
   - its status: "Hit" with the result, "Not yet", or nothing for upcoming. The next upcoming one is marked "Next".
   - "+ Add milestone" ("+ Add step") at the end: a measurable line and an optional date.
-- **Condensed timeline:** with more than four milestones, the timeline folds so the weekly target and Check in stay near the top of the screen. Design: option D in the "Milestone timeline options" canvas (Nov 10).
+- **Condensed timeline:** with more than four milestones, the timeline folds so the weekly target and Check in stay near the top of the screen. Design: [`goal-detail-timeline.png`](../../docs/screens/goal-detail-timeline.png) (option D, Nov 10).
   - Always shown: the latest past milestone (hit or not yet), any milestone still marked "Not yet", the next upcoming one, and the goal (the last milestone).
   - Each run of other rows between them, Start included, folds into one tappable row on the rail: "Start and 1 hit milestone", "2 more: Wk 16, Wk 20". Tapping a fold row expands the whole timeline.
   - Below the timeline, beside "+ Add milestone": **Show all 6** / **Show less**. Expanded or not is remembered per goal (in `storage/`, like the Today view toggle) and restored on open.
