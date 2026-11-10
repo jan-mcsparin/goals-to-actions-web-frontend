@@ -195,12 +195,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `useUpkeep` and the `Upkeep` screen: pinned "‹ Aspirations" and "Keep life running" with its one line, then Recurring and To do. Wired in `App` from the tab's row.
 
 **Acceptance criteria:**
-- [ ] Shows "The things that have to happen, under no goal.", "Pay rent · Monthly on the 1st", and the mock's loose tasks, including "Fill out my ballot" with its day and "due Nov 13".
-- [ ] The only control on the page is back. No checkboxes, no menus.
-- [ ] Opening it from the tab, going back, and a remount all work; the tab stays Aspirations.
+- [x] Shows "The things that have to happen, under no goal.", "Pay rent · Monthly on the 1st", and the mock's loose tasks, including "Fill out my ballot" with "Today · due Nov 13".
+- [x] The only control on the page is back. No checkboxes, no menus.
+- [x] Opening it from the tab, going back, and a remount all work; the tab stays Aspirations.
 
 **Verification:**
-- [ ] `npm test`: `screens/Upkeep.test.tsx`, `App.test.tsx`
+- [x] `npm test`: `screens/Upkeep.test.tsx`, `App.test.tsx`
 - [ ] Manual: 375 and 390 px, light and dark
 
 **Dependencies:** Tasks 7, 9

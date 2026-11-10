@@ -177,3 +177,24 @@ it('shows only the way back for an aspiration or goal that no longer exists', as
 
   expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
 })
+
+it('opens Keep life running from its row, comes back, and restores it after a remount', async () => {
+  const user = userEvent.setup()
+  const first = render(<App />)
+  await user.click(await screen.findByRole('button', { name: 'Aspirations' }))
+
+  await user.click(await screen.findByRole('button', { name: /^Keep life running/ }))
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Keep life running' })).toBeDefined()
+  expect(currentTab()).toBe('Aspirations')
+
+  first.unmount()
+  render(<App />)
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Keep life running' })).toBeDefined()
+  expect(currentTab()).toBe('Aspirations')
+
+  await user.click(screen.getByRole('button', { name: 'Back to Aspirations' }))
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
+})
