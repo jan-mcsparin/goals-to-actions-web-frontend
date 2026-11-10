@@ -44,8 +44,8 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** S
 
 ## Checkpoint A
-- [ ] Tests, lint and build pass
-- [ ] Today and Week behave as before, apart from Week's new row and bank chip
+- [x] Tests, lint and build pass
+- [x] Today and Week behave as before, apart from Week's new row and bank chip
 
 ## Phase 2: Navigation
 
@@ -54,17 +54,17 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** The `Screen` union gains `aspirations`, `aspiration`, `upkeep` and `goal` (with `from`). `tabOf(screen)` says which tab a screen counts as. `TabBar` shows Today | Week | Aspirations. `App` renders a bare Aspirations screen (pinned "Aspirations" heading) for now.
 
 **Acceptance criteria:**
-- [ ] Each new screen round-trips through storage, `goal` with both kinds of `from`; a missing or malformed id or `from` falls back to Today.
-- [ ] Tapping Aspirations shows the heading, marks the tab `aria-current="page"`, and survives a remount.
-- [ ] `aspiration`, `goal` and `upkeep` count as the Aspirations tab.
+- [x] Each new screen round-trips through storage, `goal` with both kinds of `from`; a missing or malformed id or `from` falls back to Today.
+- [x] Tapping Aspirations shows the heading, marks the tab `aria-current="page"`, and survives a remount.
+- [x] `aspiration`, `goal` and `upkeep` count as the Aspirations tab.
 
 **Verification:**
-- [ ] `npm test`: `storage/navigation.test.ts`, `App.test.tsx`
+- [x] `npm test`: `storage/navigation.test.ts`, `App.test.tsx`
 - [ ] Manual: three labels fit at 375 px
 
 **Dependencies:** None (can run alongside Tasks 1–2)
 
-**Files:** `src/storage/navigation.ts` (+ test), `src/components/TabBar.tsx`, `src/screens/Aspirations.tsx`, `src/App.tsx`, `src/App.test.tsx`
+**Files:** `src/storage/navigation.ts` (+ test), `src/components/TabBar.tsx` (+ `.css`), `src/hooks/useNavigation.ts`, `src/screens/Aspirations.tsx`, `src/App.tsx`, `src/App.test.tsx`
 
 **Scope:** M
 

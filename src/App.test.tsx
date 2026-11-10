@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { resetStore } from './api/mockStore.ts'
@@ -68,4 +68,27 @@ it('opens a day from the Week screen and comes back', async () => {
   expect(currentTab()).toBe('Week')
   await user.click(screen.getByRole('button', { name: 'Back to Week' }))
   expect(await screen.findByRole('heading', { level: 1, name: 'This week' })).toBeDefined()
+})
+
+it('switches to Aspirations and remembers it', async () => {
+  const user = userEvent.setup()
+  const { unmount } = render(<App />)
+
+  await user.click(await screen.findByRole('button', { name: 'Aspirations' }))
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
+  expect(currentTab()).toBe('Aspirations')
+
+  unmount()
+  render(<App />)
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
+  expect(currentTab()).toBe('Aspirations')
+})
+
+it('lists the tabs as Today, Week, Aspirations', async () => {
+  render(<App />)
+
+  const tabs = within(await screen.findByRole('navigation', { name: 'Screens' })).getAllByRole('button')
+  expect(tabs.map((tab) => tab.textContent)).toEqual(['Today', 'Week', 'Aspirations'])
 })

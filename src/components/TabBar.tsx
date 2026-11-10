@@ -1,10 +1,10 @@
+import type { Tab } from '../storage/navigation.ts'
 import './TabBar.css'
-
-export type Tab = 'today' | 'week'
 
 const TABS: { tab: Tab; label: string }[] = [
   { tab: 'today', label: 'Today' },
   { tab: 'week', label: 'Week' },
+  { tab: 'aspirations', label: 'Aspirations' },
 ]
 
 type TabBarProps = {

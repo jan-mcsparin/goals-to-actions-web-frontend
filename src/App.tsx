@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { toLocalDay } from './api/dates.ts'
 import { TabBar } from './components/TabBar.tsx'
 import { useNavigation } from './hooks/useNavigation.ts'
+import { Aspirations } from './screens/Aspirations.tsx'
 import { Day } from './screens/Day.tsx'
 import { Week } from './screens/Week.tsx'
+import { tabOf } from './storage/navigation.ts'
 import './App.css'
 
 function App() {
@@ -19,10 +21,8 @@ function App() {
       {current.screen === 'day' && (
         <Day key={current.date} date={current.date} today={today} onBack={() => goTo({ screen: 'week' })} />
       )}
-      <TabBar
-        current={current.screen === 'today' ? 'today' : 'week'}
-        onSelect={(tab) => goTo({ screen: tab })}
-      />
+      {tabOf(current) === 'aspirations' && <Aspirations />}
+      <TabBar current={tabOf(current)} onSelect={(tab) => goTo({ screen: tab })} />
     </div>
   )
 }
