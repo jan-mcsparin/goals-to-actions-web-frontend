@@ -35,7 +35,8 @@ export async function getWeek(): Promise<WeekPlan> {
   const weeklyTargets = store.goals
     .filter((goal) => goal.status === 'active')
     .flatMap((goal) => currentTarget(goal.id, sunday) ?? [])
-  return structuredClone({ weekOf, tasks, ...recordsReferencedBy(tasks), weeklyTargets })
+  const targetGoalIds = weeklyTargets.map((target) => target.goalId)
+  return structuredClone({ weekOf, tasks, ...recordsReferencedBy(tasks, targetGoalIds), weeklyTargets })
 }
 
 export async function getBank(): Promise<Bank> {
@@ -106,8 +107,11 @@ function findTask(taskId: string): Task {
   return task
 }
 
-function recordsReferencedBy(tasks: Task[]) {
-  const goals = store.goals.filter((goal) => tasks.some((task) => task.goalId === goal.id))
+// The goals, recurring items and aspirations behind these tasks, plus any
+// extra goals asked for (a goal with a weekly target but no tasks yet).
+function recordsReferencedBy(tasks: Task[], extraGoalIds: string[] = []) {
+  const goalIds = new Set([...tasks.flatMap((task) => task.goalId ?? []), ...extraGoalIds])
+  const goals = store.goals.filter((goal) => goalIds.has(goal.id))
   const recurringItems = store.recurringItems.filter((item) =>
     tasks.some((task) => task.recurringItemId === item.id),
   )

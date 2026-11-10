@@ -9,7 +9,7 @@ import {
   swapTask,
   uncheckTask,
 } from './client.ts'
-import { resetStore } from './mockStore.ts'
+import { resetStore, store } from './mockStore.ts'
 
 // Wednesday 11 Nov 2026, 9 a.m. local time.
 const WEDNESDAY = new Date(2026, 10, 11, 9, 0)
@@ -308,6 +308,17 @@ describe('getWeek', () => {
     expect(ids(week.goals)).toEqual(['goal-garage', 'goal-strong'])
     expect(ids(week.aspirations)).toEqual(['asp-fit', 'asp-home'])
     expect(ids(week.recurringItems)).toEqual(['rec-laundry', 'rec-trash'])
+  })
+
+  it('includes a goal that has a target but no tasks this week, with its aspiration', async () => {
+    const others = store.tasks.filter((task) => task.goalId !== 'goal-strong')
+    store.tasks.splice(0, store.tasks.length, ...others)
+
+    const week = await getWeek()
+
+    expect(ids(week.weeklyTargets)).toEqual(['wt-strong'])
+    expect(ids(week.goals)).toContain('goal-strong')
+    expect(ids(week.aspirations)).toContain('asp-fit')
   })
 
   it("includes each active goal's current weekly target", async () => {
