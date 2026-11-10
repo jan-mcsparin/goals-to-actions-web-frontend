@@ -14,7 +14,7 @@ One spec per issue, numbered like the issue (the aspiration page gets its number
 
 | Module id | Spec | Issue | Responsibility | Depends on |
 |---|---|---|---|---|
-| `aspirations-tab` | [004](004-aspirations-tab.md) | #4 | Aspirations in priority order with their week, goals and recurring items; the third tab; `getAspirations` | — |
+| `aspirations-tab` | [004](004-aspirations-tab.md) | #4 | Aspirations in priority order with their week, goals and recurring items; the Keep life running page; the third tab | — |
 | `aspiration-page` | [aspiration page](aspiration-page.md) | to create | One aspiration: its goals, recurring items and past goals; edit, reorder, review, retire, bring back | `aspirations-tab` |
 | `goal-detail` | [005](005-goal-detail.md) | #5 | One goal in full: milestones, weekly target, check-in, Review / Pause / End | `aspirations-tab`, `aspiration-page` |
 | `add-sheet` | [006](006-add-sheet.md) | #6 | Add a task, goal, aspiration or recurring item; the + in the tab bar | `aspirations-tab`, `aspiration-page`, `goal-detail` |
@@ -35,7 +35,7 @@ Settled with Jan on 2026-11-10:
 2. **Tab bar:** Today | Week | + | Aspirations. The + opens the Add sheet over whatever screen is open; it isn't a screen.
 3. **Settings is a gear** in the Aspirations header. Settings counts as Aspirations in the tab bar and goes back there.
 4. **Aspirations are managed in the click-through:** add, edit the name and why, move up and down, review, retire and bring back. A new one goes last in priority.
-5. **A one-off goal's steps are its milestones.** Checking off a task never moves the stage; the person marks a step reached on the goal's page. No new entity.
+5. **A one-off goal's steps are its milestones**, and they're called steps everywhere ("Step 3 of 6", never "Stage"). Checking off a task never moves the stage; the person marks a step reached on the goal's page. No new entity.
 6. **The final milestone is the goal itself.** The timeline's last row is the goal's measurable line, and it counts in "1 of 6". Reaching it is reaching the goal. It isn't a separate milestone record. A goal with no milestones of its own reads "0 of 1".
 7. **Goal detail works fully, mocked:** Pause, End, Review and milestone check-in all change data.
 8. **Goal detail's timeline is vertical**, and condenses past four milestones (spec 005, `goal-detail-timeline.png`).
@@ -44,13 +44,16 @@ Settled with Jan on 2026-11-10:
 11. **A new task can go straight onto today.** That's the default when the sheet is opened from the Today tab; from anywhere else the bank is.
 12. **A new building goal gets this week's bank tasks from the mock**, so the loop from goal to Today can be clicked through.
 13. **#8 waits until every screen is built**, and hosting is chosen then. What's already in place (manifest, service worker, remembered screen) stays.
+14. **Pausing sets this week's tasks aside**, whether one goal is paused or an aspiration is retired with "Pause them". Tasks placed by hand go too. Recurring items paused by retiring stay off for now.
+15. **Keep life running is the special case beside the aspirations:** what has to happen but rolls up to no goal or aspiration (laundry, the trash, a library book, the insurance). It has a row on the Aspirations tab and a page of its own.
+16. **The week bar counts sessions only.** Hours and other amounts are left off for now.
+17. **Recurring items can repeat "N times a week".** A time of day on a recurring item comes later.
 
 Assumed (say so if wrong):
 
-14. **Navigation stays behind `useNavigation()`.** The `Screen` union grows by `{ screen: 'aspirations' }`, `{ screen: 'aspiration'; aspirationId }`, `{ screen: 'goal'; goalId; from }` and `{ screen: 'settings' }`, each remembered like the others. `from` is what lets back from a goal return to the tab or to an aspiration. Still no router.
-15. **Each spec adds its own `api/` functions, mock data and types.** #2's tests stay as they are; #3's change only where spec 004's new mock goal adds a row.
-16. **Nothing here builds the planner.** No week is redrafted and nothing is placed on a day for the person. The one stand-in is decision 12.
-17. **Pausing sets this week's tasks aside**, whether one goal is paused or an aspiration is retired with "Pause them". It's an open question in the aspiration page spec.
+18. **Navigation stays behind `useNavigation()`.** The `Screen` union grows by `{ screen: 'aspirations' }`, `{ screen: 'aspiration'; aspirationId }`, `{ screen: 'upkeep' }`, `{ screen: 'goal'; goalId; from }` and `{ screen: 'settings' }`, each remembered like the others. `from` is what lets back from a goal return to the tab or to an aspiration. Still no router.
+19. **Each spec adds its own `api/` functions, mock data and types.** #2's tests stay as they are; #3's change only where spec 004's new mock goal adds a row.
+20. **Nothing here builds the planner.** No week is redrafted and nothing is placed on a day for the person. The one stand-in is decision 12.
 
 ## Shared conventions
 

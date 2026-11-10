@@ -15,13 +15,13 @@ References: [Flow 1, "Managing aspirations afterwards"](../../docs/flows.md#flow
 - **Header (pinned):** "‹ Aspirations" on the left, "Aspiration" on the right. Then the name and the why.
 - **This week:** "2 of 5 · 6 days left" and a bar. The count is the one on the tab (spec 004); days left runs today through Sunday, as on Week. Left out when none of its goals has a weekly target.
 - **Goals**, with "3 active" beside the heading. One card per active goal, each a button that opens the goal:
-  - the label and "Milestone 1 of 6" (or "Stage");
+  - the label and "Milestone 1 of 6" (or "Step");
   - the measurable line;
   - a bar for milestone progress;
   - "This week: 1 of 3 lifting sessions", or "No weekly target yet" for a building goal without one. One-off and quitting goals have no week line.
   - Paused goals follow the active ones, as the same card with "Paused" in place of the count.
 - **+ Add a goal for Be fit:** arrives with #6 (Add sheet, Goal tab, this aspiration selected).
-- **Recurring:** its active recurring items, name on the left and repeat rule on the right. **+ Add recurring** arrives with #6.
+- **Recurring:** its active recurring items (on a retired aspiration's page, the ones it paused, marked "Paused"), name on the left and repeat rule on the right. **+ Add recurring** arrives with #6.
 - **Past goals (1):** closed to start; reached and ended goals with "Reached" or "Ended", each opening the goal.
 - **Priority:** "1st of 3 aspirations", "Comes first when goals compete for time", and two buttons, move up and move down. The one that can't apply is disabled.
 - **Actions:** Edit name and why · Review · Retire.
@@ -57,7 +57,7 @@ Afterwards the app returns to the Aspirations tab, where Be fit is under Retired
 
 The same page, quieter: the name, the why, "Retired Nov 10", its past goals, any goals paused by retiring (each still opens, and can be resumed there), and one action: **Bring back**. No This week, no Priority, no Edit, Review or Retire.
 
-**Bring back** makes it active again, last in priority. Goals it paused stay paused until resumed one by one; recurring items it paused stay off the same way. Goals that were kept going stay under Other goals.
+**Bring back** makes it active again, last in priority. Goals it paused stay paused until resumed one by one. Recurring items it paused stay off too; there's no way to turn one back on until recurring items get controls of their own. Goals that were kept going stay under Other goals.
 
 ## Scope
 
@@ -134,10 +134,13 @@ export function priorityLine(position: number, activeCount: number): string {
 - [ ] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
 - [ ] Works at 375 and 390 px, light and dark.
 
+## Decisions
+
+1. **"They leave your days" is literal** (Jan, Nov 10). With "Pause them", not-done tasks from this week for those goals and recurring items come off the days and out of the bank, including ones placed by hand. Pausing a single goal (spec 005) does the same.
+2. **Paused goals are listed** after the active ones, so they can be reached and resumed.
+3. **Recurring items paused by retiring stay off** after Bring back, for now.
+
 ## Open questions
 
-1. **"They leave your days."** This spec takes that literally: with "Pause them", not-done tasks from this week for those goals and recurring items come off the days and out of the bank. It's something the person did, so the Today rule holds. Spec 005 now does the same when a single goal is paused, so the two agree. Is that what you meant, including tasks you placed by hand?
-2. **Paused goals on the page.** The design shows only active goals. They need to be reachable to resume, so this spec lists them after the active ones.
-3. **Resuming a goal whose aspiration is retired.** Allowed; the goal then shows under Other goals on the tab until the aspiration is brought back. The alternative is to offer Bring back instead.
-4. **Recurring items can be paused only by retiring**, and resumed only... nowhere yet: there's no control on a recurring item. Bring back leaves them off, as flows.md says for goals. Should Bring back turn the recurring items back on instead, until recurring items get their own controls?
-5. **This needs an issue.** Shall I create one from the task template? The spec then takes its number.
+1. **Resuming a goal whose aspiration is retired.** Allowed; the goal then shows under Other goals on the tab until the aspiration is brought back. The alternative is to offer Bring back instead.
+2. **This needs an issue.** Shall I create one from the task template? The spec then takes its number.

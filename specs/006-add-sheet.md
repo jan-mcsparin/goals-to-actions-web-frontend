@@ -51,9 +51,9 @@ A building goal saved with a weekly target also gets that many tasks in this wee
 - **Name** (required): "Take out the trash".
 - **Fixed day** or **Flexible**.
   - Fixed: "Every week on" a weekday, or "Every month on the" 1st–28th.
-  - Flexible: "Once a week", "Every two weeks" or "Once a month".
-- **Under an aspiration:** optional.
-- "Added. It will show up in the plan when it's next due." It appears on its aspiration's card, or under Keep life running.
+  - Flexible: "Once a week", "2 times a week" up to "6 times a week", "Every two weeks" or "Once a month".
+- **Under an aspiration:** optional. With none, it belongs to Keep life running.
+- "Added. It will show up in the plan when it's next due." It appears on its aspiration's card, or on the Keep life running page.
 
 ## Scope
 
@@ -122,7 +122,7 @@ export function splitGoalSentence(sentence: string): { label: string; measurable
 
 ## Testing strategy
 
-- **`domain/add.test.ts`:** sentence split (one colon, several, none, extra spaces); task week for no date, this week, a past date, next week and across a year end; repeat-rule text and next due for each choice, including a monthly day already past this month; ready-to-save rules.
+- **`domain/add.test.ts`:** sentence split (one colon, several, none, extra spaces); task week for no date, this week, a past date, next week and across a year end; repeat-rule text and next due for each choice ("3 times a week" included), including a monthly day already past this month; ready-to-save rules.
 - **`api/client.test.ts`:** each add function stores and returns the record with its defaults; a task due later is absent from `getBank` and `getWeek`; a task added on today is in `getDay(today)` with `placedByHand`; a goal with a target shows in `getWeek`'s targets with that many bank tasks; rejections; new records pass the dataset consistency checks.
 - **`components/AddSheet.test.tsx`:** Task is open first and saves with only a title; "In the bank" is selected at first, or "On today" when opened from Today, and "On today" passes `onToday`; Save disabled when empty; Goal shows nothing but the three types until one is picked; the second field appears without a colon; "New aspiration" creates both; Aspiration saves without a why and "Add a goal for this" opens the Goal tab with it selected; each Recurring choice saves the right rule; typed text survives switching tabs and is cleared on close.
 - **`App.test.tsx`:** the + opens the sheet on any screen and isn't marked current; a task added while on Week appears in the bank; each link on an aspiration's page opens its tab with the aspiration selected; the sheet opened from Today has "On today" selected and the saved task appears in the list; opened from Week, Goals or an opened day it has "In the bank" selected; saving a goal opens its page.
@@ -149,6 +149,5 @@ export function splitGoalSentence(sentence: string): { label: string; measurable
 
 ## Open questions
 
-1. **Repeat choices** are the five listed. Yearly and "every N weeks" are left out for now.
+1. **Repeat choices** are the ones listed. Yearly, "every N weeks" and a time of day on a recurring item ("Thursdays at 8 p.m." in the design) are left out for now.
 2. **Deadline is offered for every goal type**, optional, as Flow 2 step 6 says, though the short form could drop it for building and quitting goals.
-3. **Repeat rules in the design** read "3 times a week" and "Thursdays at 8 p.m.", which the five choices here can't produce: a count per week, and a time of day on a recurring item (not in the data model). Add "N times a week" now and leave times for later?

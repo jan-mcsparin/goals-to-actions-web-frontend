@@ -141,4 +141,3 @@ export function weekLabel(startDate: string, targetDate: string | undefined): st
 2. **A new target takes effect this week**, so "1 of 3" can become "1 of 4" on Wednesday. The alternative is from next Monday.
 3. **End goal asks "reached or not"** rather than working it out, since nothing can tell whether "bench 175" was crossed.
 4. This is the largest of the five. The plan will likely split it into two PRs: the read-only screen with the target edit, then check-in and the actions.
-5. **Pausing a goal now sets its tasks aside** for the week (they return to the bank on Resume). Before the aspirations update this spec left them on their days. It changed to match Retire's "They leave your days"; see the first open question in the [aspiration page](aspiration-page.md) spec.
