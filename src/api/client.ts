@@ -1,8 +1,8 @@
 // The functions screens and hooks call. They read the in-memory mock store for
 // now; later they call the real API and keep the same signatures.
-import { mondayOf, toLocalDay } from './dates.ts'
+import { addDays, mondayOf, toLocalDay } from './dates.ts'
 import { store } from './mockStore.ts'
-import type { Bank, DayPlan, Task } from './types.ts'
+import type { Bank, DayPlan, Task, WeekPlan, WeeklyTarget } from './types.ts'
 
 export async function getDay(date: string): Promise<DayPlan> {
   const tasks = store.tasks.filter((task) => task.plannedDay === date)
@@ -25,6 +25,17 @@ export async function uncheckTask(taskId: string): Promise<Task> {
   delete task.completedAt
   delete task.valueLogged
   return structuredClone(task)
+}
+
+export async function getWeek(): Promise<WeekPlan> {
+  const monday = mondayOf(new Date())
+  const weekOf = toLocalDay(monday)
+  const sunday = toLocalDay(addDays(monday, 6))
+  const tasks = store.tasks.filter((task) => task.weekOf === weekOf)
+  const weeklyTargets = store.goals
+    .filter((goal) => goal.status === 'active')
+    .flatMap((goal) => currentTarget(goal.id, sunday) ?? [])
+  return structuredClone({ weekOf, tasks, ...recordsReferencedBy(tasks), weeklyTargets })
 }
 
 export async function getBank(): Promise<Bank> {
@@ -80,6 +91,13 @@ function findBankTask(taskId: string): Task {
   const task = findTask(taskId)
   if (task.status !== 'inBank') throw new Error(`Task ${taskId} is not in the bank`)
   return task
+}
+
+// A target change adds a row; the one in force is the latest that has started.
+function currentTarget(goalId: string, onOrBefore: string): WeeklyTarget | undefined {
+  return store.weeklyTargets
+    .filter((target) => target.goalId === goalId && target.effectiveFrom <= onOrBefore)
+    .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0]
 }
 
 function findTask(taskId: string): Task {

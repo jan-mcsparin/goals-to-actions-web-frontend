@@ -115,11 +115,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `getWeek()` returns every task with this week's `weekOf` (planned, done, in the bank), the records they reference, and active goals' weekly targets. Mock data adds tasks on Monday, Thursday, Friday and Saturday (today's tasks unchanged); hand-placed ones have `placedByHand: true`.
 
 **Acceptance criteria:**
-- [ ] `getWeek()` on Wednesday includes Monday's done lift, today's tasks, the bank tasks and the Be strong target; nothing from other weeks.
-- [ ] The consistency test still passes; #2's screen tests keep their counts.
+- [x] `getWeek()` on Wednesday includes Monday's done lift, today's tasks, the bank tasks and the Be strong target; nothing from other weeks.
+- [x] The consistency test still passes; #2's screen tests keep their counts.
 
 **Verification:**
-- [ ] `npm test`: client and mock-data tests
+- [x] `npm test`: client and mock-data tests
 
 **Dependencies:** Task 1 (can run in parallel with 2–5)
 

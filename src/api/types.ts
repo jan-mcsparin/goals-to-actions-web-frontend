@@ -100,6 +100,17 @@ export type DayPlan = {
   recurringItems: RecurringItem[]
 }
 
+// Every task in a week (planned, done and in the bank), with what they
+// reference and each active goal's current weekly target.
+export type WeekPlan = {
+  weekOf: string
+  tasks: Task[]
+  goals: Goal[]
+  aspirations: Aspiration[]
+  recurringItems: RecurringItem[]
+  weeklyTargets: WeeklyTarget[]
+}
+
 // This week's tasks not yet on a day, with what they reference (like DayPlan).
 export type Bank = {
   weekOf: string
