@@ -146,17 +146,17 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Scope:** M
 
-### Task 8: Skip and Swap from the ⋯ menu
+### Task 8: Back to bank and Swap from the ⋯ menu
 
-**Description:** Each planned row gets a "⋯" button (labelled "More for <title>") with Skip and Swap. Skip sends the task to the bank; Swap opens `BankSheet` and replaces the task with the picked one. Both go through `useToday`, optimistically.
+**Description:** Each planned row gets a "⋯" button (labelled "More for <title>") with Back to bank and Swap (renamed from Skip, 2026-11-09). Back to bank sends the task to the bank; Swap opens `BankSheet` and replaces the task with the picked one. Both go through `useToday`, optimistically.
 
 **Acceptance criteria:**
-- [ ] Skip removes the row and lowers the total in "N of M"; the task shows up in the bank sheet.
-- [ ] Swap moves the picked task onto today and the swapped-out task into the bank; each keeps its own time, and "N of M" is unchanged.
-- [ ] Done rows have no ⋯ menu (undo is the tap). Rejection reverts both tasks and shows the calm message.
+- [x] Back to bank removes the row and lowers the total in "N of M"; the task shows up in the bank sheet.
+- [x] Swap moves the picked task onto today and the swapped-out task into the bank; each keeps its own time, and "N of M" is unchanged.
+- [x] Done rows have no ⋯ menu (undo is the tap). Rejection reverts both tasks and shows the calm message.
 
 **Verification:**
-- [ ] `npm test`: screen tests for skip and swap; hook test for swap rollback
+- [x] `npm test`: screen tests for skip and swap; hook test for swap rollback
 
 **Dependencies:** Task 7
 
@@ -176,7 +176,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Record the behavior settled in the spec. Parent-repo edits go on their own branch and PR.
 
 **Acceptance criteria:**
-- [ ] `../docs/screens/README.md` (Today): Free time reads "The rest is yours"; unattached tasks sit under Keep life running; By goal cards are "Goal · Aspiration"; skip and swap via a ⋯ menu; tap again to undo.
+- [ ] `../docs/screens/README.md` (Today): Free time reads "The rest is yours"; unattached tasks sit under Keep life running; By goal cards are "Goal · Aspiration"; Back to bank and Swap via a ⋯ menu (flows.md: skipping is shown as "Back to bank"); tap again to undo.
 - [ ] `../docs/flows.md` Flow 5 mentions undo by tapping again.
 - [ ] `web-frontend/CLAUDE.md` `storage/` line mentions the view preference in `localStorage` until #8.
 

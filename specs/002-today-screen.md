@@ -19,7 +19,7 @@ References: [Flow 4](../../docs/flows.md#flow-4-plan-today), [Flow 5](../../docs
 - **By goal view:** a card for Keep life running, then one card per goal titled "Be strong · Be fit", ordered by aspiration priority. Free time line below the cards.
 - **Order within a group:** timed tasks first, by time; untimed tasks after, in plan order. Labels: `by` → "by 7 a.m.", `at` → "at 6 p.m.", `:00` dropped, otherwise "at 6:30 p.m.".
 - **Check off:** tap the circle or the row. It turns done immediately. Tap again to undo.
-- **Per-task actions:** Skip (back to the bank) and Swap (pick a bank task to take its place) from a small row menu. No swipe gestures in this task.
+- **Per-task actions:** Back to bank (skip: the task returns to the bank) and Swap (pick a bank task to take its place) from a small row menu. No swipe gestures in this task.
 - **Pull from bank:** button at the bottom opens a sheet listing this week's bank tasks; tapping one puts it on today.
 - **Empty day:** no tasks planned → a warm line and the Pull from bank button. No progress bar.
 - **Copy:** warm, never judgmental. No "overdue", no counts of what's left undone beyond "N of M done".
@@ -169,7 +169,7 @@ export function TaskRow({ task, subline, onToggle }: TaskRowProps) {
 1. **Free time line** is static: "The rest is yours." Deriving it from the plan ("Free after 6 p.m.") can come later.
 2. **Tasks with no goal and no recurring item** go under Keep life running.
 3. **By goal card titles** are "Goal · Aspiration" (e.g. "Be strong · Be fit") on every goal card; goal alone if it has no aspiration.
-4. **Skip and Swap** live in a small "⋯" menu per row; swipe later.
+4. **Back to bank and Swap** live in a small "⋯" menu per row; swipe later. The menu says "Back to bank" rather than "Skip" so it's clear where the task goes; the API still calls it `skipTask`. Done tasks have no menu.
 5. **ADR-004 split:** optimistic updates and the remembered view here; IndexedDB plan cache, offline queue and precache in #8.
 6. **Bank actions** work against the mock store; no week reflow.
 7. **Undo:** tapping a done task marks it planned again.

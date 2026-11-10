@@ -1,12 +1,16 @@
 import type { TaskRow as TaskRowData } from '../domain/today.ts'
+import { TaskMenu } from './TaskMenu.tsx'
 
 type TaskRowProps = {
   row: TaskRowData
   onToggle: () => void
+  onSendToBank: () => void
+  onSwap: () => void
 }
 
 // The whole row is the checkbox, so a tap anywhere on it checks the task off.
-export function TaskRow({ row, onToggle }: TaskRowProps) {
+// Done tasks have no menu: tapping again is how you undo them.
+export function TaskRow({ row, onToggle, onSendToBank, onSwap }: TaskRowProps) {
   const { task, timeLabel, subline } = row
   const done = task.status === 'done'
   const titleId = `task-${task.id}-title`
@@ -15,7 +19,7 @@ export function TaskRow({ row, onToggle }: TaskRowProps) {
   const describedBy = [timeLabel && timeId, subline && sublineId].filter(Boolean).join(' ')
 
   return (
-    <li>
+    <li className="task-item">
       <button
         type="button"
         role="checkbox"
@@ -42,6 +46,7 @@ export function TaskRow({ row, onToggle }: TaskRowProps) {
           </span>
         )}
       </button>
+      {!done && <TaskMenu taskTitle={task.title} onSendToBank={onSendToBank} onSwap={onSwap} />}
     </li>
   )
 }

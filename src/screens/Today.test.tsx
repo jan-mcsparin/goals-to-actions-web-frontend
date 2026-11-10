@@ -12,6 +12,8 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     getToday: vi.fn(actual.getToday),
     getBank: vi.fn(actual.getBank),
     pullFromBank: vi.fn(actual.pullFromBank),
+    skipTask: vi.fn(actual.skipTask),
+    swapTask: vi.fn(actual.swapTask),
   }
 })
 
@@ -130,6 +132,48 @@ describe('Today', () => {
     await user.click(within(sheet).getByRole('button', { name: 'Close' }))
 
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('sends a task back to the bank from its menu', async () => {
+    const user = userEvent.setup()
+    render(<Today />)
+
+    await user.click(await screen.findByRole('button', { name: 'More for Laundry' }))
+    await user.click(screen.getByRole('button', { name: 'Back to bank' }))
+
+    expect(screen.queryByRole('checkbox', { name: 'Laundry' })).toBeNull()
+    expect(screen.getByText('0 of 3 done')).toBeDefined()
+
+    await user.click(screen.getByRole('button', { name: 'Pull from bank' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
+    expect(await within(sheet).findByRole('button', { name: 'Laundry' })).toBeDefined()
+  })
+
+  it('swaps a task for one from the bank, keeping its place in the day', async () => {
+    const user = userEvent.setup()
+    render(<Today />)
+
+    await user.click(await screen.findByRole('button', { name: 'More for Laundry' }))
+    await user.click(screen.getByRole('button', { name: 'Swap' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Swap Laundry for' })
+    await user.click(await within(sheet).findByRole('button', { name: 'Call the dentist' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(rowTitles(screen.getByRole('region', { name: 'Keep life running' }))).toEqual([
+      'Move the car for street sweeping',
+      'Call the dentist',
+      'Fill out my ballot',
+    ])
+    expect(screen.getByText('0 of 4 done')).toBeDefined()
+  })
+
+  it('offers no menu on a done task, since a tap undoes it', async () => {
+    const user = userEvent.setup()
+    render(<Today />)
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Laundry' }))
+
+    expect(screen.queryByRole('button', { name: 'More for Laundry' })).toBeNull()
   })
 
   it('shows a warm empty state when nothing is planned', async () => {

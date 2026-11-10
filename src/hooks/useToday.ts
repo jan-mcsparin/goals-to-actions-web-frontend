@@ -2,7 +2,15 @@
 // show immediately and are saved in the background; if a save fails the task
 // goes back to how it was (ADR-004). Rules come from domain/today.ts.
 import { useEffect, useRef, useState } from 'react'
-import { checkOffTask, getBank, getToday, pullFromBank, uncheckTask } from '../api/client.ts'
+import {
+  checkOffTask,
+  getBank,
+  getToday,
+  pullFromBank,
+  skipTask,
+  swapTask,
+  uncheckTask,
+} from '../api/client.ts'
 import type { Bank, Task, TodayPlan } from '../api/types.ts'
 import {
   bankRows,
@@ -34,6 +42,8 @@ export type UseToday = {
   bankRows?: TaskRow[]
   loadBank: () => Promise<void>
   pull: (bankTaskId: string) => void
+  sendToBank: (taskId: string) => void
+  swap: (taskId: string, bankTaskId: string) => void
 }
 
 export function useToday(): UseToday {
@@ -54,9 +64,7 @@ export function useToday(): UseToday {
   }, [])
 
   function replaceTask(next: Task) {
-    setPlan((previous) =>
-      previous && { ...previous, tasks: previous.tasks.map((task) => (task.id === next.id ? next : task)) },
-    )
+    setPlan((previous) => previous && withTaskReplaced(previous, next.id, next))
   }
 
   // Each tap gets a number; only the newest tap on a task may update it, so
@@ -117,6 +125,41 @@ export function useToday(): UseToday {
       })
   }
 
+  // Shown as "Back to bank"; the API calls it skipping.
+  function sendToBank(taskId: string) {
+    const index = plan?.tasks.findIndex((task) => task.id === taskId) ?? -1
+    if (!plan || index === -1) return
+    const before = plan.tasks[index]
+
+    setPlan(withoutTask(plan, taskId))
+    setMessage(undefined)
+
+    skipTask(taskId).catch(() => {
+      setPlan((previous) => previous && withTaskAt(previous, before, index))
+      setMessage(SAVE_FAILED)
+    })
+  }
+
+  // The bank task takes the swapped task's place, so the day keeps its order.
+  function swap(taskId: string, bankTaskId: string) {
+    const before = plan?.tasks.find((task) => task.id === taskId)
+    const bankTask = bank?.tasks.find((task) => task.id === bankTaskId)
+    if (!plan || !bank || !before || !bankTask) return
+
+    const placed: Task = { ...bankTask, status: 'planned', plannedDay: plan.date }
+    setPlan(withTaskReplaced(withRecordsFrom(plan, bank), taskId, placed))
+    setBank({ ...bank, tasks: bank.tasks.filter((task) => task.id !== bankTaskId) })
+    setMessage(undefined)
+
+    swapTask(taskId, bankTaskId)
+      .then((saved) => replaceTask(saved.placed))
+      .catch(() => {
+        setPlan((previous) => previous && withTaskReplaced(previous, bankTaskId, before))
+        setBank((previous) => previous && { ...previous, tasks: [...previous.tasks, bankTask] })
+        setMessage(SAVE_FAILED)
+      })
+  }
+
   return {
     today: plan && viewOf(plan, view),
     message,
@@ -126,12 +169,22 @@ export function useToday(): UseToday {
     bankRows: bank && bankRows(bank),
     loadBank,
     pull,
+    sendToBank,
+    swap,
   }
 }
 
 function viewOf(plan: TodayPlan, view: TodayViewMode): TodayView {
   const sections = view === 'byGoal' ? groupByGoal(plan) : groupForList(plan)
   return { heading: dayHeading(plan.date), progress: progress(plan), sections }
+}
+
+function withTaskAt(plan: TodayPlan, task: Task, index: number): TodayPlan {
+  return { ...plan, tasks: plan.tasks.toSpliced(index, 0, task) }
+}
+
+function withTaskReplaced(plan: TodayPlan, taskId: string, replacement: Task): TodayPlan {
+  return { ...plan, tasks: plan.tasks.map((task) => (task.id === taskId ? replacement : task)) }
 }
 
 function withoutTask(plan: TodayPlan, taskId: string): TodayPlan {

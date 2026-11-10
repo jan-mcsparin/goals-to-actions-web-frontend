@@ -104,11 +104,18 @@
   list-style: none;
 }
 
-.task-row {
+.task-item {
+  position: relative;
   display: flex;
   align-items: flex-start;
+}
+
+.task-row {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: flex-start;
   gap: 0.75rem;
-  width: 100%;
   min-height: 2.75rem;
   padding: 0.5rem 0;
   border: none;
@@ -265,4 +272,49 @@
 
 .bank-sheet-empty {
   margin: 1rem 0 0;
+}
+
+.task-menu-toggle {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.task-menu-actions {
+  position: absolute;
+  top: 2.75rem;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 10rem;
+  padding: 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--bg);
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 0.15);
+}
+
+.task-menu-actions button {
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.task-menu-toggle:focus-visible,
+.task-menu-actions button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

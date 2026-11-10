@@ -2,13 +2,26 @@ import { useState } from 'react'
 import { BankSheet } from '../components/BankSheet.tsx'
 import { TaskRow } from '../components/TaskRow.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
+import type { Task } from '../api/types.ts'
 import type { Section } from '../domain/today.ts'
 import { useToday } from '../hooks/useToday.ts'
 import './Today.css'
 
 export function Today() {
-  const { today, message, view, setView, toggleDone, bankRows, loadBank, pull } = useToday()
-  const [bankOpen, setBankOpen] = useState(false)
+  const { today, message, view, setView, toggleDone, bankRows, loadBank, pull, sendToBank, swap } =
+    useToday()
+  const [sheet, setSheet] = useState<Sheet>()
+
+  function openSheet(next: Sheet) {
+    setSheet(next)
+    void loadBank()
+  }
+
+  function pickFromBank(bankTaskId: string) {
+    if (sheet?.kind === 'swap') swap(sheet.taskId, bankTaskId)
+    else pull(bankTaskId)
+    setSheet(undefined)
+  }
 
   if (!today) {
     return (
@@ -45,7 +58,13 @@ export function Today() {
       ) : (
         <>
           {sections.map((section) => (
-            <TaskGroup key={section.id} section={section} onToggle={toggleDone} />
+            <TaskGroup
+              key={section.id}
+              section={section}
+              onToggle={toggleDone}
+              onSendToBank={sendToBank}
+              onSwap={(task) => openSheet({ kind: 'swap', taskId: task.id, taskTitle: task.title })}
+            />
           ))}
           <section className="today-free-time" aria-labelledby="free-time">
             <h2 id="free-time">Free time</h2>
@@ -57,41 +76,45 @@ export function Today() {
       <button
         type="button"
         className="today-pull"
-        onClick={() => {
-          setBankOpen(true)
-          void loadBank()
-        }}
+        onClick={() => openSheet({ kind: 'pull' })}
       >
         Pull from bank
       </button>
 
       <BankSheet
-        open={bankOpen}
-        title="Pull from bank"
+        open={sheet !== undefined}
+        title={sheet?.kind === 'swap' ? `Swap ${sheet.taskTitle} for` : 'Pull from bank'}
         rows={bankRows}
-        onPick={(taskId) => {
-          pull(taskId)
-          setBankOpen(false)
-        }}
-        onClose={() => setBankOpen(false)}
+        onPick={pickFromBank}
+        onClose={() => setSheet(undefined)}
       />
     </main>
   )
 }
 
+type Sheet = { kind: 'pull' } | { kind: 'swap'; taskId: string; taskTitle: string }
+
 type TaskGroupProps = {
   section: Section
   onToggle: (taskId: string) => void
+  onSendToBank: (taskId: string) => void
+  onSwap: (task: Task) => void
 }
 
-function TaskGroup({ section, onToggle }: TaskGroupProps) {
+function TaskGroup({ section, onToggle, onSendToBank, onSwap }: TaskGroupProps) {
   const headingId = `group-${section.id}`
   return (
     <section className="today-group" aria-labelledby={headingId}>
       <h2 id={headingId}>{section.title}</h2>
       <ul className="task-list">
         {section.rows.map((row) => (
-          <TaskRow key={row.task.id} row={row} onToggle={() => onToggle(row.task.id)} />
+          <TaskRow
+            key={row.task.id}
+            row={row}
+            onToggle={() => onToggle(row.task.id)}
+            onSendToBank={() => onSendToBank(row.task.id)}
+            onSwap={() => onSwap(row.task)}
+          />
         ))}
       </ul>
     </section>
