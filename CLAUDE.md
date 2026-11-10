@@ -13,9 +13,9 @@ src/
   config.ts        APP_NAME and other product constants (the only place the name appears in code)
   api/             API client functions + types (generated from the OpenAPI schema once the API exists)
   domain/          plain TS: planning, pacing, rollover rules. No React imports. Unit-tested.
-  storage/         On-device storage: Today's view choice (localStorage) now; IndexedDB plan cache + offline queue in #8
+  storage/         On-device storage: Today's view choice and the open screen (localStorage) now; IndexedDB plan cache + offline queue later, once there's an API
   hooks/           React hooks wrapping api/, domain/ and storage/
-  screens/         Today, Week, Goals, GoalDetail, Add, Settings
+  screens/         Day (Today and any opened day), Week, Aspirations, Aspiration, Upkeep (Keep life running), GoalDetail, Settings; Add is a sheet
   components/      presentational pieces only
 ```
 
