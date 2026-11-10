@@ -349,6 +349,18 @@ describe('Day', () => {
     expect(screen.queryByRole('button', { name: 'Back to Week' })).toBeNull()
   })
 
+  it('pins the back button, heading, count and progress bar together at the top', async () => {
+    render(<Day date="2026-11-12" today={WEDNESDAY_DAY} onBack={() => {}} />)
+
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Thursday · Nov 12' })
+    const pinned = heading.closest('.screen-top')
+    expect(pinned).not.toBeNull()
+    expect(pinned?.contains(screen.getByRole('button', { name: 'Back to Week' }))).toBe(true)
+    expect(pinned?.contains(screen.getByRole('progressbar'))).toBe(true)
+    expect(pinned?.textContent).toContain('0 of 1 done')
+    expect(pinned?.contains(screen.getByRole('button', { name: 'List' }))).toBe(false)
+  })
+
   it('shows a warm empty state when nothing is planned', async () => {
     vi.mocked(getDay).mockResolvedValueOnce({
       date: '2026-11-11',

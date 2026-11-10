@@ -34,6 +34,13 @@ describe('Week', () => {
     expect(screen.getByText('Nov 9–15')).toBeDefined()
   })
 
+  it('pins the heading and range at the top', async () => {
+    render(<Week today={WEDNESDAY_DAY} onOpenDay={() => {}} />)
+
+    const pinned = (await screen.findByRole('heading', { level: 1, name: 'This week' })).closest('.screen-top')
+    expect(pinned?.textContent).toContain('Nov 9–15')
+  })
+
   it("shows each goal's progress and pacing", async () => {
     render(<Week today={WEDNESDAY_DAY} onOpenDay={() => {}} />)
 

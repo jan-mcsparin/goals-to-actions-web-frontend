@@ -72,15 +72,25 @@ export function Day({ date, today, onBack }: DayProps) {
 
   return (
     <main className="today" data-view={view}>
-      {onBack && (
-        <button type="button" className="today-back" aria-label="Back to Week" onClick={onBack}>
-          ‹ Week
-        </button>
-      )}
-      <header className="today-header">
-        <h1>{heading}</h1>
-        {!isEmpty && <p className="today-count">{`${progress.done} of ${progress.total} done`}</p>}
-      </header>
+      <div className="screen-top today-top">
+        {onBack && (
+          <button type="button" className="today-back" aria-label="Back to Week" onClick={onBack}>
+            ‹ Week
+          </button>
+        )}
+        <header className="today-header">
+          <h1>{heading}</h1>
+          {!isEmpty && <p className="today-count">{`${progress.done} of ${progress.total} done`}</p>}
+        </header>
+        {!isEmpty && (
+          <progress
+            className="today-progress"
+            value={progress.done}
+            max={progress.total}
+            aria-label={isToday ? 'Done today' : 'Done this day'}
+          />
+        )}
+      </div>
 
       {message && (
         <p className="today-message" role="status">
@@ -89,15 +99,6 @@ export function Day({ date, today, onBack }: DayProps) {
       )}
 
       {!isEmpty && <ViewToggle view={view} onChange={setView} />}
-
-      {!isEmpty && (
-        <progress
-          className="today-progress"
-          value={progress.done}
-          max={progress.total}
-          aria-label={isToday ? 'Done today' : 'Done this day'}
-        />
-      )}
 
       {isEmpty ? (
         <p className="today-empty">{emptyLine}</p>

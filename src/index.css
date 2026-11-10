@@ -28,15 +28,26 @@
   box-sizing: border-box;
 }
 
+/* No top padding: each screen's pinned top (.screen-top) pads the status bar area itself. */
 body {
   margin: 0;
   min-height: 100dvh;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right)
-    env(safe-area-inset-bottom) env(safe-area-inset-left);
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 main {
   max-width: 40rem;
   margin: 0 auto;
   padding: 1rem;
+}
+
+/* A screen's pinned top: stays under the status bar while the page scrolls
+   beneath it. Bleeds over main's padding so its background covers the rows. */
+.screen-top {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: -1rem -1rem 0;
+  padding: calc(env(safe-area-inset-top) + 1rem) 1rem 0.75rem;
+  background: var(--bg);
 }

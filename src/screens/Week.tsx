@@ -24,7 +24,7 @@ export function Week({ today, onOpenDay }: WeekProps) {
 
   return (
     <main className="week">
-      <header className="week-header">
+      <header className="screen-top week-header">
         <h1>This week</h1>
         <p className="week-range">{week.range}</p>
       </header>
