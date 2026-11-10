@@ -318,6 +318,16 @@ describe('Day', () => {
     expect(trash.getAttribute('aria-checked')).toBe('true')
   })
 
+  it('keeps fixed-day items in place: no menu, but they can still be checked off', async () => {
+    const user = userEvent.setup()
+    render(<Day date="2026-11-10" today={WEDNESDAY_DAY} />)
+
+    const trash = await screen.findByRole('checkbox', { name: 'Take out the trash' })
+    expect(screen.queryByRole('button', { name: 'More for Take out the trash' })).toBeNull()
+    await user.click(trash)
+    expect(trash.getAttribute('aria-checked')).toBe('true')
+  })
+
   it("doesn't offer to place tasks on a past day", async () => {
     render(<Day date="2026-11-10" today={WEDNESDAY_DAY} />)
 

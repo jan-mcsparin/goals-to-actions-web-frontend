@@ -6,6 +6,8 @@ export type TaskRow = {
   task: Task
   timeLabel?: string
   subline?: string
+  // From a fixed-day recurring item (trash on Tuesday): it stays on its day.
+  fixed?: true
 }
 
 export type Section = {
@@ -46,7 +48,7 @@ export function groupForList(plan: DayPlan): Section[] {
     {
       id: 'keep-life-running',
       title: KEEP_LIFE_RUNNING,
-      rows: tasks.filter(isMaintenance).map((task) => rowFor(task)),
+      rows: tasks.filter(isMaintenance).map((task) => maintenanceRow(task, plan)),
     },
     {
       id: 'move-forward',
@@ -64,7 +66,7 @@ export function groupByGoal(plan: DayPlan): Section[] {
   const maintenance: Section = {
     id: 'keep-life-running',
     title: KEEP_LIFE_RUNNING,
-    rows: tasks.filter(isMaintenance).map((task) => rowFor(task)),
+    rows: tasks.filter(isMaintenance).map((task) => maintenanceRow(task, plan)),
   }
   const goalCards = goalsByPriority(plan).map((goal) => ({
     id: goal.id,
@@ -102,6 +104,11 @@ function rowFor(task: Task, subline?: string): TaskRow {
     ...(task.timeOfDay && { timeLabel: timeLabel(task.timeOfDay) }),
     ...(subline && { subline }),
   }
+}
+
+function maintenanceRow(task: Task, plan: DayPlan): TaskRow {
+  const item = plan.recurringItems.find((candidate) => candidate.id === task.recurringItemId)
+  return item?.fixedDay ? { ...rowFor(task), fixed: true } : rowFor(task)
 }
 
 function sublineFor(task: Task, records: Pick<DayPlan, 'goals' | 'aspirations'>): string | undefined {

@@ -67,11 +67,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Rows from a fixed-day recurring item are marked `fixed`, and `TaskRow` hides ⋯ for them. They can still be checked off.
 
 **Acceptance criteria:**
-- [ ] `groupForList` / `groupByGoal` rows carry `fixed: true` for tasks whose recurring item has `fixedDay`.
-- [ ] On Tuesday, "Take out the trash" has no "More for…" button but can be checked off.
+- [x] `groupForList` / `groupByGoal` rows carry `fixed: true` for tasks whose recurring item has `fixedDay`.
+- [x] On Tuesday, "Take out the trash" has no "More for…" button but can be checked off.
 
 **Verification:**
-- [ ] `npm test`: domain test, and a screen test on a Tuesday date
+- [x] `npm test`: domain test, and a screen test on a Tuesday date
 
 **Dependencies:** Task 3
 
@@ -80,8 +80,8 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** S
 
 ## Checkpoint A
-- [ ] Tests, lint and build pass
-- [ ] Today behaves exactly as before; any day can be rendered and changed
+- [x] Tests, lint and build pass
+- [x] Today behaves exactly as before; any day can be rendered and changed
 
 ## Phase 2: Navigation
 

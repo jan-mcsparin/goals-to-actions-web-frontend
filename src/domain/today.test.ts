@@ -110,6 +110,28 @@ describe('groupForList', () => {
   })
 })
 
+describe('fixed-day tasks', () => {
+  const laundry: RecurringItem = { ...trash, id: 'rec-laundry', name: 'Laundry', fixedDay: false }
+
+  it('marks rows from a fixed-day recurring item, in both views', () => {
+    const tasks = [
+      task('Trash', { recurringItemId: 'rec-trash' }),
+      task('Laundry', { recurringItemId: 'rec-laundry' }),
+      task('Ballot'),
+    ]
+    const dayPlan = { ...plan(tasks), recurringItems: [trash, laundry] }
+
+    for (const sections of [groupForList(dayPlan), groupByGoal(dayPlan)]) {
+      const rows = sections[0].rows
+      expect(rows.map((row) => [row.task.title, row.fixed ?? false])).toEqual([
+        ['Trash', true],
+        ['Laundry', false],
+        ['Ballot', false],
+      ])
+    }
+  })
+})
+
 describe('groupByGoal', () => {
   it('starts with Keep life running, then one card per goal by aspiration priority', () => {
     const sections = groupByGoal(
