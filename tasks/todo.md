@@ -96,7 +96,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Verification:**
 - [x] `npm test`: `storage/navigation.test.ts`; `App.test.tsx` switches tabs and survives remount
-- [ ] Manual: on the phone, the bar clears the home indicator
+- [x] Manual: on the phone, the bar clears the home indicator
 
 **Dependencies:** Task 3
 
@@ -106,7 +106,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 ## Checkpoint B
 - [x] Tests, lint and build pass
-- [ ] Review with Jan on the phone: tabs, an opened day, back
+- [x] Review with Jan on the phone: tabs, an opened day, back
 
 ## Phase 3: Week
 
@@ -155,7 +155,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Verification:**
 - [x] `npm test`: `screens/Week.test.tsx`; `App.test.tsx` open-a-day round trip
-- [ ] Manual: 390 px, light and dark
+- [x] Manual: 390 px, light and dark
 
 **Dependencies:** Tasks 5, 7
 
@@ -182,9 +182,9 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M
 
 ## Checkpoint C
-- [x] Every success criterion in the spec is met (manual checks below still open)
+- [x] Every success criterion in the spec is met
 - [x] Tests, lint and build pass
-- [ ] Manual at 375 and 390 px, light and dark; tab bar and sheets on the phone
+- [x] Manual at 375 and 390 px, light and dark; tab bar and sheets on the phone
 
 ## Phase 4: Docs
 
