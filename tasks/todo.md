@@ -152,17 +152,17 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Placeholder `Aspiration` (name, "‹ Aspirations") and `GoalDetail` (label, a back link named for where you came from) screens, wired in `App` with `from`.
 
 **Acceptance criteria:**
-- [ ] Tapping Be fit's card top opens its placeholder; "‹ Aspirations" returns to the tab.
-- [ ] Tapping a goal row opens the goal's placeholder with `from: { screen: 'aspirations' }`; back returns there. A goal with `from` an aspiration goes back to that aspiration.
-- [ ] Both keep Aspirations as the current tab and survive a remount; an id that no longer exists shows only the back link.
+- [x] Tapping Be fit's card top opens its placeholder; "‹ Aspirations" returns to the tab.
+- [x] Tapping a goal row opens the goal's placeholder with `from: { screen: 'aspirations' }`; back returns there. A goal with `from` an aspiration goes back to that aspiration.
+- [x] Both keep Aspirations as the current tab and survive a remount; an id that no longer exists shows only the back link.
 
 **Verification:**
-- [ ] `npm test`: `App.test.tsx`
+- [x] `npm test`: `App.test.tsx`
 - [ ] Manual on the phone: card top and goal rows are easy to hit apart
 
 **Dependencies:** Task 7
 
-**Files:** `src/screens/Aspiration.tsx`, `src/screens/GoalDetail.tsx`, `src/App.tsx`, `src/App.test.tsx`
+**Files:** `src/screens/Aspiration.tsx`, `src/screens/GoalDetail.tsx`, `src/components/BackLink.tsx` (+ `.css`), `src/App.tsx`, `src/App.test.tsx`
 
 **Scope:** M
 
