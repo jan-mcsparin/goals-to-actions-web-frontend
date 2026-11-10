@@ -1,40 +1,41 @@
-# Tasks: Week screen (#3)
+# Tasks: Aspirations tab (#4)
 
-Plan: [`plan.md`](plan.md). Spec: [`../specs/003-week-screen.md`](../specs/003-week-screen.md).
+Plan: [`plan.md`](plan.md). Spec: [`../specs/004-aspirations-tab.md`](../specs/004-aspirations-tab.md).
 
-Every task: write tests first, then `npm test && npm run lint && npm run build`, then one commit.
+Every task: write tests first, then `npm test && npm run lint && npm run build`, then one commit. Test dates are fixed to Wednesday 11 Nov 2026, as before.
 
-## Phase 1: Any day
+## Phase 1: Data
 
-### Task 1: Rename Today's plan to a day's plan
+### Task 1: The mock dataset grows
 
-**Description:** Mechanical rename with no behaviour change: `TodayPlan` → `DayPlan`, `getToday()` → `getDay(date)`, `useToday` → `useDay(date)`, `Today.tsx` → `Day.tsx` (with a `date` prop). `App` passes today's date.
+**Description:** Add `status` and `retiredAt` to `Aspiration`, and the spec's mock records: Have endurance and Look good under Be fit, two more Be strong milestones, five steps for the garage, Stretch and Hockey, a paused goal, a reached goal, a goal with no aspiration and a deadline, and a retired aspiration with a reached goal. No new client function yet.
 
 **Acceptance criteria:**
-- [x] No `TodayPlan`, `getToday` or `useToday` left in `src/`; no aliases.
-- [x] `getDay(date)` returns that date's tasks and what they reference (one new client test for a non-today date).
-- [x] All existing tests pass with only names changed.
+- [ ] Be strong has five milestones (one hit, one not yet, three upcoming); Have endurance has three (two hit), a target of 2 runs, one run done on Monday and one in the bank; the garage has five steps, three hit.
+- [ ] Every aspiration has a `status`; exactly one is retired, with `retiredAt`. The consistency tests pass with the new records.
+- [ ] Today's tasks are unchanged. Week shows a second progress row ("Have endurance · Be fit", "1 of 2") and four bank chips; those expectations are updated here and nowhere else changes.
 
 **Verification:**
-- [x] `npm test`, `npm run build`; `grep -r "TodayPlan\|getToday\|useToday" src` is empty
+- [ ] `npm test`: `mockData.test.ts` contents; updated `Week.test.tsx`, `client.test.ts` and the one bank count in `Day.test.tsx`
+- [ ] Manual: `npm run dev`, Today looks the same, Week shows the run
 
 **Dependencies:** None
 
-**Files:** `src/api/types.ts`, `src/api/client.ts`, `src/api/client.test.ts`, `src/domain/today.ts` (+ test), `src/hooks/useDay.ts` (+ test, renamed), `src/screens/Day.tsx` (+ test, renamed), `src/App.tsx`
+**Files:** `src/api/types.ts`, `src/api/mockData.ts`, `src/api/mockData.test.ts`, `src/screens/Week.test.tsx`, `src/api/client.test.ts`, `src/screens/Day.test.tsx`
 
-**Scope:** M (many files, renames only)
+**Scope:** M (one data file, the rest are expectations)
 
-### Task 2: Place bank tasks on a given day, and record `placedByHand`
+### Task 2: `getAspirations`
 
-**Description:** `pullFromBank(id, day?)` places on `day` (default today). `swapTask` places the bank task on the swapped task's day. Both set `placedByHand: true`; `skipTask` clears it. Add the field to `Task`.
+**Description:** `getAspirations()` returns an `AspirationsOverview`: every aspiration and goal, the goals' milestones in order, active recurring items, the weekly target in force per active goal, and this week's goal tasks.
 
 **Acceptance criteria:**
-- [x] `pullFromBank('task-lift-bank', '2026-11-13')` plans it for Friday with `placedByHand: true`; without a day it goes to today.
-- [x] Swapping a Thursday task puts the bank task on Thursday; both sides' `placedByHand` are right.
-- [x] `skipTask` removes `placedByHand`; `pullFromBank` rejects a past day ("Can't place a task on a past day").
+- [ ] Includes active and retired aspirations, goals of every status, and milestones in each goal's order.
+- [ ] `weeklyTargets` has one per active goal that has one (none for paused goals); `weekTasks` has only this week's tasks with a goal.
+- [ ] Returns copies.
 
 **Verification:**
-- [x] `npm test`: client tests per bullet
+- [ ] `npm test`: `client.test.ts`, a `getAspirations` block per bullet
 
 **Dependencies:** Task 1
 
@@ -42,169 +43,195 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Scope:** S
 
-### Task 3: The Day screen works for any date
-
-**Description:** `useDay(date)` passes its date to pull and swap and sets `placedByHand` in its optimistic copies. `dayHeading(date, today)` gives "Today · Wednesday" or "Thursday · Nov 12". `Day` shows a "‹ Week" back button when given `onBack`.
-
-**Acceptance criteria:**
-- [x] Rendering `<Day date="2026-11-12" />` (on a Wednesday) shows Thursday's tasks under "Thursday · Nov 12".
-- [x] Pull from bank and Swap on that screen place the task on Thursday; check-off and undo work there too.
-- [x] "‹ Week" appears only with `onBack` and calls it.
-
-**Verification:**
-- [x] `npm test`: `domain/today.test.ts` heading cases; `hooks/useDay.test.tsx` pull onto Thursday; `screens/Day.test.tsx` heading, pull and back
-
-**Note:** on past days Pull from bank and Swap are hidden (the API refuses past days); check-off, undo and Back to bank stay.
-
-**Dependencies:** Task 2
-
-**Files:** `src/domain/today.ts` (+ test), `src/hooks/useDay.ts` (+ test), `src/screens/Day.tsx` (+ test)
-
-**Scope:** M
-
-### Task 4: Fixed-day items have no menu
-
-**Description:** Rows from a fixed-day recurring item are marked `fixed`, and `TaskRow` hides ⋯ for them. They can still be checked off.
-
-**Acceptance criteria:**
-- [x] `groupForList` / `groupByGoal` rows carry `fixed: true` for tasks whose recurring item has `fixedDay`.
-- [x] On Tuesday, "Take out the trash" has no "More for…" button but can be checked off.
-
-**Verification:**
-- [x] `npm test`: domain test, and a screen test on a Tuesday date
-
-**Dependencies:** Task 3
-
-**Files:** `src/domain/today.ts` (+ test), `src/components/TaskRow.tsx`, `src/screens/Day.test.tsx`
-
-**Scope:** S
-
 ## Checkpoint A
-- [x] Tests, lint and build pass
-- [x] Today behaves exactly as before; any day can be rendered and changed
+- [ ] Tests, lint and build pass
+- [ ] Today and Week behave as before, apart from Week's new row and bank chip
 
 ## Phase 2: Navigation
 
-### Task 5: Tab bar and remembered screen
+### Task 3: Third tab and the new screens, remembered
 
-**Description:** `storage/navigation.ts` reads and writes the current screen; `useNavigation()` exposes it with `goTo`. `TabBar` (Today | Week) sits at the bottom. `App` renders Today, a placeholder Week ("This week"), or an opened day.
+**Description:** The `Screen` union gains `aspirations`, `aspiration`, `upkeep` and `goal` (with `from`). `tabOf(screen)` says which tab a screen counts as. `TabBar` shows Today | Week | Aspirations. `App` renders a bare Aspirations screen (pinned "Aspirations" heading) for now.
 
 **Acceptance criteria:**
-- [x] Default is Today; the screen (including `{ screen: 'day', date }`) survives a remount; bad or blocked storage falls back to Today.
-- [x] Tabs use `aria-current="page"`; an opened day marks Week as current; "‹ Week" returns to Week.
-- [x] Content isn't hidden behind the bar (bottom padding includes the safe-area inset).
+- [ ] Each new screen round-trips through storage, `goal` with both kinds of `from`; a missing or malformed id or `from` falls back to Today.
+- [ ] Tapping Aspirations shows the heading, marks the tab `aria-current="page"`, and survives a remount.
+- [ ] `aspiration`, `goal` and `upkeep` count as the Aspirations tab.
 
 **Verification:**
-- [x] `npm test`: `storage/navigation.test.ts`; `App.test.tsx` switches tabs and survives remount
-- [x] Manual: on the phone, the bar clears the home indicator
+- [ ] `npm test`: `storage/navigation.test.ts`, `App.test.tsx`
+- [ ] Manual: three labels fit at 375 px
 
-**Dependencies:** Task 3
+**Dependencies:** None (can run alongside Tasks 1–2)
 
-**Files:** `src/storage/navigation.ts` (+ test), `src/hooks/useNavigation.ts`, `src/components/TabBar.tsx` (+ `.css`), `src/App.tsx`, `src/App.test.tsx`
+**Files:** `src/storage/navigation.ts` (+ test), `src/components/TabBar.tsx`, `src/screens/Aspirations.tsx`, `src/App.tsx`, `src/App.test.tsx`
 
 **Scope:** M
 
 ## Checkpoint B
-- [x] Tests, lint and build pass
-- [x] Review with Jan on the phone: tabs, an opened day, back
+- [ ] Tests, lint and build pass
+- [ ] Review with Jan on the phone: three tabs, bar clears the home indicator
 
-## Phase 3: Week
+## Phase 3: The tab
 
-### Task 6: `getWeek` and a fuller mock week
+### Task 4: `domain/aspirations.ts`: cards and goal rows
 
-**Description:** `getWeek()` returns every task with this week's `weekOf` (planned, done, in the bank), the records they reference, and active goals' weekly targets. Mock data adds tasks on Monday, Thursday, Friday and Saturday (today's tasks unchanged); hand-placed ones have `placedByHand: true`.
-
-**Acceptance criteria:**
-- [x] `getWeek()` on Wednesday includes Monday's done lift, today's tasks, the bank tasks and the Be strong target; nothing from other weeks.
-- [x] The consistency test still passes; #2's screen tests keep their counts.
-
-**Verification:**
-- [x] `npm test`: client and mock-data tests
-
-**Dependencies:** Task 1 (can run in parallel with 2–5)
-
-**Files:** `src/api/types.ts`, `src/api/client.ts`, `src/api/client.test.ts`, `src/api/mockData.ts`
-
-**Scope:** M
-
-### Task 7: `domain/week.ts`
-
-**Description:** Pure functions for the Week screen: `weekProgress`, `pacingLine`, `daySummaries`, `weekRange`, `pickableDays`.
+**Description:** Pure functions that turn an `AspirationsOverview` into cards: active aspirations in priority order, each with its active and paused goals as rows, and its recurring line.
 
 **Acceptance criteria:**
-- [x] Pacing: "Done for the week"; "6 days left · on pace"; "6 days left · 1 more to plan"; "1 day left" on Sunday. Progress counts only that goal's done tasks.
-- [x] Day summaries: Monday to Sunday, timed labels in titles ("Trash by 7 a.m."), `allDone`, "Free day" when empty, `isToday` / `isPast`.
-- [x] `weekRange` gives "Nov 9–15" and "Nov 30–Dec 6"; `pickableDays` gives today and later days only.
+- [ ] Cards are in priority order; retired aspirations and past goals (reached, ended) are left out of cards; paused goals are in, reading "Paused".
+- [ ] Counts treat the goal as the final milestone: "Milestone 1 of 6", "Step 3 of 6", "0 of 1" with none, "1 of 1" once reached; a one-off goal with a deadline adds "· by Dec 15".
+- [ ] The recurring line reads "2 recurring: Stretch, Hockey" or "No recurring items"; a card with no goals is flagged for "No goals yet."
 
 **Verification:**
-- [x] `npm test`: `domain/week.test.ts` with hand-built plans
+- [ ] `npm test`: `domain/aspirations.test.ts` with hand-built overviews
 
-**Dependencies:** Task 6 (types only)
+**Dependencies:** Task 2 (types only)
 
-**Files:** `src/domain/week.ts`, `src/domain/week.test.ts`
+**Files:** `src/domain/aspirations.ts`, `src/domain/aspirations.test.ts`
 
 **Scope:** S
 
-### Task 8: Week screen: progress and days
+### Task 5: `domain/aspirations.ts`: the week count, and what sits below the cards
 
-**Description:** `useWeek` loads the week and maps it through `domain/week.ts`. `Week` replaces the placeholder: header with range, progress rows with bars and pacing, seven day rows. Tapping a day opens it.
+**Description:** `weekCount` per aspiration, plus Other goals (with their past goals), the Keep life running count and the retired list.
 
 **Acceptance criteria:**
-- [x] On Wednesday: "Be strong · Be fit", "1 of 3", "5 days left · 1 more to plan"; seven day rows, Wednesday marked `aria-current="date"`, Monday and Tuesday dimmed.
-- [x] Tapping Thursday opens the Thursday day screen; "‹ Week" comes back.
+- [ ] Two goals' targets are summed (3 + 2 = 5); each goal's done tasks are capped at its own target; paused goals and amount-less goals are left out; no targets gives no count.
+- [ ] Other goals holds active and paused goals with no aspiration, and their reached and ended goals separately; both empty means no section.
+- [ ] The upkeep count is the active recurring items with no aspiration; retired aspirations are listed by name.
 
 **Verification:**
-- [x] `npm test`: `screens/Week.test.tsx`; `App.test.tsx` open-a-day round trip
-- [x] Manual: 390 px, light and dark
+- [ ] `npm test`: `domain/aspirations.test.ts`
 
-**Dependencies:** Tasks 5, 7
+**Dependencies:** Task 4
 
-**Files:** `src/hooks/useWeek.ts`, `src/screens/Week.tsx`, `src/screens/Week.css`, `src/screens/Week.test.tsx`, `src/App.tsx`
+**Files:** `src/domain/aspirations.ts`, `src/domain/aspirations.test.ts`
+
+**Scope:** S
+
+### Task 6: Aspirations screen: the cards
+
+**Description:** `useAspirations` loads the overview and maps it through the domain. `Aspirations` renders a card per active aspiration: a card-top button (name, chevron, why), the This week bar and line, goal-row buttons, the recurring line.
+
+**Acceptance criteria:**
+- [ ] Be fit shows its why, "2 of 5 this week" with a progress bar, "Be strong · Milestone 1 of 6", and "2 recurring: Stretch, Hockey"; Keep a calm home shows no why, no bar and "Step 3 of 6 · by Dec 4".
+- [ ] A paused goal reads "Paused". Card top and goal rows are separate buttons calling `onOpenAspiration(id)` and `onOpenGoal(id)`.
+- [ ] A failed load says "Couldn't load your aspirations. Try again in a moment." Nothing on the screen mentions pace or being behind.
+
+**Verification:**
+- [ ] `npm test`: `screens/Aspirations.test.tsx`
+- [ ] Manual: 375 and 390 px, light and dark; a long goal label wraps and the count stays put
+
+**Dependencies:** Tasks 3, 5
+
+**Files:** `src/hooks/useAspirations.ts`, `src/screens/Aspirations.tsx`, `src/screens/Aspirations.css`, `src/screens/Aspirations.test.tsx`
 
 **Scope:** M
 
-### Task 9: Week screen: bank and "Put on a day"
+### Task 7: Aspirations screen: below the cards
 
-**Description:** Bank chips under the days. Tapping one opens `DayPickerSheet` (native `<dialog>`) listing Today and later days; picking one calls `pullFromBank(id, day)` optimistically through `useWeek`.
+**Description:** Other goals with "Past goals (n)" closed, the Keep life running row, "Retired (n)" closed, the footer hint, and the empty state.
 
 **Acceptance criteria:**
-- [x] "Bank · 3 not on a day" with three chips; picking Thursday moves the task into Thursday's row and drops the count to 2.
-- [x] Past days aren't offered; empty bank reads "Nothing in the bank."
-- [x] A failed save puts the chip back and shows "Couldn't save that. Try again."
+- [ ] Other goals lists the mock's loose goal as a goal row; its past goals sit behind a closed "Past goals (n)". The section is absent when there are none of either.
+- [ ] "Keep life running" always shows, with "1 recurring" and a chevron, and calls `onOpenUpkeep`. "Retired (1)" is closed at first; opened, each name calls `onOpenAspiration`.
+- [ ] Footer: "In order of priority. The first comes first when goals compete for time." With nothing set up: "Nothing here yet. Start with one sentence: a goal, or who you want to be."
 
 **Verification:**
-- [x] `npm test`: screen tests per bullet; hook test for rollback
+- [ ] `npm test`: `screens/Aspirations.test.tsx` per bullet (empty state with a mocked empty overview)
 
-**Dependencies:** Task 8
+**Dependencies:** Task 6
 
-**Files:** `src/components/DayPickerSheet.tsx` (+ `.css`), `src/hooks/useWeek.ts`, `src/screens/Week.tsx`, `src/screens/Week.test.tsx`
+**Files:** `src/screens/Aspirations.tsx`, `src/screens/Aspirations.css`, `src/screens/Aspirations.test.tsx`
+
+**Scope:** S
+
+### Task 8: Open an aspiration or a goal
+
+**Description:** Placeholder `Aspiration` (name, "‹ Aspirations") and `GoalDetail` (label, a back link named for where you came from) screens, wired in `App` with `from`.
+
+**Acceptance criteria:**
+- [ ] Tapping Be fit's card top opens its placeholder; "‹ Aspirations" returns to the tab.
+- [ ] Tapping a goal row opens the goal's placeholder with `from: { screen: 'aspirations' }`; back returns there. A goal with `from` an aspiration goes back to that aspiration.
+- [ ] Both keep Aspirations as the current tab and survive a remount; an id that no longer exists shows only the back link.
+
+**Verification:**
+- [ ] `npm test`: `App.test.tsx`
+- [ ] Manual on the phone: card top and goal rows are easy to hit apart
+
+**Dependencies:** Task 7
+
+**Files:** `src/screens/Aspiration.tsx`, `src/screens/GoalDetail.tsx`, `src/App.tsx`, `src/App.test.tsx`
 
 **Scope:** M
 
 ## Checkpoint C
-- [x] Every success criterion in the spec is met
-- [x] Tests, lint and build pass
-- [x] Manual at 375 and 390 px, light and dark; tab bar and sheets on the phone
+- [ ] Tests, lint and build pass
+- [ ] Review with Jan: the tab at 375 and 390 px, light and dark; open and back for an aspiration and a goal; reload restores
 
-## Phase 4: Docs
+## Phase 4: Keep life running
 
-### Task 10: Docs
+### Task 9: `getUpkeep` and `domain/upkeep.ts`
 
-**Description:** Record what changed, in the parent repo on its own branch, and in this repo.
+**Description:** `getUpkeep()` returns active recurring items with no aspiration and not-done tasks with no goal and no recurring item, from this week on. `domain/upkeep.ts` turns them into recurring rows and to-do rows that say where each task sits.
 
 **Acceptance criteria:**
-- [x] `../docs/data-model.md`: Task gains "placed by hand"; the planner never moves such tasks.
-- [x] `../docs/screens/README.md` (Week): tap a bank task, then pick a day (drag later); pacing wording; fixed-day items have no menu; tab bar.
-- [x] `CLAUDE.md` (this repo): navigation goes through `useNavigation()`; no router yet.
+- [ ] `getUpkeep()` leaves out goal tasks, recurring tasks, done tasks and items under an aspiration; returns copies.
+- [ ] Recurring rows carry name and repeat rule. To-do rows read "Thursday", "In the bank" or "Week of Nov 23", plus "due Nov 13" when there's a due date.
+- [ ] Empty lists give "No recurring items." and "Nothing waiting."
 
 **Verification:**
-- [x] Manual read-through against the spec's Decisions
+- [ ] `npm test`: `client.test.ts` `getUpkeep` block; `domain/upkeep.test.ts` with hand-built data (the later-week case lives here)
 
-**Dependencies:** None (any time after the spec)
+**Dependencies:** Task 1 (can run alongside Tasks 3–8)
 
-**Files:** `../docs/data-model.md`, `../docs/screens/README.md`, `CLAUDE.md`
+**Files:** `src/api/types.ts`, `src/api/client.ts`, `src/api/client.test.ts`, `src/domain/upkeep.ts`, `src/domain/upkeep.test.ts`
+
+**Scope:** M
+
+### Task 10: Keep life running page
+
+**Description:** `useUpkeep` and the `Upkeep` screen: pinned "‹ Aspirations" and "Keep life running" with its one line, then Recurring and To do. Wired in `App` from the tab's row.
+
+**Acceptance criteria:**
+- [ ] Shows "The things that have to happen, under no goal.", "Pay rent · Monthly on the 1st", and the mock's loose tasks, including "Fill out my ballot" with its day and "due Nov 13".
+- [ ] The only control on the page is back. No checkboxes, no menus.
+- [ ] Opening it from the tab, going back, and a remount all work; the tab stays Aspirations.
+
+**Verification:**
+- [ ] `npm test`: `screens/Upkeep.test.tsx`, `App.test.tsx`
+- [ ] Manual: 375 and 390 px, light and dark
+
+**Dependencies:** Tasks 7, 9
+
+**Files:** `src/hooks/useUpkeep.ts`, `src/screens/Upkeep.tsx`, `src/screens/Upkeep.css`, `src/screens/Upkeep.test.tsx`, `src/App.tsx`, `src/App.test.tsx`
+
+**Scope:** M
+
+## Checkpoint D
+- [ ] Every success criterion in the spec and every acceptance criterion on #4 is met
+- [ ] Tests, lint and build pass
+- [ ] On the phone: all three tabs, every open and back, reload on each new screen
+
+## Phase 5: Docs
+
+### Task 11: Docs
+
+**Description:** Record what was built and anything the build settled.
+
+**Acceptance criteria:**
+- [ ] `specs/004-aspirations-tab.md` is marked approved, with any detail the build settled; `specs/README.md` moves 004 to Done.
+- [ ] `../docs/screens/README.md` still matches the tab and the Keep life running page; fixed on its own branch in the parent repo if not.
+
+**Verification:**
+- [ ] Manual read-through of both against the running app
+
+**Dependencies:** Task 10
+
+**Files:** `specs/004-aspirations-tab.md`, `specs/README.md`, possibly `../docs/screens/README.md`
 
 **Scope:** S
 
-## Checkpoint D
-- [x] Web-frontend PR open, referencing #3 (#11); parent-repo PR open, referencing #3 (goals-to-actions#4)
+## Checkpoint E
+- [ ] Web-frontend PR open from `aspirations-tab`, referencing #4; a parent-repo PR only if its docs changed

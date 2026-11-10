@@ -1,6 +1,6 @@
 # Spec: Aspirations tab (#4)
 
-Status: draft 2026-11-10, awaiting approval. Issue: [#4](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/4). Module `aspirations-tab` in the [map](README.md). Depends on #1–#3 (done).
+Status: approved 2026-11-10, with its plan (`tasks/plan.md`). Issue: [#4](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/4). Module `aspirations-tab` in the [map](README.md). Depends on #1–#3 (done).
 
 Rewritten on 2026-11-10: the app is aspirations first, so this tab replaces the Goals screen of the Nov 2 sketch.
 
