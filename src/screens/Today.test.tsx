@@ -182,6 +182,7 @@ describe('Today', () => {
       'Fill out my ballot',
     ])
     expect(screen.getByText('0 of 4 done')).toBeDefined()
+    expect(document.activeElement).toBe(screen.getByRole('checkbox', { name: 'Call the dentist' }))
   })
 
   it('closes a row menu with the first tap elsewhere, without checking anything off', async () => {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BankSheet } from '../components/BankSheet.tsx'
 import { TaskRow } from '../components/TaskRow.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
@@ -22,6 +22,17 @@ export function Today() {
     swap,
   } = useToday()
   const [sheet, setSheet] = useState<Sheet>()
+  const focusAfterSwap = useRef<string>(undefined)
+
+  // After a swap the button that opened the sheet is gone, so focus goes to
+  // the task that took its place (TaskRow's id is `task-<id>`). This runs
+  // after the children's effects, including the sheet closing, which would
+  // otherwise move focus itself.
+  useEffect(() => {
+    if (!focusAfterSwap.current) return
+    document.getElementById(`task-${focusAfterSwap.current}`)?.focus()
+    focusAfterSwap.current = undefined
+  })
 
   function openSheet(next: Sheet) {
     setSheet(next)
@@ -29,8 +40,12 @@ export function Today() {
   }
 
   function pickFromBank(bankTaskId: string) {
-    if (sheet?.kind === 'swap') swap(sheet.taskId, bankTaskId)
-    else pull(bankTaskId)
+    if (sheet?.kind === 'swap') {
+      swap(sheet.taskId, bankTaskId)
+      focusAfterSwap.current = bankTaskId
+    } else {
+      pull(bankTaskId)
+    }
     setSheet(undefined)
   }
 

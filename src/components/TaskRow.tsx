@@ -21,6 +21,7 @@ export function TaskRow({ row, onToggle, onSendToBank, onSwap }: TaskRowProps) {
   return (
     <li className="task-item">
       <button
+        id={`task-${task.id}`}
         type="button"
         role="checkbox"
         aria-checked={done}
