@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getBank, getToday, pullFromBank } from '../api/client.ts'
@@ -184,27 +184,50 @@ describe('Today', () => {
     expect(screen.getByText('0 of 4 done')).toBeDefined()
   })
 
-  it('closes a row menu when you tap somewhere else', async () => {
+  it('closes a row menu with the first tap elsewhere, without checking anything off', async () => {
     const user = userEvent.setup()
     render(<Today />)
+    const ballot = await screen.findByRole('checkbox', { name: 'Fill out my ballot' })
 
-    await user.click(await screen.findByRole('button', { name: 'More for Laundry' }))
-    await user.click(screen.getByRole('heading', { level: 1 }))
+    await user.click(screen.getByRole('button', { name: 'More for Laundry' }))
+    await user.click(ballot)
 
     expect(screen.queryByRole('button', { name: 'Back to bank' })).toBeNull()
+    expect(ballot.getAttribute('aria-checked')).toBe('false')
+    expect(screen.getByText('0 of 4 done')).toBeDefined()
+
+    await user.click(ballot)
+
+    expect(ballot.getAttribute('aria-checked')).toBe('true')
   })
 
-  it('keeps only one row menu open at a time', async () => {
+  it("closes an open menu with a tap on another row's menu, without opening that one", async () => {
     const user = userEvent.setup()
     render(<Today />)
+    const ballotMenu = await screen.findByRole('button', { name: 'More for Fill out my ballot' })
 
-    await user.click(await screen.findByRole('button', { name: 'More for Laundry' }))
-    await user.click(screen.getByRole('button', { name: 'More for Fill out my ballot' }))
+    await user.click(screen.getByRole('button', { name: 'More for Laundry' }))
+    await user.click(ballotMenu)
 
-    expect(screen.getAllByRole('button', { name: 'Back to bank' })).toHaveLength(1)
-    expect(screen.getByRole('button', { name: 'More for Fill out my ballot' }).getAttribute('aria-expanded')).toBe(
-      'true',
-    )
+    expect(screen.queryByRole('button', { name: 'Back to bank' })).toBeNull()
+    expect(ballotMenu.getAttribute('aria-expanded')).toBe('false')
+
+    await user.click(ballotMenu)
+
+    expect(ballotMenu.getAttribute('aria-expanded')).toBe('true')
+  })
+
+  it('does not swallow a later tap when the closing touch turned into a scroll', async () => {
+    const user = userEvent.setup()
+    render(<Today />)
+    const ballot = await screen.findByRole('checkbox', { name: 'Fill out my ballot' })
+    await user.click(screen.getByRole('button', { name: 'More for Laundry' }))
+
+    fireEvent.pointerDown(document.body)
+    fireEvent.pointerCancel(document.body)
+    await user.click(ballot)
+
+    expect(ballot.getAttribute('aria-checked')).toBe('true')
   })
 
   it("shows a swapped-in goal task's goal and aspiration", async () => {
