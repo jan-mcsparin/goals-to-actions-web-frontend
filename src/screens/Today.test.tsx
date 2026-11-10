@@ -18,6 +18,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(WEDNESDAY)
   resetStore()
+  localStorage.clear()
 })
 
 afterEach(() => {
@@ -65,6 +66,26 @@ describe('Today', () => {
 
     expect(laundry.getAttribute('aria-checked')).toBe('false')
     expect(screen.getByText('0 of 4 done')).toBeDefined()
+  })
+
+  it('switches to goal cards and remembers the choice', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<Today />)
+
+    await user.click(await screen.findByRole('button', { name: 'By goal' }))
+
+    expect(screen.getByRole('button', { name: 'By goal' }).getAttribute('aria-pressed')).toBe('true')
+    const card = screen.getByRole('region', { name: 'Be strong · Be fit' })
+    expect(rowTitles(card)).toEqual(['Lift: bench day'])
+    expect(within(card).queryByText('Be strong · Be fit', { selector: '.task-subline' })).toBeNull()
+    expect(screen.getByRole('region', { name: 'Keep life running' })).toBeDefined()
+    expect(screen.queryByRole('region', { name: 'Move forward' })).toBeNull()
+
+    unmount()
+    render(<Today />)
+
+    expect((await screen.findByRole('button', { name: 'By goal' })).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('button', { name: 'List' }).getAttribute('aria-pressed')).toBe('false')
   })
 
   it('shows a warm empty state when nothing is planned', async () => {

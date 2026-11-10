@@ -114,12 +114,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `storage/viewPreference.ts` reads and writes `'list' | 'byGoal'`. `useToday` exposes `view` / `setView`; a segmented `ViewToggle` switches between List and By goal (cards from `groupByGoal`, Free time line below).
 
 **Acceptance criteria:**
-- [ ] Default is List; the chosen view persists across a remount; storage that throws falls back to List without crashing.
-- [ ] By goal shows Keep life running, then "Be strong · Be fit" with its tasks.
-- [ ] The toggle is two buttons with `aria-pressed`, each at least 44 px tall.
+- [x] Default is List; the chosen view persists across a remount; storage that throws falls back to List without crashing.
+- [x] By goal shows Keep life running, then "Be strong · Be fit" with its tasks.
+- [x] The toggle is two buttons with `aria-pressed`, each at least 44 px tall.
 
 **Verification:**
-- [ ] `npm test`: `storage/viewPreference.test.ts`; screen test toggles, unmounts, remounts, sees By goal
+- [x] `npm test`: `storage/viewPreference.test.ts`; screen test toggles, unmounts, remounts, sees By goal
 
 **Dependencies:** Tasks 2, 3
 

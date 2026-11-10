@@ -1,10 +1,11 @@
 import { TaskRow } from '../components/TaskRow.tsx'
+import { ViewToggle } from '../components/ViewToggle.tsx'
 import type { Section } from '../domain/today.ts'
 import { useToday } from '../hooks/useToday.ts'
 import './Today.css'
 
 export function Today() {
-  const { today, message, toggleDone } = useToday()
+  const { today, message, view, setView, toggleDone } = useToday()
 
   if (!today) {
     return (
@@ -18,7 +19,7 @@ export function Today() {
   const isEmpty = progress.total === 0
 
   return (
-    <main className="today">
+    <main className="today" data-view={view}>
       <header className="today-header">
         <h1>{heading}</h1>
         {!isEmpty && <p className="today-count">{`${progress.done} of ${progress.total} done`}</p>}
@@ -29,6 +30,8 @@ export function Today() {
           {message}
         </p>
       )}
+
+      {!isEmpty && <ViewToggle view={view} onChange={setView} />}
 
       {!isEmpty && (
         <progress className="today-progress" value={progress.done} max={progress.total} aria-label="Done today" />
@@ -41,7 +44,7 @@ export function Today() {
           {sections.map((section) => (
             <TaskGroup key={section.id} section={section} onToggle={toggleDone} />
           ))}
-          <section className="today-group" aria-labelledby="free-time">
+          <section className="today-free-time" aria-labelledby="free-time">
             <h2 id="free-time">Free time</h2>
             <p className="today-free">The rest is yours.</p>
           </section>

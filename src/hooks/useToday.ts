@@ -4,7 +4,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { checkOffTask, getToday, uncheckTask } from '../api/client.ts'
 import type { Task, TodayPlan } from '../api/types.ts'
-import { dayHeading, groupForList, progress, type Section } from '../domain/today.ts'
+import { dayHeading, groupByGoal, groupForList, progress, type Section } from '../domain/today.ts'
+import { readTodayView, saveTodayView, type TodayViewMode } from '../storage/viewPreference.ts'
 
 const LOAD_FAILED = "Couldn't load today. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
@@ -18,12 +19,15 @@ export type TodayView = {
 export type UseToday = {
   today?: TodayView
   message?: string
+  view: TodayViewMode
+  setView: (view: TodayViewMode) => void
   toggleDone: (taskId: string) => void
 }
 
 export function useToday(): UseToday {
   const [plan, setPlan] = useState<TodayPlan>()
   const [message, setMessage] = useState<string>()
+  const [view, setViewState] = useState(readTodayView)
   const latestRequest = useRef(new Map<string, number>())
 
   useEffect(() => {
@@ -50,6 +54,11 @@ export function useToday(): UseToday {
     return () => latestRequest.current.get(taskId) === request
   }
 
+  function setView(next: TodayViewMode) {
+    setViewState(next)
+    saveTodayView(next)
+  }
+
   function toggleDone(taskId: string) {
     const before = plan?.tasks.find((task) => task.id === taskId)
     if (!before) return
@@ -69,11 +78,12 @@ export function useToday(): UseToday {
       })
   }
 
-  return { today: plan && viewOf(plan), message, toggleDone }
+  return { today: plan && viewOf(plan, view), message, view, setView, toggleDone }
 }
 
-function viewOf(plan: TodayPlan): TodayView {
-  return { heading: dayHeading(plan.date), progress: progress(plan), sections: groupForList(plan) }
+function viewOf(plan: TodayPlan, view: TodayViewMode): TodayView {
+  const sections = view === 'byGoal' ? groupByGoal(plan) : groupForList(plan)
+  return { heading: dayHeading(plan.date), progress: progress(plan), sections }
 }
 
 function asDone(task: Task): Task {
