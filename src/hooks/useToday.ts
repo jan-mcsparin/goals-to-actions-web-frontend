@@ -121,15 +121,15 @@ export function useToday(): UseToday {
     if (!bank || !plan || !task) return
 
     const placed: Task = { ...task, status: 'planned', plannedDay: plan.date }
-    setPlan({ ...withRecordsFrom(plan, bank), tasks: [...plan.tasks, placed] })
-    setBank({ ...bank, tasks: bank.tasks.filter((candidate) => candidate.id !== bankTaskId) })
+    setPlan((previous) => previous && withTaskAppended(withRecordsFrom(previous, bank), placed))
+    setBank((previous) => previous && bankWithout(previous, bankTaskId))
     setMessage(undefined)
 
     pullFromBank(bankTaskId)
       .then(replaceTask)
       .catch(() => {
         setPlan((previous) => previous && withoutTask(previous, bankTaskId))
-        setBank((previous) => previous && { ...previous, tasks: [...previous.tasks, task] })
+        setBank((previous) => previous && bankWith(previous, task))
         setMessage(SAVE_FAILED)
       })
   }
@@ -140,7 +140,7 @@ export function useToday(): UseToday {
     if (!plan || index === -1) return
     const before = plan.tasks[index]
 
-    setPlan(withoutTask(plan, taskId))
+    setPlan((previous) => previous && withoutTask(previous, taskId))
     setMessage(undefined)
 
     skipTask(taskId).catch(() => {
@@ -156,15 +156,15 @@ export function useToday(): UseToday {
     if (!plan || !bank || !before || !bankTask) return
 
     const placed: Task = { ...bankTask, status: 'planned', plannedDay: plan.date }
-    setPlan(withTaskReplaced(withRecordsFrom(plan, bank), taskId, placed))
-    setBank({ ...bank, tasks: bank.tasks.filter((task) => task.id !== bankTaskId) })
+    setPlan((previous) => previous && withTaskReplaced(withRecordsFrom(previous, bank), taskId, placed))
+    setBank((previous) => previous && bankWithout(previous, bankTaskId))
     setMessage(undefined)
 
     swapTask(taskId, bankTaskId)
       .then((saved) => replaceTask(saved.placed))
       .catch(() => {
         setPlan((previous) => previous && withTaskReplaced(previous, bankTaskId, before))
-        setBank((previous) => previous && { ...previous, tasks: [...previous.tasks, bankTask] })
+        setBank((previous) => previous && bankWith(previous, bankTask))
         setMessage(SAVE_FAILED)
       })
   }
@@ -189,6 +189,10 @@ function viewOf(plan: TodayPlan, view: TodayViewMode): TodayView {
   return { heading: dayHeading(plan.date), progress: progress(plan), sections }
 }
 
+function withTaskAppended(plan: TodayPlan, task: Task): TodayPlan {
+  return { ...plan, tasks: [...plan.tasks, task] }
+}
+
 function withTaskAt(plan: TodayPlan, task: Task, index: number): TodayPlan {
   return { ...plan, tasks: plan.tasks.toSpliced(index, 0, task) }
 }
@@ -199,6 +203,14 @@ function withTaskReplaced(plan: TodayPlan, taskId: string, replacement: Task): T
 
 function withoutTask(plan: TodayPlan, taskId: string): TodayPlan {
   return { ...plan, tasks: plan.tasks.filter((task) => task.id !== taskId) }
+}
+
+function bankWith(bank: Bank, task: Task): Bank {
+  return { ...bank, tasks: [...bank.tasks, task] }
+}
+
+function bankWithout(bank: Bank, taskId: string): Bank {
+  return { ...bank, tasks: bank.tasks.filter((task) => task.id !== taskId) }
 }
 
 // A pulled task may belong to a goal today's plan hasn't seen yet.
