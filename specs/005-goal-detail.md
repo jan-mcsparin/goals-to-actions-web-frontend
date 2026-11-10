@@ -129,7 +129,7 @@ export function weekLabel(startDate: string, targetDate: string | undefined): st
 
 ## Open questions
 
-1. **Vertical timeline.** The sketch draws it left to right with two milestones. Measurable lines and six steps don't fit that way at phone width, so this spec stacks it top to bottom. OK?
+1. **Timeline direction: not settled.** The sketch draws it left to right with two milestones. Measurable lines and six steps don't fit that way at phone width. This spec stacks it top to bottom; the alternative keeps the sketch's row and scrolls it sideways, with the line and result shown for the milestone that's tapped. Jan wants to see both before choosing, so the plan's first task for this section is a rough version of each on the phone. Everything else in the spec holds either way.
 2. **Progress since baseline is two lines of text** ("Started at", "Latest"), not a number, because baselines and results are free text. Enough for now?
 3. **A new target takes effect this week**, so "1 of 3" can become "1 of 4" on Wednesday. The alternative is from next Monday.
 4. **End goal asks "reached or not"** rather than working it out, since nothing can tell whether "bench 175" was crossed.

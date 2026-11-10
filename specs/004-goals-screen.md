@@ -24,7 +24,7 @@ References: [Flow 1](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 6](..
   - a goal with no milestones shows no count and no bar;
   - a paused goal reads "Paused" in place of the count.
 - **Other goals:** active and paused goals with no aspiration, under the heading "Other goals". Left out when there are none.
-- **Past goals:** reached and ended goals, under "Past goals", each a plain row with "Reached" or "Ended" on the right. Still tappable. Left out when there are none.
+- **Past goals:** reached and ended goals, behind a closed "Past goals (2)" row at the bottom. Tapping it opens the list: each a plain row with "Reached" or "Ended" on the right, still tappable. It starts closed every time. Left out when there are none.
 - **Recurring items:** "Recurring items: 3", the count of active ones. Not a link.
 - **Nothing set up at all:** "Nothing here yet. Start with one sentence: a goal, or who you want to be."
 
@@ -39,13 +39,14 @@ No pacing, no warnings, no "behind" on this screen.
 **In:**
 - `api/`: `getGoals()`, the `GoalsOverview` type, more mock goals and milestones.
 - `domain/goals.ts`: grouping, ordering, progress counts and labels.
-- `hooks/useGoals.ts`; `screens/Goals.tsx`; a placeholder `screens/GoalDetail.tsx`.
+- `hooks/useGoals.ts`; `screens/Goals.tsx` (past goals in a native `<details>`); a placeholder `screens/GoalDetail.tsx`.
 - `storage/navigation.ts`, `useNavigation`, `App.tsx`, `TabBar`: the `goals` and `goal` screens and the third tab.
 - Docs: screens README (Goals: past goals, other goals, what the count means; the tab bar).
 
 **Out (later):**
 - Goal detail's content (#5), the + and Add sheet (#6), the gear (#7).
 - Editing, reordering or opening an aspiration.
+- Moving past goals to an archive of their own.
 - A list of recurring items.
 - This week's pacing per goal (it lives on Week).
 
@@ -91,7 +92,7 @@ export function progressLabel(type: GoalType, hit: number, total: number): strin
 - **`domain/goals.test.ts`:** aspirations in priority order; goals grouped under their aspiration; other and past groups; hit and total counts; labels for each goal type; no label with no milestones; paused.
 - **`api/client.test.ts`:** `getGoals` returns every goal, their milestones and the active recurring count; returns copies. Dataset consistency test still passes.
 - **`storage/navigation.test.ts`:** `goals` and `goal` round-trip; a `goal` with no id falls back to Today.
-- **`screens/Goals.test.tsx`:** aspirations with their why; a goal row's count and bar; "Stage 3 of 6"; Paused; Past goals; the recurring count; tapping a goal calls `onOpenGoal` with its id.
+- **`screens/Goals.test.tsx`:** aspirations with their why; a goal row's count and bar; "Stage 3 of 6"; Paused; Past goals closed at first and listed once opened; the recurring count; tapping a goal calls `onOpenGoal` with its id.
 - **`App.test.tsx`:** the third tab; an opened goal marks Goals as current and survives a remount.
 - **Manual:** 375 and 390 px, light and dark; long labels wrap without pushing the count off screen.
 
@@ -105,7 +106,7 @@ export function progressLabel(type: GoalType, hit: number, total: number): strin
 
 - [ ] Every acceptance criterion on #4 is met.
 - [ ] Aspirations show in priority order with their why; goals show milestone or stage progress as described.
-- [ ] Paused, past and aspiration-less goals each show as described.
+- [ ] Paused, past (collapsed) and aspiration-less goals each show as described.
 - [ ] Tapping a goal opens its (placeholder) screen; "‹ Goals" returns; both survive reload.
 - [ ] Tab bar is Today | Week | Goals.
 - [ ] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass; #2's and #3's tests are unchanged.
@@ -113,6 +114,5 @@ export function progressLabel(type: GoalType, hit: number, total: number): strin
 
 ## Open questions
 
-1. **Past goals on this screen.** Without them, an ended goal would vanish with no way back to it. OK to list them at the bottom?
-2. **"Other goals"** as the heading for goals with no aspiration. Flow 1 says the app may offer to add an aspiration when a goal has none; that offer is left for later.
-3. **Recurring items** are only counted. Where they're listed and edited isn't in any issue yet.
+1. **"Other goals"** as the heading for goals with no aspiration. Flow 1 says the app may offer to add an aspiration when a goal has none; that offer is left for later.
+2. **Recurring items** are only counted. Where they're listed and edited isn't in any issue yet.

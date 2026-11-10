@@ -1,6 +1,6 @@
 # Spec: Installable and opens instantly on iPhone (#8)
 
-Status: draft 2026-11-10, awaiting approval. Issue: [#8](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/8). Module `install-instant-open` in the [map](README.md). Depends on #4–#7.
+Status: draft 2026-11-10, awaiting approval. Built last, after #4–#7; hosting is chosen then. Issue: [#8](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/8). Module `install-instant-open` in the [map](README.md). Depends on #4–#7.
 
 ## Objective
 
@@ -104,6 +104,5 @@ export function useToday(): string {
 
 ## Open questions
 
-1. **Where is the built app served over HTTPS for the phone?** There's no deploy set up. Options: a static host (GitHub Pages, Cloudflare Pages, Netlify), or a tunnel to `npm run preview` for testing only. A real host also makes the app usable day to day, which the click-through is for. This needs your call before #8 can be finished.
-2. **The new-day refresh** isn't in the issue's criteria. It's here because an installed app stays open for days, and Today showing yesterday breaks the home screen. Keep it in #8, or give it its own issue?
-3. **Mock data resets on every cold start**, so check-offs don't survive a restart until the stored plan and queue exist. Fine for the click-through, or should that follow-up issue be created now?
+1. **Where is the built app served over HTTPS for the phone?** There's no deploy set up. Options: a static host (GitHub Pages, Cloudflare Pages, Netlify), or a tunnel to `npm run preview` for testing only. A real host also makes the app usable day to day, which the click-through is for. This needs your call when #8 starts, not before.
+2. **Mock data resets on every cold start**, so check-offs don't survive a restart until the stored plan and queue exist. Fine for the click-through, or should that follow-up issue be created now?

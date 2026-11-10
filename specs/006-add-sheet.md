@@ -19,10 +19,12 @@ References: [Flow 1](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 2](..
 - **Goal:** None, or one of the active goals.
 - **Due date:** optional.
 - **Time of day:** optional: "by" or "at", and a time.
+- **Put it:** "In the bank" (selected to start) or "On today".
 - Where it goes (Flow 3):
-  - no due date, or due this week or earlier: this week's bank. "Added to this week's bank."
-  - due in a later week: it waits, and joins the bank of the week it's due. "Saved for the week of Nov 23."
-- It never lands on a day by itself; the person places it from the bank.
+  - in the bank, with no due date or due this week or earlier: this week's bank. "Added to this week's bank."
+  - in the bank, due in a later week: it waits, and joins the bank of the week it's due. "Saved for the week of Nov 23."
+  - on today: it's on today's plan at once, marked placed by hand, whatever its due date. "Added to today."
+- It only lands on a day when the person chose "On today".
 
 **Goal**
 1. **Type first:** Building, Quitting, One-off. One tap, nothing preselected, and nothing else shows until one is picked. The type can be changed before saving.
@@ -36,6 +38,8 @@ References: [Flow 1](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 2](..
 6. **Deadline:** optional, for any type.
 
 Saving opens the new goal's page, where milestones or steps are added: "Saved. Add milestones when you're ready." ("steps" for one-off).
+
+A building goal saved with a weekly target also gets that many tasks in this week's bank, each titled with the goal's label ("Be strong" three times for a target of 3). This is the mock standing in for the planner, so the goal can be followed from Week to Today.
 
 **Aspiration**
 - **Name** (required): "Be fit".
@@ -58,21 +62,21 @@ Saving opens the new goal's page, where milestones or steps are added: "Saved. A
 - `domain/add.ts`: splitting the goal sentence, which week a task belongs to, repeat-rule text and next due date, what makes each form ready to save.
 - `hooks/useAdd.ts`: saving, errors, and telling the open screen to reload.
 - `components/AddSheet.tsx` with one form component per tab; the + in `TabBar`; a short confirmation line.
-- Docs: screens README (the + in the tab bar, the four forms, where a new task goes).
+- Docs: screens README (the + in the tab bar, the four forms, where a new task goes); flows.md Flow 3 (a task added by hand can go straight onto today).
 
 **Out (later):**
-- Generating tasks for a new goal's weekly target or a new recurring item (the planner). Until then a new building goal reads "0 of 3 · 3 more to plan" on Week with nothing to plan yet.
+- Tasks for a new recurring item, for later weeks, or after a target is changed (the planner).
 - Adding milestones or steps inside the sheet (they're added on Goal detail, #5).
 - Placing a new aspiration among the others; an "upcoming" list screen.
 - Editing or deleting anything.
-- "Add to today" for a task.
 - Remembering a half-typed draft across a restart.
 
 ## API changes
 
 ```ts
-addTask(task: { title: string; goalId?: string; dueDate?: string; timeOfDay?: TimeOfDay }): Promise<Task>
+addTask(task: { title: string; goalId?: string; dueDate?: string; timeOfDay?: TimeOfDay; onToday?: boolean }): Promise<Task>
 // status 'inBank'; weekOf is this week's Monday, or the Monday of the due date's week when that is later.
+// With onToday: status 'planned', plannedDay today, weekOf this week, placedByHand.
 
 addGoal(goal: {
   label: string
@@ -84,7 +88,8 @@ addGoal(goal: {
   deadline?: string
   weeklyTarget?: { amount: number; unit: string }   // building only
 }): Promise<Goal>
-// status 'active'. A weekly target, when given, is stored effective from this week's Monday.
+// status 'active'. A weekly target, when given, is stored effective from this week's Monday, and
+// `amount` inBank tasks titled with the label are added to this week (a stand-in for the planner).
 
 addAspiration(aspiration: { name: string; why?: string }): Promise<Aspiration>
 // priority = last.
@@ -117,22 +122,23 @@ export function splitGoalSentence(sentence: string): { label: string; measurable
 ## Testing strategy
 
 - **`domain/add.test.ts`:** sentence split (one colon, several, none, extra spaces); task week for no date, this week, a past date, next week and across a year end; repeat-rule text and next due for each choice, including a monthly day already past this month; ready-to-save rules.
-- **`api/client.test.ts`:** each add function stores and returns the record with its defaults; a task due later is absent from `getBank` and `getWeek`; a goal with a target shows in `getWeek`'s targets; rejections; new records pass the dataset consistency checks.
-- **`components/AddSheet.test.tsx`:** Task is open first and saves with only a title; Save disabled when empty; Goal shows nothing but the three types until one is picked; the second field appears without a colon; "New aspiration" creates both; Aspiration saves without a why and "Add a goal for this" opens the Goal tab with it selected; each Recurring choice saves the right rule; typed text survives switching tabs and is cleared on close.
-- **`App.test.tsx`:** the + opens the sheet on any screen and isn't marked current; a task added while on Week appears in the bank; saving a goal opens its page.
+- **`api/client.test.ts`:** each add function stores and returns the record with its defaults; a task due later is absent from `getBank` and `getWeek`; a task added on today is in `getDay(today)` with `placedByHand`; a goal with a target shows in `getWeek`'s targets with that many bank tasks; rejections; new records pass the dataset consistency checks.
+- **`components/AddSheet.test.tsx`:** Task is open first and saves with only a title; "In the bank" is selected at first and "On today" passes `onToday`; Save disabled when empty; Goal shows nothing but the three types until one is picked; the second field appears without a colon; "New aspiration" creates both; Aspiration saves without a why and "Add a goal for this" opens the Goal tab with it selected; each Recurring choice saves the right rule; typed text survives switching tabs and is cleared on close.
+- **`App.test.tsx`:** the + opens the sheet on any screen and isn't marked current; a task added while on Week appears in the bank; a task added on today while on Today appears in the list; saving a goal opens its page.
 - **Manual:** 375 and 390 px, light and dark; the keyboard doesn't cover the field in use or Save; date and time inputs on iOS; the sheet scrolls when the Goal form is taller than the screen.
 
 ## Boundaries
 
 - **Always:** a task needs only a title; goal type is picked by the person, never guessed from the sentence; use native `<input type="date">` and `<input type="time">`; run test, lint and build before each commit; update `../docs/` in the same work.
-- **Ask first:** any new dependency; changes to entity types; putting a new task straight onto a day.
-- **Never:** required fields beyond the ones marked; a nudge to add a why, a deadline or an aspiration after the person skipped it; changing what's on Today as a side effect of adding.
+- **Ask first:** any new dependency; changes to entity types; putting a new task on any day other than today.
+- **Never:** required fields beyond the ones marked; a nudge to add a why, a deadline or an aspiration after the person skipped it; changing what's on Today unless the person chose "On today".
 
 ## Success criteria
 
 - [ ] Every acceptance criterion on #6 is met.
 - [ ] Tab bar is Today | Week | + | Goals, and the + opens the sheet from every screen.
-- [ ] A task saves with only a title and goes to this week's bank, or waits for its week when due later.
+- [ ] A task saves with only a title and goes to this week's bank, waits for its week when due later, or goes onto today when asked.
+- [ ] A new building goal with a target has that many tasks in this week's bank.
 - [ ] A goal's type is picked first; the sentence splits into label and measurable line; saving opens the goal's page.
 - [ ] An aspiration saves with or without a why and offers "Add a goal for this".
 - [ ] A recurring item saves as fixed or flexible with a readable repeat rule.
@@ -141,7 +147,5 @@ export function splitGoalSentence(sentence: string): { label: string; measurable
 
 ## Open questions
 
-1. **A new task always goes to the bank**, even when added from Today (Flow 3). Would you want "Add to today" on the Task tab?
-2. **New goals and recurring items make no tasks yet**, because that's the planner's job. Should the mock create this week's bank tasks for a new building goal (three "Be strong" tasks for a target of 3) so it isn't empty on Week?
-3. **Repeat choices** are the five listed. Yearly and "every N weeks" are left out for now.
-4. **Deadline is offered for every goal type**, optional, as Flow 2 step 6 says, though the short form could drop it for building and quitting goals.
+1. **Repeat choices** are the five listed. Yearly and "every N weeks" are left out for now.
+2. **Deadline is offered for every goal type**, optional, as Flow 2 step 6 says, though the short form could drop it for building and quitting goals.

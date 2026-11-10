@@ -89,5 +89,4 @@ The intensity control is a radio group (`role="radiogroup"`, arrow keys move the
 
 ## Open questions
 
-1. **The gear lives on Goals only.** You asked for a gear but not where. Goals keeps Today's header clear; the alternative is a gear on every screen's header.
-2. **Intensity resets on reload** in the click-through, like every other mock change. If you'd like it to stick before the API exists, it could be kept in `localStorage`.
+1. **Intensity resets on reload** in the click-through, like every other mock change. If you'd like it to stick before the API exists, it could be kept in `localStorage`.
