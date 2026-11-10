@@ -30,12 +30,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `getAspirations()` returns an `AspirationsOverview`: every aspiration and goal, the goals' milestones in order, active recurring items, the weekly target in force per active goal, and this week's goal tasks.
 
 **Acceptance criteria:**
-- [ ] Includes active and retired aspirations, goals of every status, and milestones in each goal's order.
-- [ ] `weeklyTargets` has one per active goal that has one (none for paused goals); `weekTasks` has only this week's tasks with a goal.
-- [ ] Returns copies.
+- [x] Includes active and retired aspirations, goals of every status, and milestones in each goal's order.
+- [x] `weeklyTargets` has one per active goal that has one (none for paused goals); `weekTasks` has only this week's tasks with a goal.
+- [x] Returns copies.
 
 **Verification:**
-- [ ] `npm test`: `client.test.ts`, a `getAspirations` block per bullet
+- [x] `npm test`: `client.test.ts`, a `getAspirations` block per bullet
 
 **Dependencies:** Task 1
 

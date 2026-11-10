@@ -1,8 +1,8 @@
 // The functions screens and hooks call. They read the in-memory mock store for
 // now; later they call the real API and keep the same signatures.
-import { addDays, mondayOf, toLocalDay } from './dates.ts'
+import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
 import { store } from './mockStore.ts'
-import type { Bank, DayPlan, Task, WeekPlan, WeeklyTarget } from './types.ts'
+import type { AspirationsOverview, Bank, DayPlan, Task, WeekPlan, WeeklyTarget } from './types.ts'
 
 export async function getDay(date: string): Promise<DayPlan> {
   const tasks = store.tasks.filter((task) => task.plannedDay === date)
@@ -28,19 +28,27 @@ export async function uncheckTask(taskId: string): Promise<Task> {
 }
 
 export async function getWeek(): Promise<WeekPlan> {
-  const monday = mondayOf(new Date())
-  const weekOf = toLocalDay(monday)
-  const sunday = toLocalDay(addDays(monday, 6))
+  const weekOf = thisWeek()
   const tasks = store.tasks.filter((task) => task.weekOf === weekOf)
-  const weeklyTargets = store.goals
-    .filter((goal) => goal.status === 'active')
-    .flatMap((goal) => currentTarget(goal.id, sunday) ?? [])
+  const weeklyTargets = targetsInForce(weekOf)
   const targetGoalIds = weeklyTargets.map((target) => target.goalId)
   return structuredClone({ weekOf, tasks, ...recordsReferencedBy(tasks, targetGoalIds), weeklyTargets })
 }
 
+export async function getAspirations(): Promise<AspirationsOverview> {
+  const weekOf = thisWeek()
+  return structuredClone({
+    aspirations: store.aspirations,
+    goals: store.goals,
+    milestones: store.milestones,
+    recurringItems: store.recurringItems.filter((item) => item.active),
+    weeklyTargets: targetsInForce(weekOf),
+    weekTasks: store.tasks.filter((task) => task.weekOf === weekOf && task.goalId !== undefined),
+  })
+}
+
 export async function getBank(): Promise<Bank> {
-  const weekOf = toLocalDay(mondayOf(new Date()))
+  const weekOf = thisWeek()
   const tasks = store.tasks.filter((task) => task.status === 'inBank' && task.weekOf === weekOf)
   return structuredClone({ weekOf, tasks, ...recordsReferencedBy(tasks) })
 }
@@ -92,6 +100,18 @@ function findBankTask(taskId: string): Task {
   const task = findTask(taskId)
   if (task.status !== 'inBank') throw new Error(`Task ${taskId} is not in the bank`)
   return task
+}
+
+function thisWeek(): string {
+  return toLocalDay(mondayOf(new Date()))
+}
+
+// Each active goal's target for the week starting on weekOf, if it has one.
+function targetsInForce(weekOf: string): WeeklyTarget[] {
+  const sunday = toLocalDay(addDays(fromLocalDay(weekOf), 6))
+  return store.goals
+    .filter((goal) => goal.status === 'active')
+    .flatMap((goal) => currentTarget(goal.id, sunday) ?? [])
 }
 
 // A target change adds a row; the one in force is the latest that has started.

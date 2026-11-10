@@ -123,3 +123,14 @@ export type Bank = {
   aspirations: Aspiration[]
   recurringItems: RecurringItem[]
 }
+
+// Everything the Aspirations tab shows, as records. Ordering, grouping and
+// counting are left to domain/aspirations.ts.
+export type AspirationsOverview = {
+  aspirations: Aspiration[] // active and retired
+  goals: Goal[] // every status
+  milestones: Milestone[] // for those goals, in each goal's order
+  recurringItems: RecurringItem[] // active ones
+  weeklyTargets: WeeklyTarget[] // the target in force this week, per active goal
+  weekTasks: Task[] // this week's tasks that belong to a goal
+}

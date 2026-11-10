@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   checkOffTask,
+  getAspirations,
   getBank,
   getDay,
   getWeek,
@@ -342,5 +343,74 @@ describe('getWeek', () => {
     first.tasks[0].title = 'changed'
 
     expect((await getWeek()).tasks[0].title).not.toBe('changed')
+  })
+})
+
+describe('getAspirations', () => {
+  it('returns active and retired aspirations, and goals of every status', async () => {
+    const overview = await getAspirations()
+
+    expect(ids(overview.aspirations)).toEqual(['asp-fit', 'asp-home', 'asp-spanish'])
+    expect(new Set(overview.goals.map((goal) => goal.status))).toEqual(new Set(['active', 'paused', 'reached']))
+    expect(overview.goals).toHaveLength(store.goals.length)
+  })
+
+  it("returns the goals' milestones in each goal's order", async () => {
+    const { milestones } = await getAspirations()
+
+    expect(milestones.filter((milestone) => milestone.goalId === 'goal-strong').map((milestone) => milestone.id)).toEqual([
+      'ms-strong-1',
+      'ms-strong-2',
+      'ms-strong-3',
+      'ms-strong-4',
+      'ms-strong-5',
+    ])
+    expect(milestones).toHaveLength(store.milestones.length)
+  })
+
+  it('returns only active recurring items', async () => {
+    store.recurringItems.find((item) => item.id === 'rec-hockey')!.active = false
+
+    const { recurringItems } = await getAspirations()
+
+    expect(ids(recurringItems)).toEqual(['rec-laundry', 'rec-rent', 'rec-stretch', 'rec-trash'])
+  })
+
+  it('returns the weekly target in force for each active goal that has one', async () => {
+    store.weeklyTargets.push(
+      { id: 'wt-strong-next', goalId: 'goal-strong', amount: 4, unit: 'lifting sessions', effectiveFrom: '2026-11-16' },
+      { id: 'wt-cook', goalId: 'goal-cook', amount: 5, unit: 'dinners', effectiveFrom: '2026-10-05' },
+    )
+
+    const { weeklyTargets } = await getAspirations()
+
+    expect(ids(weeklyTargets)).toEqual(['wt-endurance', 'wt-strong'])
+  })
+
+  it("returns this week's tasks that belong to a goal, and no others", async () => {
+    store.tasks.push({
+      id: 'task-lift-next-week',
+      title: 'Lift: squat day',
+      status: 'inBank',
+      weekOf: '2026-11-16',
+      goalId: 'goal-strong',
+      rolloverCount: 0,
+    })
+
+    const { weekTasks } = await getAspirations()
+
+    expect(weekTasks.every((task) => task.goalId !== undefined && task.weekOf === '2026-11-09')).toBe(true)
+    expect(ids(weekTasks)).toContain('task-run-mon')
+    expect(ids(weekTasks)).not.toContain('task-groceries')
+  })
+
+  it('returns copies, so changing them does not change the store', async () => {
+    const first = await getAspirations()
+    first.aspirations[0].name = 'changed'
+    first.goals[0].label = 'changed'
+
+    const second = await getAspirations()
+    expect(second.aspirations[0].name).toBe('Be fit')
+    expect(second.goals[0].label).toBe('Be strong')
   })
 })
