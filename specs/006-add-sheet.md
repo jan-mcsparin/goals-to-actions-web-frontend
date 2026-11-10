@@ -63,7 +63,7 @@ A building goal saved with a weekly target also gets that many tasks in this wee
 - `hooks/useAdd.ts`: saving, errors, and telling the open screen to reload.
 - `components/AddSheet.tsx` with one form component per tab; the + in `TabBar`; a short confirmation line.
 - On the aspiration page: "+ Add a goal for Be fit" (Goal tab) and "+ Add recurring" (Recurring tab), each with that aspiration selected. On the Aspirations tab: the footer hint's "Add one with +."
-- Docs: screens README (the + in the tab bar, the four forms, where a new task goes); flows.md Flow 3 (a task added by hand can go straight onto today).
+- Docs: mostly there already (the + in the tab bar, where a new task goes). Add what the build settles about the four forms.
 
 **Out (later):**
 - Tasks for a new recurring item, for later weeks, or after a target is changed (the planner).

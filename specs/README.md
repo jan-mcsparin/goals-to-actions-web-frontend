@@ -35,7 +35,7 @@ Settled with Jan on 2026-11-10:
 2. **Tab bar:** Today | Week | + | Aspirations. The + opens the Add sheet over whatever screen is open; it isn't a screen.
 3. **Settings is a gear** in the Aspirations header. Settings counts as Aspirations in the tab bar and goes back there.
 4. **Aspirations are managed in the click-through:** add, edit the name and why, move up and down, review, retire and bring back. A new one goes last in priority.
-5. **A one-off goal's steps are its milestones**, and they're called steps everywhere ("Step 3 of 6", never "Stage"). Checking off a task never moves the stage; the person marks a step reached on the goal's page. No new entity.
+5. **A one-off goal's steps are its milestones**, and they're called steps everywhere ("Step 3 of 6", never "Stage"). Checking off a task never moves the step; the person marks a step reached on the goal's page. No new entity.
 6. **The final milestone is the goal itself.** The timeline's last row is the goal's measurable line, and it counts in "1 of 6". Reaching it is reaching the goal. It isn't a separate milestone record. A goal with no milestones of its own reads "0 of 1".
 7. **Goal detail works fully, mocked:** Pause, End, Review and milestone check-in all change data.
 8. **Goal detail's timeline is vertical**, and condenses past four milestones (spec 005, `goal-detail-timeline.png`).

@@ -67,7 +67,7 @@ A milestone whose date has passed doesn't change by itself in the click-through;
 - `storage/`: the per-goal "show all" preference.
 - `hooks/useGoal.ts`: load, optimistic updates, rollback with a message on failure (as `useDay` does).
 - `screens/GoalDetail.tsx` (replacing #4's placeholder) and the sheets: target, check-in, add milestone, end, review.
-- Docs: screens README (vertical timeline, check-in, the not-yet card, what Pause and End do); flows.md where a detail is settled here (a one-off goal's steps are milestones; "not yet" choices return the milestone to upcoming).
+- Docs: mostly there already (timeline, steps as milestones, what Pause does). Add what the build settles: check-in, the not-yet card and its choices returning the milestone to upcoming, what End does.
 
 **Out (later):**
 - Offering to keep a reached goal's practice as a recurring item; a "What's next" button (needs #6).
