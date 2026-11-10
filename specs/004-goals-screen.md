@@ -19,9 +19,9 @@ References: [Flow 1](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 6](..
   - with no goals: "No goals yet."
 - **Goal row** (a button that opens the goal):
   - the label ("Be strong");
-  - on the right, progress: "Milestone 1 of 3" for building and quitting goals, "Stage 3 of 6" for one-off goals. The number is milestones hit out of all the goal's milestones;
+  - on the right, progress: "Milestone 1 of 4" for building and quitting goals, "Stage 3 of 6" for one-off goals. The goal itself is the final milestone, so the total is the goal's milestones plus one, and the count is milestones hit, plus one once the goal is reached;
   - a progress bar under it, filled to the same fraction;
-  - a goal with no milestones shows no count and no bar;
+  - a goal with no milestones of its own shows no count and no bar;
   - a paused goal reads "Paused" in place of the count.
 - **Other goals:** active and paused goals with no aspiration, under the heading "Other goals". Left out when there are none.
 - **Past goals:** reached and ended goals, behind a closed "Past goals (2)" row at the bottom. Tapping it opens the list: each a plain row with "Reached" or "Ended" on the right, still tappable. It starts closed every time. Left out when there are none.
@@ -69,8 +69,8 @@ Same rules as #1: async, returns copies. Ordering and grouping are left to `doma
 
 Additions only; today's and this week's tasks are untouched so #2's and #3's tests keep their counts.
 
-- **Clear out the garage** (one-off) gets six milestones as its steps, three hit ("Stage 3 of 6").
-- A second goal under Be fit: **Be fast** (building, "Run a 7-minute mile", baseline "8:40 mile"), four milestones, one hit, no weekly target, so the Week screen is unchanged.
+- **Clear out the garage** (one-off) gets five milestones as its steps, three hit ("Stage 3 of 6", the goal being the sixth).
+- A second goal under Be fit: **Be fast** (building, "Run a 7-minute mile", baseline "8:40 mile"), three milestones, one hit ("Milestone 1 of 4"), no weekly target, so the Week screen is unchanged.
 - One **paused** goal and one **reached** goal, so both states can be seen.
 - One active goal with **no aspiration**.
 - "Keep a calm home" keeps having no why.
@@ -89,7 +89,7 @@ export function progressLabel(type: GoalType, hit: number, total: number): strin
 
 ## Testing strategy
 
-- **`domain/goals.test.ts`:** aspirations in priority order; goals grouped under their aspiration; other and past groups; hit and total counts; labels for each goal type; no label with no milestones; paused.
+- **`domain/goals.test.ts`:** aspirations in priority order; goals grouped under their aspiration; other and past groups; hit and total counts, with the goal as the final one; labels for each goal type; no label with no milestones; paused.
 - **`api/client.test.ts`:** `getGoals` returns every goal, their milestones and the active recurring count; returns copies. Dataset consistency test still passes.
 - **`storage/navigation.test.ts`:** `goals` and `goal` round-trip; a `goal` with no id falls back to Today.
 - **`screens/Goals.test.tsx`:** aspirations with their why; a goal row's count and bar; "Stage 3 of 6"; Paused; Past goals closed at first and listed once opened; the recurring count; tapping a goal calls `onOpenGoal` with its id.

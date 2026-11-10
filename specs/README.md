@@ -31,7 +31,7 @@ Settled with Jan on 2026-11-10:
 1. **Tab bar:** Today | Week | + | Goals. The + opens the Add sheet over whatever screen is open; it isn't a screen.
 2. **Settings is a gear**, not a tab.
 3. **Aspirations have no page of their own.** They're the headings on the Goals screen.
-4. **A one-off goal's steps are its milestones.** "Stage 3 of 6" is 3 milestones hit of 6. Checking off a task never moves the stage; the person marks a step reached on the goal's page. No new entity.
+4. **A one-off goal's steps are its milestones.** "Stage 3 of 6" is 3 hit of 6, the goal itself being the sixth. Checking off a task never moves the stage; the person marks a step reached on the goal's page. No new entity.
 5. **Goal detail works fully, mocked:** Pause, End, Review and milestone check-in all change data.
 6. **Adding a goal is a short form.** Milestones and steps are added afterwards on Goal detail. Quitting goals can be created; their daily log comes later.
 7. **The gear sits in the Goals header**, top right, where the sketch has "+ Add". Settings counts as Goals in the tab bar and goes back to Goals.
@@ -39,13 +39,14 @@ Settled with Jan on 2026-11-10:
 9. **A new task can go straight onto today.** That's the default when the sheet is opened from the Today tab; from anywhere else the bank is.
 10. **A new building goal gets this week's bank tasks from the mock**, so the loop from goal to Today can be clicked through.
 11. **Goal detail's timeline is vertical**, and condenses past four milestones (spec 005).
-12. **#8 waits until #4–#7 are built**, and hosting is chosen then. What's already in place (manifest, service worker, remembered screen) stays.
+12. **The final milestone is the goal itself.** The timeline's last row is the goal's measurable line, and it counts in "1 of 6". Reaching it is reaching the goal. It isn't a separate milestone record.
+13. **#8 waits until #4–#7 are built**, and hosting is chosen then. What's already in place (manifest, service worker, remembered screen) stays.
 
 Assumed (say so if wrong):
 
-13. **Navigation stays behind `useNavigation()`.** The `Screen` union grows by `{ screen: 'goals' }`, `{ screen: 'goal'; goalId }` and `{ screen: 'settings' }`, each remembered like the others. Still no router.
-14. **Each spec adds its own `api/` functions, mock data and types**, and keeps #2's and #3's tests passing unchanged.
-15. **Nothing here builds the planner.** No week is redrafted and nothing is placed on a day for the person. The one stand-in is decision 10.
+14. **Navigation stays behind `useNavigation()`.** The `Screen` union grows by `{ screen: 'goals' }`, `{ screen: 'goal'; goalId }` and `{ screen: 'settings' }`, each remembered like the others. Still no router.
+15. **Each spec adds its own `api/` functions, mock data and types**, and keeps #2's and #3's tests passing unchanged.
+16. **Nothing here builds the planner.** No week is redrafted and nothing is placed on a day for the person. The one stand-in is decision 10.
 
 ## Shared conventions
 
