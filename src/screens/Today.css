@@ -198,3 +198,71 @@
   color: var(--text);
   font: inherit;
 }
+
+.bank-sheet {
+  width: 100%;
+  max-width: 40rem;
+  max-height: 80dvh;
+  margin: auto auto 0;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  border: none;
+  border-radius: 1rem 1rem 0 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.bank-sheet::backdrop {
+  background: rgb(0 0 0 / 0.35);
+}
+
+.bank-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.bank-sheet-header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.bank-sheet-close {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+}
+
+.bank-sheet-list {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bank-sheet-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.bank-sheet-close:focus-visible,
+.bank-sheet-task:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.bank-sheet-empty {
+  margin: 1rem 0 0;
+}

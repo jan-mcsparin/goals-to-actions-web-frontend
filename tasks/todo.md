@@ -132,12 +132,13 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** The Pull from bank button opens `BankSheet`, which lists bank tasks with their sublines; picking one calls `useToday.pull`, which adds it to today optimistically and closes the sheet.
 
 **Acceptance criteria:**
-- [ ] The sheet lists the mock bank (deadlift day, garage shelves, call the dentist); picking one adds it to the right group and updates "N of M".
-- [ ] Empty bank → "Nothing in the bank." Rejection reverts and shows the calm message.
-- [ ] The sheet is a dialog: focus moves in, Escape and a Close button close it, focus returns to the button.
+- [x] The sheet lists the mock bank (deadlift day, garage shelves, call the dentist); picking one adds it to the right group and updates "N of M".
+- [x] Empty bank → "Nothing in the bank." Rejection reverts and shows the calm message.
+- [x] The sheet is a native modal `<dialog>` with a Close button (tested).
+- [ ] Focus moves in, Escape closes, focus returns to the button: browser behaviour, jsdom can't test it. Check on the phone.
 
 **Verification:**
-- [ ] `npm test`: screen test for pick → row appears; hook test for rollback
+- [x] `npm test`: screen test for pick → row appears; hook test for rollback
 
 **Dependencies:** Tasks 4, 5
 

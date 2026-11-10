@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { checkOffTask, uncheckTask } from '../api/client.ts'
+import { checkOffTask, pullFromBank, uncheckTask } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { Task } from '../api/types.ts'
 import { useToday, type UseToday } from './useToday.ts'
@@ -11,6 +11,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     ...actual,
     checkOffTask: vi.fn(actual.checkOffTask),
     uncheckTask: vi.fn(actual.uncheckTask),
+    pullFromBank: vi.fn(actual.pullFromBank),
   }
 })
 
@@ -101,5 +102,35 @@ describe('useToday toggleDone', () => {
     await act(async () => first.resolve(laundry('done')))
 
     expect(statusOf(result.current, 'task-laundry')).toBe('planned')
+  })
+})
+
+describe('useToday pull', () => {
+  it('adds the bank task to today at once, with its goal', async () => {
+    const save = deferred<Task>()
+    vi.mocked(pullFromBank).mockReturnValueOnce(save.promise)
+    const { result } = await renderLoaded()
+    await act(async () => result.current.loadBank())
+
+    act(() => result.current.pull('task-garage-shelves'))
+
+    expect(statusOf(result.current, 'task-garage-shelves')).toBe('planned')
+    const pulled = result.current.today?.sections
+      .flatMap((section) => section.rows)
+      .find((row) => row.task.id === 'task-garage-shelves')
+    expect(pulled?.subline).toBe('Clear out the garage · Keep a calm home')
+    expect(result.current.bankRows?.map((row) => row.task.id)).not.toContain('task-garage-shelves')
+  })
+
+  it('puts the task back in the bank and says so calmly when the save fails', async () => {
+    vi.mocked(pullFromBank).mockRejectedValueOnce(new Error('offline'))
+    const { result } = await renderLoaded()
+    await act(async () => result.current.loadBank())
+
+    await act(async () => result.current.pull('task-garage-shelves'))
+
+    expect(statusOf(result.current, 'task-garage-shelves')).toBeUndefined()
+    expect(result.current.bankRows?.map((row) => row.task.id)).toContain('task-garage-shelves')
+    expect(result.current.message).toBe("Couldn't save that. Try again.")
   })
 })

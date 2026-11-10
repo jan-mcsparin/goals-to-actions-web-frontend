@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { BankSheet } from '../components/BankSheet.tsx'
 import { TaskRow } from '../components/TaskRow.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
 import type { Section } from '../domain/today.ts'
@@ -5,7 +7,8 @@ import { useToday } from '../hooks/useToday.ts'
 import './Today.css'
 
 export function Today() {
-  const { today, message, view, setView, toggleDone } = useToday()
+  const { today, message, view, setView, toggleDone, bankRows, loadBank, pull } = useToday()
+  const [bankOpen, setBankOpen] = useState(false)
 
   if (!today) {
     return (
@@ -51,9 +54,27 @@ export function Today() {
         </>
       )}
 
-      <button type="button" className="today-pull">
+      <button
+        type="button"
+        className="today-pull"
+        onClick={() => {
+          setBankOpen(true)
+          void loadBank()
+        }}
+      >
         Pull from bank
       </button>
+
+      <BankSheet
+        open={bankOpen}
+        title="Pull from bank"
+        rows={bankRows}
+        onPick={(taskId) => {
+          pull(taskId)
+          setBankOpen(false)
+        }}
+        onClose={() => setBankOpen(false)}
+      />
     </main>
   )
 }

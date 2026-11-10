@@ -1,6 +1,6 @@
 // What the Today screen shows, worked out from a TodayPlan. Components render
 // these sections as they come; all grouping, ordering and wording lives here.
-import type { Aspiration, Goal, Task, TimeOfDay, TodayPlan } from '../api/types.ts'
+import type { Aspiration, Bank, Goal, Task, TimeOfDay, TodayPlan } from '../api/types.ts'
 
 export type TaskRow = {
   task: Task
@@ -71,6 +71,10 @@ export function groupByGoal(plan: TodayPlan): Section[] {
   return [maintenance, ...goalCards].filter((section) => section.rows.length > 0)
 }
 
+export function bankRows(bank: Bank): TaskRow[] {
+  return bank.tasks.map((task) => rowFor(task, sublineFor(task, bank)))
+}
+
 // Skipped tasks have gone back to the bank, so they're no longer part of today.
 function visibleTasks(plan: TodayPlan): Task[] {
   return plan.tasks.filter((task) => task.status === 'planned' || task.status === 'done')
@@ -97,9 +101,9 @@ function rowFor(task: Task, subline?: string): TaskRow {
   }
 }
 
-function sublineFor(task: Task, plan: TodayPlan): string | undefined {
-  const goal = plan.goals.find((candidate) => candidate.id === task.goalId)
-  return goal && goalSubline(goal, plan.aspirations)
+function sublineFor(task: Task, records: Pick<TodayPlan, 'goals' | 'aspirations'>): string | undefined {
+  const goal = records.goals.find((candidate) => candidate.id === task.goalId)
+  return goal && goalSubline(goal, records.aspirations)
 }
 
 function goalsByPriority(plan: TodayPlan): Goal[] {

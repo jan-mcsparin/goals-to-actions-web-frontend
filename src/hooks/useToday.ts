@@ -2,13 +2,22 @@
 // show immediately and are saved in the background; if a save fails the task
 // goes back to how it was (ADR-004). Rules come from domain/today.ts.
 import { useEffect, useRef, useState } from 'react'
-import { checkOffTask, getToday, uncheckTask } from '../api/client.ts'
-import type { Task, TodayPlan } from '../api/types.ts'
-import { dayHeading, groupByGoal, groupForList, progress, type Section } from '../domain/today.ts'
+import { checkOffTask, getBank, getToday, pullFromBank, uncheckTask } from '../api/client.ts'
+import type { Bank, Task, TodayPlan } from '../api/types.ts'
+import {
+  bankRows,
+  dayHeading,
+  groupByGoal,
+  groupForList,
+  progress,
+  type Section,
+  type TaskRow,
+} from '../domain/today.ts'
 import { readTodayView, saveTodayView, type TodayViewMode } from '../storage/viewPreference.ts'
 
 const LOAD_FAILED = "Couldn't load today. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
+const BANK_FAILED = "Couldn't open the bank. Try again in a moment."
 
 export type TodayView = {
   heading: string
@@ -22,12 +31,16 @@ export type UseToday = {
   view: TodayViewMode
   setView: (view: TodayViewMode) => void
   toggleDone: (taskId: string) => void
+  bankRows?: TaskRow[]
+  loadBank: () => Promise<void>
+  pull: (bankTaskId: string) => void
 }
 
 export function useToday(): UseToday {
   const [plan, setPlan] = useState<TodayPlan>()
   const [message, setMessage] = useState<string>()
   const [view, setViewState] = useState(readTodayView)
+  const [bank, setBank] = useState<Bank>()
   const latestRequest = useRef(new Map<string, number>())
 
   useEffect(() => {
@@ -78,12 +91,66 @@ export function useToday(): UseToday {
       })
   }
 
-  return { today: plan && viewOf(plan, view), message, view, setView, toggleDone }
+  async function loadBank() {
+    try {
+      setBank(await getBank())
+    } catch {
+      setMessage(BANK_FAILED)
+    }
+  }
+
+  function pull(bankTaskId: string) {
+    const task = bank?.tasks.find((candidate) => candidate.id === bankTaskId)
+    if (!bank || !plan || !task) return
+
+    const placed: Task = { ...task, status: 'planned', plannedDay: plan.date }
+    setPlan({ ...withRecordsFrom(plan, bank), tasks: [...plan.tasks, placed] })
+    setBank({ ...bank, tasks: bank.tasks.filter((candidate) => candidate.id !== bankTaskId) })
+    setMessage(undefined)
+
+    pullFromBank(bankTaskId)
+      .then(replaceTask)
+      .catch(() => {
+        setPlan((previous) => previous && withoutTask(previous, bankTaskId))
+        setBank((previous) => previous && { ...previous, tasks: [...previous.tasks, task] })
+        setMessage(SAVE_FAILED)
+      })
+  }
+
+  return {
+    today: plan && viewOf(plan, view),
+    message,
+    view,
+    setView,
+    toggleDone,
+    bankRows: bank && bankRows(bank),
+    loadBank,
+    pull,
+  }
 }
 
 function viewOf(plan: TodayPlan, view: TodayViewMode): TodayView {
   const sections = view === 'byGoal' ? groupByGoal(plan) : groupForList(plan)
   return { heading: dayHeading(plan.date), progress: progress(plan), sections }
+}
+
+function withoutTask(plan: TodayPlan, taskId: string): TodayPlan {
+  return { ...plan, tasks: plan.tasks.filter((task) => task.id !== taskId) }
+}
+
+// A pulled task may belong to a goal today's plan hasn't seen yet.
+function withRecordsFrom(plan: TodayPlan, bank: Bank): TodayPlan {
+  return {
+    ...plan,
+    goals: unionById(plan.goals, bank.goals),
+    aspirations: unionById(plan.aspirations, bank.aspirations),
+    recurringItems: unionById(plan.recurringItems, bank.recurringItems),
+  }
+}
+
+function unionById<T extends { id: string }>(existing: T[], incoming: T[]): T[] {
+  const known = new Set(existing.map((record) => record.id))
+  return [...existing, ...incoming.filter((record) => !known.has(record.id))]
 }
 
 function asDone(task: Task): Task {

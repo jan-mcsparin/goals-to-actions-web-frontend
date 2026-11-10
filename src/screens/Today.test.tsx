@@ -1,13 +1,18 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getToday } from '../api/client.ts'
+import { getBank, getToday, pullFromBank } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import { Today } from './Today.tsx'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
-  return { ...actual, getToday: vi.fn(actual.getToday) }
+  return {
+    ...actual,
+    getToday: vi.fn(actual.getToday),
+    getBank: vi.fn(actual.getBank),
+    pullFromBank: vi.fn(actual.pullFromBank),
+  }
 })
 
 // Wednesday 11 Nov 2026, 9 a.m. local time. Only Date is faked, so RTL's
@@ -86,6 +91,45 @@ describe('Today', () => {
 
     expect((await screen.findByRole('button', { name: 'By goal' })).getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByRole('button', { name: 'List' }).getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('pulls a task from the bank onto today', async () => {
+    const user = userEvent.setup()
+    render(<Today />)
+
+    await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
+    expect(within(sheet).getAllByRole('listitem')).toHaveLength(3)
+
+    await user.click(within(sheet).getByRole('button', { name: 'Lift: deadlift day' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(rowTitles(screen.getByRole('region', { name: 'Move forward' }))).toEqual([
+      'Lift: bench day',
+      'Lift: deadlift day',
+    ])
+    expect(screen.getByText('0 of 5 done')).toBeDefined()
+    expect(pullFromBank).toHaveBeenCalledWith('task-lift-bank')
+  })
+
+  it('says so when the bank is empty, and closes', async () => {
+    vi.mocked(getBank).mockResolvedValueOnce({
+      weekOf: '2026-11-09',
+      tasks: [],
+      goals: [],
+      aspirations: [],
+      recurringItems: [],
+    })
+    const user = userEvent.setup()
+    render(<Today />)
+
+    await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
+    expect(await within(sheet).findByText('Nothing in the bank.')).toBeDefined()
+
+    await user.click(within(sheet).getByRole('button', { name: 'Close' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('shows a warm empty state when nothing is planned', async () => {

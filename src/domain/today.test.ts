@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import type { Aspiration, Goal, RecurringItem, Task, TodayPlan } from '../api/types.ts'
+import type { Aspiration, Bank, Goal, RecurringItem, Task, TodayPlan } from '../api/types.ts'
 import {
+  bankRows,
   dayHeading,
   goalSubline,
   groupByGoal,
@@ -155,5 +156,25 @@ describe('dayHeading', () => {
   it('names the weekday of a local day string', () => {
     expect(dayHeading('2026-11-11')).toBe('Today · Wednesday')
     expect(dayHeading('2026-11-15')).toBe('Today · Sunday')
+  })
+})
+
+describe('bankRows', () => {
+  it('lists bank tasks in bank order with time labels and goal sublines', () => {
+    const bank: Bank = {
+      weekOf: '2026-11-09',
+      tasks: [
+        task('Deadlift', { status: 'inBank', plannedDay: undefined, goalId: 'goal-strong' }),
+        task('Dentist', { status: 'inBank', plannedDay: undefined, timeOfDay: { kind: 'by', time: '17:00' } }),
+      ],
+      goals: [strong],
+      aspirations: [fit],
+      recurringItems: [],
+    }
+
+    expect(bankRows(bank)).toEqual([
+      { task: bank.tasks[0], subline: 'Be strong · Be fit' },
+      { task: bank.tasks[1], timeLabel: 'by 5 p.m.' },
+    ])
   })
 })
