@@ -14,7 +14,7 @@ References: [Flow 2](../../docs/flows.md#flow-2-set-a-goal-and-its-milestones), 
 
 - **Header (pinned):** "‹ Goals" on the left, the type on the right ("Building", "Quitting", "One-off"). Then the label, the measurable line, and the aspiration's name if there is one. A paused goal reads "Paused" beside the type.
 - **Where you started:** "Started at: Bench 145, squat 275, deadlift 315". Once any milestone has a result, a second line: "Latest: Bench 150, squat 290, deadlift 330 · Nov 2". Baselines and results are free text, so the two lines sit side by side; nothing is calculated. No baseline: the section is left out.
-- **Milestones** ("Steps" for a one-off goal): a vertical timeline, in order, from Start to Goal. Each milestone shows:
+- **Milestones** ("Steps" for a one-off goal): a vertical timeline, in order, from Start to Goal, with "1 of 6 hit" beside the heading. The Start row shows the start date and the baseline. Each milestone shows:
   - its measurable line;
   - when: "Wk 8 · Nov 30" (weeks counted from the goal's start date), or "No date";
   - its status: "Hit" with the result, "Not yet", or nothing for upcoming. The next upcoming one is marked "Next".
@@ -25,7 +25,7 @@ References: [Flow 2](../../docs/flows.md#flow-2-set-a-goal-and-its-milestones), 
   - Below the timeline, beside "+ Add milestone": **Show all 6** / **Show less**. Expanded or not is remembered per goal (in `storage/`, like the Today view toggle) and restored on open.
   - Four milestones or fewer: every row shows and there is no toggle. Nothing past or upcoming: the rows that exist show.
 - **Weekly target** (building goals): "3 lifting sessions" and **Edit**. With none: "No weekly target yet" and **Set**. One-off goals show "Deadline: Dec 4" here instead, when they have one. Quitting goals show "Since Oct 5".
-- **Next check-in:** the next upcoming milestone: its line and "week 8", or "whenever you choose" when it has no date, with a **Check in** button. None upcoming: "No check-ins coming up."
+- **Next check-in:** when the next upcoming milestone is due: "Week 12 · Dec 7", or "Whenever you choose" when it has no date, with a **Check in** button. None upcoming: "No check-ins coming up."
 - **Actions:** Review · Pause · End goal. Pause reads Resume on a paused goal.
 
 **A goal that isn't there** (a remembered id after the mock data reset): go back to Goals, quietly.
@@ -139,3 +139,4 @@ export function weekLabel(startDate: string, targetDate: string | undefined): st
 2. **A new target takes effect this week**, so "1 of 3" can become "1 of 4" on Wednesday. The alternative is from next Monday.
 3. **End goal asks "reached or not"** rather than working it out, since nothing can tell whether "bench 175" was crossed.
 4. This is the largest of the five. The plan will likely split it into two PRs: the read-only screen with the target edit, then check-in and the actions.
+5. **The Goal row.** In the design the last row is the goal's own line ("Bench 175, squat 350, deadlift 400", with the deadline) and it counts in "1 of 6". This spec treats it as the goal's last milestone, so the mock data needs one with that line. The alternative is to draw the row from the goal and count only the milestones before it.
