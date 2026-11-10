@@ -1,6 +1,6 @@
 # Specs
 
-One spec per issue, numbered like the issue. This file is the index and the map for the screens still to build. Each spec is planned (`tasks/plan.md`, `tasks/todo.md`) just before it's built, not before.
+One spec per issue, numbered like the issue. This file is the index and the map for the screens still to build. Each spec is planned (`tasks/plan.md`, `tasks/todo.md`) just before it's built, not before. A spec stays a draft until then: it's approved, and its open questions settled, when its plan is written.
 
 ## Done
 
