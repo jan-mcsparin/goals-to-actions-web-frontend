@@ -23,6 +23,7 @@ src/
 
 - **Product name in one place:** `src/config.ts` exports `APP_NAME`; the PWA manifest `name`/`short_name` in `vite.config.ts` reads it. Don't hard-code the name anywhere else.
 - **Instant open (ADR-004):** precache the app shell; render Today from IndexedDB first, then refresh in the background; optimistic check-offs with a queue flushed on open (no background sync on Safari); persist current screen and view toggle.
+- **Navigation goes through `useNavigation()`** (`hooks/useNavigation.ts`). No router yet: the open screen is state, remembered in `localStorage`. Adding real URLs later means changing that hook and `App.tsx`, not the screens.
 - **Keep logic out of components.** Components render; `domain/` and `hooks/` decide.
 - **Click-through first:** screens call the same `api/` functions the real app will use; those return mock data until the API exists. Mock data follows `../docs/data-model.md` and the "Be fit / Be strong" example.
 - **API types are generated**, never hand-written, once `api/` exists.

@@ -193,12 +193,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Record what changed, in the parent repo on its own branch, and in this repo.
 
 **Acceptance criteria:**
-- [ ] `../docs/data-model.md`: Task gains "placed by hand"; the planner never moves such tasks.
-- [ ] `../docs/screens/README.md` (Week): tap a bank task, then pick a day (drag later); pacing wording; fixed-day items have no menu; tab bar.
-- [ ] `CLAUDE.md` (this repo): navigation goes through `useNavigation()`; no router yet.
+- [x] `../docs/data-model.md`: Task gains "placed by hand"; the planner never moves such tasks.
+- [x] `../docs/screens/README.md` (Week): tap a bank task, then pick a day (drag later); pacing wording; fixed-day items have no menu; tab bar.
+- [x] `CLAUDE.md` (this repo): navigation goes through `useNavigation()`; no router yet.
 
 **Verification:**
-- [ ] Manual read-through against the spec's Decisions
+- [x] Manual read-through against the spec's Decisions
 
 **Dependencies:** None (any time after the spec)
 

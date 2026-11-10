@@ -165,6 +165,7 @@ npm run dev -- --host   # check on the phone
 5. **Fixed-day items** (trash on Tuesday) have no ⋯ menu, so they can't be sent back to the bank or swapped away. They can still be checked off.
 6. **Pacing wording:** "M more to plan" when behind; "Done for the week" when the target is met.
 7. **Past days** are left out of "Put on a day".
+8. **On past days** the Day screen hides Pull from bank and Swap, since tasks can't be placed on a past day. Check-off, undo and Back to bank stay. (Settled during the build, 2026-11-10.)
 
 ## Plan
 
