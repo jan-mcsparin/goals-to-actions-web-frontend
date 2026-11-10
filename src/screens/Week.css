@@ -126,3 +126,33 @@
   color: var(--muted);
   font-size: 0.875rem;
 }
+
+.week-message,
+.week-bank-note {
+  margin: 0;
+  color: var(--muted);
+}
+
+.week-bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.week-chip {
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+.week-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

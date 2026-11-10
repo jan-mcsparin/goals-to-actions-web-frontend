@@ -1,21 +1,33 @@
 // This week, ready to render: progress per goal, a line per day, and the bank.
 // Loads through the API client; rules come from domain/week.ts.
 import { useEffect, useState } from 'react'
-import { getWeek } from '../api/client.ts'
-import type { WeekPlan } from '../api/types.ts'
-import { daySummaries, weekProgress, weekRange, type DaySummary, type ProgressRow } from '../domain/week.ts'
+import { getWeek, pullFromBank } from '../api/client.ts'
+import type { Task, WeekPlan } from '../api/types.ts'
+import {
+  daySummaries,
+  pickableDays,
+  weekProgress,
+  weekRange,
+  type DaySummary,
+  type PickableDay,
+  type ProgressRow,
+} from '../domain/week.ts'
 
 const LOAD_FAILED = "Couldn't load this week. Try again in a moment."
+const SAVE_FAILED = "Couldn't save that. Try again."
 
 export type WeekView = {
   range: string
   progress: ProgressRow[]
   days: DaySummary[]
+  bank: Task[]
+  pickableDays: PickableDay[]
 }
 
 export type UseWeek = {
   week?: WeekView
   message?: string
+  place: (bankTaskId: string, date: string) => void
 }
 
 export function useWeek(today: string): UseWeek {
@@ -32,7 +44,30 @@ export function useWeek(today: string): UseWeek {
     }
   }, [])
 
-  return { week: plan && viewOf(plan, today), message }
+  // Shows the task on its new day at once; puts it back in the bank if the save fails.
+  function place(bankTaskId: string, date: string) {
+    const before = plan?.tasks.find((task) => task.id === bankTaskId)
+    if (!before) return
+
+    replaceTask({ ...before, status: 'planned', plannedDay: date, placedByHand: true })
+    setMessage(undefined)
+
+    pullFromBank(bankTaskId, date)
+      .then(replaceTask)
+      .catch(() => {
+        replaceTask(before)
+        setMessage(SAVE_FAILED)
+      })
+  }
+
+  function replaceTask(next: Task) {
+    setPlan(
+      (previous) =>
+        previous && { ...previous, tasks: previous.tasks.map((task) => (task.id === next.id ? next : task)) },
+    )
+  }
+
+  return { week: plan && viewOf(plan, today), message, place }
 }
 
 function viewOf(plan: WeekPlan, today: string): WeekView {
@@ -40,5 +75,7 @@ function viewOf(plan: WeekPlan, today: string): WeekView {
     range: weekRange(plan.weekOf),
     progress: weekProgress(plan, today),
     days: daySummaries(plan, today),
+    bank: plan.tasks.filter((task) => task.status === 'inBank'),
+    pickableDays: pickableDays(plan.weekOf, today),
   }
 }

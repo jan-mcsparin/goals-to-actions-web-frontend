@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import type { Task } from '../api/types.ts'
+import { DayPickerSheet } from '../components/DayPickerSheet.tsx'
 import type { DaySummary, ProgressRow } from '../domain/week.ts'
 import { useWeek } from '../hooks/useWeek.ts'
 import './Week.css'
@@ -8,7 +11,8 @@ type WeekProps = {
 }
 
 export function Week({ today, onOpenDay }: WeekProps) {
-  const { week, message } = useWeek(today)
+  const { week, message, place } = useWeek(today)
+  const [placing, setPlacing] = useState<Task>()
 
   if (!week) {
     return (
@@ -24,6 +28,12 @@ export function Week({ today, onOpenDay }: WeekProps) {
         <h1>This week</h1>
         <p className="week-range">{week.range}</p>
       </header>
+
+      {message && (
+        <p className="week-message" role="status">
+          {message}
+        </p>
+      )}
 
       {week.progress.length > 0 && (
         <section className="week-section" aria-labelledby="week-progress">
@@ -42,6 +52,37 @@ export function Week({ today, onOpenDay }: WeekProps) {
           ))}
         </ul>
       </section>
+
+      <section className="week-section" aria-labelledby="week-bank">
+        <h2 id="week-bank">{week.bank.length ? `Bank · ${week.bank.length} not on a day` : 'Bank'}</h2>
+        {week.bank.length === 0 ? (
+          <p className="week-bank-note">Nothing in the bank.</p>
+        ) : (
+          <>
+            <ul className="week-bank">
+              {week.bank.map((task) => (
+                <li key={task.id}>
+                  <button type="button" className="week-chip" onClick={() => setPlacing(task)}>
+                    {task.title}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <p className="week-bank-note">Tap to put on a day.</p>
+          </>
+        )}
+      </section>
+
+      <DayPickerSheet
+        open={placing !== undefined}
+        taskTitle={placing?.title}
+        days={week.pickableDays}
+        onPick={(date) => {
+          if (placing) place(placing.id, date)
+          setPlacing(undefined)
+        }}
+        onClose={() => setPlacing(undefined)}
+      />
     </main>
   )
 }

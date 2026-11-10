@@ -1,7 +1,9 @@
-import { useEffect, useId, useRef } from 'react'
+import { useId } from 'react'
 import type { TaskRow } from '../domain/today.ts'
+import './sheet.css'
 import './BankSheet.css'
 import './taskText.css'
+import { useModalDialog } from './useModalDialog.ts'
 
 type BankSheetProps = {
   open: boolean
@@ -12,34 +14,25 @@ type BankSheetProps = {
   onClose: () => void
 }
 
-// A native modal <dialog>: the browser moves focus in, closes on Escape and
-// returns focus to the button that opened it.
 export function BankSheet({ open, title, rows, message, onPick, onClose }: BankSheetProps) {
-  const dialog = useRef<HTMLDialogElement>(null)
+  const dialog = useModalDialog(open)
   const titleId = useId()
 
-  useEffect(() => {
-    const element = dialog.current
-    if (!element) return
-    if (open && !element.open) element.showModal()
-    if (!open && element.open) element.close()
-  }, [open])
-
   return (
-    <dialog ref={dialog} className="bank-sheet" aria-labelledby={titleId} onClose={onClose}>
-      <header className="bank-sheet-header">
+    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose}>
+      <header className="sheet-header">
         <h2 id={titleId}>{title}</h2>
-        <button type="button" className="bank-sheet-close" onClick={onClose}>
+        <button type="button" className="sheet-close" onClick={onClose}>
           Close
         </button>
       </header>
       {message && (
-        <p className="bank-sheet-note" role="status">
+        <p className="sheet-note" role="status">
           {message}
         </p>
       )}
-      {!message && !rows && <p className="bank-sheet-note">Loading…</p>}
-      {rows && rows.length === 0 && <p className="bank-sheet-note">Nothing in the bank.</p>}
+      {!message && !rows && <p className="sheet-note">Loading…</p>}
+      {rows && rows.length === 0 && <p className="sheet-note">Nothing in the bank.</p>}
       {rows && rows.length > 0 && (
         <ul className="bank-sheet-list">
           {rows.map(({ task, subline, timeLabel }) => (

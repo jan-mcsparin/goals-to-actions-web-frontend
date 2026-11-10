@@ -168,12 +168,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Bank chips under the days. Tapping one opens `DayPickerSheet` (native `<dialog>`) listing Today and later days; picking one calls `pullFromBank(id, day)` optimistically through `useWeek`.
 
 **Acceptance criteria:**
-- [ ] "Bank · 3 not on a day" with three chips; picking Thursday moves the task into Thursday's row and drops the count to 2.
-- [ ] Past days aren't offered; empty bank reads "Nothing in the bank."
-- [ ] A failed save puts the chip back and shows "Couldn't save that. Try again."
+- [x] "Bank · 3 not on a day" with three chips; picking Thursday moves the task into Thursday's row and drops the count to 2.
+- [x] Past days aren't offered; empty bank reads "Nothing in the bank."
+- [x] A failed save puts the chip back and shows "Couldn't save that. Try again."
 
 **Verification:**
-- [ ] `npm test`: screen tests per bullet; hook test for rollback
+- [x] `npm test`: screen tests per bullet; hook test for rollback
 
 **Dependencies:** Task 8
 
@@ -182,8 +182,8 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M
 
 ## Checkpoint C
-- [ ] Every success criterion in the spec is met
-- [ ] Tests, lint and build pass
+- [x] Every success criterion in the spec is met (manual checks below still open)
+- [x] Tests, lint and build pass
 - [ ] Manual at 375 and 390 px, light and dark; tab bar and sheets on the phone
 
 ## Phase 4: Docs
