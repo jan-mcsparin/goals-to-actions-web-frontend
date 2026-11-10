@@ -2,6 +2,8 @@
   --text: #1f2421;
   --bg: #ffffff;
   --accent: #2f6f4f;
+  --muted: color-mix(in srgb, var(--text) 60%, var(--bg));
+  --line: color-mix(in srgb, var(--text) 15%, var(--bg));
 
   font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color-scheme: light dark;

@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef } from 'react'
 import type { TaskRow } from '../domain/today.ts'
+import './BankSheet.css'
+import './taskText.css'
 
 type BankSheetProps = {
   open: boolean

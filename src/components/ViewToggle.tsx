@@ -1,4 +1,5 @@
 import type { TodayViewMode } from '../storage/viewPreference.ts'
+import './ViewToggle.css'
 
 const OPTIONS: { view: TodayViewMode; label: string }[] = [
   { view: 'list', label: 'List' },

@@ -1,5 +1,7 @@
 import type { TaskRow as TaskRowData } from '../domain/today.ts'
 import { TaskMenu } from './TaskMenu.tsx'
+import './TaskRow.css'
+import './taskText.css'
 
 type TaskRowProps = {
   row: TaskRowData
