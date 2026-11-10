@@ -39,7 +39,7 @@ Settled with Jan on 2026-11-10:
 9. **A new task can go straight onto today.** That's the default when the sheet is opened from the Today tab; from anywhere else the bank is.
 10. **A new building goal gets this week's bank tasks from the mock**, so the loop from goal to Today can be clicked through.
 11. **Goal detail's timeline is vertical**, and condenses past four milestones (spec 005).
-12. **The final milestone is the goal itself.** The timeline's last row is the goal's measurable line, and it counts in "1 of 6". Reaching it is reaching the goal. It isn't a separate milestone record.
+12. **The final milestone is the goal itself.** The timeline's last row is the goal's measurable line, and it counts in "1 of 6". Reaching it is reaching the goal. It isn't a separate milestone record. A goal with no milestones of its own reads "0 of 1".
 13. **#8 waits until #4–#7 are built**, and hosting is chosen then. What's already in place (manifest, service worker, remembered screen) stays.
 
 Assumed (say so if wrong):

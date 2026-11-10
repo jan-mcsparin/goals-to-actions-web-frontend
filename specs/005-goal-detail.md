@@ -46,7 +46,7 @@ A sheet with an amount (whole number, at least 1) and a unit ("lifting sessions"
 
 For a one-off goal's step the buttons read **Done** and **Not yet**, and the rest is the same.
 
-**When every milestone is hit, the goal is next.** Next check-in shows the goal ("Mar 1", or "Whenever you choose"), and Check in opens the same sheet. **Hit it** marks the goal reached, exactly as End goal → I reached it does. **Not yet** closes the sheet and changes nothing.
+**When every milestone is hit, or there are none, the goal is next.** A goal with no milestones shows Start and Goal on the timeline and "0 of 1 hit". Next check-in shows the goal ("Mar 1", or "Whenever you choose"), and Check in opens the same sheet. **Hit it** marks the goal reached, exactly as End goal → I reached it does. **Not yet** closes the sheet and changes nothing.
 
 A milestone whose date has passed doesn't change by itself in the click-through; "not yet" comes from a check-in or the mock data.
 

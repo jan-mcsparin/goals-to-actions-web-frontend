@@ -21,7 +21,7 @@ References: [Flow 1](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 6](..
   - the label ("Be strong");
   - on the right, progress: "Milestone 1 of 4" for building and quitting goals, "Stage 3 of 6" for one-off goals. The goal itself is the final milestone, so the total is the goal's milestones plus one, and the count is milestones hit, plus one once the goal is reached;
   - a progress bar under it, filled to the same fraction;
-  - a goal with no milestones of its own shows no count and no bar;
+  - a goal with no milestones of its own reads "Milestone 0 of 1" ("Stage 0 of 1") with an empty bar, since the goal is still its final milestone;
   - a paused goal reads "Paused" in place of the count.
 - **Other goals:** active and paused goals with no aspiration, under the heading "Other goals". Left out when there are none.
 - **Past goals:** reached and ended goals, behind a closed "Past goals (2)" row at the bottom. Tapping it opens the list: each a plain row with "Reached" or "Ended" on the right, still tappable. It starts closed every time. Left out when there are none.
@@ -81,15 +81,15 @@ As in the [shared conventions](README.md#shared-conventions).
 
 ```ts
 // domain/goals.ts
-export function progressLabel(type: GoalType, hit: number, total: number): string | undefined {
-  if (total === 0) return undefined
+// total counts the goal itself as the final milestone, so it is never 0.
+export function progressLabel(type: GoalType, hit: number, total: number): string {
   return `${type === 'oneOff' ? 'Stage' : 'Milestone'} ${hit} of ${total}`
 }
 ```
 
 ## Testing strategy
 
-- **`domain/goals.test.ts`:** aspirations in priority order; goals grouped under their aspiration; other and past groups; hit and total counts, with the goal as the final one; labels for each goal type; no label with no milestones; paused.
+- **`domain/goals.test.ts`:** aspirations in priority order; goals grouped under their aspiration; other and past groups; hit and total counts, with the goal as the final one; labels for each goal type; "0 of 1" with no milestones and "1 of 1" once reached; paused.
 - **`api/client.test.ts`:** `getGoals` returns every goal, their milestones and the active recurring count; returns copies. Dataset consistency test still passes.
 - **`storage/navigation.test.ts`:** `goals` and `goal` round-trip; a `goal` with no id falls back to Today.
 - **`screens/Goals.test.tsx`:** aspirations with their why; a goal row's count and bar; "Stage 3 of 6"; Paused; Past goals closed at first and listed once opened; the recurring count; tapping a goal calls `onOpenGoal` with its id.
