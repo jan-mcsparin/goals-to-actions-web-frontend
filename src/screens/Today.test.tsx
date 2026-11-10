@@ -167,6 +167,29 @@ describe('Today', () => {
     expect(screen.getByText('0 of 4 done')).toBeDefined()
   })
 
+  it('closes a row menu when you tap somewhere else', async () => {
+    const user = userEvent.setup()
+    render(<Today />)
+
+    await user.click(await screen.findByRole('button', { name: 'More for Laundry' }))
+    await user.click(screen.getByRole('heading', { level: 1 }))
+
+    expect(screen.queryByRole('button', { name: 'Back to bank' })).toBeNull()
+  })
+
+  it('keeps only one row menu open at a time', async () => {
+    const user = userEvent.setup()
+    render(<Today />)
+
+    await user.click(await screen.findByRole('button', { name: 'More for Laundry' }))
+    await user.click(screen.getByRole('button', { name: 'More for Fill out my ballot' }))
+
+    expect(screen.getAllByRole('button', { name: 'Back to bank' })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'More for Fill out my ballot' }).getAttribute('aria-expanded')).toBe(
+      'true',
+    )
+  })
+
   it('offers no menu on a done task, since a tap undoes it', async () => {
     const user = userEvent.setup()
     render(<Today />)

@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 
 type TaskMenuProps = {
   taskTitle: string
@@ -6,12 +6,25 @@ type TaskMenuProps = {
   onSwap: () => void
 }
 
-// A disclosure: "⋯" shows two actions below it. Escape closes it and puts
+// A disclosure: "⋯" shows two actions below it. A tap anywhere else closes
+// it (which also keeps one menu open at a time); Escape closes it and puts
 // focus back on the button.
 export function TaskMenu({ taskTitle, onSendToBank, onSwap }: TaskMenuProps) {
   const [open, setOpen] = useState(false)
+  const container = useRef<HTMLDivElement>(null)
   const toggle = useRef<HTMLButtonElement>(null)
   const actionsId = useId()
+
+  // Listens for taps rather than focus changes: iOS Safari doesn't focus
+  // buttons on tap, so a blur-based close would never fire there.
+  useEffect(() => {
+    if (!open) return
+    function closeOnOutsideTap(event: PointerEvent) {
+      if (!container.current?.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsideTap)
+    return () => document.removeEventListener('pointerdown', closeOnOutsideTap)
+  }, [open])
 
   function choose(action: () => void) {
     setOpen(false)
@@ -25,7 +38,7 @@ export function TaskMenu({ taskTitle, onSendToBank, onSwap }: TaskMenuProps) {
   }
 
   return (
-    <div className="task-menu" onKeyDown={closeOnEscape}>
+    <div ref={container} className="task-menu" onKeyDown={closeOnEscape}>
       <button
         ref={toggle}
         type="button"
