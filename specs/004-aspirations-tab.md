@@ -167,6 +167,17 @@ export function progressLabel(type: GoalType, hit: number, total: number): strin
 - [ ] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
 - [ ] Works at 375 and 390 px, light and dark.
 
+## Settled in the build
+
+- **Where a recurring item belongs is the person's call** (Jan, Nov 10), so the mock shows both: Trash and Laundry under "Keep a calm home", Pay rent under Keep life running.
+- **A to-do row on today reads "Today"**, not the weekday, as the day picker does. Rows are ordered by day, then the bank, then later weeks.
+- **The Keep life running row reads "No recurring items"** when it has none, rather than "0 recurring".
+- **With nothing set up**, the footer hint and Retired are left out; the Keep life running row stays.
+- **"Past goals (n)" and "Retired (n)" are native `<details>`**; whether they're open isn't remembered.
+- **The mock has one reached goal with no aspiration** ("File my taxes"), so Past goals under Other goals has something to show.
+- **A remembered aspiration or goal that no longer exists** shows only the way back.
+- The new bank run shows in Today's bank sheet, so one count in #2's `Day.test.tsx` went from 3 to 4. Today's own tasks are unchanged.
+
 ## Open questions
 
 None. The Keep life running page is show-only (Jan, Nov 10).

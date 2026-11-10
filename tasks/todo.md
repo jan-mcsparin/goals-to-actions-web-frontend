@@ -221,8 +221,9 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Record what was built and anything the build settled.
 
 **Acceptance criteria:**
-- [ ] `specs/004-aspirations-tab.md` is marked approved, with any detail the build settled; `specs/README.md` moves 004 to Done.
-- [ ] `../docs/screens/README.md` still matches the tab and the Keep life running page; fixed on its own branch in the parent repo if not.
+- [x] `specs/004-aspirations-tab.md` is marked approved, with any detail the build settled.
+- [ ] `specs/README.md` moves 004 to Done (after Jan's review).
+- [x] `../docs/screens/README.md` still matches the tab and the Keep life running page; fixed on its own branch in the parent repo if not.
 
 **Verification:**
 - [ ] Manual read-through of both against the running app
