@@ -56,9 +56,9 @@ function rowTitles(group: HTMLElement) {
     .map((item) => item.querySelector('.task-title')?.textContent)
 }
 
-describe('Today', () => {
+describe('Day', () => {
   it("shows today's plan in groups, in day order, with progress", async () => {
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Today · Wednesday' })).toBeDefined()
     expect(screen.getByText('0 of 4 done')).toBeDefined()
@@ -79,7 +79,7 @@ describe('Today', () => {
 
   it('marks a task done with one tap and undoes it with another', async () => {
     const user = userEvent.setup()
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
     const laundry = await screen.findByRole('checkbox', { name: 'Laundry' })
 
     await user.click(laundry)
@@ -95,7 +95,7 @@ describe('Today', () => {
 
   it('switches to goal cards and remembers the choice', async () => {
     const user = userEvent.setup()
-    const { unmount } = render(<Day date={WEDNESDAY_DAY} />)
+    const { unmount } = render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
     await user.click(await screen.findByRole('button', { name: 'By goal' }))
 
@@ -107,7 +107,7 @@ describe('Today', () => {
     expect(screen.queryByRole('region', { name: 'Move forward' })).toBeNull()
 
     unmount()
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
     expect((await screen.findByRole('button', { name: 'By goal' })).getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByRole('button', { name: 'List' }).getAttribute('aria-pressed')).toBe('false')
@@ -115,7 +115,7 @@ describe('Today', () => {
 
   it('pulls a task from the bank onto today', async () => {
     const user = userEvent.setup()
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
     await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
     const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
@@ -129,7 +129,7 @@ describe('Today', () => {
       'Lift: deadlift day',
     ])
     expect(screen.getByText('0 of 5 done')).toBeDefined()
-    expect(pullFromBank).toHaveBeenCalledWith('task-lift-bank')
+    expect(pullFromBank).toHaveBeenCalledWith('task-lift-bank', WEDNESDAY_DAY)
   })
 
   it('says so when the bank is empty, and closes', async () => {
@@ -141,7 +141,7 @@ describe('Today', () => {
       recurringItems: [],
     })
     const user = userEvent.setup()
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
     await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
     const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
@@ -154,7 +154,7 @@ describe('Today', () => {
 
   it('sends a task back to the bank from its menu', async () => {
     const user = userEvent.setup()
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
     await user.click(await screen.findByRole('button', { name: 'More for Laundry' }))
     await user.click(screen.getByRole('button', { name: 'Back to bank' }))
@@ -169,7 +169,7 @@ describe('Today', () => {
 
   it('swaps a task for one from the bank, keeping its place in the day', async () => {
     const user = userEvent.setup()
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
     await user.click(await screen.findByRole('button', { name: 'More for Laundry' }))
     await user.click(screen.getByRole('button', { name: 'Swap' }))
@@ -188,7 +188,7 @@ describe('Today', () => {
 
   it('closes a row menu with the first tap elsewhere, without checking anything off', async () => {
     const user = userEvent.setup()
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
     const ballot = await screen.findByRole('checkbox', { name: 'Fill out my ballot' })
 
     await user.click(screen.getByRole('button', { name: 'More for Laundry' }))
@@ -205,7 +205,7 @@ describe('Today', () => {
 
   it("closes an open menu with a tap on another row's menu, without opening that one", async () => {
     const user = userEvent.setup()
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
     const ballotMenu = await screen.findByRole('button', { name: 'More for Fill out my ballot' })
 
     await user.click(screen.getByRole('button', { name: 'More for Laundry' }))
@@ -221,7 +221,7 @@ describe('Today', () => {
 
   it('does not swallow a later tap when the closing touch turned into a scroll', async () => {
     const user = userEvent.setup()
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
     const ballot = await screen.findByRole('checkbox', { name: 'Fill out my ballot' })
     await user.click(screen.getByRole('button', { name: 'More for Laundry' }))
 
@@ -234,7 +234,7 @@ describe('Today', () => {
 
   it("shows a swapped-in goal task's goal and aspiration", async () => {
     const user = userEvent.setup()
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
     await user.click(await screen.findByRole('button', { name: 'More for Laundry' }))
     await user.click(screen.getByRole('button', { name: 'Swap' }))
@@ -247,7 +247,7 @@ describe('Today', () => {
 
   it('offers no menu on a done task, since a tap undoes it', async () => {
     const user = userEvent.setup()
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
     await user.click(await screen.findByRole('checkbox', { name: 'Laundry' }))
 
@@ -258,7 +258,7 @@ describe('Today', () => {
     const load = deferred<Bank>()
     vi.mocked(getBank).mockReturnValueOnce(load.promise)
     const user = userEvent.setup()
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
     await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
     const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
@@ -273,7 +273,7 @@ describe('Today', () => {
   it("says so inside the sheet when the bank can't load", async () => {
     vi.mocked(getBank).mockRejectedValueOnce(new Error('offline'))
     const user = userEvent.setup()
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
     await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
     const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
@@ -283,7 +283,7 @@ describe('Today', () => {
 
   it('reloads the bank each time the sheet opens, without showing the old list', async () => {
     const user = userEvent.setup()
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
     await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Close' }))
 
@@ -295,6 +295,50 @@ describe('Today', () => {
     expect(within(sheet).queryByRole('button', { name: 'Lift: deadlift day' })).toBeNull()
   })
 
+  it('shows another day with its own heading, and pulls bank tasks onto it', async () => {
+    const user = userEvent.setup()
+    render(<Day date="2026-11-13" today={WEDNESDAY_DAY} />)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Friday · Nov 13' })).toBeDefined()
+    await user.click(screen.getByRole('button', { name: 'Pull from bank' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
+    await user.click(await within(sheet).findByRole('button', { name: 'Lift: deadlift day' }))
+
+    expect(screen.getByRole('checkbox', { name: 'Lift: deadlift day' })).toBeDefined()
+    expect(pullFromBank).toHaveBeenCalledWith('task-lift-bank', '2026-11-13')
+  })
+
+  it('lets you check off a task on another day', async () => {
+    const user = userEvent.setup()
+    render(<Day date="2026-11-10" today={WEDNESDAY_DAY} />)
+
+    const trash = await screen.findByRole('checkbox', { name: 'Take out the trash' })
+    await user.click(trash)
+
+    expect(trash.getAttribute('aria-checked')).toBe('true')
+  })
+
+  it("doesn't offer to place tasks on a past day", async () => {
+    render(<Day date="2026-11-10" today={WEDNESDAY_DAY} />)
+
+    await screen.findByRole('heading', { level: 1, name: 'Tuesday · Nov 10' })
+    expect(screen.queryByRole('button', { name: 'Pull from bank' })).toBeNull()
+  })
+
+  it('offers a way back to the week only when it has one', async () => {
+    const onBack = vi.fn()
+    const user = userEvent.setup()
+    const { unmount } = render(<Day date="2026-11-12" today={WEDNESDAY_DAY} onBack={onBack} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Back to Week' }))
+    expect(onBack).toHaveBeenCalled()
+
+    unmount()
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.queryByRole('button', { name: 'Back to Week' })).toBeNull()
+  })
+
   it('shows a warm empty state when nothing is planned', async () => {
     vi.mocked(getDay).mockResolvedValueOnce({
       date: '2026-11-11',
@@ -304,7 +348,7 @@ describe('Today', () => {
       recurringItems: [],
     })
 
-    render(<Day date={WEDNESDAY_DAY} />)
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
     expect(await screen.findByText('Nothing planned today. The day is yours.')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Pull from bank' })).toBeDefined()

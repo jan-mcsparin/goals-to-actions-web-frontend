@@ -7,7 +7,7 @@ type TaskRowProps = {
   row: TaskRowData
   onToggle: () => void
   onSendToBank: () => void
-  onSwap: () => void
+  onSwap?: () => void
 }
 
 // The whole row is the checkbox, so a tap anywhere on it checks the task off.

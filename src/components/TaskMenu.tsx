@@ -4,7 +4,7 @@ import './TaskMenu.css'
 type TaskMenuProps = {
   taskTitle: string
   onSendToBank: () => void
-  onSwap: () => void
+  onSwap?: () => void
 }
 
 // A disclosure: "⋯" shows two actions below it. The first tap anywhere else
@@ -58,9 +58,11 @@ export function TaskMenu({ taskTitle, onSendToBank, onSwap }: TaskMenuProps) {
           <button type="button" onClick={() => choose(onSendToBank)}>
             Back to bank
           </button>
-          <button type="button" onClick={() => choose(onSwap)}>
-            Swap
-          </button>
+          {onSwap && (
+            <button type="button" onClick={() => choose(onSwap)}>
+              Swap
+            </button>
+          )}
         </div>
       )}
     </div>

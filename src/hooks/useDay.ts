@@ -29,6 +29,9 @@ const BANK_FAILED = "Couldn't open the bank. Try again in a moment."
 
 export type DayView = {
   heading: string
+  isToday: boolean
+  // Tasks can be placed on today and later days, not on past ones.
+  canPlace: boolean
   progress: { done: number; total: number }
   sections: Section[]
 }
@@ -47,7 +50,7 @@ export type UseDay = {
   swap: (taskId: string, bankTaskId: string) => void
 }
 
-export function useDay(date: string): UseDay {
+export function useDay(date: string, today: string): UseDay {
   const [plan, setPlan] = useState<DayPlan>()
   const [message, setMessage] = useState<string>()
   const [view, setViewState] = useState(readTodayView)
@@ -120,12 +123,12 @@ export function useDay(date: string): UseDay {
     const task = bank?.tasks.find((candidate) => candidate.id === bankTaskId)
     if (!bank || !plan || !task) return
 
-    const placed: Task = { ...task, status: 'planned', plannedDay: plan.date }
+    const placed: Task = { ...task, status: 'planned', plannedDay: plan.date, placedByHand: true }
     setPlan((previous) => previous && withTaskAppended(withRecordsFrom(previous, bank), placed))
     setBank((previous) => previous && bankWithout(previous, bankTaskId))
     setMessage(undefined)
 
-    pullFromBank(bankTaskId)
+    pullFromBank(bankTaskId, plan.date)
       .then(replaceTask)
       .catch(() => {
         setPlan((previous) => previous && withoutTask(previous, bankTaskId))
@@ -155,7 +158,7 @@ export function useDay(date: string): UseDay {
     const bankTask = bank?.tasks.find((task) => task.id === bankTaskId)
     if (!plan || !bank || !before || !bankTask) return
 
-    const placed: Task = { ...bankTask, status: 'planned', plannedDay: plan.date }
+    const placed: Task = { ...bankTask, status: 'planned', plannedDay: plan.date, placedByHand: true }
     setPlan((previous) => previous && withTaskReplaced(withRecordsFrom(previous, bank), taskId, placed))
     setBank((previous) => previous && bankWithout(previous, bankTaskId))
     setMessage(undefined)
@@ -170,7 +173,7 @@ export function useDay(date: string): UseDay {
   }
 
   return {
-    day: plan && viewOf(plan, view),
+    day: plan && viewOf(plan, view, today),
     message,
     view,
     setView,
@@ -184,9 +187,15 @@ export function useDay(date: string): UseDay {
   }
 }
 
-function viewOf(plan: DayPlan, view: TodayViewMode): DayView {
+function viewOf(plan: DayPlan, view: TodayViewMode, today: string): DayView {
   const sections = view === 'byGoal' ? groupByGoal(plan) : groupForList(plan)
-  return { heading: dayHeading(plan.date), progress: progress(plan), sections }
+  return {
+    heading: dayHeading(plan.date, today),
+    isToday: plan.date === today,
+    canPlace: plan.date >= today,
+    progress: progress(plan),
+    sections,
+  }
 }
 
 function withTaskAppended(plan: DayPlan, task: Task): DayPlan {

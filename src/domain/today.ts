@@ -17,10 +17,13 @@ export type Section = {
 const KEEP_LIFE_RUNNING = 'Keep life running'
 const MOVE_FORWARD = 'Move forward'
 
-export function dayHeading(day: string): string {
+// "Today · Wednesday" for today, "Thursday · Nov 12" for any other day.
+export function dayHeading(day: string, today: string): string {
   const [year, month, date] = day.split('-').map(Number)
-  const weekday = new Date(year, month - 1, date).toLocaleDateString('en-US', { weekday: 'long' })
-  return `Today · ${weekday}`
+  const calendarDay = new Date(year, month - 1, date)
+  const weekday = calendarDay.toLocaleDateString('en-US', { weekday: 'long' })
+  if (day === today) return `Today · ${weekday}`
+  return `${weekday} · ${calendarDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
 }
 
 export function progress(plan: DayPlan): { done: number; total: number } {

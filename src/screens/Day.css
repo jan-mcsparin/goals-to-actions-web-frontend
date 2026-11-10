@@ -5,6 +5,17 @@
   min-height: 100dvh;
 }
 
+.today-back {
+  align-self: flex-start;
+  min-height: 2.75rem;
+  margin-bottom: -0.75rem;
+  padding: 0 0.5rem 0 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+}
+
 .today-header {
   display: flex;
   align-items: baseline;

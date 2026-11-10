@@ -46,7 +46,7 @@ function statusOf(state: UseDay, taskId: string) {
 }
 
 async function renderLoaded() {
-  const hook = renderHook(() => useDay('2026-11-11'))
+  const hook = renderHook(() => useDay('2026-11-11', '2026-11-11'))
   await waitFor(() => expect(hook.result.current.day).toBeDefined())
   return hook
 }
@@ -208,5 +208,21 @@ describe('useDay swap', () => {
     expect(taskIdsInOrder(result.current)).toEqual(before)
     expect(result.current.bankRows?.map((row) => row.task.id)).toContain('task-dentist')
     expect(result.current.message).toBe("Couldn't save that. Try again.")
+  })
+})
+
+describe('useDay on another day', () => {
+  it('pulls a bank task onto that day, placed by hand', async () => {
+    const hook = renderHook(() => useDay('2026-11-12', '2026-11-11'))
+    await waitFor(() => expect(hook.result.current.day).toBeDefined())
+    await act(async () => hook.result.current.loadBank())
+
+    await act(async () => hook.result.current.pull('task-lift-bank'))
+
+    expect(pullFromBank).toHaveBeenCalledWith('task-lift-bank', '2026-11-12')
+    const row = hook.result.current.day?.sections
+      .flatMap((section) => section.rows)
+      .find((candidate) => candidate.task.id === 'task-lift-bank')
+    expect(row?.task).toMatchObject({ plannedDay: '2026-11-12', placedByHand: true })
   })
 })

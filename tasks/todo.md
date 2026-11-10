@@ -47,12 +47,14 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `useDay(date)` passes its date to pull and swap and sets `placedByHand` in its optimistic copies. `dayHeading(date, today)` gives "Today · Wednesday" or "Thursday · Nov 12". `Day` shows a "‹ Week" back button when given `onBack`.
 
 **Acceptance criteria:**
-- [ ] Rendering `<Day date="2026-11-12" />` (on a Wednesday) shows Thursday's tasks under "Thursday · Nov 12".
-- [ ] Pull from bank and Swap on that screen place the task on Thursday; check-off and undo work there too.
-- [ ] "‹ Week" appears only with `onBack` and calls it.
+- [x] Rendering `<Day date="2026-11-12" />` (on a Wednesday) shows Thursday's tasks under "Thursday · Nov 12".
+- [x] Pull from bank and Swap on that screen place the task on Thursday; check-off and undo work there too.
+- [x] "‹ Week" appears only with `onBack` and calls it.
 
 **Verification:**
-- [ ] `npm test`: `domain/today.test.ts` heading cases; `hooks/useDay.test.tsx` pull onto Thursday; `screens/Day.test.tsx` heading, pull and back
+- [x] `npm test`: `domain/today.test.ts` heading cases; `hooks/useDay.test.tsx` pull onto Thursday; `screens/Day.test.tsx` heading, pull and back
+
+**Note:** on past days Pull from bank and Swap are hidden (the API refuses past days); check-off, undo and Back to bank stay.
 
 **Dependencies:** Task 2
 
