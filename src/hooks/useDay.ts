@@ -22,6 +22,7 @@ import {
   type TaskRow,
 } from '../domain/today.ts'
 import { readTodayView, saveTodayView, type TodayViewMode } from '../storage/viewPreference.ts'
+import { withTaskReplaced } from './planUpdates.ts'
 
 const LOAD_FAILED = "Couldn't load today. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
@@ -204,10 +205,6 @@ function withTaskAppended(plan: DayPlan, task: Task): DayPlan {
 
 function withTaskAt(plan: DayPlan, task: Task, index: number): DayPlan {
   return { ...plan, tasks: plan.tasks.toSpliced(index, 0, task) }
-}
-
-function withTaskReplaced(plan: DayPlan, taskId: string, replacement: Task): DayPlan {
-  return { ...plan, tasks: plan.tasks.map((task) => (task.id === taskId ? replacement : task)) }
 }
 
 function withoutTask(plan: DayPlan, taskId: string): DayPlan {

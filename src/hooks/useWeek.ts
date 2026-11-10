@@ -12,6 +12,7 @@ import {
   type PickableDay,
   type ProgressRow,
 } from '../domain/week.ts'
+import { withTaskReplaced } from './planUpdates.ts'
 
 const LOAD_FAILED = "Couldn't load this week. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
@@ -61,10 +62,7 @@ export function useWeek(today: string): UseWeek {
   }
 
   function replaceTask(next: Task) {
-    setPlan(
-      (previous) =>
-        previous && { ...previous, tasks: previous.tasks.map((task) => (task.id === next.id ? next : task)) },
-    )
+    setPlan((previous) => previous && withTaskReplaced(previous, next.id, next))
   }
 
   return { week: plan && viewOf(plan, today), message, place }
