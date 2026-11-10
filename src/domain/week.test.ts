@@ -74,6 +74,19 @@ describe('weekProgress', () => {
     ])
   })
 
+  it('orders goals by aspiration priority, as the By goal view does', () => {
+    const builder: Aspiration = { ...fit, id: 'asp-build', name: 'Be a builder', priority: 0 }
+    const proto: Goal = { ...strong, id: 'goal-proto', label: 'Prototype', aspirationId: 'asp-build' }
+    const target = (goalId: string): WeeklyTarget => ({ ...lifting, id: `wt-${goalId}`, goalId })
+    const plan: WeekPlan = {
+      ...week([], [target('goal-read'), target('goal-strong'), target('goal-proto')]),
+      goals: [strong, reading, proto],
+      aspirations: [fit, builder],
+    }
+
+    expect(weekProgress(plan, WEDNESDAY).map((row) => row.goalId)).toEqual(['goal-proto', 'goal-strong', 'goal-read'])
+  })
+
   it('leaves out goals that are not building goals', () => {
     const plan = { ...week([]), goals: [{ ...strong, type: 'oneOff' as const }] }
 

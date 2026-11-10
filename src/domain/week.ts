@@ -2,7 +2,7 @@
 // per goal, a line per day, and which days a bank task can go on.
 import { addDays, fromLocalDay, toLocalDay } from '../api/dates.ts'
 import type { Goal, Task, WeekPlan } from '../api/types.ts'
-import { goalSubline, inDayOrder, timeLabel } from './today.ts'
+import { goalSubline, goalsByPriority, inDayOrder, timeLabel } from './today.ts'
 
 export type Pacing = {
   done: number
@@ -40,9 +40,9 @@ export function pacingLine({ done, plannedAhead, target, daysLeft }: Pacing): st
 
 export function weekProgress(plan: WeekPlan, today: string): ProgressRow[] {
   const daysLeft = daysOf(plan.weekOf).filter((day) => day >= today).length
-  return plan.weeklyTargets.flatMap((target) => {
-    const goal = plan.goals.find((candidate) => candidate.id === target.goalId)
-    if (!goal || goal.type !== 'building') return []
+  return goalsByPriority(plan).flatMap((goal) => {
+    const target = plan.weeklyTargets.find((candidate) => candidate.goalId === goal.id)
+    if (!target || goal.type !== 'building') return []
     const goalTasks = plan.tasks.filter((task) => task.goalId === goal.id)
     const done = goalTasks.filter((task) => task.status === 'done').length
     const plannedAhead = goalTasks.filter((task) => isPlannedOnOrAfter(task, today)).length
