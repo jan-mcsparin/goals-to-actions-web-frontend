@@ -36,15 +36,16 @@ Settled with Jan on 2026-11-10:
 6. **Adding a goal is a short form.** Milestones and steps are added afterwards on Goal detail. Quitting goals can be created; their daily log comes later.
 7. **The gear sits in the Goals header**, top right, where the sketch has "+ Add". Settings counts as Goals in the tab bar and goes back to Goals.
 8. **Past goals are collapsed** at the bottom of Goals.
-9. **A new task can go straight onto today**; the bank stays the default.
+9. **A new task can go straight onto today.** That's the default when the sheet is opened from the Today tab; from anywhere else the bank is.
 10. **A new building goal gets this week's bank tasks from the mock**, so the loop from goal to Today can be clicked through.
-11. **#8 waits until #4–#7 are built**, and hosting is chosen then. What's already in place (manifest, service worker, remembered screen) stays.
+11. **Goal detail's timeline is vertical**, and condenses past four milestones (spec 005).
+12. **#8 waits until #4–#7 are built**, and hosting is chosen then. What's already in place (manifest, service worker, remembered screen) stays.
 
 Assumed (say so if wrong):
 
-12. **Navigation stays behind `useNavigation()`.** The `Screen` union grows by `{ screen: 'goals' }`, `{ screen: 'goal'; goalId }` and `{ screen: 'settings' }`, each remembered like the others. Still no router.
-13. **Each spec adds its own `api/` functions, mock data and types**, and keeps #2's and #3's tests passing unchanged.
-14. **Nothing here builds the planner.** No week is redrafted and nothing is placed on a day for the person. The one stand-in is decision 10.
+13. **Navigation stays behind `useNavigation()`.** The `Screen` union grows by `{ screen: 'goals' }`, `{ screen: 'goal'; goalId }` and `{ screen: 'settings' }`, each remembered like the others. Still no router.
+14. **Each spec adds its own `api/` functions, mock data and types**, and keeps #2's and #3's tests passing unchanged.
+15. **Nothing here builds the planner.** No week is redrafted and nothing is placed on a day for the person. The one stand-in is decision 10.
 
 ## Shared conventions
 

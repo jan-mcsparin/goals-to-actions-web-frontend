@@ -19,6 +19,11 @@ References: [Flow 2](../../docs/flows.md#flow-2-set-a-goal-and-its-milestones), 
   - when: "Wk 8 · Nov 30" (weeks counted from the goal's start date), or "No date";
   - its status: "Hit" with the result, "Not yet", or nothing for upcoming. The next upcoming one is marked "Next".
   - "+ Add milestone" ("+ Add step") at the end: a measurable line and an optional date.
+- **Condensed timeline:** with more than four milestones, the timeline folds so the weekly target and Check in stay near the top of the screen. Design: option D in the "Milestone timeline options" canvas (Nov 10).
+  - Always shown: the latest past milestone (hit or not yet), any milestone still marked "Not yet", the next upcoming one, and the goal (the last milestone).
+  - Each run of other rows between them, Start included, folds into one tappable row on the rail: "Start and 1 hit milestone", "2 more: Wk 16, Wk 20". Tapping a fold row expands the whole timeline.
+  - Below the timeline, beside "+ Add milestone": **Show all 6** / **Show less**. Expanded or not is remembered per goal (in `storage/`, like the Today view toggle) and restored on open.
+  - Four milestones or fewer: every row shows and there is no toggle. Nothing past or upcoming: the rows that exist show.
 - **Weekly target** (building goals): "3 lifting sessions" and **Edit**. With none: "No weekly target yet" and **Set**. One-off goals show "Deadline: Dec 4" here instead, when they have one. Quitting goals show "Since Oct 5".
 - **Next check-in:** the next upcoming milestone: its line and "week 8", or "whenever you choose" when it has no date, with a **Check in** button. None upcoming: "No check-ins coming up."
 - **Actions:** Review · Pause · End goal. Pause reads Resume on a paused goal.
@@ -56,7 +61,8 @@ A milestone whose date has passed doesn't change by itself in the click-through;
 
 **In:**
 - `api/`: `getGoal` and the mutations below; a `notYet` milestone in the mock data.
-- `domain/goalDetail.ts`: timeline rows, week labels, next check-in, started/latest lines, achievement summary.
+- `domain/goalDetail.ts`: timeline rows, week labels, next check-in, started/latest lines, achievement summary, and `condenseTimeline(rows)`: which rows always show and the fold rows between them, with their labels.
+- `storage/`: the per-goal "show all" preference.
 - `hooks/useGoal.ts`: load, optimistic updates, rollback with a message on failure (as `useDay` does).
 - `screens/GoalDetail.tsx` (replacing #4's placeholder) and the sheets: target, check-in, add milestone, end, review.
 - Docs: screens README (vertical timeline, check-in, the not-yet card, what Pause and End do); flows.md where a detail is settled here (a one-off goal's steps are milestones; "not yet" choices return the milestone to upcoming).
@@ -103,12 +109,12 @@ export function weekLabel(startDate: string, targetDate: string | undefined): st
 
 ## Testing strategy
 
-- **`domain/goalDetail.test.ts`:** timeline rows and statuses; "Next" on the first upcoming; week labels, including no date; next check-in with and without a date and with none left; started and latest lines with missing parts; achievement summary; "Steps" wording for one-off.
+- **`domain/goalDetail.test.ts`:** timeline rows and statuses; "Next" on the first upcoming; week labels, including no date; next check-in with and without a date and with none left; started and latest lines with missing parts; achievement summary; "Steps" wording for one-off; `condenseTimeline`: four or fewer shows all, the always-shown rows, fold labels (Start folded with hit ones, "2 more: Wk 16, Wk 20"), a not-yet milestone never folded, all hit, none hit.
 - **`api/client.test.ts`:** `getGoal` contents and unknown id; each mutation's effect and its rejections; a target changed twice in a week leaves one row for that week and keeps the old one; `getWeek` reflects a new target and leaves out a paused goal.
 - **`hooks/useGoal.test.tsx`:** optimistic update and rollback for one mutation; unknown goal reports not found.
-- **`screens/GoalDetail.test.tsx`:** renders the mock goal; edit the target; check in as hit (next milestone shown); check in as not yet (card leads with the baseline, then each of the three choices clears it); add a milestone; Pause then Resume; End as reached and as ended; Go again; Review records the date; a one-off goal reads Steps and Done; no dialog is open on first render.
+- **`screens/GoalDetail.test.tsx`:** renders the mock goal; edit the target; check in as hit (next milestone shown); check in as not yet (card leads with the baseline, then each of the three choices clears it); add a milestone; Pause then Resume; End as reached and as ended; Go again; Review records the date; a one-off goal reads Steps and Done; no dialog is open on first render; a six-milestone goal opens condensed, a fold row and Show all expand it, Show less collapses it, and the choice is restored on reopening.
 - **`App.test.tsx`:** a remembered goal that doesn't exist lands on Goals.
-- **Manual:** 375 and 390 px, light and dark; a six-step timeline; long measurable lines; sheets clear the keyboard and the home indicator.
+- **Manual:** 375 and 390 px, light and dark; a six-step timeline condensed and expanded (Check in visible without scrolling when condensed); long measurable lines; sheets clear the keyboard and the home indicator.
 
 ## Boundaries
 
@@ -129,8 +135,7 @@ export function weekLabel(startDate: string, targetDate: string | undefined): st
 
 ## Open questions
 
-1. **Timeline direction: not settled.** The sketch draws it left to right with two milestones. Measurable lines and six steps don't fit that way at phone width. This spec stacks it top to bottom; the alternative keeps the sketch's row and scrolls it sideways, with the line and result shown for the milestone that's tapped. Jan wants to see both before choosing, so the plan's first task for this section is a rough version of each on the phone. Everything else in the spec holds either way.
-2. **Progress since baseline is two lines of text** ("Started at", "Latest"), not a number, because baselines and results are free text. Enough for now?
-3. **A new target takes effect this week**, so "1 of 3" can become "1 of 4" on Wednesday. The alternative is from next Monday.
-4. **End goal asks "reached or not"** rather than working it out, since nothing can tell whether "bench 175" was crossed.
-5. This is the largest of the five. The plan will likely split it into two PRs: the read-only screen with the target edit, then check-in and the actions.
+1. **Progress since baseline is two lines of text** ("Started at", "Latest"), not a number, because baselines and results are free text. Enough for now?
+2. **A new target takes effect this week**, so "1 of 3" can become "1 of 4" on Wednesday. The alternative is from next Monday.
+3. **End goal asks "reached or not"** rather than working it out, since nothing can tell whether "bench 175" was crossed.
+4. This is the largest of the five. The plan will likely split it into two PRs: the read-only screen with the target edit, then check-in and the actions.

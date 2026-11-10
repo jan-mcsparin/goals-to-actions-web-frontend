@@ -19,7 +19,7 @@ References: [Flow 1](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 2](..
 - **Goal:** None, or one of the active goals.
 - **Due date:** optional.
 - **Time of day:** optional: "by" or "at", and a time.
-- **Put it:** "In the bank" (selected to start) or "On today".
+- **Put it:** "In the bank" or "On today". "On today" is selected to start when the sheet was opened from the Today tab; from anywhere else, "In the bank" is.
 - Where it goes (Flow 3):
   - in the bank, with no due date or due this week or earlier: this week's bank. "Added to this week's bank."
   - in the bank, due in a later week: it waits, and joins the bank of the week it's due. "Saved for the week of Nov 23."
@@ -123,8 +123,8 @@ export function splitGoalSentence(sentence: string): { label: string; measurable
 
 - **`domain/add.test.ts`:** sentence split (one colon, several, none, extra spaces); task week for no date, this week, a past date, next week and across a year end; repeat-rule text and next due for each choice, including a monthly day already past this month; ready-to-save rules.
 - **`api/client.test.ts`:** each add function stores and returns the record with its defaults; a task due later is absent from `getBank` and `getWeek`; a task added on today is in `getDay(today)` with `placedByHand`; a goal with a target shows in `getWeek`'s targets with that many bank tasks; rejections; new records pass the dataset consistency checks.
-- **`components/AddSheet.test.tsx`:** Task is open first and saves with only a title; "In the bank" is selected at first and "On today" passes `onToday`; Save disabled when empty; Goal shows nothing but the three types until one is picked; the second field appears without a colon; "New aspiration" creates both; Aspiration saves without a why and "Add a goal for this" opens the Goal tab with it selected; each Recurring choice saves the right rule; typed text survives switching tabs and is cleared on close.
-- **`App.test.tsx`:** the + opens the sheet on any screen and isn't marked current; a task added while on Week appears in the bank; a task added on today while on Today appears in the list; saving a goal opens its page.
+- **`components/AddSheet.test.tsx`:** Task is open first and saves with only a title; "In the bank" is selected at first, or "On today" when opened from Today, and "On today" passes `onToday`; Save disabled when empty; Goal shows nothing but the three types until one is picked; the second field appears without a colon; "New aspiration" creates both; Aspiration saves without a why and "Add a goal for this" opens the Goal tab with it selected; each Recurring choice saves the right rule; typed text survives switching tabs and is cleared on close.
+- **`App.test.tsx`:** the + opens the sheet on any screen and isn't marked current; a task added while on Week appears in the bank; the sheet opened from Today has "On today" selected and the saved task appears in the list; opened from Week, Goals or an opened day it has "In the bank" selected; saving a goal opens its page.
 - **Manual:** 375 and 390 px, light and dark; the keyboard doesn't cover the field in use or Save; date and time inputs on iOS; the sheet scrolls when the Goal form is taller than the screen.
 
 ## Boundaries
