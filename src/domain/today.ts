@@ -1,6 +1,6 @@
-// What the Today screen shows, worked out from a TodayPlan. Components render
+// What the Today screen shows, worked out from a DayPlan. Components render
 // these sections as they come; all grouping, ordering and wording lives here.
-import type { Aspiration, Bank, Goal, Task, TimeOfDay, TodayPlan } from '../api/types.ts'
+import type { Aspiration, Bank, DayPlan, Goal, Task, TimeOfDay } from '../api/types.ts'
 
 export type TaskRow = {
   task: Task
@@ -23,7 +23,7 @@ export function dayHeading(day: string): string {
   return `Today · ${weekday}`
 }
 
-export function progress(plan: TodayPlan): { done: number; total: number } {
+export function progress(plan: DayPlan): { done: number; total: number } {
   const onToday = visibleTasks(plan)
   return { done: onToday.filter((task) => task.status === 'done').length, total: onToday.length }
 }
@@ -37,7 +37,7 @@ export function goalSubline(goal: Goal, aspirations: Aspiration[]): string {
   return aspiration ? `${goal.label} · ${aspiration.name}` : goal.label
 }
 
-export function groupForList(plan: TodayPlan): Section[] {
+export function groupForList(plan: DayPlan): Section[] {
   const tasks = inDayOrder(visibleTasks(plan))
   const sections: Section[] = [
     {
@@ -56,7 +56,7 @@ export function groupForList(plan: TodayPlan): Section[] {
   return sections.filter((section) => section.rows.length > 0)
 }
 
-export function groupByGoal(plan: TodayPlan): Section[] {
+export function groupByGoal(plan: DayPlan): Section[] {
   const tasks = inDayOrder(visibleTasks(plan))
   const maintenance: Section = {
     id: 'keep-life-running',
@@ -76,7 +76,7 @@ export function bankRows(bank: Bank): TaskRow[] {
 }
 
 // Skipped tasks have gone back to the bank, so they're no longer part of today.
-function visibleTasks(plan: TodayPlan): Task[] {
+function visibleTasks(plan: DayPlan): Task[] {
   return plan.tasks.filter((task) => task.status === 'planned' || task.status === 'done')
 }
 
@@ -101,12 +101,12 @@ function rowFor(task: Task, subline?: string): TaskRow {
   }
 }
 
-function sublineFor(task: Task, records: Pick<TodayPlan, 'goals' | 'aspirations'>): string | undefined {
+function sublineFor(task: Task, records: Pick<DayPlan, 'goals' | 'aspirations'>): string | undefined {
   const goal = records.goals.find((candidate) => candidate.id === task.goalId)
   return goal && goalSubline(goal, records.aspirations)
 }
 
-function goalsByPriority(plan: TodayPlan): Goal[] {
+function goalsByPriority(plan: DayPlan): Goal[] {
   const priorityOf = (goal: Goal) =>
     plan.aspirations.find((aspiration) => aspiration.id === goal.aspirationId)?.priority ?? Infinity
   return [...plan.goals].sort((a, b) => priorityOf(a) - priorityOf(b))

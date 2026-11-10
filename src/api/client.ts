@@ -2,10 +2,9 @@
 // now; later they call the real API and keep the same signatures.
 import { mondayOf, toLocalDay } from './dates.ts'
 import { store } from './mockStore.ts'
-import type { Bank, Task, TodayPlan } from './types.ts'
+import type { Bank, DayPlan, Task } from './types.ts'
 
-export async function getToday(): Promise<TodayPlan> {
-  const date = toLocalDay(new Date())
+export async function getDay(date: string): Promise<DayPlan> {
   const tasks = store.tasks.filter((task) => task.plannedDay === date)
   return structuredClone({ date, tasks, ...recordsReferencedBy(tasks) })
 }

@@ -4,12 +4,12 @@ import { TaskRow } from '../components/TaskRow.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
 import type { Task } from '../api/types.ts'
 import type { Section } from '../domain/today.ts'
-import { useToday } from '../hooks/useToday.ts'
-import './Today.css'
+import { useDay } from '../hooks/useDay.ts'
+import './Day.css'
 
-export function Today() {
+export function Day({ date }: { date: string }) {
   const {
-    today,
+    day,
     message,
     view,
     setView,
@@ -20,7 +20,7 @@ export function Today() {
     pull,
     sendToBank,
     swap,
-  } = useToday()
+  } = useDay(date)
   const [sheet, setSheet] = useState<Sheet>()
   const focusAfterSwap = useRef<string>(undefined)
 
@@ -49,7 +49,7 @@ export function Today() {
     setSheet(undefined)
   }
 
-  if (!today) {
+  if (!day) {
     return (
       <main className="today" aria-busy={!message}>
         {message && <p role="status">{message}</p>}
@@ -57,7 +57,7 @@ export function Today() {
     )
   }
 
-  const { heading, progress, sections } = today
+  const { heading, progress, sections } = day
   const isEmpty = progress.total === 0
 
   return (

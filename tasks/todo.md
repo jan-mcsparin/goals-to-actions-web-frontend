@@ -11,12 +11,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Mechanical rename with no behaviour change: `TodayPlan` → `DayPlan`, `getToday()` → `getDay(date)`, `useToday` → `useDay(date)`, `Today.tsx` → `Day.tsx` (with a `date` prop). `App` passes today's date.
 
 **Acceptance criteria:**
-- [ ] No `TodayPlan`, `getToday` or `useToday` left in `src/`; no aliases.
-- [ ] `getDay(date)` returns that date's tasks and what they reference (one new client test for a non-today date).
-- [ ] All existing tests pass with only names changed.
+- [x] No `TodayPlan`, `getToday` or `useToday` left in `src/`; no aliases.
+- [x] `getDay(date)` returns that date's tasks and what they reference (one new client test for a non-today date).
+- [x] All existing tests pass with only names changed.
 
 **Verification:**
-- [ ] `npm test`, `npm run build`; `grep -r "TodayPlan\|getToday\|useToday" src` is empty
+- [x] `npm test`, `npm run build`; `grep -r "TodayPlan\|getToday\|useToday" src` is empty
 
 **Dependencies:** None
 

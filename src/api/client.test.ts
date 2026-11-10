@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { checkOffTask, getBank, getToday, pullFromBank, skipTask, swapTask, uncheckTask } from './client.ts'
+import { checkOffTask, getBank, getDay, pullFromBank, skipTask, swapTask, uncheckTask } from './client.ts'
 import { resetStore } from './mockStore.ts'
 
 // Wednesday 11 Nov 2026, 9 a.m. local time.
 const WEDNESDAY = new Date(2026, 10, 11, 9, 0)
+const WEDNESDAY_DAY = '2026-11-11'
 
 function ids(records: { id: string }[]) {
   return records.map((record) => record.id).sort()
@@ -19,9 +20,9 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('getToday', () => {
+describe('getDay', () => {
   it("returns only tasks planned for today's date", async () => {
-    const plan = await getToday()
+    const plan = await getDay(WEDNESDAY_DAY)
 
     expect(plan.date).toBe('2026-11-11')
     expect(plan.tasks.length).toBeGreaterThan(0)
@@ -29,7 +30,7 @@ describe('getToday', () => {
   })
 
   it('includes a mix of timed, untimed, goal, maintenance and unlinked tasks', async () => {
-    const { tasks } = await getToday()
+    const { tasks } = await getDay(WEDNESDAY_DAY)
 
     expect(tasks.some((task) => task.timeOfDay?.kind === 'by')).toBe(true)
     expect(tasks.some((task) => task.timeOfDay?.kind === 'at')).toBe(true)
@@ -40,7 +41,7 @@ describe('getToday', () => {
   })
 
   it('returns exactly the goals, recurring items and aspirations the tasks reference', async () => {
-    const plan = await getToday()
+    const plan = await getDay(WEDNESDAY_DAY)
 
     const goalIds = new Set(plan.tasks.flatMap((task) => task.goalId ?? []))
     const recurringIds = new Set(plan.tasks.flatMap((task) => task.recurringItemId ?? []))
@@ -54,18 +55,20 @@ describe('getToday', () => {
     expect(ids(plan.aspirations)).toEqual([...aspirationIds].sort())
   })
 
-  it('uses the local date late in the evening', async () => {
-    vi.setSystemTime(new Date(2026, 10, 11, 23, 30))
+  it('returns the tasks of whichever day is asked for', async () => {
+    const plan = await getDay('2026-11-10')
 
-    expect((await getToday()).date).toBe('2026-11-11')
+    expect(plan.date).toBe('2026-11-10')
+    expect(plan.tasks.map((task) => task.id)).toEqual(['task-trash'])
+    expect(ids(plan.recurringItems)).toEqual(['rec-trash'])
   })
 
   it('returns copies, so changing them does not change the store', async () => {
-    const first = await getToday()
+    const first = await getDay(WEDNESDAY_DAY)
     first.tasks[0].title = 'changed'
     first.goals[0].label = 'changed'
 
-    const second = await getToday()
+    const second = await getDay(WEDNESDAY_DAY)
     expect(second.tasks[0].title).not.toBe('changed')
     expect(second.goals[0].label).not.toBe('changed')
   })
@@ -85,10 +88,10 @@ describe('checkOffTask', () => {
     expect(task.valueLogged).toBe(155)
   })
 
-  it('is reflected in the next getToday', async () => {
+  it('is reflected in the next getDay', async () => {
     await checkOffTask('task-laundry')
 
-    const { tasks } = await getToday()
+    const { tasks } = await getDay(WEDNESDAY_DAY)
     expect(tasks.find((task) => task.id === 'task-laundry')?.status).toBe('done')
   })
 
@@ -96,7 +99,7 @@ describe('checkOffTask', () => {
     await checkOffTask('task-laundry')
     resetStore()
 
-    const { tasks } = await getToday()
+    const { tasks } = await getDay(WEDNESDAY_DAY)
     expect(tasks.find((task) => task.id === 'task-laundry')?.status).toBe('planned')
   })
 
@@ -108,7 +111,7 @@ describe('checkOffTask', () => {
     const task = await checkOffTask('task-laundry')
     task.status = 'skipped'
 
-    const { tasks } = await getToday()
+    const { tasks } = await getDay(WEDNESDAY_DAY)
     expect(tasks.find((t) => t.id === 'task-laundry')?.status).toBe('done')
   })
 })
@@ -124,11 +127,11 @@ describe('uncheckTask', () => {
     expect(task.valueLogged).toBeUndefined()
   })
 
-  it('is reflected in the next getToday', async () => {
+  it('is reflected in the next getDay', async () => {
     await checkOffTask('task-laundry')
     await uncheckTask('task-laundry')
 
-    const { tasks } = await getToday()
+    const { tasks } = await getDay(WEDNESDAY_DAY)
     expect(tasks.find((task) => task.id === 'task-laundry')?.status).toBe('planned')
   })
 
@@ -173,10 +176,10 @@ describe('skipTask', () => {
     expect(task.rolloverCount).toBe(0)
   })
 
-  it('is reflected in the next getToday and getBank', async () => {
+  it('is reflected in the next getDay and getBank', async () => {
     await skipTask('task-laundry')
 
-    expect(statusIn((await getToday()).tasks, 'task-laundry')).toBeUndefined()
+    expect(statusIn((await getDay(WEDNESDAY_DAY)).tasks, 'task-laundry')).toBeUndefined()
     expect(statusIn((await getBank()).tasks, 'task-laundry')).toBe('inBank')
   })
 
@@ -200,10 +203,10 @@ describe('pullFromBank', () => {
     expect(task.plannedDay).toBe('2026-11-11')
   })
 
-  it('is reflected in the next getToday and getBank', async () => {
+  it('is reflected in the next getDay and getBank', async () => {
     await pullFromBank('task-lift-bank')
 
-    expect(statusIn((await getToday()).tasks, 'task-lift-bank')).toBe('planned')
+    expect(statusIn((await getDay(WEDNESDAY_DAY)).tasks, 'task-lift-bank')).toBe('planned')
     expect(statusIn((await getBank()).tasks, 'task-lift-bank')).toBeUndefined()
   })
 
@@ -231,11 +234,11 @@ describe('swapTask', () => {
     ['task-lift-today', 'no-such-task'],
     ['task-lift-today', 'task-laundry'],
   ])('changes nothing when either side is invalid (%s, %s)', async (taskId, bankTaskId) => {
-    const before = await getToday()
+    const before = await getDay(WEDNESDAY_DAY)
 
     await expect(swapTask(taskId, bankTaskId)).rejects.toThrow()
 
-    expect(await getToday()).toEqual(before)
+    expect(await getDay(WEDNESDAY_DAY)).toEqual(before)
     expect(statusIn((await getBank()).tasks, 'task-lift-bank')).toBe('inBank')
   })
 })

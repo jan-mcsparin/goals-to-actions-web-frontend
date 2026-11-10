@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Aspiration, Bank, Goal, RecurringItem, Task, TodayPlan } from '../api/types.ts'
+import type { Aspiration, Bank, DayPlan, Goal, RecurringItem, Task } from '../api/types.ts'
 import {
   bankRows,
   dayHeading,
@@ -36,7 +36,7 @@ const trash: RecurringItem = {
   nextDue: DAY,
 }
 
-function plan(tasks: Task[]): TodayPlan {
+function plan(tasks: Task[]): DayPlan {
   return { date: DAY, tasks, goals: [strong, prototype, reading], aspirations: [fit, builder], recurringItems: [trash] }
 }
 

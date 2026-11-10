@@ -90,7 +90,7 @@ export type Settings = {
   weekStartsOn: 'monday'
 }
 
-export type TodayPlan = {
+export type DayPlan = {
   date: string
   tasks: Task[]
   goals: Goal[]
@@ -98,7 +98,7 @@ export type TodayPlan = {
   recurringItems: RecurringItem[]
 }
 
-// This week's tasks not yet on a day, with what they reference (like TodayPlan).
+// This week's tasks not yet on a day, with what they reference (like DayPlan).
 export type Bank = {
   weekOf: string
   tasks: Task[]
