@@ -59,7 +59,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Verification:**
 - [x] `npm test`: `screens/Today.test.tsx` covers both bullets
-- [ ] Manual: `npm run dev`, looks right at 390 px
+- [x] Manual: `npm run dev`, looks right at 390 px
 
 **Dependencies:** Tasks 1, 2
 
@@ -87,7 +87,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 ## Checkpoint A
 - [x] Tests, lint and build pass
-- [ ] Review with Jan on the phone (`npm run dev -- --host`): read and check off
+- [x] Review with Jan on the phone (`npm run dev -- --host`): read and check off
 
 ## Phase 3: Views and bank
 
@@ -135,7 +135,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 - [x] The sheet lists the mock bank (deadlift day, garage shelves, call the dentist); picking one adds it to the right group and updates "N of M".
 - [x] Empty bank → "Nothing in the bank." Rejection reverts and shows the calm message.
 - [x] The sheet is a native modal `<dialog>` with a Close button (tested).
-- [ ] Focus moves in, Escape closes, focus returns to the button: browser behaviour, jsdom can't test it. Check on the phone.
+- [x] Focus moves in, Escape closes, focus returns to the button: browser behaviour, jsdom can't test it. Checked on the phone 2026-11-10.
 
 **Verification:**
 - [x] `npm test`: screen test for pick → row appears; hook test for rollback
@@ -165,9 +165,9 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M
 
 ## Checkpoint B
-- [ ] Every success criterion in the spec is met
-- [ ] Tests, lint and build pass
-- [ ] Manual at 375 and 390 px: no horizontal scroll, tap targets ≥ 44 px, safe areas respected, light and dark
+- [x] Every success criterion in the spec is met
+- [x] Tests, lint and build pass
+- [x] Manual at 375 and 390 px: no horizontal scroll, tap targets ≥ 44 px, safe areas respected, light and dark
 
 ## Phase 4: Wrap-up
 
@@ -176,12 +176,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Record the behavior settled in the spec. Parent-repo edits go on their own branch and PR.
 
 **Acceptance criteria:**
-- [ ] `../docs/screens/README.md` (Today): Free time reads "The rest is yours"; unattached tasks sit under Keep life running; By goal cards are "Goal · Aspiration"; Back to bank and Swap via a ⋯ menu (flows.md: skipping is shown as "Back to bank"); tap again to undo.
-- [ ] `../docs/flows.md` Flow 5 mentions undo by tapping again.
-- [ ] `web-frontend/CLAUDE.md` `storage/` line mentions the view preference in `localStorage` until #8.
+- [x] `../docs/screens/README.md` (Today): Free time reads "The rest is yours"; unattached tasks sit under Keep life running; By goal cards are "Goal · Aspiration"; Back to bank and Swap via a ⋯ menu (flows.md: skipping is shown as "Back to bank"); tap again to undo.
+- [x] `../docs/flows.md` Flow 5 mentions undo by tapping again.
+- [x] `web-frontend/CLAUDE.md` `storage/` line mentions the view preference in `localStorage` until #8.
 
 **Verification:**
-- [ ] Manual read-through against the spec's Decisions
+- [x] Manual read-through against the spec's Decisions
 
 **Dependencies:** None (can run any time after the spec)
 
