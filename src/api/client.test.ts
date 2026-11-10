@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { checkOffTask, getToday, uncheckTask } from './client.ts'
+import { checkOffTask, getBank, getToday, pullFromBank, skipTask, swapTask, uncheckTask } from './client.ts'
 import { resetStore } from './mockStore.ts'
 
 // Wednesday 11 Nov 2026, 9 a.m. local time.
@@ -138,5 +138,104 @@ describe('uncheckTask', () => {
 
   it('rejects a task that is not done', async () => {
     await expect(uncheckTask('task-laundry')).rejects.toThrow('not done')
+  })
+})
+
+function statusIn(tasks: { id: string; status: string }[], taskId: string) {
+  return tasks.find((task) => task.id === taskId)?.status
+}
+
+describe('getBank', () => {
+  it("returns this week's bank tasks with the records they reference", async () => {
+    const bank = await getBank()
+
+    expect(bank.weekOf).toBe('2026-11-09')
+    expect(ids(bank.tasks)).toEqual(['task-dentist', 'task-garage-shelves', 'task-lift-bank'])
+    expect(ids(bank.goals)).toEqual(['goal-garage', 'goal-strong'])
+    expect(ids(bank.aspirations)).toEqual(['asp-fit', 'asp-home'])
+    expect(bank.recurringItems).toEqual([])
+  })
+
+  it('returns copies, so changing them does not change the store', async () => {
+    const first = await getBank()
+    first.tasks[0].title = 'changed'
+
+    expect((await getBank()).tasks[0].title).not.toBe('changed')
+  })
+})
+
+describe('skipTask', () => {
+  it('sends a planned task back to the bank without counting a rollover', async () => {
+    const task = await skipTask('task-laundry')
+
+    expect(task.status).toBe('inBank')
+    expect(task.plannedDay).toBeUndefined()
+    expect(task.rolloverCount).toBe(0)
+  })
+
+  it('is reflected in the next getToday and getBank', async () => {
+    await skipTask('task-laundry')
+
+    expect(statusIn((await getToday()).tasks, 'task-laundry')).toBeUndefined()
+    expect(statusIn((await getBank()).tasks, 'task-laundry')).toBe('inBank')
+  })
+
+  it('rejects an unknown task id', async () => {
+    await expect(skipTask('no-such-task')).rejects.toThrow('no-such-task')
+  })
+
+  it('rejects a task that is not planned', async () => {
+    await checkOffTask('task-laundry')
+
+    await expect(skipTask('task-laundry')).rejects.toThrow('not planned')
+    await expect(skipTask('task-lift-bank')).rejects.toThrow('not planned')
+  })
+})
+
+describe('pullFromBank', () => {
+  it('plans a bank task for today', async () => {
+    const task = await pullFromBank('task-lift-bank')
+
+    expect(task.status).toBe('planned')
+    expect(task.plannedDay).toBe('2026-11-11')
+  })
+
+  it('is reflected in the next getToday and getBank', async () => {
+    await pullFromBank('task-lift-bank')
+
+    expect(statusIn((await getToday()).tasks, 'task-lift-bank')).toBe('planned')
+    expect(statusIn((await getBank()).tasks, 'task-lift-bank')).toBeUndefined()
+  })
+
+  it('rejects an unknown task id', async () => {
+    await expect(pullFromBank('no-such-task')).rejects.toThrow('no-such-task')
+  })
+
+  it('rejects a task that is not in the bank', async () => {
+    await expect(pullFromBank('task-laundry')).rejects.toThrow('not in the bank')
+  })
+})
+
+describe('swapTask', () => {
+  it('sends one task to the bank and plans the other for today, each keeping its own time', async () => {
+    const { skipped, placed } = await swapTask('task-lift-today', 'task-lift-bank')
+
+    expect(skipped).toMatchObject({ id: 'task-lift-today', status: 'inBank', timeOfDay: { kind: 'at', time: '18:00' } })
+    expect(skipped.plannedDay).toBeUndefined()
+    expect(placed).toMatchObject({ id: 'task-lift-bank', status: 'planned', plannedDay: '2026-11-11' })
+    expect(placed.timeOfDay).toBeUndefined()
+  })
+
+  it.each([
+    ['no-such-task', 'task-lift-bank'],
+    ['task-lift-today', 'no-such-task'],
+    ['task-lift-today', 'task-laundry'],
+  ])('changes nothing when either side is invalid (%s, %s)', async (taskId, bankTaskId) => {
+    const before = await getToday()
+
+    await expect(swapTask(taskId, bankTaskId)).rejects.toThrow()
+
+    expect(await getToday()).toEqual(before)
+    expect(statusIn((await getBank()).tasks, 'task-lift-bank')).toBe('inBank')
   })
 })

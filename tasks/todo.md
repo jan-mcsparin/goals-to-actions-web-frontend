@@ -96,12 +96,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** The client functions from the spec's API additions, against the mock store.
 
 **Acceptance criteria:**
-- [ ] `getBank` returns this week's `inBank` tasks plus the goals, aspirations and recurring items they reference (`BankTask[]` or a `BankList` shape like `TodayPlan`; pick one and add it to `types.ts`).
-- [ ] `skipTask` → `inBank`, `plannedDay` cleared, `rolloverCount` unchanged; `pullFromBank` → `planned` today; both reject unknown or wrong-status IDs.
-- [ ] `swapTask` does both or neither: an invalid ID on either side leaves the store unchanged. Each task keeps its own `timeOfDay`.
+- [x] `getBank` returns this week's `inBank` tasks plus the goals, aspirations and recurring items they reference as a `Bank` shape like `TodayPlan`, in `types.ts`.
+- [x] `skipTask` → `inBank`, `plannedDay` cleared, `rolloverCount` unchanged; `pullFromBank` → `planned` today; both reject unknown or wrong-status IDs.
+- [x] `swapTask` does both or neither: an invalid ID on either side leaves the store unchanged. Each task keeps its own `timeOfDay`.
 
 **Verification:**
-- [ ] `npm test`: one test per bullet, plus visibility in the next `getToday` / `getBank` and copies returned
+- [x] `npm test`: one test per bullet, plus visibility in the next `getToday` / `getBank` and copies returned
 
 **Dependencies:** None (can run in parallel with Tasks 1–4)
 
