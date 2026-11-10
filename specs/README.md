@@ -34,13 +34,16 @@ Settled with Jan on 2026-11-10:
 4. **A one-off goal's steps are its milestones.** "Stage 3 of 6" is 3 milestones hit of 6. Checking off a task never moves the stage; the person marks a step reached on the goal's page. No new entity.
 5. **Goal detail works fully, mocked:** Pause, End, Review and milestone check-in all change data.
 6. **Adding a goal is a short form.** Milestones and steps are added afterwards on Goal detail. Quitting goals can be created; their daily log comes later.
+7. **The gear sits in the Goals header**, top right, where the sketch has "+ Add". Settings counts as Goals in the tab bar and goes back to Goals.
+11. **Past goals are collapsed** at the bottom of Goals.
+12. **A new task can go straight onto today**; the bank stays the default.
+13. **A new building goal gets this week's bank tasks from the mock**, so the loop from goal to Today can be clicked through.
+14. **#8 waits until #4–#7 are built**, and hosting is chosen then. What's already in place (manifest, service worker, remembered screen) stays.
 
 Assumed (say so if wrong):
-
-7. **The gear sits in the Goals header**, top right, where the sketch has "+ Add". Settings counts as Goals in the tab bar and goes back to Goals.
 8. **Navigation stays behind `useNavigation()`.** The `Screen` union grows by `{ screen: 'goals' }`, `{ screen: 'goal'; goalId }` and `{ screen: 'settings' }`, each remembered like the others. Still no router.
 9. **Each spec adds its own `api/` functions, mock data and types**, and keeps #2's and #3's tests passing unchanged.
-10. **Nothing here builds the planner.** New goals, tasks and recurring items are saved, but no tasks are generated for them and no week is redrafted.
+10. **Nothing here builds the planner.** No week is redrafted and nothing is placed on a day for the person. The one stand-in is decision 13.
 
 ## Shared conventions
 
