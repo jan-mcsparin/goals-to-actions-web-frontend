@@ -79,12 +79,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Pure functions that turn an `AspirationsOverview` into cards: active aspirations in priority order, each with its active and paused goals as rows, and its recurring line.
 
 **Acceptance criteria:**
-- [ ] Cards are in priority order; retired aspirations and past goals (reached, ended) are left out of cards; paused goals are in, reading "Paused".
-- [ ] Counts treat the goal as the final milestone: "Milestone 1 of 6", "Step 3 of 6", "0 of 1" with none, "1 of 1" once reached; a one-off goal with a deadline adds "· by Dec 15".
-- [ ] The recurring line reads "2 recurring: Stretch, Hockey" or "No recurring items"; a card with no goals is flagged for "No goals yet."
+- [x] Cards are in priority order; retired aspirations and past goals (reached, ended) are left out of cards; paused goals are in, reading "Paused".
+- [x] Counts treat the goal as the final milestone: "Milestone 1 of 6", "Step 3 of 6", "0 of 1" with none, "1 of 1" once reached; a one-off goal with a deadline adds "· by Dec 15".
+- [x] The recurring line reads "2 recurring: Stretch, Hockey" or "No recurring items"; a card with no goals is flagged for "No goals yet."
 
 **Verification:**
-- [ ] `npm test`: `domain/aspirations.test.ts` with hand-built overviews
+- [x] `npm test`: `domain/aspirations.test.ts` with hand-built overviews
 
 **Dependencies:** Task 2 (types only)
 
@@ -97,12 +97,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `weekCount` per aspiration, plus Other goals (with their past goals), the Keep life running count and the retired list.
 
 **Acceptance criteria:**
-- [ ] Two goals' targets are summed (3 + 2 = 5); each goal's done tasks are capped at its own target; paused goals and amount-less goals are left out; no targets gives no count.
-- [ ] Other goals holds active and paused goals with no aspiration, and their reached and ended goals separately; both empty means no section.
-- [ ] The upkeep count is the active recurring items with no aspiration; retired aspirations are listed by name.
+- [x] Two goals' targets are summed (3 + 2 = 5); each goal's done tasks are capped at its own target; paused goals and amount-less goals are left out; no targets gives no count.
+- [x] Other goals holds active and paused goals with no aspiration, and their reached and ended goals separately; both empty means no section.
+- [x] The upkeep count is the active recurring items with no aspiration; retired aspirations are listed by name.
 
 **Verification:**
-- [ ] `npm test`: `domain/aspirations.test.ts`
+- [x] `npm test`: `domain/aspirations.test.ts`
 
 **Dependencies:** Task 4
 
