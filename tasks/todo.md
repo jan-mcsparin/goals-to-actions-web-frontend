@@ -90,12 +90,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `storage/navigation.ts` reads and writes the current screen; `useNavigation()` exposes it with `goTo`. `TabBar` (Today | Week) sits at the bottom. `App` renders Today, a placeholder Week ("This week"), or an opened day.
 
 **Acceptance criteria:**
-- [ ] Default is Today; the screen (including `{ screen: 'day', date }`) survives a remount; bad or blocked storage falls back to Today.
-- [ ] Tabs use `aria-current="page"`; an opened day marks Week as current; "‹ Week" returns to Week.
-- [ ] Content isn't hidden behind the bar (bottom padding includes the safe-area inset).
+- [x] Default is Today; the screen (including `{ screen: 'day', date }`) survives a remount; bad or blocked storage falls back to Today.
+- [x] Tabs use `aria-current="page"`; an opened day marks Week as current; "‹ Week" returns to Week.
+- [x] Content isn't hidden behind the bar (bottom padding includes the safe-area inset).
 
 **Verification:**
-- [ ] `npm test`: `storage/navigation.test.ts`; `App.test.tsx` switches tabs and survives remount
+- [x] `npm test`: `storage/navigation.test.ts`; `App.test.tsx` switches tabs and survives remount
 - [ ] Manual: on the phone, the bar clears the home indicator
 
 **Dependencies:** Task 3
@@ -105,7 +105,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M
 
 ## Checkpoint B
-- [ ] Tests, lint and build pass
+- [x] Tests, lint and build pass
 - [ ] Review with Jan on the phone: tabs, an opened day, back
 
 ## Phase 3: Week
