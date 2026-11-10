@@ -4,6 +4,7 @@ import {
   getAspirations,
   getBank,
   getDay,
+  getUpkeep,
   getWeek,
   pullFromBank,
   skipTask,
@@ -412,5 +413,67 @@ describe('getAspirations', () => {
     const second = await getAspirations()
     expect(second.aspirations[0].name).toBe('Be fit')
     expect(second.goals[0].label).toBe('Be strong')
+  })
+})
+
+describe('getUpkeep', () => {
+  it('returns the active recurring items with no aspiration', async () => {
+    expect(ids((await getUpkeep()).recurringItems)).toEqual(['rec-rent'])
+
+    store.recurringItems.find((item) => item.id === 'rec-rent')!.active = false
+
+    expect((await getUpkeep()).recurringItems).toEqual([])
+  })
+
+  it('returns tasks with no goal and no recurring item that are still to do', async () => {
+    const { tasks } = await getUpkeep()
+
+    expect(ids(tasks)).toEqual([
+      'task-backup',
+      'task-ballot',
+      'task-bathroom',
+      'task-dentist',
+      'task-dentist-appt',
+      'task-dry-cleaning',
+      'task-groceries',
+      'task-lease',
+      'task-library',
+      'task-meal-prep',
+      'task-move-car',
+      'task-plants',
+      'task-plumber',
+    ])
+  })
+
+  it('leaves out goal tasks, recurring tasks and done tasks', async () => {
+    const taskIds = ids((await getUpkeep()).tasks)
+
+    expect(taskIds).not.toContain('task-lift-today')
+    expect(taskIds).not.toContain('task-laundry')
+    expect(taskIds).not.toContain('task-plan-mon')
+
+    await checkOffTask('task-ballot')
+
+    expect(ids((await getUpkeep()).tasks)).not.toContain('task-ballot')
+  })
+
+  it('includes later weeks and leaves out earlier ones', async () => {
+    const loose = { title: 'Renew the insurance', status: 'inBank' as const, rolloverCount: 0 }
+    store.tasks.push({ ...loose, id: 'task-next-week', weekOf: '2026-11-16' }, { ...loose, id: 'task-last-week', weekOf: '2026-11-02' })
+
+    const taskIds = ids((await getUpkeep()).tasks)
+
+    expect(taskIds).toContain('task-next-week')
+    expect(taskIds).not.toContain('task-last-week')
+  })
+
+  it('returns copies, so changing them does not change the store', async () => {
+    const first = await getUpkeep()
+    first.tasks[0].title = 'changed'
+    first.recurringItems[0].name = 'changed'
+
+    const second = await getUpkeep()
+    expect(second.tasks[0].title).not.toBe('changed')
+    expect(second.recurringItems[0].name).toBe('Pay rent')
   })
 })

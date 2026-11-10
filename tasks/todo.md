@@ -177,12 +177,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `getUpkeep()` returns active recurring items with no aspiration and not-done tasks with no goal and no recurring item, from this week on. `domain/upkeep.ts` turns them into recurring rows and to-do rows that say where each task sits.
 
 **Acceptance criteria:**
-- [ ] `getUpkeep()` leaves out goal tasks, recurring tasks, done tasks and items under an aspiration; returns copies.
-- [ ] Recurring rows carry name and repeat rule. To-do rows read "Thursday", "In the bank" or "Week of Nov 23", plus "due Nov 13" when there's a due date.
-- [ ] Empty lists give "No recurring items." and "Nothing waiting."
+- [x] `getUpkeep()` leaves out goal tasks, recurring tasks, done tasks and items under an aspiration; returns copies.
+- [x] Recurring rows carry name and repeat rule. To-do rows read "Today", "Thursday", "In the bank" or "Week of Nov 23", plus "due Nov 13" when there's a due date.
+- [x] Empty lists give "No recurring items." and "Nothing waiting."
 
 **Verification:**
-- [ ] `npm test`: `client.test.ts` `getUpkeep` block; `domain/upkeep.test.ts` with hand-built data (the later-week case lives here)
+- [x] `npm test`: `client.test.ts` `getUpkeep` block; `domain/upkeep.test.ts` with hand-built data (the later-week case lives here)
 
 **Dependencies:** Task 1 (can run alongside Tasks 3–8)
 

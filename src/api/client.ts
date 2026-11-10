@@ -2,7 +2,7 @@
 // now; later they call the real API and keep the same signatures.
 import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
 import { store } from './mockStore.ts'
-import type { AspirationsOverview, Bank, DayPlan, Task, WeekPlan, WeeklyTarget } from './types.ts'
+import type { AspirationsOverview, Bank, DayPlan, Task, Upkeep, WeekPlan, WeeklyTarget } from './types.ts'
 
 export async function getDay(date: string): Promise<DayPlan> {
   const tasks = store.tasks.filter((task) => task.plannedDay === date)
@@ -44,6 +44,14 @@ export async function getAspirations(): Promise<AspirationsOverview> {
     recurringItems: store.recurringItems.filter((item) => item.active),
     weeklyTargets: targetsInForce(weekOf),
     weekTasks: store.tasks.filter((task) => task.weekOf === weekOf && task.goalId !== undefined),
+  })
+}
+
+export async function getUpkeep(): Promise<Upkeep> {
+  const weekOf = thisWeek()
+  return structuredClone({
+    recurringItems: store.recurringItems.filter((item) => item.active && item.aspirationId === undefined),
+    tasks: store.tasks.filter((task) => isLoose(task) && isWaiting(task) && task.weekOf >= weekOf),
   })
 }
 
@@ -100,6 +108,15 @@ function findBankTask(taskId: string): Task {
   const task = findTask(taskId)
   if (task.status !== 'inBank') throw new Error(`Task ${taskId} is not in the bank`)
   return task
+}
+
+function isLoose(task: Task): boolean {
+  return task.goalId === undefined && task.recurringItemId === undefined
+}
+
+// On a day or in the bank: not done, and not set aside.
+function isWaiting(task: Task): boolean {
+  return task.status === 'planned' || task.status === 'inBank'
 }
 
 function thisWeek(): string {

@@ -134,3 +134,9 @@ export type AspirationsOverview = {
   weeklyTargets: WeeklyTarget[] // the target in force this week, per active goal
   weekTasks: Task[] // this week's tasks that belong to a goal
 }
+
+// Keep life running: what has to happen but rolls up to no goal or aspiration.
+export type Upkeep = {
+  recurringItems: RecurringItem[] // active, with no aspiration
+  tasks: Task[] // not done, no goal and no recurring item, this week and later
+}
