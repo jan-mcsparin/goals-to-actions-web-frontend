@@ -11,17 +11,17 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Add `status` and `retiredAt` to `Aspiration`, and the spec's mock records: Have endurance and Look good under Be fit, two more Be strong milestones, five steps for the garage, Stretch and Hockey, a paused goal, a reached goal, a goal with no aspiration and a deadline, and a retired aspiration with a reached goal. No new client function yet.
 
 **Acceptance criteria:**
-- [ ] Be strong has five milestones (one hit, one not yet, three upcoming); Have endurance has three (two hit), a target of 2 runs, one run done on Monday and one in the bank; the garage has five steps, three hit.
-- [ ] Every aspiration has a `status`; exactly one is retired, with `retiredAt`. The consistency tests pass with the new records.
-- [ ] Today's tasks are unchanged. Week shows a second progress row ("Have endurance · Be fit", "1 of 2") and four bank chips; those expectations are updated here and nowhere else changes.
+- [x] Be strong has five milestones (one hit, one not yet, three upcoming); Have endurance has three (two hit), a target of 2 runs, one run done on Monday and one in the bank; the garage has five steps, three hit.
+- [x] Every aspiration has a `status`; exactly one is retired, with `retiredAt`. The consistency tests pass with the new records.
+- [x] Today's tasks are unchanged. Week shows a second progress row ("Have endurance · Be fit", "1 of 2") and four bank chips; those expectations are updated here and nowhere else changes.
 
 **Verification:**
-- [ ] `npm test`: `mockData.test.ts` contents; updated `Week.test.tsx`, `client.test.ts` and the one bank count in `Day.test.tsx`
+- [x] `npm test`: `mockData.test.ts` contents; updated `Week.test.tsx`, `client.test.ts` and the one bank count in `Day.test.tsx`
 - [ ] Manual: `npm run dev`, Today looks the same, Week shows the run
 
 **Dependencies:** None
 
-**Files:** `src/api/types.ts`, `src/api/mockData.ts`, `src/api/mockData.test.ts`, `src/screens/Week.test.tsx`, `src/api/client.test.ts`, `src/screens/Day.test.tsx`
+**Files:** `src/api/types.ts`, `src/api/mockData.ts`, `src/api/mockData.test.ts`, `src/screens/Week.test.tsx`, `src/api/client.test.ts`, `src/screens/Day.test.tsx`, plus `status` on the aspiration fixtures in `src/domain/today.test.ts` and `src/domain/week.test.ts`
 
 **Scope:** M (one data file, the rest are expectations)
 

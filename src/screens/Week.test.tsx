@@ -47,8 +47,10 @@ describe('Week', () => {
     const progress = await screen.findByRole('region', { name: 'Progress' })
     expect(within(progress).getByText('Be strong · Be fit')).toBeDefined()
     expect(within(progress).getByText('1 of 3')).toBeDefined()
-    expect(within(progress).getByText('5 days left · 1 more to plan')).toBeDefined()
     expect(within(progress).getByRole('progressbar', { name: 'Be strong · Be fit' })).toBeDefined()
+    expect(within(progress).getByText('Have endurance · Be fit')).toBeDefined()
+    expect(within(progress).getByText('1 of 2')).toBeDefined()
+    expect(within(progress).getAllByText('5 days left · 1 more to plan')).toHaveLength(2)
   })
 
   it('lists Monday to Sunday, marking today and dimming past days', async () => {
@@ -86,11 +88,12 @@ describe('Week', () => {
   it('lists the bank as chips', async () => {
     render(<Week today={WEDNESDAY_DAY} onOpenDay={() => {}} />)
 
-    const bank = await screen.findByRole('region', { name: 'Bank · 3 not on a day' })
+    const bank = await screen.findByRole('region', { name: 'Bank · 4 not on a day' })
     expect(within(bank).getAllByRole('button').map((chip) => chip.textContent)).toEqual([
       'Lift: deadlift day',
       'Sort the garage shelves',
       'Call the dentist',
+      'Run: intervals',
     ])
     expect(within(bank).getByText('Tap to put on a day.')).toBeDefined()
   })
@@ -113,7 +116,7 @@ describe('Week', () => {
 
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(dayButtons()[3].textContent).toContain('Call the dentist')
-    expect(screen.getByRole('region', { name: 'Bank · 2 not on a day' })).toBeDefined()
+    expect(screen.getByRole('region', { name: 'Bank · 3 not on a day' })).toBeDefined()
     expect(pullFromBank).toHaveBeenCalledWith('task-dentist', '2026-11-12')
   })
 
@@ -136,7 +139,7 @@ describe('Week', () => {
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Friday' }))
     await act(async () => {})
 
-    expect(screen.getByRole('region', { name: 'Bank · 3 not on a day' })).toBeDefined()
+    expect(screen.getByRole('region', { name: 'Bank · 4 not on a day' })).toBeDefined()
     expect(dayButtons()[4].textContent).not.toContain('Call the dentist')
     expect(screen.getByText("Couldn't save that. Try again.")).toBeDefined()
   })

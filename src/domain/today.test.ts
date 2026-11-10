@@ -16,8 +16,8 @@ function task(id: string, fields: Partial<Task> = {}): Task {
   return { id, title: id, status: 'planned', weekOf: '2026-11-09', plannedDay: DAY, rolloverCount: 0, ...fields }
 }
 
-const fit: Aspiration = { id: 'asp-fit', name: 'Be fit', priority: 2, createdAt: '2026-10-01T09:00:00Z' }
-const builder: Aspiration = { id: 'asp-build', name: 'Be a builder', priority: 1, createdAt: '2026-10-01T09:00:00Z' }
+const fit: Aspiration = { id: 'asp-fit', name: 'Be fit', priority: 2, status: 'active', createdAt: '2026-10-01T09:00:00Z' }
+const builder: Aspiration = { id: 'asp-build', name: 'Be a builder', priority: 1, status: 'active', createdAt: '2026-10-01T09:00:00Z' }
 
 function goal(id: string, label: string, aspirationId?: string): Goal {
   return { id, label, measurableLine: '-', type: 'building', status: 'active', startDate: '2026-10-05', aspirationId }

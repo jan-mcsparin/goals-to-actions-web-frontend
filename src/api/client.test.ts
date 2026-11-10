@@ -162,8 +162,8 @@ describe('getBank', () => {
     const bank = await getBank()
 
     expect(bank.weekOf).toBe('2026-11-09')
-    expect(ids(bank.tasks)).toEqual(['task-dentist', 'task-garage-shelves', 'task-lift-bank'])
-    expect(ids(bank.goals)).toEqual(['goal-garage', 'goal-strong'])
+    expect(ids(bank.tasks)).toEqual(['task-dentist', 'task-garage-shelves', 'task-lift-bank', 'task-run-bank'])
+    expect(ids(bank.goals)).toEqual(['goal-endurance', 'goal-garage', 'goal-strong'])
     expect(ids(bank.aspirations)).toEqual(['asp-fit', 'asp-home'])
     expect(bank.recurringItems).toEqual([])
   })
@@ -305,7 +305,7 @@ describe('getWeek', () => {
   it('includes the goals, aspirations and recurring items the tasks reference', async () => {
     const week = await getWeek()
 
-    expect(ids(week.goals)).toEqual(['goal-garage', 'goal-strong'])
+    expect(ids(week.goals)).toEqual(['goal-endurance', 'goal-garage', 'goal-strong'])
     expect(ids(week.aspirations)).toEqual(['asp-fit', 'asp-home'])
     expect(ids(week.recurringItems)).toEqual(['rec-laundry', 'rec-trash'])
   })
@@ -316,7 +316,7 @@ describe('getWeek', () => {
 
     const week = await getWeek()
 
-    expect(ids(week.weeklyTargets)).toEqual(['wt-strong'])
+    expect(ids(week.weeklyTargets)).toEqual(['wt-endurance', 'wt-strong'])
     expect(ids(week.goals)).toContain('goal-strong')
     expect(ids(week.aspirations)).toContain('asp-fit')
   })
@@ -326,6 +326,7 @@ describe('getWeek', () => {
 
     expect(weeklyTargets).toEqual([
       { id: 'wt-strong', goalId: 'goal-strong', amount: 3, unit: 'lifting sessions', effectiveFrom: '2026-10-05' },
+      { id: 'wt-endurance', goalId: 'goal-endurance', amount: 2, unit: 'runs', effectiveFrom: '2026-10-12' },
     ])
   })
 

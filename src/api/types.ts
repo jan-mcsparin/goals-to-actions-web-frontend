@@ -2,13 +2,17 @@
 // API's OpenAPI schema once it exists; shapes follow ../docs/data-model.md.
 // Days are local 'YYYY-MM-DD' strings; instants are full ISO timestamps.
 
+export type AspirationStatus = 'active' | 'retired'
+
 export type Aspiration = {
   id: string
   name: string
   why?: string
   priority: number
+  status: AspirationStatus
   createdAt: string
   lastReviewedAt?: string
+  retiredAt?: string
 }
 
 export type GoalType = 'building' | 'quitting' | 'oneOff'
