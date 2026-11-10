@@ -10,11 +10,11 @@ References: [Flow 8](../../docs/flows.md#flow-8-set-intensity), [product rules: 
 
 ### What the person sees
 
-**Getting there:** a gear button in the Goals header, top right, labelled "Settings" for screen readers. Settings counts as Goals in the tab bar, and "‹ Goals" goes back. The open screen is remembered like the others.
+**Getting there:** a gear button in the Aspirations header, top right, labelled "Settings" for screen readers. Settings counts as Aspirations in the tab bar, and "‹ Aspirations" goes back. The open screen is remembered like the others.
 
 **The screen**
 
-- **Header (pinned):** "‹ Goals" and "Settings".
+- **Header (pinned):** "‹ Aspirations" and "Settings".
 - **Intensity:** three choices in a row: Easing off, Normal, Going hard. One is always selected; Normal to start. Under it: "Sets how full days are and how much is free."
   - Tapping one saves it at once. There's no Save button and no confirmation.
   - It stays until changed. Nothing resets it, and nothing suggests changing it.
@@ -30,8 +30,8 @@ In the click-through nothing reads the intensity yet; the planner will, from its
 - `api/`: `getSettings`, `setIntensity`.
 - `domain/settings.ts`: the three intensities in order with their labels.
 - `hooks/useSettings.ts`: load, optimistic change, rollback with a message on failure.
-- `screens/Settings.tsx`; the gear in `screens/Goals.tsx`; `settings` in `storage/navigation.ts`, `useNavigation` and `App.tsx`.
-- Docs: screens README (Settings is reached by the gear on Goals; what each row does).
+- `screens/Settings.tsx`; the gear in `screens/Aspirations.tsx`; `settings` in `storage/navigation.ts`, `useNavigation` and `App.tsx`.
+- Docs: screens README (what each Settings row does; the gear is already there).
 
 **Out (later):**
 - Any effect of intensity on a plan (the planner); a task cap per day.
@@ -69,7 +69,7 @@ The intensity control is a radio group (`role="radiogroup"`, arrow keys move the
 - **`api/client.test.ts`:** `getSettings` returns the mock settings; `setIntensity` changes the value and the date and is seen by the next `getSettings`; returns copies.
 - **`storage/navigation.test.ts`:** `settings` round-trips.
 - **`screens/Settings.test.tsx`:** Normal is selected at first; tapping Going hard selects it and calls `setIntensity`; a failed save goes back to the earlier choice with a message; Week starts reads Monday and Notifications reads Off, neither a control; Export shows "Coming later."
-- **`App.test.tsx`:** the gear opens Settings; Goals stays current in the tab bar; "‹ Goals" returns; Settings survives a remount.
+- **`App.test.tsx`:** the gear opens Settings; Aspirations stays current in the tab bar; "‹ Aspirations" returns; Settings survives a remount.
 - **Manual:** 375 and 390 px, light and dark; the three labels fit on one row at 375 px.
 
 ## Boundaries
@@ -81,7 +81,7 @@ The intensity control is a radio group (`role="radiogroup"`, arrow keys move the
 ## Success criteria
 
 - [ ] Every acceptance criterion on #7 is met.
-- [ ] The gear on Goals opens Settings; back returns to Goals; the screen is remembered.
+- [ ] The gear on Aspirations opens Settings; back returns to Aspirations; the screen is remembered.
 - [ ] Intensity shows the saved choice, changes with one tap, and stays changed after leaving and returning.
 - [ ] Week starts, Notifications and Export read as described.
 - [ ] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.

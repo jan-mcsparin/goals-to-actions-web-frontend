@@ -1,6 +1,6 @@
 # Spec: Installable and opens instantly on iPhone (#8)
 
-Status: draft 2026-11-10, awaiting approval. Built last, after #4–#7; hosting is chosen then. Issue: [#8](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/8). Module `install-instant-open` in the [map](README.md). Depends on #4–#7.
+Status: draft 2026-11-10, awaiting approval. Built last, after every screen; hosting is chosen then. Issue: [#8](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/8). Module `install-instant-open` in the [map](README.md). Depends on #4–#7 and the [aspiration page](aspiration-page.md).
 
 ## Objective
 
@@ -23,7 +23,7 @@ None of it has been checked on a phone from an installed copy.
 
 1. **Install:** Safari's Share → Add to Home Screen offers the app's name and its icon. Opened from the home screen it runs standalone: no Safari bars, content clear of the notch and the home indicator, in light and dark.
 2. **Opens offline:** in airplane mode, a cold start shows the app, on the remembered screen, with no error and no blank page.
-3. **Comes back where it was:** after iOS closes the app in the background, or the person swipes it away, it reopens on the same screen: Today, Week, an opened day, Goals, an opened goal or Settings. Today's List / By goal choice is kept too.
+3. **Comes back where it was:** after iOS closes the app in the background, or the person swipes it away, it reopens on the same screen: Today, Week, an opened day, Aspirations, an opened aspiration, an opened goal or Settings. Today's List / By goal choice is kept too.
 4. **Knows what day it is:** if the app was left open overnight, coming back to it shows the new day as Today. (Today is worked out once at launch now, so it would still show yesterday.)
 5. **Updates quietly:** a new version is picked up without the person doing anything, never reloads the page while they're using it, and is running by the next time the app is opened. No "update available" prompt.
 
@@ -33,7 +33,7 @@ None of it has been checked on a phone from an installed copy.
 - An audit on the phone of items 1–3, and fixes for what it finds. Likely candidates: the maskable icon (it reuses the plain 512 px icon, which may be cropped), the status-bar style in standalone, safe-area gaps on the new screens.
 - The current day refreshes when the app returns to the foreground on a new date (`hooks/useToday.ts`, used by `App.tsx`).
 - Update behaviour as in item 5. How to get it from vite-plugin-pwa is settled in the plan, against its documentation.
-- Every `Screen` added in #4–#7 restores, and a remembered screen that no longer makes sense falls back safely.
+- Every `Screen` added since #3 restores, and a remembered screen that no longer makes sense falls back safely.
 - Somewhere to load the built app over HTTPS on the phone (see Open questions).
 - Docs: README (how to try the installed app on a phone); ADR-004 gets a line on what's done and what's deferred.
 
@@ -83,7 +83,7 @@ export function useToday(): string {
   - [ ] Add to Home Screen shows the right name and icon.
   - [ ] Opens standalone; header and tab bar clear the notch and the home indicator; light and dark.
   - [ ] Airplane mode, app swiped away, reopened: it opens.
-  - [ ] Reopens on each of: Today, Week, an opened day, Goals, an opened goal, Settings.
+  - [ ] Reopens on each of: Today, Week, an opened day, Aspirations, an opened aspiration, an opened goal (with back still going where it should), Settings.
   - [ ] List / By goal is kept.
   - [ ] Left open past midnight (or with the phone's date changed): Today is the new day.
   - [ ] After a new deploy: the new version is running by the second open, with no prompt and no reload in the middle of use.

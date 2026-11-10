@@ -1,6 +1,6 @@
 # Specs
 
-One spec per issue, numbered like the issue. This file is the index and the map for the screens still to build. Each spec is planned (`tasks/plan.md`, `tasks/todo.md`) just before it's built, not before.
+One spec per issue, numbered like the issue (the aspiration page gets its number when its issue exists). This file is the index and the map for the screens still to build. Each spec is planned (`tasks/plan.md`, `tasks/todo.md`) just before it's built, not before.
 
 ## Done
 
@@ -14,39 +14,43 @@ One spec per issue, numbered like the issue. This file is the index and the map 
 
 | Module id | Spec | Issue | Responsibility | Depends on |
 |---|---|---|---|---|
-| `goals-screen` | [004](004-goals-screen.md) | #4 | Aspirations with their goals and progress; the Goals tab; `getGoals` | — |
-| `goal-detail` | [005](005-goal-detail.md) | #5 | One goal in full: milestones, weekly target, check-in, Review / Pause / End | `goals-screen` |
-| `add-sheet` | [006](006-add-sheet.md) | #6 | Add a task, goal, aspiration or recurring item; the + in the tab bar | `goals-screen`, `goal-detail` |
-| `settings-screen` | [007](007-settings-screen.md) | #7 | Intensity and the few preferences; the gear | `goals-screen` |
+| `aspirations-tab` | [004](004-aspirations-tab.md) | #4 | Aspirations in priority order with their week, goals and recurring items; the third tab; `getAspirations` | — |
+| `aspiration-page` | [aspiration page](aspiration-page.md) | to create | One aspiration: its goals, recurring items and past goals; edit, reorder, review, retire, bring back | `aspirations-tab` |
+| `goal-detail` | [005](005-goal-detail.md) | #5 | One goal in full: milestones, weekly target, check-in, Review / Pause / End | `aspirations-tab`, `aspiration-page` |
+| `add-sheet` | [006](006-add-sheet.md) | #6 | Add a task, goal, aspiration or recurring item; the + in the tab bar | `aspirations-tab`, `aspiration-page`, `goal-detail` |
+| `settings-screen` | [007](007-settings-screen.md) | #7 | Intensity and the few preferences; the gear | `aspirations-tab` |
 | `install-instant-open` | [008](008-install-instant-open.md) | #8 | Installs on iPhone, opens offline, comes back where it was | all of the above |
 
-Build order: `goals-screen` → `goal-detail` → `add-sheet` → `settings-screen` → `install-instant-open`.
+Build order: `aspirations-tab` → `aspiration-page` → `goal-detail` → `add-sheet` → `settings-screen` → `install-instant-open`.
 
-`settings-screen` only needs `goals-screen`, so it can move earlier if wanted. `install-instant-open` goes last because it checks that every screen is remembered and works offline.
+The order follows the model: tab → aspiration → goal. `settings-screen` only needs the tab, so it can move earlier if wanted. `install-instant-open` goes last because it checks that every screen is remembered and works offline.
 
-## Decisions shared by 004–008
+`aspirations-tab` was `goals-screen` until the app became aspirations first (Nov 10); nothing had been built under the old name.
+
+## Decisions shared by these specs
 
 Settled with Jan on 2026-11-10:
 
-1. **Tab bar:** Today | Week | + | Goals. The + opens the Add sheet over whatever screen is open; it isn't a screen.
-2. **Settings is a gear**, not a tab.
-3. **Aspirations have no page of their own.** They're the headings on the Goals screen.
-4. **A one-off goal's steps are its milestones.** "Stage 3 of 6" is 3 hit of 6, the goal itself being the sixth. Checking off a task never moves the stage; the person marks a step reached on the goal's page. No new entity.
-5. **Goal detail works fully, mocked:** Pause, End, Review and milestone check-in all change data.
-6. **Adding a goal is a short form.** Milestones and steps are added afterwards on Goal detail. Quitting goals can be created; their daily log comes later.
-7. **The gear sits in the Goals header**, top right, where the sketch has "+ Add". Settings counts as Goals in the tab bar and goes back to Goals.
-8. **Past goals are collapsed** at the bottom of Goals.
-9. **A new task can go straight onto today.** That's the default when the sheet is opened from the Today tab; from anywhere else the bank is.
-10. **A new building goal gets this week's bank tasks from the mock**, so the loop from goal to Today can be clicked through.
-11. **Goal detail's timeline is vertical**, and condenses past four milestones (spec 005).
-12. **The final milestone is the goal itself.** The timeline's last row is the goal's measurable line, and it counts in "1 of 6". Reaching it is reaching the goal. It isn't a separate milestone record. A goal with no milestones of its own reads "0 of 1".
-13. **#8 waits until #4–#7 are built**, and hosting is chosen then. What's already in place (manifest, service worker, remembered screen) stays.
+1. **The app is aspirations first:** Aspirations tab → an aspiration → a goal → its milestones. The tab replaces the Goals screen of the Nov 2 sketch. See `../../docs/screens/README.md` and `aspirations.png`.
+2. **Tab bar:** Today | Week | + | Aspirations. The + opens the Add sheet over whatever screen is open; it isn't a screen.
+3. **Settings is a gear** in the Aspirations header. Settings counts as Aspirations in the tab bar and goes back there.
+4. **Aspirations are managed in the click-through:** add, edit the name and why, move up and down, review, retire and bring back. A new one goes last in priority.
+5. **A one-off goal's steps are its milestones.** Checking off a task never moves the stage; the person marks a step reached on the goal's page. No new entity.
+6. **The final milestone is the goal itself.** The timeline's last row is the goal's measurable line, and it counts in "1 of 6". Reaching it is reaching the goal. It isn't a separate milestone record. A goal with no milestones of its own reads "0 of 1".
+7. **Goal detail works fully, mocked:** Pause, End, Review and milestone check-in all change data.
+8. **Goal detail's timeline is vertical**, and condenses past four milestones (spec 005, `goal-detail-timeline.png`).
+9. **Adding a goal is a short form.** Milestones and steps are added afterwards on Goal detail. Quitting goals can be created; their daily log comes later.
+10. **Past goals are collapsed:** on each aspiration's page, and under Other goals on the tab for goals with no aspiration.
+11. **A new task can go straight onto today.** That's the default when the sheet is opened from the Today tab; from anywhere else the bank is.
+12. **A new building goal gets this week's bank tasks from the mock**, so the loop from goal to Today can be clicked through.
+13. **#8 waits until every screen is built**, and hosting is chosen then. What's already in place (manifest, service worker, remembered screen) stays.
 
 Assumed (say so if wrong):
 
-14. **Navigation stays behind `useNavigation()`.** The `Screen` union grows by `{ screen: 'goals' }`, `{ screen: 'goal'; goalId }` and `{ screen: 'settings' }`, each remembered like the others. Still no router.
-15. **Each spec adds its own `api/` functions, mock data and types**, and keeps #2's and #3's tests passing unchanged.
-16. **Nothing here builds the planner.** No week is redrafted and nothing is placed on a day for the person. The one stand-in is decision 10.
+14. **Navigation stays behind `useNavigation()`.** The `Screen` union grows by `{ screen: 'aspirations' }`, `{ screen: 'aspiration'; aspirationId }`, `{ screen: 'goal'; goalId; from }` and `{ screen: 'settings' }`, each remembered like the others. `from` is what lets back from a goal return to the tab or to an aspiration. Still no router.
+15. **Each spec adds its own `api/` functions, mock data and types.** #2's tests stay as they are; #3's change only where spec 004's new mock goal adds a row.
+16. **Nothing here builds the planner.** No week is redrafted and nothing is placed on a day for the person. The one stand-in is decision 12.
+17. **Pausing sets this week's tasks aside**, whether one goal is paused or an aspiration is retired with "Pause them". It's an open question in the aspiration page spec.
 
 ## Shared conventions
 

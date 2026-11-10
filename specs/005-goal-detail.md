@@ -1,18 +1,18 @@
 # Spec: Goal detail screen (#5)
 
-Status: draft 2026-11-10, awaiting approval. Issue: [#5](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/5). Module `goal-detail` in the [map](README.md). Depends on #4.
+Status: draft 2026-11-10, awaiting approval. Issue: [#5](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/5). Module `goal-detail` in the [map](README.md). Depends on #4 and the [aspiration page](aspiration-page.md).
 
 ## Objective
 
 Goal detail shows one goal in full: what it is, where it started, the milestones along the way, the weekly target and the next check-in. It's also the only place a goal is reviewed, paused or ended, and only when the person chooses to. Nothing on this screen opens on its own.
 
-Everything works against the mock: actions change data and the Goals and Week screens reflect it.
+Everything works against the mock: actions change data and the Aspirations tab, the aspiration page and Week reflect it.
 
 References: [Flow 2](../../docs/flows.md#flow-2-set-a-goal-and-its-milestones), [Flow 6](../../docs/flows.md#flow-6-see-progress-and-check-in-at-milestones), [Flow 7](../../docs/flows.md#flow-7-rollovers-and-light-reviews), [tone rules](../../docs/product-rules.md#tone-and-prompts), [`other-screens.png`](../../docs/screens/other-screens.png).
 
 ### What the person sees
 
-- **Header (pinned):** "‹ Goals" on the left, the type on the right ("Building", "Quitting", "One-off"). Then the label, the measurable line, and the aspiration's name if there is one. A paused goal reads "Paused" beside the type.
+- **Header (pinned):** a back link on the left, the type on the right ("Building", "Quitting", "One-off"). Back returns wherever the person came from and is named for it: "‹ Aspirations" from the tab, "‹ Be fit" from the aspiration's page. (`goal-detail-timeline.png` still shows the older "‹ Goals".) Then the label, the measurable line, and the aspiration as a link up to its page: "Be fit ›". A goal with no aspiration has no link. A paused goal reads "Paused" beside the type.
 - **Where you started:** "Started at: Bench 145, squat 275, deadlift 315". Once any milestone has a result, a second line: "Latest: Bench 150, squat 290, deadlift 330 · Nov 2". Baselines and results are free text, so the two lines sit side by side; nothing is calculated. No baseline: the section is left out.
 - **Milestones** ("Steps" for a one-off goal): a vertical timeline, in order, from Start to Goal, with "1 of 6 hit" beside the heading. The Start row shows the start date and the baseline. The Goal row is the final milestone: it's the goal's own measurable line, with the deadline if there is one, and it counts in the total. It isn't a separate milestone record. Each milestone shows:
   - its measurable line;
@@ -28,7 +28,7 @@ References: [Flow 2](../../docs/flows.md#flow-2-set-a-goal-and-its-milestones), 
 - **Next check-in:** when the next upcoming milestone is due: "Week 12 · Dec 7", or "Whenever you choose" when it has no date, with a **Check in** button. None upcoming: "No check-ins coming up."
 - **Actions:** Review · Pause · End goal. Pause reads Resume on a paused goal.
 
-**A goal that isn't there** (a remembered id after the mock data reset): go back to Goals, quietly.
+**A goal that isn't there** (a remembered id after the mock data reset): go back to Aspirations, quietly.
 
 ### Editing the weekly target
 
@@ -52,7 +52,7 @@ A milestone whose date has passed doesn't change by itself in the click-through;
 
 ### Pause, End, Review
 
-- **Pause:** the goal becomes paused, at once, no confirmation. Its tasks already on a day stay there. It drops out of Week's progress rows and reads "Paused" on Goals. **Resume** makes it active again.
+- **Pause:** the goal becomes paused, at once, no confirmation. Its tasks from this week that aren't done leave the days and the bank, as they do when an aspiration is retired with "Pause them"; done tasks stay. It drops out of Week's progress rows and reads "Paused" on the Aspirations tab and its aspiration's page. **Resume** makes it active again and returns those tasks to this week's bank.
 - **End goal:** a sheet that leads with what was achieved: "Started at … Latest …" and "2 of 6 milestones hit". Then **I reached it**, **End it for now** and **Cancel**.
   - Reached: status `reached`. The page then reads "Reached Nov 10" and, when it has an aspiration, "What's next for Be fit?" as plain text.
   - Ended: status `ended`. The page reads "Not yet." followed by the same achievement lines, with one action, **Go again**, which makes it active.
@@ -74,7 +74,7 @@ A milestone whose date has passed doesn't change by itself in the click-through;
 - Editing the label, measurable line, baseline, aspiration or deadline; deleting or reordering milestones.
 - Quitting goals' daily log and urge rating.
 - "This one slipped" for a passed deadline; any prompt that isn't opened by the person.
-- Generating tasks from a target, and reflowing the week when a goal is paused or ended.
+- Generating tasks from a target, and reflowing the week when a goal is paused or ended (pausing only sets its own tasks aside).
 - Amount targets (miles, hours): count targets only, as on Week.
 
 ## API changes
@@ -89,8 +89,8 @@ checkInMilestone(milestoneId: string, outcome: 'hit' | 'notYet', result?: string
 reopenMilestone(milestoneId: string, changes?: { measurableLine?: string; targetDate?: string }): Promise<Milestone>
 // Back to upcoming: Keep the date (no changes), Move the date, Adjust the milestone.
 
-pauseGoal(goalId: string): Promise<Goal>
-resumeGoal(goalId: string): Promise<Goal>   // from paused or ended; clears endedAt
+pauseGoal(goalId: string): Promise<Goal>    // its not-done tasks this week -> 'skipped'
+resumeGoal(goalId: string): Promise<Goal>   // from paused or ended; clears endedAt; this week's skipped tasks -> 'inBank'
 endGoal(goalId: string, outcome: 'reached' | 'ended'): Promise<Goal>   // sets endedAt
 reviewGoal(goalId: string): Promise<Goal>   // sets lastReviewedAt
 ```
@@ -114,24 +114,24 @@ export function weekLabel(startDate: string, targetDate: string | undefined): st
 - **`domain/goalDetail.test.ts`:** timeline rows and statuses; "Next" on the first upcoming; week labels, including no date; next check-in with and without a date and with none left; started and latest lines with missing parts; achievement summary; "Steps" wording for one-off; the Goal row counted in the total and hit once the goal is reached; `condenseTimeline`: four or fewer shows all, the always-shown rows, fold labels (Start folded with hit ones, "2 more: Wk 16, Wk 20"), a not-yet milestone never folded, all hit, none hit.
 - **`api/client.test.ts`:** `getGoal` contents and unknown id; each mutation's effect and its rejections; a target changed twice in a week leaves one row for that week and keeps the old one; `getWeek` reflects a new target and leaves out a paused goal.
 - **`hooks/useGoal.test.tsx`:** optimistic update and rollback for one mutation; unknown goal reports not found.
-- **`screens/GoalDetail.test.tsx`:** renders the mock goal; edit the target; check in as hit (next milestone shown); with every milestone hit, checking in on the goal marks it reached; check in as not yet (card leads with the baseline, then each of the three choices clears it); add a milestone; Pause then Resume; End as reached and as ended; Go again; Review records the date; a one-off goal reads Steps and Done; no dialog is open on first render; a six-milestone goal opens condensed, a fold row and Show all expand it, Show less collapses it, and the choice is restored on reopening.
-- **`App.test.tsx`:** a remembered goal that doesn't exist lands on Goals.
+- **`screens/GoalDetail.test.tsx`:** renders the mock goal; edit the target; check in as hit (next milestone shown); with every milestone hit, checking in on the goal marks it reached; check in as not yet (card leads with the baseline, then each of the three choices clears it); add a milestone; Pause (its tasks leave Week) then Resume (they're back in the bank); End as reached and as ended; Go again; Review records the date; a one-off goal reads Steps and Done; no dialog is open on first render; a six-milestone goal opens condensed, a fold row and Show all expand it, Show less collapses it, and the choice is restored on reopening.
+- **`App.test.tsx`:** a remembered goal that doesn't exist lands on Aspirations; back from a goal returns to the tab or to the aspiration it was opened from; the aspiration link opens its page.
 - **Manual:** 375 and 390 px, light and dark; a six-step timeline condensed and expanded (Check in visible without scrolling when condensed); long measurable lines; sheets clear the keyboard and the home indicator.
 
 ## Boundaries
 
 - **Always:** every sheet opens only from a tap; "not yet" copy leads with progress since the baseline; keep target history (never overwrite an earlier week's row); run test, lint and build before each commit; update `../docs/` in the same work.
 - **Ask first:** any new dependency (including a date picker; use `<input type="date">`); changes to entity types.
-- **Never:** words like "missed", "failed", "behind" or "overdue"; a prompt, badge or reminder to review or check in; moving or removing tasks when a goal is paused or ended.
+- **Never:** words like "missed", "failed", "behind" or "overdue"; a prompt, badge or reminder to review or check in; moving or removing tasks when a goal is ended, or done tasks ever.
 
 ## Success criteria
 
 - [ ] Every acceptance criterion on #5 is met.
 - [ ] The weekly target can be set and changed, and Week follows.
 - [ ] A check-in records hit or not yet; the not-yet card leads with progress and offers keep, move, adjust.
-- [ ] Pause, Resume, End (reached or ended), Go again and Review each change the goal as described, and Goals reflects it.
+- [ ] Pause, Resume, End (reached or ended), Go again and Review each change the goal as described, and the Aspirations tab reflects it.
 - [ ] Milestones can be added; one-off goals read "Steps".
-- [ ] Nothing opens unprompted; a missing goal returns to Goals.
+- [ ] Nothing opens unprompted; a missing goal returns to Aspirations; back returns where the person came from.
 - [ ] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
 - [ ] Works at 375 and 390 px, light and dark.
 
@@ -141,3 +141,4 @@ export function weekLabel(startDate: string, targetDate: string | undefined): st
 2. **A new target takes effect this week**, so "1 of 3" can become "1 of 4" on Wednesday. The alternative is from next Monday.
 3. **End goal asks "reached or not"** rather than working it out, since nothing can tell whether "bench 175" was crossed.
 4. This is the largest of the five. The plan will likely split it into two PRs: the read-only screen with the target edit, then check-in and the actions.
+5. **Pausing a goal now sets its tasks aside** for the week (they return to the bank on Resume). Before the aspirations update this spec left them on their days. It changed to match Retire's "They leave your days"; see the first open question in the [aspiration page](aspiration-page.md) spec.
