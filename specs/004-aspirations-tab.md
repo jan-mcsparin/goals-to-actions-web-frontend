@@ -1,6 +1,6 @@
 # Spec: Aspirations tab (#4)
 
-Status: draft 2026-11-10, awaiting approval. Issue: [#4](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/4) (still titled "Build the Goals screen"). Module `aspirations-tab` in the [map](README.md). Depends on #1–#3 (done).
+Status: draft 2026-11-10, awaiting approval. Issue: [#4](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/4). Module `aspirations-tab` in the [map](README.md). Depends on #1–#3 (done).
 
 Rewritten on 2026-11-10: the app is aspirations first, so this tab replaces the Goals screen of the Nov 2 sketch.
 
@@ -60,7 +60,7 @@ Its page:
 ### Navigation
 
 - **Tab bar:** Today | Week | Aspirations. (The + arrives with #6, between Week and Aspirations.) An opened aspiration, goal or Keep life running counts as Aspirations.
-- **Opening an aspiration** goes to `{ screen: 'aspiration', aspirationId }`. Until the [aspiration page](aspiration-page.md) is built, that's a placeholder with the name and "‹ Aspirations".
+- **Opening an aspiration** goes to `{ screen: 'aspiration', aspirationId }`. Until the [aspiration page](013-aspiration-page.md) is built, that's a placeholder with the name and "‹ Aspirations".
 - **Opening Keep life running** goes to `{ screen: 'upkeep' }`.
 - **Opening a goal** goes to `{ screen: 'goal', goalId, from }`, where `from` records where the person came from, so back returns there. Until #5 it's a placeholder with the label and a back link.
 - The open screen, including an opened aspiration or goal, is restored after a reload or iOS restart.
@@ -76,7 +76,7 @@ Its page:
 - Docs: screens README: "Step" for one-off goals where it says "stage"; the Keep life running page (and a row in the screen inventory); the week bar counts sessions, not hours.
 
 **Out (later):**
-- The aspiration page's content and everything it does: edit, reorder, review, retire, bring back ([aspiration page](aspiration-page.md)).
+- The aspiration page's content and everything it does: edit, reorder, review, retire, bring back ([aspiration page](013-aspiration-page.md)).
 - Goal detail's content (#5), the + and Add sheet (#6), the gear (#7).
 - Editing or pausing a recurring item; doing anything from the Keep life running page.
 - A pacing line per aspiration ("6 days left" appears on the aspiration page only).
@@ -170,4 +170,3 @@ export function progressLabel(type: GoalType, hit: number, total: number): strin
 ## Open questions
 
 1. **The Keep life running page** is my reading of your description: a page that shows the recurring items and loose tasks under no goal, and does nothing else yet. Say if it should do more (or less) in the click-through.
-2. **Issue #4's title and criteria** still describe the Goals screen. Shall I update the issue to match?

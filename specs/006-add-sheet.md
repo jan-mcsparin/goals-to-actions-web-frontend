@@ -1,6 +1,6 @@
 # Spec: Add sheet (#6)
 
-Status: draft 2026-11-10, awaiting approval. Issue: [#6](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/6). Module `add-sheet` in the [map](README.md). Depends on #4, the [aspiration page](aspiration-page.md) and #5.
+Status: draft 2026-11-10, awaiting approval. Issue: [#6](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/6). Module `add-sheet` in the [map](README.md). Depends on #4, the [aspiration page](013-aspiration-page.md) and #5.
 
 ## Objective
 

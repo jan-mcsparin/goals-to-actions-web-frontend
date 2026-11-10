@@ -1,6 +1,6 @@
-# Spec: Aspiration page
+# Spec: Aspiration page (#13)
 
-Status: draft 2026-11-10, awaiting approval. Issue: not created yet; this file takes the issue's number when it exists. Module `aspiration-page` in the [map](README.md). Depends on #4.
+Status: draft 2026-11-10, awaiting approval. Issue: [#13](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/13). Module `aspiration-page` in the [map](README.md). Depends on #4.
 
 ## Objective
 
@@ -143,4 +143,3 @@ export function priorityLine(position: number, activeCount: number): string {
 ## Open questions
 
 1. **Resuming a goal whose aspiration is retired.** Allowed; the goal then shows under Other goals on the tab until the aspiration is brought back. The alternative is to offer Bring back instead.
-2. **This needs an issue.** Shall I create one from the task template? The spec then takes its number.

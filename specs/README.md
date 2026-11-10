@@ -1,6 +1,6 @@
 # Specs
 
-One spec per issue, numbered like the issue (the aspiration page gets its number when its issue exists). This file is the index and the map for the screens still to build. Each spec is planned (`tasks/plan.md`, `tasks/todo.md`) just before it's built, not before.
+One spec per issue, numbered like the issue. This file is the index and the map for the screens still to build. Each spec is planned (`tasks/plan.md`, `tasks/todo.md`) just before it's built, not before.
 
 ## Done
 
@@ -15,7 +15,7 @@ One spec per issue, numbered like the issue (the aspiration page gets its number
 | Module id | Spec | Issue | Responsibility | Depends on |
 |---|---|---|---|---|
 | `aspirations-tab` | [004](004-aspirations-tab.md) | #4 | Aspirations in priority order with their week, goals and recurring items; the Keep life running page; the third tab | — |
-| `aspiration-page` | [aspiration page](aspiration-page.md) | to create | One aspiration: its goals, recurring items and past goals; edit, reorder, review, retire, bring back | `aspirations-tab` |
+| `aspiration-page` | [013](013-aspiration-page.md) | #13 | One aspiration: its goals, recurring items and past goals; edit, reorder, review, retire, bring back | `aspirations-tab` |
 | `goal-detail` | [005](005-goal-detail.md) | #5 | One goal in full: milestones, weekly target, check-in, Review / Pause / End | `aspirations-tab`, `aspiration-page` |
 | `add-sheet` | [006](006-add-sheet.md) | #6 | Add a task, goal, aspiration or recurring item; the + in the tab bar | `aspirations-tab`, `aspiration-page`, `goal-detail` |
 | `settings-screen` | [007](007-settings-screen.md) | #7 | Intensity and the few preferences; the gear | `aspirations-tab` |

@@ -1,6 +1,6 @@
 # Spec: Goal detail screen (#5)
 
-Status: draft 2026-11-10, awaiting approval. Issue: [#5](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/5). Module `goal-detail` in the [map](README.md). Depends on #4 and the [aspiration page](aspiration-page.md).
+Status: draft 2026-11-10, awaiting approval. Issue: [#5](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/5). Module `goal-detail` in the [map](README.md). Depends on #4 and the [aspiration page](013-aspiration-page.md).
 
 ## Objective
 

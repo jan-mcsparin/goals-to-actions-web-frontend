@@ -1,6 +1,6 @@
 # Spec: Installable and opens instantly on iPhone (#8)
 
-Status: draft 2026-11-10, awaiting approval. Built last, after every screen; hosting is chosen then. Issue: [#8](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/8). Module `install-instant-open` in the [map](README.md). Depends on #4–#7 and the [aspiration page](aspiration-page.md).
+Status: draft 2026-11-10, awaiting approval. Built last, after every screen; hosting is chosen then. Issue: [#8](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/8). Module `install-instant-open` in the [map](README.md). Depends on #4–#7 and the [aspiration page](013-aspiration-page.md).
 
 ## Objective
 
