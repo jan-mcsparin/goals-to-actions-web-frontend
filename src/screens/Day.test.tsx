@@ -357,7 +357,7 @@ describe('Day', () => {
     expect(pinned).not.toBeNull()
     expect(pinned?.contains(screen.getByRole('button', { name: 'Back to Week' }))).toBe(true)
     expect(pinned?.contains(screen.getByRole('progressbar'))).toBe(true)
-    expect(pinned?.textContent).toContain('0 of 1 done')
+    expect(pinned?.textContent).toContain('0 of 11 done')
     expect(pinned?.contains(screen.getByRole('button', { name: 'List' }))).toBe(false)
   })
 
