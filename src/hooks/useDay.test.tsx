@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { checkOffTask, pullFromBank, skipTask, swapTask, uncheckTask } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { Task } from '../api/types.ts'
-import { useToday, type UseToday } from './useToday.ts'
+import { useDay, type UseDay } from './useDay.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
@@ -39,15 +39,15 @@ function deferred<T>() {
   return { promise, resolve, reject }
 }
 
-function statusOf(state: UseToday, taskId: string) {
-  return state.today?.sections
+function statusOf(state: UseDay, taskId: string) {
+  return state.day?.sections
     .flatMap((section) => section.rows)
     .find((row) => row.task.id === taskId)?.task.status
 }
 
 async function renderLoaded() {
-  const hook = renderHook(() => useToday())
-  await waitFor(() => expect(hook.result.current.today).toBeDefined())
+  const hook = renderHook(() => useDay('2026-11-11', '2026-11-11'))
+  await waitFor(() => expect(hook.result.current.day).toBeDefined())
   return hook
 }
 
@@ -55,7 +55,7 @@ function laundry(status: Task['status']): Task {
   return { id: 'task-laundry', title: 'Laundry', status, weekOf: '2026-11-09', plannedDay: '2026-11-11', rolloverCount: 0 }
 }
 
-describe('useToday toggleDone', () => {
+describe('useDay toggleDone', () => {
   it('shows the task done before the save finishes', async () => {
     const save = deferred<Task>()
     vi.mocked(checkOffTask).mockReturnValueOnce(save.promise)
@@ -64,7 +64,7 @@ describe('useToday toggleDone', () => {
     act(() => result.current.toggleDone('task-laundry'))
 
     expect(statusOf(result.current, 'task-laundry')).toBe('done')
-    expect(result.current.today?.progress).toEqual({ done: 1, total: 4 })
+    expect(result.current.day?.progress).toEqual({ done: 1, total: 4 })
     await act(async () => save.resolve(laundry('done')))
     expect(statusOf(result.current, 'task-laundry')).toBe('done')
   })
@@ -107,7 +107,7 @@ describe('useToday toggleDone', () => {
   })
 })
 
-describe('useToday toggleDone, overlapping saves', () => {
+describe('useDay toggleDone, overlapping saves', () => {
   it("ignores an older tap's failure once a newer tap has been made", async () => {
     const first = deferred<Task>()
     const third = deferred<Task>()
@@ -125,7 +125,7 @@ describe('useToday toggleDone, overlapping saves', () => {
   })
 })
 
-describe('useToday pull', () => {
+describe('useDay pull', () => {
   it('adds the bank task to today at once, with its goal', async () => {
     const save = deferred<Task>()
     vi.mocked(pullFromBank).mockReturnValueOnce(save.promise)
@@ -135,7 +135,7 @@ describe('useToday pull', () => {
     act(() => result.current.pull('task-garage-shelves'))
 
     expect(statusOf(result.current, 'task-garage-shelves')).toBe('planned')
-    const pulled = result.current.today?.sections
+    const pulled = result.current.day?.sections
       .flatMap((section) => section.rows)
       .find((row) => row.task.id === 'task-garage-shelves')
     expect(pulled?.subline).toBe('Clear out the garage · Keep a calm home')
@@ -155,11 +155,11 @@ describe('useToday pull', () => {
   })
 })
 
-function taskIdsInOrder(state: UseToday) {
-  return state.today?.sections.flatMap((section) => section.rows.map((row) => row.task.id))
+function taskIdsInOrder(state: UseDay) {
+  return state.day?.sections.flatMap((section) => section.rows.map((row) => row.task.id))
 }
 
-describe('useToday sendToBank', () => {
+describe('useDay sendToBank', () => {
   it('takes the task off today at once', async () => {
     vi.mocked(skipTask).mockReturnValueOnce(new Promise(() => {}))
     const { result } = await renderLoaded()
@@ -167,7 +167,7 @@ describe('useToday sendToBank', () => {
     act(() => result.current.sendToBank('task-laundry'))
 
     expect(statusOf(result.current, 'task-laundry')).toBeUndefined()
-    expect(result.current.today?.progress).toEqual({ done: 0, total: 3 })
+    expect(result.current.day?.progress).toEqual({ done: 0, total: 3 })
   })
 
   it('puts the task back in its place and says so calmly when the save fails', async () => {
@@ -182,7 +182,7 @@ describe('useToday sendToBank', () => {
   })
 })
 
-describe('useToday swap', () => {
+describe('useDay swap', () => {
   it('puts the bank task in the swapped task\'s place at once', async () => {
     vi.mocked(swapTask).mockReturnValueOnce(new Promise(() => {}))
     const { result } = await renderLoaded()
@@ -208,5 +208,21 @@ describe('useToday swap', () => {
     expect(taskIdsInOrder(result.current)).toEqual(before)
     expect(result.current.bankRows?.map((row) => row.task.id)).toContain('task-dentist')
     expect(result.current.message).toBe("Couldn't save that. Try again.")
+  })
+})
+
+describe('useDay on another day', () => {
+  it('pulls a bank task onto that day, placed by hand', async () => {
+    const hook = renderHook(() => useDay('2026-11-12', '2026-11-11'))
+    await waitFor(() => expect(hook.result.current.day).toBeDefined())
+    await act(async () => hook.result.current.loadBank())
+
+    await act(async () => hook.result.current.pull('task-lift-bank'))
+
+    expect(pullFromBank).toHaveBeenCalledWith('task-lift-bank', '2026-11-12')
+    const row = hook.result.current.day?.sections
+      .flatMap((section) => section.rows)
+      .find((candidate) => candidate.task.id === 'task-lift-bank')
+    expect(row?.task).toMatchObject({ plannedDay: '2026-11-12', placedByHand: true })
   })
 })

@@ -79,6 +79,8 @@ export type Task = {
   valueLogged?: number
   rolloverCount: number
   completedAt?: string
+  // Set when the person puts the task on a day. The planner must never move it.
+  placedByHand?: boolean
 }
 
 export type Intensity = 'easingOff' | 'normal' | 'goingHard'
@@ -90,7 +92,7 @@ export type Settings = {
   weekStartsOn: 'monday'
 }
 
-export type TodayPlan = {
+export type DayPlan = {
   date: string
   tasks: Task[]
   goals: Goal[]
@@ -98,7 +100,18 @@ export type TodayPlan = {
   recurringItems: RecurringItem[]
 }
 
-// This week's tasks not yet on a day, with what they reference (like TodayPlan).
+// Every task in a week (planned, done and in the bank), with what they
+// reference and each active goal's current weekly target.
+export type WeekPlan = {
+  weekOf: string
+  tasks: Task[]
+  goals: Goal[]
+  aspirations: Aspiration[]
+  recurringItems: RecurringItem[]
+  weeklyTargets: WeeklyTarget[]
+}
+
+// This week's tasks not yet on a day, with what they reference (like DayPlan).
 export type Bank = {
   weekOf: string
   tasks: Task[]

@@ -1,11 +1,14 @@
-// What the Today screen shows, worked out from a TodayPlan. Components render
+// What the Today screen shows, worked out from a DayPlan. Components render
 // these sections as they come; all grouping, ordering and wording lives here.
-import type { Aspiration, Bank, Goal, Task, TimeOfDay, TodayPlan } from '../api/types.ts'
+import { fromLocalDay } from '../api/dates.ts'
+import type { Aspiration, Bank, DayPlan, Goal, Task, TimeOfDay } from '../api/types.ts'
 
 export type TaskRow = {
   task: Task
   timeLabel?: string
   subline?: string
+  // From a fixed-day recurring item (trash on Tuesday): it stays on its day.
+  fixed?: true
 }
 
 export type Section = {
@@ -17,13 +20,15 @@ export type Section = {
 const KEEP_LIFE_RUNNING = 'Keep life running'
 const MOVE_FORWARD = 'Move forward'
 
-export function dayHeading(day: string): string {
-  const [year, month, date] = day.split('-').map(Number)
-  const weekday = new Date(year, month - 1, date).toLocaleDateString('en-US', { weekday: 'long' })
-  return `Today · ${weekday}`
+// "Today · Wednesday" for today, "Thursday · Nov 12" for any other day.
+export function dayHeading(day: string, today: string): string {
+  const calendarDay = fromLocalDay(day)
+  const weekday = calendarDay.toLocaleDateString('en-US', { weekday: 'long' })
+  if (day === today) return `Today · ${weekday}`
+  return `${weekday} · ${calendarDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
 }
 
-export function progress(plan: TodayPlan): { done: number; total: number } {
+export function progress(plan: DayPlan): { done: number; total: number } {
   const onToday = visibleTasks(plan)
   return { done: onToday.filter((task) => task.status === 'done').length, total: onToday.length }
 }
@@ -37,13 +42,13 @@ export function goalSubline(goal: Goal, aspirations: Aspiration[]): string {
   return aspiration ? `${goal.label} · ${aspiration.name}` : goal.label
 }
 
-export function groupForList(plan: TodayPlan): Section[] {
+export function groupForList(plan: DayPlan): Section[] {
   const tasks = inDayOrder(visibleTasks(plan))
   const sections: Section[] = [
     {
       id: 'keep-life-running',
       title: KEEP_LIFE_RUNNING,
-      rows: tasks.filter(isMaintenance).map((task) => rowFor(task)),
+      rows: tasks.filter(isMaintenance).map((task) => maintenanceRow(task, plan)),
     },
     {
       id: 'move-forward',
@@ -56,12 +61,12 @@ export function groupForList(plan: TodayPlan): Section[] {
   return sections.filter((section) => section.rows.length > 0)
 }
 
-export function groupByGoal(plan: TodayPlan): Section[] {
+export function groupByGoal(plan: DayPlan): Section[] {
   const tasks = inDayOrder(visibleTasks(plan))
   const maintenance: Section = {
     id: 'keep-life-running',
     title: KEEP_LIFE_RUNNING,
-    rows: tasks.filter(isMaintenance).map((task) => rowFor(task)),
+    rows: tasks.filter(isMaintenance).map((task) => maintenanceRow(task, plan)),
   }
   const goalCards = goalsByPriority(plan).map((goal) => ({
     id: goal.id,
@@ -76,7 +81,7 @@ export function bankRows(bank: Bank): TaskRow[] {
 }
 
 // Skipped tasks have gone back to the bank, so they're no longer part of today.
-function visibleTasks(plan: TodayPlan): Task[] {
+function visibleTasks(plan: DayPlan): Task[] {
   return plan.tasks.filter((task) => task.status === 'planned' || task.status === 'done')
 }
 
@@ -85,7 +90,7 @@ function isMaintenance(task: Task): boolean {
 }
 
 // Timed tasks anchor the day in time order; untimed ones follow in plan order.
-function inDayOrder(tasks: Task[]): Task[] {
+export function inDayOrder(tasks: Task[]): Task[] {
   const timed = tasks
     .filter((task) => task.timeOfDay)
     .sort((a, b) => a.timeOfDay!.time.localeCompare(b.timeOfDay!.time))
@@ -101,12 +106,18 @@ function rowFor(task: Task, subline?: string): TaskRow {
   }
 }
 
-function sublineFor(task: Task, records: Pick<TodayPlan, 'goals' | 'aspirations'>): string | undefined {
+function maintenanceRow(task: Task, plan: DayPlan): TaskRow {
+  const item = plan.recurringItems.find((candidate) => candidate.id === task.recurringItemId)
+  return item?.fixedDay ? { ...rowFor(task), fixed: true } : rowFor(task)
+}
+
+function sublineFor(task: Task, records: Pick<DayPlan, 'goals' | 'aspirations'>): string | undefined {
   const goal = records.goals.find((candidate) => candidate.id === task.goalId)
   return goal && goalSubline(goal, records.aspirations)
 }
 
-function goalsByPriority(plan: TodayPlan): Goal[] {
+// Goals in their aspiration's priority order; goals without one come last.
+export function goalsByPriority(plan: Pick<DayPlan, 'goals' | 'aspirations'>): Goal[] {
   const priorityOf = (goal: Goal) =>
     plan.aspirations.find((aspiration) => aspiration.id === goal.aspirationId)?.priority ?? Infinity
   return [...plan.goals].sort((a, b) => priorityOf(a) - priorityOf(b))

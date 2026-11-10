@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Aspiration, Bank, Goal, RecurringItem, Task, TodayPlan } from '../api/types.ts'
+import type { Aspiration, Bank, DayPlan, Goal, RecurringItem, Task } from '../api/types.ts'
 import {
   bankRows,
   dayHeading,
@@ -36,7 +36,7 @@ const trash: RecurringItem = {
   nextDue: DAY,
 }
 
-function plan(tasks: Task[]): TodayPlan {
+function plan(tasks: Task[]): DayPlan {
   return { date: DAY, tasks, goals: [strong, prototype, reading], aspirations: [fit, builder], recurringItems: [trash] }
 }
 
@@ -110,6 +110,28 @@ describe('groupForList', () => {
   })
 })
 
+describe('fixed-day tasks', () => {
+  const laundry: RecurringItem = { ...trash, id: 'rec-laundry', name: 'Laundry', fixedDay: false }
+
+  it('marks rows from a fixed-day recurring item, in both views', () => {
+    const tasks = [
+      task('Trash', { recurringItemId: 'rec-trash' }),
+      task('Laundry', { recurringItemId: 'rec-laundry' }),
+      task('Ballot'),
+    ]
+    const dayPlan = { ...plan(tasks), recurringItems: [trash, laundry] }
+
+    for (const sections of [groupForList(dayPlan), groupByGoal(dayPlan)]) {
+      const rows = sections[0].rows
+      expect(rows.map((row) => [row.task.title, row.fixed ?? false])).toEqual([
+        ['Trash', true],
+        ['Laundry', false],
+        ['Ballot', false],
+      ])
+    }
+  })
+})
+
 describe('groupByGoal', () => {
   it('starts with Keep life running, then one card per goal by aspiration priority', () => {
     const sections = groupByGoal(
@@ -153,9 +175,15 @@ describe('progress', () => {
 })
 
 describe('dayHeading', () => {
-  it('names the weekday of a local day string', () => {
-    expect(dayHeading('2026-11-11')).toBe('Today · Wednesday')
-    expect(dayHeading('2026-11-15')).toBe('Today · Sunday')
+  it('says Today and the weekday for today', () => {
+    expect(dayHeading('2026-11-11', '2026-11-11')).toBe('Today · Wednesday')
+    expect(dayHeading('2026-11-15', '2026-11-15')).toBe('Today · Sunday')
+  })
+
+  it('gives the weekday and date for any other day', () => {
+    expect(dayHeading('2026-11-12', '2026-11-11')).toBe('Thursday · Nov 12')
+    expect(dayHeading('2026-11-10', '2026-11-11')).toBe('Tuesday · Nov 10')
+    expect(dayHeading('2026-12-01', '2026-11-11')).toBe('Tuesday · Dec 1')
   })
 })
 

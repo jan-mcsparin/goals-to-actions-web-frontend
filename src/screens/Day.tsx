@@ -4,12 +4,18 @@ import { TaskRow } from '../components/TaskRow.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
 import type { Task } from '../api/types.ts'
 import type { Section } from '../domain/today.ts'
-import { useToday } from '../hooks/useToday.ts'
-import './Today.css'
+import { useDay } from '../hooks/useDay.ts'
+import './Day.css'
 
-export function Today() {
+type DayProps = {
+  date: string
+  today: string
+  onBack?: () => void
+}
+
+export function Day({ date, today, onBack }: DayProps) {
   const {
-    today,
+    day,
     message,
     view,
     setView,
@@ -20,7 +26,7 @@ export function Today() {
     pull,
     sendToBank,
     swap,
-  } = useToday()
+  } = useDay(date, today)
   const [sheet, setSheet] = useState<Sheet>()
   const focusAfterSwap = useRef<string>(undefined)
 
@@ -49,7 +55,7 @@ export function Today() {
     setSheet(undefined)
   }
 
-  if (!today) {
+  if (!day) {
     return (
       <main className="today" aria-busy={!message}>
         {message && <p role="status">{message}</p>}
@@ -57,15 +63,34 @@ export function Today() {
     )
   }
 
-  const { heading, progress, sections } = today
+  const { heading, isToday, canPlace, progress, sections } = day
   const isEmpty = progress.total === 0
+  const emptyLine = isToday ? 'Nothing planned today. The day is yours.' : 'Nothing planned. The day is yours.'
+  const swapTask = canPlace
+    ? (task: Task) => openSheet({ kind: 'swap', taskId: task.id, taskTitle: task.title })
+    : undefined
 
   return (
     <main className="today" data-view={view}>
-      <header className="today-header">
-        <h1>{heading}</h1>
-        {!isEmpty && <p className="today-count">{`${progress.done} of ${progress.total} done`}</p>}
-      </header>
+      <div className="screen-top today-top">
+        {onBack && (
+          <button type="button" className="today-back" aria-label="Back to Week" onClick={onBack}>
+            ‹ Week
+          </button>
+        )}
+        <header className="today-header">
+          <h1>{heading}</h1>
+          {!isEmpty && <p className="today-count">{`${progress.done} of ${progress.total} done`}</p>}
+        </header>
+        {!isEmpty && (
+          <progress
+            className="today-progress"
+            value={progress.done}
+            max={progress.total}
+            aria-label={isToday ? 'Done today' : 'Done this day'}
+          />
+        )}
+      </div>
 
       {message && (
         <p className="today-message" role="status">
@@ -75,12 +100,8 @@ export function Today() {
 
       {!isEmpty && <ViewToggle view={view} onChange={setView} />}
 
-      {!isEmpty && (
-        <progress className="today-progress" value={progress.done} max={progress.total} aria-label="Done today" />
-      )}
-
       {isEmpty ? (
-        <p className="today-empty">Nothing planned today. The day is yours.</p>
+        <p className="today-empty">{emptyLine}</p>
       ) : (
         <>
           {sections.map((section) => (
@@ -89,7 +110,7 @@ export function Today() {
               section={section}
               onToggle={toggleDone}
               onSendToBank={sendToBank}
-              onSwap={(task) => openSheet({ kind: 'swap', taskId: task.id, taskTitle: task.title })}
+              onSwap={swapTask}
             />
           ))}
           <section className="today-free-time" aria-labelledby="free-time">
@@ -99,13 +120,11 @@ export function Today() {
         </>
       )}
 
-      <button
-        type="button"
-        className="today-pull"
-        onClick={() => openSheet({ kind: 'pull' })}
-      >
-        Pull from bank
-      </button>
+      {canPlace && (
+        <button type="button" className="today-pull" onClick={() => openSheet({ kind: 'pull' })}>
+          Pull from bank
+        </button>
+      )}
 
       <BankSheet
         open={sheet !== undefined}
@@ -125,7 +144,7 @@ type TaskGroupProps = {
   section: Section
   onToggle: (taskId: string) => void
   onSendToBank: (taskId: string) => void
-  onSwap: (task: Task) => void
+  onSwap?: (task: Task) => void
 }
 
 function TaskGroup({ section, onToggle, onSendToBank, onSwap }: TaskGroupProps) {
@@ -140,7 +159,7 @@ function TaskGroup({ section, onToggle, onSendToBank, onSwap }: TaskGroupProps) 
             row={row}
             onToggle={() => onToggle(row.task.id)}
             onSendToBank={() => onSendToBank(row.task.id)}
-            onSwap={() => onSwap(row.task)}
+            onSwap={onSwap && (() => onSwap(row.task))}
           />
         ))}
       </ul>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, mondayOf, toLocalDay } from './dates.ts'
+import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
 
 describe('toLocalDay', () => {
   it('uses the local date, not UTC, late in the evening', () => {
@@ -24,5 +24,14 @@ describe('mondayOf', () => {
 describe('addDays', () => {
   it('crosses month ends', () => {
     expect(toLocalDay(addDays(new Date(2026, 10, 30), 1))).toBe('2026-12-01')
+  })
+})
+
+describe('fromLocalDay', () => {
+  it('reads a local day string as local midnight, the inverse of toLocalDay', () => {
+    const date = fromLocalDay('2026-11-30')
+
+    expect([date.getFullYear(), date.getMonth(), date.getDate(), date.getHours()]).toEqual([2026, 10, 30, 0])
+    expect(toLocalDay(fromLocalDay('2026-12-01'))).toBe('2026-12-01')
   })
 })

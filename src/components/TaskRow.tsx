@@ -7,11 +7,12 @@ type TaskRowProps = {
   row: TaskRowData
   onToggle: () => void
   onSendToBank: () => void
-  onSwap: () => void
+  onSwap?: () => void
 }
 
 // The whole row is the checkbox, so a tap anywhere on it checks the task off.
-// Done tasks have no menu: tapping again is how you undo them.
+// Done tasks have no menu (tapping again undoes them), and neither do
+// fixed-day items, which stay on their day.
 export function TaskRow({ row, onToggle, onSendToBank, onSwap }: TaskRowProps) {
   const { task, timeLabel, subline } = row
   const done = task.status === 'done'
@@ -49,7 +50,7 @@ export function TaskRow({ row, onToggle, onSendToBank, onSwap }: TaskRowProps) {
           </span>
         )}
       </button>
-      {!done && <TaskMenu taskTitle={task.title} onSendToBank={onSendToBank} onSwap={onSwap} />}
+      {!done && !row.fixed && <TaskMenu taskTitle={task.title} onSendToBank={onSendToBank} onSwap={onSwap} />}
     </li>
   )
 }

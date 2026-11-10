@@ -1,193 +1,210 @@
-# Tasks: Today screen (#2)
+# Tasks: Week screen (#3)
 
-Plan: [`plan.md`](plan.md). Spec: [`../specs/002-today-screen.md`](../specs/002-today-screen.md).
+Plan: [`plan.md`](plan.md). Spec: [`../specs/003-week-screen.md`](../specs/003-week-screen.md).
 
 Every task: write tests first, then `npm test && npm run lint && npm run build`, then one commit.
 
-## Phase 1: Foundation
+## Phase 1: Any day
 
-### Task 1: Component test tooling
+### Task 1: Rename Today's plan to a day's plan
 
-**Description:** Add React Testing Library and jsdom, configure Vitest so `*.test.tsx` runs in jsdom and `*.test.ts` stays in Node, and prove it with a smoke test of `App`.
+**Description:** Mechanical rename with no behaviour change: `TodayPlan` → `DayPlan`, `getToday()` → `getDay(date)`, `useToday` → `useDay(date)`, `Today.tsx` → `Day.tsx` (with a `date` prop). `App` passes today's date.
 
 **Acceptance criteria:**
-- [x] Dev deps added at pinned current versions: `@testing-library/react`, `@testing-library/dom` (its required peer), `@testing-library/user-event`, `jsdom` 31 (needs Node ≥ 22.22.2). `dom` peer approved 2026-11-09.
-- [x] `src/App.test.tsx` renders `App` and finds the app name; existing Node tests are unaffected.
-- [x] Setup cleans up between tests (RTL `cleanup`, or `globals` as the docs say).
+- [x] No `TodayPlan`, `getToday` or `useToday` left in `src/`; no aliases.
+- [x] `getDay(date)` returns that date's tasks and what they reference (one new client test for a non-today date).
+- [x] All existing tests pass with only names changed.
 
 **Verification:**
-- [x] `npm test` runs both environments green
-- [x] `npm run build` type-checks the `.tsx` test
+- [x] `npm test`, `npm run build`; `grep -r "TodayPlan\|getToday\|useToday" src` is empty
 
 **Dependencies:** None
 
-**Files:** `package.json`, `package-lock.json`, `vite.config.ts`, `src/test/setup.ts`, `src/App.test.tsx`
+**Files:** `src/api/types.ts`, `src/api/client.ts`, `src/api/client.test.ts`, `src/domain/today.ts` (+ test), `src/hooks/useDay.ts` (+ test, renamed), `src/screens/Day.tsx` (+ test, renamed), `src/App.tsx`
 
-**Scope:** S (config)
+**Scope:** M (many files, renames only)
 
-### Task 2: `domain/today.ts`: groups, order, labels, progress
+### Task 2: Place bank tasks on a given day, and record `placedByHand`
 
-**Description:** Pure functions that turn a `TodayPlan` into what the screen renders, for both views.
-
-**Acceptance criteria:**
-- [x] `groupForList(plan)` returns Keep life running (recurring and unattached tasks), Move forward (goal tasks); within each, timed tasks by time, then untimed in plan order. `groupByGoal(plan)` returns Keep life running, then one section per goal titled "Goal · Aspiration", ordered by aspiration priority. Skipped tasks are excluded.
-- [x] `timeLabel` gives "by 7 a.m.", "at 6 p.m.", "at 6:30 p.m.", "at 12 p.m.", "at 12 a.m."; `goalSubline` gives "Be strong · Be fit" or the goal alone.
-- [x] `progress(plan)` returns `{ done, total }` over planned + done; `dayHeading(date)` gives "Today · Wednesday" from a local day string, correct at 11:30 p.m.
-
-**Verification:**
-- [x] `npm test`: `domain/today.test.ts` covers each bullet, using hand-built plans (no mock store)
-
-**Dependencies:** None
-
-**Files:** `src/domain/today.ts`, `src/domain/today.test.ts`
-
-**Scope:** S (2 files, most of the logic)
-
-## Checkpoint: Foundation
-- [x] Tests, lint and build pass
-
-## Phase 2: Core
-
-### Task 3: Today renders the plan (List view, read-only)
-
-**Description:** `useToday` loads the plan; `Today` shows the heading, "N of M done", the progress bar, the List groups with time labels and sublines, the Free time line "The rest is yours", a Pull from bank button (inert for now), and the empty-day state. `App` renders `Today`.
+**Description:** `pullFromBank(id, day?)` places on `day` (default today). `swapTask` places the bank task on the swapped task's day. Both set `placedByHand: true`; `skipTask` clears it. Add the field to `Task`.
 
 **Acceptance criteria:**
-- [x] With the mock store on Wednesday, the screen shows both groups with the right tasks in the right order and "0 of 4 done".
-- [x] No tasks today → a warm line and the Pull from bank button; no progress bar.
-- [x] Components hold no grouping or formatting logic (they call `domain/`).
+- [x] `pullFromBank('task-lift-bank', '2026-11-13')` plans it for Friday with `placedByHand: true`; without a day it goes to today.
+- [x] Swapping a Thursday task puts the bank task on Thursday; both sides' `placedByHand` are right.
+- [x] `skipTask` removes `placedByHand`; `pullFromBank` rejects a past day ("Can't place a task on a past day").
 
 **Verification:**
-- [x] `npm test`: `screens/Today.test.tsx` covers both bullets
-- [x] Manual: `npm run dev`, looks right at 390 px
+- [x] `npm test`: client tests per bullet
 
-**Dependencies:** Tasks 1, 2
-
-**Files:** `src/hooks/useToday.ts`, `src/screens/Today.tsx`, `src/components/TaskRow.tsx`, `src/screens/Today.css`, `src/App.tsx`, `src/screens/Today.test.tsx`
-
-**Scope:** M (6 files, mostly small)
-
-### Task 4: One-tap check-off with undo (optimistic)
-
-**Description:** Add `uncheckTask` to the client. `useToday.toggleDone` updates state immediately, then calls `checkOffTask` / `uncheckTask`; on rejection it restores the task and shows "Couldn't save that. Try again."
-
-**Acceptance criteria:**
-- [x] `uncheckTask` sets status `planned`, clears `completedAt` and `valueLogged`; unknown ID or a task that isn't done rejects.
-- [x] Tapping a row marks it done before the client resolves and updates "N of M done"; tapping again undoes it. On rejection the row reverts and the message shows.
-- [x] Two quick taps settle on the second tap's state. The row is a checkbox (`role="checkbox"`, `aria-checked`, named by the title); done isn't shown by colour alone.
-
-**Verification:**
-- [x] `npm test`: client tests for `uncheckTask`; `hooks/useToday.test.tsx` with a deferred client mock for optimistic, rollback and double-tap; screen test for tap → count
-
-**Dependencies:** Task 3
-
-**Files:** `src/api/client.ts`, `src/api/client.test.ts`, `src/hooks/useToday.ts`, `src/hooks/useToday.test.tsx`, `src/components/TaskRow.tsx`, `src/screens/Today.test.tsx`
-
-**Scope:** M
-
-## Checkpoint A
-- [x] Tests, lint and build pass
-- [x] Review with Jan on the phone (`npm run dev -- --host`): read and check off
-
-## Phase 3: Views and bank
-
-### Task 5: Bank API: `getBank`, `skipTask`, `swapTask`, `pullFromBank`
-
-**Description:** The client functions from the spec's API additions, against the mock store.
-
-**Acceptance criteria:**
-- [x] `getBank` returns this week's `inBank` tasks plus the goals, aspirations and recurring items they reference as a `Bank` shape like `TodayPlan`, in `types.ts`.
-- [x] `skipTask` → `inBank`, `plannedDay` cleared, `rolloverCount` unchanged; `pullFromBank` → `planned` today; both reject unknown or wrong-status IDs.
-- [x] `swapTask` does both or neither: an invalid ID on either side leaves the store unchanged. Each task keeps its own `timeOfDay`.
-
-**Verification:**
-- [x] `npm test`: one test per bullet, plus visibility in the next `getToday` / `getBank` and copies returned
-
-**Dependencies:** None (can run in parallel with Tasks 1–4)
+**Dependencies:** Task 1
 
 **Files:** `src/api/types.ts`, `src/api/client.ts`, `src/api/client.test.ts`
 
-**Scope:** S–M
+**Scope:** S
 
-### Task 6: By goal view and remembered toggle
+### Task 3: The Day screen works for any date
 
-**Description:** `storage/viewPreference.ts` reads and writes `'list' | 'byGoal'`. `useToday` exposes `view` / `setView`; a segmented `ViewToggle` switches between List and By goal (cards from `groupByGoal`, Free time line below).
+**Description:** `useDay(date)` passes its date to pull and swap and sets `placedByHand` in its optimistic copies. `dayHeading(date, today)` gives "Today · Wednesday" or "Thursday · Nov 12". `Day` shows a "‹ Week" back button when given `onBack`.
 
 **Acceptance criteria:**
-- [x] Default is List; the chosen view persists across a remount; storage that throws falls back to List without crashing.
-- [x] By goal shows Keep life running, then "Be strong · Be fit" with its tasks.
-- [x] The toggle is two buttons with `aria-pressed`, each at least 44 px tall.
+- [x] Rendering `<Day date="2026-11-12" />` (on a Wednesday) shows Thursday's tasks under "Thursday · Nov 12".
+- [x] Pull from bank and Swap on that screen place the task on Thursday; check-off and undo work there too.
+- [x] "‹ Week" appears only with `onBack` and calls it.
 
 **Verification:**
-- [x] `npm test`: `storage/viewPreference.test.ts`; screen test toggles, unmounts, remounts, sees By goal
+- [x] `npm test`: `domain/today.test.ts` heading cases; `hooks/useDay.test.tsx` pull onto Thursday; `screens/Day.test.tsx` heading, pull and back
 
-**Dependencies:** Tasks 2, 3
+**Note:** on past days Pull from bank and Swap are hidden (the API refuses past days); check-off, undo and Back to bank stay.
 
-**Files:** `src/storage/viewPreference.ts`, `src/storage/viewPreference.test.ts`, `src/components/ViewToggle.tsx`, `src/hooks/useToday.ts`, `src/screens/Today.tsx`, `src/screens/Today.test.tsx`
+**Dependencies:** Task 2
+
+**Files:** `src/domain/today.ts` (+ test), `src/hooks/useDay.ts` (+ test), `src/screens/Day.tsx` (+ test)
 
 **Scope:** M
 
-### Task 7: Pull from bank
+### Task 4: Fixed-day items have no menu
 
-**Description:** The Pull from bank button opens `BankSheet`, which lists bank tasks with their sublines; picking one calls `useToday.pull`, which adds it to today optimistically and closes the sheet.
-
-**Acceptance criteria:**
-- [x] The sheet lists the mock bank (deadlift day, garage shelves, call the dentist); picking one adds it to the right group and updates "N of M".
-- [x] Empty bank → "Nothing in the bank." Rejection reverts and shows the calm message.
-- [x] The sheet is a native modal `<dialog>` with a Close button (tested).
-- [x] Focus moves in, Escape closes, focus returns to the button: browser behaviour, jsdom can't test it. Checked on the phone 2026-11-10.
-
-**Verification:**
-- [x] `npm test`: screen test for pick → row appears; hook test for rollback
-
-**Dependencies:** Tasks 4, 5
-
-**Files:** `src/components/BankSheet.tsx`, `src/hooks/useToday.ts`, `src/screens/Today.tsx`, `src/screens/Today.test.tsx`, `src/screens/Today.css`
-
-**Scope:** M
-
-### Task 8: Back to bank and Swap from the ⋯ menu
-
-**Description:** Each planned row gets a "⋯" button (labelled "More for <title>") with Back to bank and Swap (renamed from Skip, 2026-11-09). Back to bank sends the task to the bank; Swap opens `BankSheet` and replaces the task with the picked one. Both go through `useToday`, optimistically.
+**Description:** Rows from a fixed-day recurring item are marked `fixed`, and `TaskRow` hides ⋯ for them. They can still be checked off.
 
 **Acceptance criteria:**
-- [x] Back to bank removes the row and lowers the total in "N of M"; the task shows up in the bank sheet.
-- [x] Swap moves the picked task onto today and the swapped-out task into the bank; each keeps its own time, and "N of M" is unchanged.
-- [x] Done rows have no ⋯ menu (undo is the tap). Rejection reverts both tasks and shows the calm message.
+- [x] `groupForList` / `groupByGoal` rows carry `fixed: true` for tasks whose recurring item has `fixedDay`.
+- [x] On Tuesday, "Take out the trash" has no "More for…" button but can be checked off.
 
 **Verification:**
-- [x] `npm test`: screen tests for skip and swap; hook test for swap rollback
+- [x] `npm test`: domain test, and a screen test on a Tuesday date
 
-**Dependencies:** Task 7
+**Dependencies:** Task 3
 
-**Files:** `src/components/TaskMenu.tsx`, `src/components/TaskRow.tsx`, `src/hooks/useToday.ts`, `src/screens/Today.test.tsx`, `src/hooks/useToday.test.tsx`
+**Files:** `src/domain/today.ts` (+ test), `src/components/TaskRow.tsx`, `src/screens/Day.test.tsx`
+
+**Scope:** S
+
+## Checkpoint A
+- [x] Tests, lint and build pass
+- [x] Today behaves exactly as before; any day can be rendered and changed
+
+## Phase 2: Navigation
+
+### Task 5: Tab bar and remembered screen
+
+**Description:** `storage/navigation.ts` reads and writes the current screen; `useNavigation()` exposes it with `goTo`. `TabBar` (Today | Week) sits at the bottom. `App` renders Today, a placeholder Week ("This week"), or an opened day.
+
+**Acceptance criteria:**
+- [x] Default is Today; the screen (including `{ screen: 'day', date }`) survives a remount; bad or blocked storage falls back to Today.
+- [x] Tabs use `aria-current="page"`; an opened day marks Week as current; "‹ Week" returns to Week.
+- [x] Content isn't hidden behind the bar (bottom padding includes the safe-area inset).
+
+**Verification:**
+- [x] `npm test`: `storage/navigation.test.ts`; `App.test.tsx` switches tabs and survives remount
+- [x] Manual: on the phone, the bar clears the home indicator
+
+**Dependencies:** Task 3
+
+**Files:** `src/storage/navigation.ts` (+ test), `src/hooks/useNavigation.ts`, `src/components/TabBar.tsx` (+ `.css`), `src/App.tsx`, `src/App.test.tsx`
 
 **Scope:** M
 
 ## Checkpoint B
-- [x] Every success criterion in the spec is met
 - [x] Tests, lint and build pass
-- [x] Manual at 375 and 390 px: no horizontal scroll, tap targets ≥ 44 px, safe areas respected, light and dark
+- [x] Review with Jan on the phone: tabs, an opened day, back
 
-## Phase 4: Wrap-up
+## Phase 3: Week
 
-### Task 9: Docs
+### Task 6: `getWeek` and a fuller mock week
 
-**Description:** Record the behavior settled in the spec. Parent-repo edits go on their own branch and PR.
+**Description:** `getWeek()` returns every task with this week's `weekOf` (planned, done, in the bank), the records they reference, and active goals' weekly targets. Mock data adds tasks on Monday, Thursday, Friday and Saturday (today's tasks unchanged); hand-placed ones have `placedByHand: true`.
 
 **Acceptance criteria:**
-- [x] `../docs/screens/README.md` (Today): Free time reads "The rest is yours"; unattached tasks sit under Keep life running; By goal cards are "Goal · Aspiration"; Back to bank and Swap via a ⋯ menu (flows.md: skipping is shown as "Back to bank"); tap again to undo.
-- [x] `../docs/flows.md` Flow 5 mentions undo by tapping again.
-- [x] `web-frontend/CLAUDE.md` `storage/` line mentions the view preference in `localStorage` until #8.
+- [x] `getWeek()` on Wednesday includes Monday's done lift, today's tasks, the bank tasks and the Be strong target; nothing from other weeks.
+- [x] The consistency test still passes; #2's screen tests keep their counts.
+
+**Verification:**
+- [x] `npm test`: client and mock-data tests
+
+**Dependencies:** Task 1 (can run in parallel with 2–5)
+
+**Files:** `src/api/types.ts`, `src/api/client.ts`, `src/api/client.test.ts`, `src/api/mockData.ts`
+
+**Scope:** M
+
+### Task 7: `domain/week.ts`
+
+**Description:** Pure functions for the Week screen: `weekProgress`, `pacingLine`, `daySummaries`, `weekRange`, `pickableDays`.
+
+**Acceptance criteria:**
+- [x] Pacing: "Done for the week"; "6 days left · on pace"; "6 days left · 1 more to plan"; "1 day left" on Sunday. Progress counts only that goal's done tasks.
+- [x] Day summaries: Monday to Sunday, timed labels in titles ("Trash by 7 a.m."), `allDone`, "Free day" when empty, `isToday` / `isPast`.
+- [x] `weekRange` gives "Nov 9–15" and "Nov 30–Dec 6"; `pickableDays` gives today and later days only.
+
+**Verification:**
+- [x] `npm test`: `domain/week.test.ts` with hand-built plans
+
+**Dependencies:** Task 6 (types only)
+
+**Files:** `src/domain/week.ts`, `src/domain/week.test.ts`
+
+**Scope:** S
+
+### Task 8: Week screen: progress and days
+
+**Description:** `useWeek` loads the week and maps it through `domain/week.ts`. `Week` replaces the placeholder: header with range, progress rows with bars and pacing, seven day rows. Tapping a day opens it.
+
+**Acceptance criteria:**
+- [x] On Wednesday: "Be strong · Be fit", "1 of 3", "5 days left · 1 more to plan"; seven day rows, Wednesday marked `aria-current="date"`, Monday and Tuesday dimmed.
+- [x] Tapping Thursday opens the Thursday day screen; "‹ Week" comes back.
+
+**Verification:**
+- [x] `npm test`: `screens/Week.test.tsx`; `App.test.tsx` open-a-day round trip
+- [x] Manual: 390 px, light and dark
+
+**Dependencies:** Tasks 5, 7
+
+**Files:** `src/hooks/useWeek.ts`, `src/screens/Week.tsx`, `src/screens/Week.css`, `src/screens/Week.test.tsx`, `src/App.tsx`
+
+**Scope:** M
+
+### Task 9: Week screen: bank and "Put on a day"
+
+**Description:** Bank chips under the days. Tapping one opens `DayPickerSheet` (native `<dialog>`) listing Today and later days; picking one calls `pullFromBank(id, day)` optimistically through `useWeek`.
+
+**Acceptance criteria:**
+- [x] "Bank · 3 not on a day" with three chips; picking Thursday moves the task into Thursday's row and drops the count to 2.
+- [x] Past days aren't offered; empty bank reads "Nothing in the bank."
+- [x] A failed save puts the chip back and shows "Couldn't save that. Try again."
+
+**Verification:**
+- [x] `npm test`: screen tests per bullet; hook test for rollback
+
+**Dependencies:** Task 8
+
+**Files:** `src/components/DayPickerSheet.tsx` (+ `.css`), `src/hooks/useWeek.ts`, `src/screens/Week.tsx`, `src/screens/Week.test.tsx`
+
+**Scope:** M
+
+## Checkpoint C
+- [x] Every success criterion in the spec is met
+- [x] Tests, lint and build pass
+- [x] Manual at 375 and 390 px, light and dark; tab bar and sheets on the phone
+
+## Phase 4: Docs
+
+### Task 10: Docs
+
+**Description:** Record what changed, in the parent repo on its own branch, and in this repo.
+
+**Acceptance criteria:**
+- [x] `../docs/data-model.md`: Task gains "placed by hand"; the planner never moves such tasks.
+- [x] `../docs/screens/README.md` (Week): tap a bank task, then pick a day (drag later); pacing wording; fixed-day items have no menu; tab bar.
+- [x] `CLAUDE.md` (this repo): navigation goes through `useNavigation()`; no router yet.
 
 **Verification:**
 - [x] Manual read-through against the spec's Decisions
 
-**Dependencies:** None (can run any time after the spec)
+**Dependencies:** None (any time after the spec)
 
-**Files:** `../docs/screens/README.md`, `../docs/flows.md`, `CLAUDE.md`
+**Files:** `../docs/data-model.md`, `../docs/screens/README.md`, `CLAUDE.md`
 
 **Scope:** S
 
-## Checkpoint C
-- [x] Web-frontend PR open, referencing #2 (#10); parent-repo PR open, referencing #2 (goals-to-actions#3)
+## Checkpoint D
+- [x] Web-frontend PR open, referencing #3 (#11); parent-repo PR open, referencing #3 (goals-to-actions#4)

@@ -2,7 +2,22 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  min-height: 100dvh;
+}
+
+.today-back {
+  align-self: flex-start;
+  min-height: 2.75rem;
+  padding: 0 0.5rem 0 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+}
+
+.today-top {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .today-header {
@@ -27,7 +42,6 @@
   appearance: none;
   width: 100%;
   height: 0.5rem;
-  margin-top: -0.5rem;
   border: none;
   border-radius: 999px;
   background: var(--line);

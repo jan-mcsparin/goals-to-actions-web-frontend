@@ -1,0 +1,46 @@
+/* Bottom sheet on a native <dialog>, shared by BankSheet and DayPickerSheet. */
+.sheet {
+  width: 100%;
+  max-width: 40rem;
+  max-height: 80dvh;
+  margin: auto auto 0;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  border: none;
+  border-radius: 1rem 1rem 0 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.sheet::backdrop {
+  background: rgb(0 0 0 / 0.35);
+}
+
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sheet-header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.sheet-close {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+}
+
+.sheet-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sheet-note {
+  margin: 1rem 0 0;
+}

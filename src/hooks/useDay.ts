@@ -1,17 +1,17 @@
-// Today's plan, ready to render, plus the actions the screen offers. Changes
+// A day's plan, ready to render, plus the actions the screen offers. Changes
 // show immediately and are saved in the background; if a save fails the task
 // goes back to how it was (ADR-004). Rules come from domain/today.ts.
 import { useEffect, useRef, useState } from 'react'
 import {
   checkOffTask,
   getBank,
-  getToday,
+  getDay,
   pullFromBank,
   skipTask,
   swapTask,
   uncheckTask,
 } from '../api/client.ts'
-import type { Bank, Task, TodayPlan } from '../api/types.ts'
+import type { Bank, DayPlan, Task } from '../api/types.ts'
 import {
   bankRows,
   dayHeading,
@@ -22,19 +22,23 @@ import {
   type TaskRow,
 } from '../domain/today.ts'
 import { readTodayView, saveTodayView, type TodayViewMode } from '../storage/viewPreference.ts'
+import { withTaskReplaced } from './planUpdates.ts'
 
 const LOAD_FAILED = "Couldn't load today. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
 const BANK_FAILED = "Couldn't open the bank. Try again in a moment."
 
-export type TodayView = {
+export type DayView = {
   heading: string
+  isToday: boolean
+  // Tasks can be placed on today and later days, not on past ones.
+  canPlace: boolean
   progress: { done: number; total: number }
   sections: Section[]
 }
 
-export type UseToday = {
-  today?: TodayView
+export type UseDay = {
+  day?: DayView
   message?: string
   view: TodayViewMode
   setView: (view: TodayViewMode) => void
@@ -47,8 +51,8 @@ export type UseToday = {
   swap: (taskId: string, bankTaskId: string) => void
 }
 
-export function useToday(): UseToday {
-  const [plan, setPlan] = useState<TodayPlan>()
+export function useDay(date: string, today: string): UseDay {
+  const [plan, setPlan] = useState<DayPlan>()
   const [message, setMessage] = useState<string>()
   const [view, setViewState] = useState(readTodayView)
   const [bank, setBank] = useState<Bank>()
@@ -58,13 +62,13 @@ export function useToday(): UseToday {
 
   useEffect(() => {
     let current = true
-    getToday()
+    getDay(date)
       .then((loaded) => current && setPlan(loaded))
       .catch(() => current && setMessage(LOAD_FAILED))
     return () => {
       current = false
     }
-  }, [])
+  }, [date])
 
   function replaceTask(next: Task) {
     setPlan((previous) => previous && withTaskReplaced(previous, next.id, next))
@@ -120,12 +124,12 @@ export function useToday(): UseToday {
     const task = bank?.tasks.find((candidate) => candidate.id === bankTaskId)
     if (!bank || !plan || !task) return
 
-    const placed: Task = { ...task, status: 'planned', plannedDay: plan.date }
+    const placed: Task = { ...task, status: 'planned', plannedDay: plan.date, placedByHand: true }
     setPlan((previous) => previous && withTaskAppended(withRecordsFrom(previous, bank), placed))
     setBank((previous) => previous && bankWithout(previous, bankTaskId))
     setMessage(undefined)
 
-    pullFromBank(bankTaskId)
+    pullFromBank(bankTaskId, plan.date)
       .then(replaceTask)
       .catch(() => {
         setPlan((previous) => previous && withoutTask(previous, bankTaskId))
@@ -155,7 +159,7 @@ export function useToday(): UseToday {
     const bankTask = bank?.tasks.find((task) => task.id === bankTaskId)
     if (!plan || !bank || !before || !bankTask) return
 
-    const placed: Task = { ...bankTask, status: 'planned', plannedDay: plan.date }
+    const placed: Task = { ...bankTask, status: 'planned', plannedDay: plan.date, placedByHand: true }
     setPlan((previous) => previous && withTaskReplaced(withRecordsFrom(previous, bank), taskId, placed))
     setBank((previous) => previous && bankWithout(previous, bankTaskId))
     setMessage(undefined)
@@ -170,7 +174,7 @@ export function useToday(): UseToday {
   }
 
   return {
-    today: plan && viewOf(plan, view),
+    day: plan && viewOf(plan, view, today),
     message,
     view,
     setView,
@@ -184,24 +188,26 @@ export function useToday(): UseToday {
   }
 }
 
-function viewOf(plan: TodayPlan, view: TodayViewMode): TodayView {
+function viewOf(plan: DayPlan, view: TodayViewMode, today: string): DayView {
   const sections = view === 'byGoal' ? groupByGoal(plan) : groupForList(plan)
-  return { heading: dayHeading(plan.date), progress: progress(plan), sections }
+  return {
+    heading: dayHeading(plan.date, today),
+    isToday: plan.date === today,
+    canPlace: plan.date >= today,
+    progress: progress(plan),
+    sections,
+  }
 }
 
-function withTaskAppended(plan: TodayPlan, task: Task): TodayPlan {
+function withTaskAppended(plan: DayPlan, task: Task): DayPlan {
   return { ...plan, tasks: [...plan.tasks, task] }
 }
 
-function withTaskAt(plan: TodayPlan, task: Task, index: number): TodayPlan {
+function withTaskAt(plan: DayPlan, task: Task, index: number): DayPlan {
   return { ...plan, tasks: plan.tasks.toSpliced(index, 0, task) }
 }
 
-function withTaskReplaced(plan: TodayPlan, taskId: string, replacement: Task): TodayPlan {
-  return { ...plan, tasks: plan.tasks.map((task) => (task.id === taskId ? replacement : task)) }
-}
-
-function withoutTask(plan: TodayPlan, taskId: string): TodayPlan {
+function withoutTask(plan: DayPlan, taskId: string): DayPlan {
   return { ...plan, tasks: plan.tasks.filter((task) => task.id !== taskId) }
 }
 
@@ -213,8 +219,8 @@ function bankWithout(bank: Bank, taskId: string): Bank {
   return { ...bank, tasks: bank.tasks.filter((task) => task.id !== taskId) }
 }
 
-// A pulled task may belong to a goal today's plan hasn't seen yet.
-function withRecordsFrom(plan: TodayPlan, bank: Bank): TodayPlan {
+// A pulled task may belong to a goal the day's plan hasn't seen yet.
+function withRecordsFrom(plan: DayPlan, bank: Bank): DayPlan {
   return {
     ...plan,
     goals: unionById(plan.goals, bank.goals),

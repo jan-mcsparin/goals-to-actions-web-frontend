@@ -1,0 +1,12 @@
+/* Leaves room for the fixed tab bar; body already pads the safe area. */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding-bottom: var(--tab-bar-height);
+}
+
+.app > main {
+  flex: 1;
+  width: 100%;
+}
