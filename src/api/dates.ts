@@ -16,3 +16,9 @@ export function mondayOf(date: Date): Date {
   const daysSinceMonday = (date.getDay() + 6) % 7
   return addDays(date, -daysSinceMonday)
 }
+
+// Reads 'YYYY-MM-DD' as local midnight. new Date('YYYY-MM-DD') would be UTC.
+export function fromLocalDay(day: string): Date {
+  const [year, month, date] = day.split('-').map(Number)
+  return new Date(year, month - 1, date)
+}

@@ -132,12 +132,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Pure functions for the Week screen: `weekProgress`, `pacingLine`, `daySummaries`, `weekRange`, `pickableDays`.
 
 **Acceptance criteria:**
-- [ ] Pacing: "Done for the week"; "6 days left · on pace"; "6 days left · 1 more to plan"; "1 day left" on Sunday. Progress counts only that goal's done tasks.
-- [ ] Day summaries: Monday to Sunday, timed labels in titles ("Trash by 7 a.m."), `allDone`, "Free day" when empty, `isToday` / `isPast`.
-- [ ] `weekRange` gives "Nov 9–15" and "Nov 30–Dec 6"; `pickableDays` gives today and later days only.
+- [x] Pacing: "Done for the week"; "6 days left · on pace"; "6 days left · 1 more to plan"; "1 day left" on Sunday. Progress counts only that goal's done tasks.
+- [x] Day summaries: Monday to Sunday, timed labels in titles ("Trash by 7 a.m."), `allDone`, "Free day" when empty, `isToday` / `isPast`.
+- [x] `weekRange` gives "Nov 9–15" and "Nov 30–Dec 6"; `pickableDays` gives today and later days only.
 
 **Verification:**
-- [ ] `npm test`: `domain/week.test.ts` with hand-built plans
+- [x] `npm test`: `domain/week.test.ts` with hand-built plans
 
 **Dependencies:** Task 6 (types only)
 

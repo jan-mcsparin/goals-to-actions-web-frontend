@@ -1,5 +1,6 @@
 // What the Today screen shows, worked out from a DayPlan. Components render
 // these sections as they come; all grouping, ordering and wording lives here.
+import { fromLocalDay } from '../api/dates.ts'
 import type { Aspiration, Bank, DayPlan, Goal, Task, TimeOfDay } from '../api/types.ts'
 
 export type TaskRow = {
@@ -21,8 +22,7 @@ const MOVE_FORWARD = 'Move forward'
 
 // "Today · Wednesday" for today, "Thursday · Nov 12" for any other day.
 export function dayHeading(day: string, today: string): string {
-  const [year, month, date] = day.split('-').map(Number)
-  const calendarDay = new Date(year, month - 1, date)
+  const calendarDay = fromLocalDay(day)
   const weekday = calendarDay.toLocaleDateString('en-US', { weekday: 'long' })
   if (day === today) return `Today · ${weekday}`
   return `${weekday} · ${calendarDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
@@ -90,7 +90,7 @@ function isMaintenance(task: Task): boolean {
 }
 
 // Timed tasks anchor the day in time order; untimed ones follow in plan order.
-function inDayOrder(tasks: Task[]): Task[] {
+export function inDayOrder(tasks: Task[]): Task[] {
   const timed = tasks
     .filter((task) => task.timeOfDay)
     .sort((a, b) => a.timeOfDay!.time.localeCompare(b.timeOfDay!.time))
