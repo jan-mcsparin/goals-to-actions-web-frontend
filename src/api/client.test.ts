@@ -242,3 +242,40 @@ describe('swapTask', () => {
     expect(statusIn((await getBank()).tasks, 'task-lift-bank')).toBe('inBank')
   })
 })
+
+describe('placing tasks on a given day', () => {
+  it('pulls a bank task onto the given day, marked as placed by hand', async () => {
+    const task = await pullFromBank('task-lift-bank', '2026-11-13')
+
+    expect(task).toMatchObject({ status: 'planned', plannedDay: '2026-11-13', placedByHand: true })
+    expect((await getDay('2026-11-13')).tasks.map((t) => t.id)).toEqual(['task-lift-bank'])
+  })
+
+  it('pulls onto today when no day is given, still marked as placed by hand', async () => {
+    const task = await pullFromBank('task-lift-bank')
+
+    expect(task).toMatchObject({ plannedDay: '2026-11-11', placedByHand: true })
+  })
+
+  it('refuses a past day', async () => {
+    await expect(pullFromBank('task-lift-bank', '2026-11-10')).rejects.toThrow("Can't place a task on a past day")
+    expect(statusIn((await getBank()).tasks, 'task-lift-bank')).toBe('inBank')
+  })
+
+  it("puts a swapped-in task on the swapped task's day, not today", async () => {
+    await pullFromBank('task-dentist', '2026-11-12')
+
+    const { skipped, placed } = await swapTask('task-dentist', 'task-lift-bank')
+
+    expect(placed).toMatchObject({ plannedDay: '2026-11-12', placedByHand: true })
+    expect(skipped.placedByHand).toBeUndefined()
+  })
+
+  it('forgets placedByHand when a task goes back to the bank', async () => {
+    await pullFromBank('task-lift-bank', '2026-11-12')
+
+    const task = await skipTask('task-lift-bank')
+
+    expect(task.placedByHand).toBeUndefined()
+  })
+})

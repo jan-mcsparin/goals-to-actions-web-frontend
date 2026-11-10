@@ -79,6 +79,8 @@ export type Task = {
   valueLogged?: number
   rolloverCount: number
   completedAt?: string
+  // Set when the person puts the task on a day. The planner must never move it.
+  placedByHand?: boolean
 }
 
 export type Intensity = 'easingOff' | 'normal' | 'goingHard'

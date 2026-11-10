@@ -29,12 +29,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `pullFromBank(id, day?)` places on `day` (default today). `swapTask` places the bank task on the swapped task's day. Both set `placedByHand: true`; `skipTask` clears it. Add the field to `Task`.
 
 **Acceptance criteria:**
-- [ ] `pullFromBank('task-lift-bank', '2026-11-13')` plans it for Friday with `placedByHand: true`; without a day it goes to today.
-- [ ] Swapping a Thursday task puts the bank task on Thursday; both sides' `placedByHand` are right.
-- [ ] `skipTask` removes `placedByHand`; `pullFromBank` rejects a past day ("Can't place a task on a past day").
+- [x] `pullFromBank('task-lift-bank', '2026-11-13')` plans it for Friday with `placedByHand: true`; without a day it goes to today.
+- [x] Swapping a Thursday task puts the bank task on Thursday; both sides' `placedByHand` are right.
+- [x] `skipTask` removes `placedByHand`; `pullFromBank` rejects a past day ("Can't place a task on a past day").
 
 **Verification:**
-- [ ] `npm test`: client tests per bullet
+- [x] `npm test`: client tests per bullet
 
 **Dependencies:** Task 1
 

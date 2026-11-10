@@ -40,29 +40,34 @@ export async function skipTask(taskId: string): Promise<Task> {
   return structuredClone(task)
 }
 
-export async function pullFromBank(bankTaskId: string): Promise<Task> {
+export async function pullFromBank(bankTaskId: string, day = toLocalDay(new Date())): Promise<Task> {
+  if (day < toLocalDay(new Date())) throw new Error("Can't place a task on a past day")
   const task = findBankTask(bankTaskId)
-  planForToday(task)
+  placeOn(task, day)
   return structuredClone(task)
 }
 
 // Both tasks are checked before either changes, so a bad ID changes nothing.
+// The bank task goes onto the swapped task's day.
 export async function swapTask(taskId: string, bankTaskId: string): Promise<{ skipped: Task; placed: Task }> {
   const skipped = findPlannedTask(taskId)
   const placed = findBankTask(bankTaskId)
+  const day = skipped.plannedDay!
   moveToBank(skipped)
-  planForToday(placed)
+  placeOn(placed, day)
   return structuredClone({ skipped, placed })
 }
 
 function moveToBank(task: Task) {
   task.status = 'inBank'
   delete task.plannedDay
+  delete task.placedByHand
 }
 
-function planForToday(task: Task) {
+function placeOn(task: Task, day: string) {
   task.status = 'planned'
-  task.plannedDay = toLocalDay(new Date())
+  task.plannedDay = day
+  task.placedByHand = true
 }
 
 function findPlannedTask(taskId: string): Task {
