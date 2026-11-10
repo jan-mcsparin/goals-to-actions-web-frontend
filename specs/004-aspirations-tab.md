@@ -73,7 +73,7 @@ Its page:
 - `domain/upkeep.ts`: the recurring rows and the to-do rows with where each one sits.
 - `hooks/useAspirations.ts`, `hooks/useUpkeep.ts`; `screens/Aspirations.tsx`, `screens/Upkeep.tsx`; placeholder `screens/Aspiration.tsx` and `screens/GoalDetail.tsx`.
 - `storage/navigation.ts`, `useNavigation`, `App.tsx`, `TabBar`: the `aspirations`, `aspiration`, `goal` and `upkeep` screens and the third tab.
-- Docs: screens README: "Step" for one-off goals where it says "stage"; the Keep life running page (and a row in the screen inventory); the week bar counts sessions, not hours.
+- Docs: none expected; the screens README already describes this tab and the Keep life running page. Fix it if the build settles a detail.
 
 **Out (later):**
 - The aspiration page's content and everything it does: edit, reorder, review, retire, bring back ([aspiration page](013-aspiration-page.md)).
@@ -169,4 +169,4 @@ export function progressLabel(type: GoalType, hit: number, total: number): strin
 
 ## Open questions
 
-1. **The Keep life running page** is my reading of your description: a page that shows the recurring items and loose tasks under no goal, and does nothing else yet. Say if it should do more (or less) in the click-through.
+None. The Keep life running page is show-only (Jan, Nov 10).
