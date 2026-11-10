@@ -44,30 +44,6 @@
   white-space: nowrap;
 }
 
-.week-goal-bar {
-  appearance: none;
-  width: 100%;
-  height: 0.5rem;
-  border: none;
-  border-radius: 999px;
-  background: var(--line);
-  overflow: hidden;
-}
-
-.week-goal-bar::-webkit-progress-bar {
-  background: var(--line);
-}
-
-.week-goal-bar::-webkit-progress-value {
-  background: var(--accent);
-  border-radius: 999px;
-}
-
-.week-goal-bar::-moz-progress-bar {
-  background: var(--accent);
-  border-radius: 999px;
-}
-
 .week-goal-pacing {
   margin: 0.125rem 0 0;
   color: var(--muted);

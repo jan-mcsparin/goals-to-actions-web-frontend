@@ -3,6 +3,7 @@ import type { Task } from '../api/types.ts'
 import { DayPickerSheet } from '../components/DayPickerSheet.tsx'
 import type { DaySummary, ProgressRow } from '../domain/week.ts'
 import { useWeek } from '../hooks/useWeek.ts'
+import '../components/progressBar.css'
 import './Week.css'
 
 type WeekProps = {
@@ -96,7 +97,7 @@ function GoalProgress({ row }: { row: ProgressRow }) {
         <span className="week-goal-count">{`${row.done} of ${row.target}`}</span>
       </div>
       <progress
-        className="week-goal-bar"
+        className="progress-bar"
         value={Math.min(row.done, row.target)}
         max={row.target}
         aria-labelledby={titleId}

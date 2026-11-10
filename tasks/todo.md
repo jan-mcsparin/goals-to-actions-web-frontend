@@ -115,17 +115,17 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `useAspirations` loads the overview and maps it through the domain. `Aspirations` renders a card per active aspiration: a card-top button (name, chevron, why), the This week bar and line, goal-row buttons, the recurring line.
 
 **Acceptance criteria:**
-- [ ] Be fit shows its why, "2 of 5 this week" with a progress bar, "Be strong · Milestone 1 of 6", and "2 recurring: Stretch, Hockey"; Keep a calm home shows no why, no bar and "Step 3 of 6 · by Dec 4".
-- [ ] A paused goal reads "Paused". Card top and goal rows are separate buttons calling `onOpenAspiration(id)` and `onOpenGoal(id)`.
-- [ ] A failed load says "Couldn't load your aspirations. Try again in a moment." Nothing on the screen mentions pace or being behind.
+- [x] Be fit shows its why, "2 of 5 this week" with a progress bar, "Be strong · Milestone 1 of 6", and "2 recurring: Stretch, Hockey"; Keep a calm home shows no why, no bar and "Step 3 of 6 · by Dec 4".
+- [x] A paused goal reads "Paused". Card top and goal rows are separate buttons calling `onOpenAspiration(id)` and `onOpenGoal(id)`.
+- [x] A failed load says "Couldn't load your aspirations. Try again in a moment." Nothing on the screen mentions pace or being behind.
 
 **Verification:**
-- [ ] `npm test`: `screens/Aspirations.test.tsx`
+- [x] `npm test`: `screens/Aspirations.test.tsx`
 - [ ] Manual: 375 and 390 px, light and dark; a long goal label wraps and the count stays put
 
 **Dependencies:** Tasks 3, 5
 
-**Files:** `src/hooks/useAspirations.ts`, `src/screens/Aspirations.tsx`, `src/screens/Aspirations.css`, `src/screens/Aspirations.test.tsx`
+**Files:** `src/hooks/useAspirations.ts`, `src/screens/Aspirations.tsx`, `src/screens/Aspirations.css`, `src/screens/Aspirations.test.tsx`, `src/components/progressBar.css` (the bar's styles, moved out of `Week.css` to share)
 
 **Scope:** M
 

@@ -1,0 +1,24 @@
+/* A thin, rounded <progress>. Shared by Week and Aspirations. */
+.progress-bar {
+  appearance: none;
+  width: 100%;
+  height: 0.5rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.progress-bar::-webkit-progress-bar {
+  background: var(--line);
+}
+
+.progress-bar::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.progress-bar::-moz-progress-bar {
+  background: var(--accent);
+  border-radius: 999px;
+}
