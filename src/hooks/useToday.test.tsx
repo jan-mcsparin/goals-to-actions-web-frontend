@@ -107,6 +107,24 @@ describe('useToday toggleDone', () => {
   })
 })
 
+describe('useToday toggleDone, overlapping saves', () => {
+  it("ignores an older tap's failure once a newer tap has been made", async () => {
+    const first = deferred<Task>()
+    const third = deferred<Task>()
+    vi.mocked(checkOffTask).mockReturnValueOnce(first.promise).mockReturnValueOnce(third.promise)
+    vi.mocked(uncheckTask).mockResolvedValueOnce(laundry('planned'))
+    const { result } = await renderLoaded()
+
+    act(() => result.current.toggleDone('task-laundry'))
+    await act(async () => result.current.toggleDone('task-laundry'))
+    act(() => result.current.toggleDone('task-laundry'))
+    await act(async () => first.reject(new Error('offline')))
+
+    expect(statusOf(result.current, 'task-laundry')).toBe('done')
+    expect(result.current.message).toBeUndefined()
+  })
+})
+
 describe('useToday pull', () => {
   it('adds the bank task to today at once, with its goal', async () => {
     const save = deferred<Task>()

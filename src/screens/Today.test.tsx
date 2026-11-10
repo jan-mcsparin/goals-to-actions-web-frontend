@@ -207,6 +207,19 @@ describe('Today', () => {
     )
   })
 
+  it("shows a swapped-in goal task's goal and aspiration", async () => {
+    const user = userEvent.setup()
+    render(<Today />)
+
+    await user.click(await screen.findByRole('button', { name: 'More for Laundry' }))
+    await user.click(screen.getByRole('button', { name: 'Swap' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Swap Laundry for' })
+    await user.click(await within(sheet).findByRole('button', { name: 'Sort the garage shelves' }))
+
+    const forward = screen.getByRole('region', { name: 'Move forward' })
+    expect(within(forward).getByText('Clear out the garage · Keep a calm home')).toBeDefined()
+  })
+
   it('offers no menu on a done task, since a tap undoes it', async () => {
     const user = userEvent.setup()
     render(<Today />)
