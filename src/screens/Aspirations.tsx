@@ -6,9 +6,13 @@ import './Aspirations.css'
 type AspirationsProps = {
   onOpenAspiration: (aspirationId: string) => void
   onOpenGoal: (goalId: string) => void
+  onOpenUpkeep: () => void
 }
 
-export function Aspirations({ onOpenAspiration, onOpenGoal }: AspirationsProps) {
+const EMPTY = 'Nothing here yet. Start with one sentence: a goal, or who you want to be.'
+const PRIORITY_HINT = 'In order of priority. The first comes first when goals compete for time.'
+
+export function Aspirations({ onOpenAspiration, onOpenGoal, onOpenUpkeep }: AspirationsProps) {
   const { view, message } = useAspirations()
 
   return (
@@ -31,6 +35,47 @@ export function Aspirations({ onOpenAspiration, onOpenGoal }: AspirationsProps) 
           onOpenGoal={onOpenGoal}
         />
       ))}
+
+      {view?.isEmpty && <p className="aspirations-note">{EMPTY}</p>}
+
+      {view?.otherGoals && (
+        <section className="aspirations-section" aria-labelledby="other-goals">
+          <h2 id="other-goals">Other goals</h2>
+          {view.otherGoals.goals.length > 0 && <GoalRows rows={view.otherGoals.goals} onOpenGoal={onOpenGoal} />}
+          {view.otherGoals.past.length > 0 && (
+            <details className="aspirations-more">
+              <summary>{`Past goals (${view.otherGoals.past.length})`}</summary>
+              <GoalRows rows={view.otherGoals.past} onOpenGoal={onOpenGoal} />
+            </details>
+          )}
+        </section>
+      )}
+
+      {view && (
+        <button type="button" className="upkeep-row" onClick={onOpenUpkeep}>
+          <span>Keep life running</span>
+          <span className="upkeep-row-count">
+            {view.upkeepLine} <span aria-hidden="true">›</span>
+          </span>
+        </button>
+      )}
+
+      {view && view.retired.length > 0 && (
+        <details className="aspirations-more">
+          <summary>{`Retired (${view.retired.length})`}</summary>
+          <ul className="goal-rows">
+            {view.retired.map((retired) => (
+              <li key={retired.aspirationId}>
+                <button type="button" className="goal-row" onClick={() => onOpenAspiration(retired.aspirationId)}>
+                  {retired.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {view && view.cards.length > 0 && <p className="aspirations-hint">{PRIORITY_HINT}</p>}
     </main>
   )
 }

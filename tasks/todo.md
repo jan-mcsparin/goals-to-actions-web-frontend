@@ -134,12 +134,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Other goals with "Past goals (n)" closed, the Keep life running row, "Retired (n)" closed, the footer hint, and the empty state.
 
 **Acceptance criteria:**
-- [ ] Other goals lists the mock's loose goal as a goal row; its past goals sit behind a closed "Past goals (n)". The section is absent when there are none of either.
-- [ ] "Keep life running" always shows, with "1 recurring" and a chevron, and calls `onOpenUpkeep`. "Retired (1)" is closed at first; opened, each name calls `onOpenAspiration`.
-- [ ] Footer: "In order of priority. The first comes first when goals compete for time." With nothing set up: "Nothing here yet. Start with one sentence: a goal, or who you want to be."
+- [x] Other goals lists the mock's loose goal as a goal row; its past goals sit behind a closed "Past goals (n)". The section is absent when there are none of either.
+- [x] "Keep life running" always shows, with "1 recurring" and a chevron, and calls `onOpenUpkeep`. "Retired (1)" is closed at first; opened, each name calls `onOpenAspiration`.
+- [x] Footer: "In order of priority. The first comes first when goals compete for time." With nothing set up: "Nothing here yet. Start with one sentence: a goal, or who you want to be."
 
 **Verification:**
-- [ ] `npm test`: `screens/Aspirations.test.tsx` per bullet (empty state with a mocked empty overview)
+- [x] `npm test`: `screens/Aspirations.test.tsx` per bullet (empty state with a mocked empty overview)
 
 **Dependencies:** Task 6
 

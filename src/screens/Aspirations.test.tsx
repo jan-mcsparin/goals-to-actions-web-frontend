@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getAspirations } from '../api/client.ts'
+import type { AspirationsOverview } from '../api/types.ts'
 import { resetStore } from '../api/mockStore.ts'
 import { Aspirations } from './Aspirations.tsx'
 
@@ -24,8 +25,18 @@ afterEach(() => {
 function renderTab() {
   const onOpenAspiration = vi.fn()
   const onOpenGoal = vi.fn()
-  render(<Aspirations onOpenAspiration={onOpenAspiration} onOpenGoal={onOpenGoal} />)
-  return { onOpenAspiration, onOpenGoal }
+  const onOpenUpkeep = vi.fn()
+  render(<Aspirations onOpenAspiration={onOpenAspiration} onOpenGoal={onOpenGoal} onOpenUpkeep={onOpenUpkeep} />)
+  return { onOpenAspiration, onOpenGoal, onOpenUpkeep }
+}
+
+const NOTHING: AspirationsOverview = {
+  aspirations: [],
+  goals: [],
+  milestones: [],
+  recurringItems: [],
+  weeklyTargets: [],
+  weekTasks: [],
 }
 
 function goalRows(card: HTMLElement) {
@@ -103,14 +114,10 @@ describe('Aspirations', () => {
   })
 
   it('says "No goals yet." on a card with no goals', async () => {
-    vi.mocked(getAspirations).mockImplementationOnce(async () => ({
+    vi.mocked(getAspirations).mockResolvedValueOnce({
+      ...NOTHING,
       aspirations: [{ id: 'asp-new', name: 'Be a builder', priority: 1, status: 'active', createdAt: '2026-11-10T09:00:00Z' }],
-      goals: [],
-      milestones: [],
-      recurringItems: [],
-      weeklyTargets: [],
-      weekTasks: [],
-    }))
+    })
     renderTab()
 
     const card = await screen.findByRole('region', { name: 'Be a builder' })
@@ -130,5 +137,79 @@ describe('Aspirations', () => {
     await screen.findByRole('region', { name: 'Be fit' })
 
     expect(document.body.textContent).not.toMatch(/behind|on pace|days? left|more to plan|overdue|late/i)
+  })
+
+  describe('below the cards', () => {
+    it('lists goals with no aspiration under Other goals, with past goals closed', async () => {
+      const user = userEvent.setup()
+      const { onOpenGoal } = renderTab()
+
+      const other = await screen.findByRole('region', { name: 'Other goals' })
+      const past = within(other).getByRole('group') as HTMLDetailsElement
+      expect(within(other).getByRole('button', { name: /^Renew my passport/ }).textContent).toContain(
+        'Step 0 of 1 · by Dec 19',
+      )
+      expect(past.querySelector('summary')?.textContent).toBe('Past goals (1)')
+      expect(past.open).toBe(false)
+      expect(within(past).getByText('File my taxes')).toBeDefined()
+
+      await user.click(within(other).getByRole('button', { name: /^Renew my passport/ }))
+      expect(onOpenGoal).toHaveBeenCalledExactlyOnceWith('goal-passport')
+    })
+
+    it('leaves Other goals out when every goal has an aspiration', async () => {
+      const actual = await getAspirations()
+      vi.mocked(getAspirations).mockResolvedValueOnce({
+        ...actual,
+        goals: actual.goals.filter((goal) => goal.aspirationId),
+      })
+      renderTab()
+      await screen.findByRole('region', { name: 'Be fit' })
+
+      expect(screen.queryByRole('region', { name: 'Other goals' })).toBeNull()
+    })
+
+    it('always shows the Keep life running row, which opens its page', async () => {
+      const user = userEvent.setup()
+      const { onOpenUpkeep } = renderTab()
+
+      const row = await screen.findByRole('button', { name: /^Keep life running/ })
+      expect(row.textContent).toContain('1 recurring')
+
+      await user.click(row)
+      expect(onOpenUpkeep).toHaveBeenCalledOnce()
+    })
+
+    it('keeps retired aspirations closed at first; each opens its page', async () => {
+      const user = userEvent.setup()
+      const { onOpenAspiration } = renderTab()
+      await screen.findByRole('region', { name: 'Be fit' })
+
+      const retired = screen.getByText('Retired (1)').closest('details')!
+      expect(retired.open).toBe(false)
+
+      await user.click(within(retired).getByRole('button', { name: 'Speak Spanish' }))
+      expect(onOpenAspiration).toHaveBeenCalledExactlyOnceWith('asp-spanish')
+    })
+
+    it('explains the order under the cards', async () => {
+      renderTab()
+
+      expect(
+        await screen.findByText('In order of priority. The first comes first when goals compete for time.'),
+      ).toBeDefined()
+    })
+
+    it('invites a first sentence when nothing is set up, with Keep life running still there', async () => {
+      vi.mocked(getAspirations).mockResolvedValueOnce(NOTHING)
+      renderTab()
+
+      expect(
+        await screen.findByText('Nothing here yet. Start with one sentence: a goal, or who you want to be.'),
+      ).toBeDefined()
+      expect(screen.getByRole('button', { name: /^Keep life running/ }).textContent).toContain('No recurring items')
+      expect(screen.queryByText(/In order of priority/)).toBeNull()
+      expect(screen.queryByText(/^Retired/)).toBeNull()
+    })
   })
 })

@@ -21,7 +21,7 @@ function App() {
       {current.screen === 'day' && (
         <Day key={current.date} date={current.date} today={today} onBack={() => goTo({ screen: 'week' })} />
       )}
-      {tabOf(current) === 'aspirations' && <Aspirations onOpenAspiration={() => {}} onOpenGoal={() => {}} />}
+      {tabOf(current) === 'aspirations' && <Aspirations onOpenAspiration={() => {}} onOpenGoal={() => {}} onOpenUpkeep={() => {}} />}
       <TabBar current={tabOf(current)} onSelect={(tab) => goTo({ screen: tab })} />
     </div>
   )

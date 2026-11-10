@@ -93,8 +93,55 @@
   white-space: nowrap;
 }
 
+.aspirations-section h2 {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.aspirations-more summary {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.upkeep-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+}
+
+.upkeep-row-count {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+.aspirations-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
 .aspiration-card-top:focus-visible,
-.goal-row:focus-visible {
+.goal-row:focus-visible,
+.upkeep-row:focus-visible,
+.aspirations-more summary:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 0.25rem;
