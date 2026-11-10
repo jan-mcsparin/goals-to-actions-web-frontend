@@ -1,114 +1,193 @@
-# Tasks: Mock data and API client (#1)
+# Tasks: Today screen (#2)
 
-Plan: [`plan.md`](plan.md). Spec: [`../specs/001-mock-api-client.md`](../specs/001-mock-api-client.md).
+Plan: [`plan.md`](plan.md). Spec: [`../specs/002-today-screen.md`](../specs/002-today-screen.md).
 
 Every task: write tests first, then `npm test && npm run lint && npm run build`, then one commit.
 
-## Phase 1: Today is unblocked
+## Phase 1: Foundation
 
-### Task 1: `getToday` returns today's tasks with what they reference
+### Task 1: Component test tooling
 
-**Description:** Add the types `getToday` needs, a mock dataset for today built from a reference date, the store, and `getToday`.
+**Description:** Add React Testing Library and jsdom, configure Vitest so `*.test.tsx` runs in jsdom and `*.test.ts` stays in Node, and prove it with a smoke test of `App`.
 
 **Acceptance criteria:**
-- [x] `types.ts` has `Task`, `Goal`, `Aspiration`, `RecurringItem`, `TimeOfDay`, `TodayPlan` per the spec
-- [x] Today's mock tasks include one "by" timed, one "at" timed, one untimed, one maintenance, one goal task, and one task with no goal or recurring item
-- [x] `getToday()` returns only tasks planned for today plus exactly the goals, aspirations and recurring items they reference, as copies
+- [x] Dev deps added at pinned current versions: `@testing-library/react`, `@testing-library/dom` (its required peer), `@testing-library/user-event`, `jsdom` 31 (needs Node ≥ 22.22.2). `dom` peer approved 2026-11-09.
+- [x] `src/App.test.tsx` renders `App` and finds the app name; existing Node tests are unaffected.
+- [x] Setup cleans up between tests (RTL `cleanup`, or `globals` as the docs say).
 
 **Verification:**
-- [x] `npm test`: `client.test.ts` covers filtering, related records, copies, and a late-evening fake time (local date, not UTC)
-- [x] `npm run build` type-checks
+- [x] `npm test` runs both environments green
+- [x] `npm run build` type-checks the `.tsx` test
 
 **Dependencies:** None
 
-**Files:** `src/api/types.ts`, `src/api/mockData.ts`, `src/api/mockStore.ts`, `src/api/client.ts`, `src/api/client.test.ts`
+**Files:** `package.json`, `package-lock.json`, `vite.config.ts`, `src/test/setup.ts`, `src/App.test.tsx`
 
-**Scope:** M (5 files)
+**Scope:** S (config)
 
-### Task 2: `checkOffTask` marks a task done
+### Task 2: `domain/today.ts`: groups, order, labels, progress
 
-**Description:** Add `checkOffTask(taskId, valueLogged?)`, which updates the store.
+**Description:** Pure functions that turn a `TodayPlan` into what the screen renders, for both views.
 
 **Acceptance criteria:**
-- [x] Sets `status: 'done'` and `completedAt`, stores `valueLogged` when given, returns the updated task
-- [x] The next `getToday()` shows the task as done; `reset()` restores it
-- [x] An unknown ID rejects with an `Error`
+- [x] `groupForList(plan)` returns Keep life running (recurring and unattached tasks), Move forward (goal tasks); within each, timed tasks by time, then untimed in plan order. `groupByGoal(plan)` returns Keep life running, then one section per goal titled "Goal · Aspiration", ordered by aspiration priority. Skipped tasks are excluded.
+- [x] `timeLabel` gives "by 7 a.m.", "at 6 p.m.", "at 6:30 p.m.", "at 12 p.m.", "at 12 a.m."; `goalSubline` gives "Be strong · Be fit" or the goal alone.
+- [x] `progress(plan)` returns `{ done, total }` over planned + done; `dayHeading(date)` gives "Today · Wednesday" from a local day string, correct at 11:30 p.m.
 
 **Verification:**
-- [x] `npm test`: one test per criterion
-- [x] `npm run build` type-checks
+- [x] `npm test`: `domain/today.test.ts` covers each bullet, using hand-built plans (no mock store)
 
-**Dependencies:** Task 1
+**Dependencies:** None
 
-**Files:** `src/api/client.ts`, `src/api/client.test.ts`
+**Files:** `src/domain/today.ts`, `src/domain/today.test.ts`
 
-**Scope:** S (2 files)
+**Scope:** S (2 files, most of the logic)
+
+## Checkpoint: Foundation
+- [x] Tests, lint and build pass
+
+## Phase 2: Core
+
+### Task 3: Today renders the plan (List view, read-only)
+
+**Description:** `useToday` loads the plan; `Today` shows the heading, "N of M done", the progress bar, the List groups with time labels and sublines, the Free time line "The rest is yours", a Pull from bank button (inert for now), and the empty-day state. `App` renders `Today`.
+
+**Acceptance criteria:**
+- [x] With the mock store on Wednesday, the screen shows both groups with the right tasks in the right order and "0 of 4 done".
+- [x] No tasks today → a warm line and the Pull from bank button; no progress bar.
+- [x] Components hold no grouping or formatting logic (they call `domain/`).
+
+**Verification:**
+- [x] `npm test`: `screens/Today.test.tsx` covers both bullets
+- [x] Manual: `npm run dev`, looks right at 390 px
+
+**Dependencies:** Tasks 1, 2
+
+**Files:** `src/hooks/useToday.ts`, `src/screens/Today.tsx`, `src/components/TaskRow.tsx`, `src/screens/Today.css`, `src/App.tsx`, `src/screens/Today.test.tsx`
+
+**Scope:** M (6 files, mostly small)
+
+### Task 4: One-tap check-off with undo (optimistic)
+
+**Description:** Add `uncheckTask` to the client. `useToday.toggleDone` updates state immediately, then calls `checkOffTask` / `uncheckTask`; on rejection it restores the task and shows "Couldn't save that. Try again."
+
+**Acceptance criteria:**
+- [x] `uncheckTask` sets status `planned`, clears `completedAt` and `valueLogged`; unknown ID or a task that isn't done rejects.
+- [x] Tapping a row marks it done before the client resolves and updates "N of M done"; tapping again undoes it. On rejection the row reverts and the message shows.
+- [x] Two quick taps settle on the second tap's state. The row is a checkbox (`role="checkbox"`, `aria-checked`, named by the title); done isn't shown by colour alone.
+
+**Verification:**
+- [x] `npm test`: client tests for `uncheckTask`; `hooks/useToday.test.tsx` with a deferred client mock for optimistic, rollback and double-tap; screen test for tap → count
+
+**Dependencies:** Task 3
+
+**Files:** `src/api/client.ts`, `src/api/client.test.ts`, `src/hooks/useToday.ts`, `src/hooks/useToday.test.tsx`, `src/components/TaskRow.tsx`, `src/screens/Today.test.tsx`
+
+**Scope:** M
 
 ## Checkpoint A
 - [x] Tests, lint and build pass
-- [ ] Review with Jan; #2 (Today) can start
+- [x] Review with Jan on the phone (`npm run dev -- --host`): read and check off
 
-## Phase 2: Complete the foundation
+## Phase 3: Views and bank
 
-### Task 3: Remaining types and the full week's dataset
+### Task 5: Bank API: `getBank`, `skipTask`, `swapTask`, `pullFromBank`
 
-**Description:** Add `Milestone`, `WeeklyTarget`, `Settings` and fill out the dataset to match the spec's Mock dataset section.
-
-**Acceptance criteria:**
-- [x] All seven entities from `../docs/data-model.md` are typed (quitting-goal log omitted)
-- [x] The dataset has the second aspiration and goal, three milestones (hit, upcoming dated, undated), the weekly target, three recurring items, done past-day tasks, bank tasks, a task with `rolloverCount: 2`, and settings
-- [x] A consistency test passes: every reference ID resolves, every `weekOf` is a Monday
-
-**Verification:**
-- [x] `npm test`: consistency test, and Task 1–2 tests still pass
-- [x] `npm run build` type-checks
-
-**Dependencies:** Task 1
-
-**Files:** `src/api/types.ts`, `src/api/mockData.ts`, `src/api/mockData.test.ts`
-
-**Scope:** S–M (3 files)
-
-### Task 4: Lint rule for the mock-data boundary
-
-**Description:** Configure oxlint `no-restricted-imports` so only `src/api/` can import `mockData` or `mockStore`.
+**Description:** The client functions from the spec's API additions, against the mock store.
 
 **Acceptance criteria:**
-- [x] `npm run lint` passes on the branch
-- [x] A temporary `import ... from './api/mockData.ts'` in `src/App.tsx` makes `npm run lint` fail (then removed)
-- [x] ~~If oxlint can't express this, a Vitest test enforces it instead (no new dependency)~~ not needed
+- [x] `getBank` returns this week's `inBank` tasks plus the goals, aspirations and recurring items they reference as a `Bank` shape like `TodayPlan`, in `types.ts`.
+- [x] `skipTask` → `inBank`, `plannedDay` cleared, `rolloverCount` unchanged; `pullFromBank` → `planned` today; both reject unknown or wrong-status IDs.
+- [x] `swapTask` does both or neither: an invalid ID on either side leaves the store unchanged. Each task keeps its own `timeOfDay`.
 
 **Verification:**
-- [x] Manual check above, plus `npm run lint`
-
-**Dependencies:** Task 1
-
-**Files:** `.oxlintrc.json`
-
-**Scope:** XS (1 file)
-
-## Checkpoint B
-- [x] Every success criterion in the spec is met
-- [x] Tests, lint and build pass; open the web-frontend PR referencing #1
-
-## Phase 3: Docs
-
-### Task 5: Record the decisions in the parent docs
-
-**Description:** In the parent repo, on its own branch: note camelCase JSON in `CLAUDE.md`, and clarify in `docs/screens/README.md` and `docs/flows.md` that free time is time tasks don't fill.
-
-**Acceptance criteria:**
-- [x] `../CLAUDE.md` Stack section says JSON is camelCase and the API aliases Pydantic fields (`alias_generator=to_camel`)
-- [x] Both docs describe free time as unfilled time, not a group of tasks
-
-**Verification:**
-- [x] Manual read-through; the wording matches the spec's Decisions section
+- [x] `npm test`: one test per bullet, plus visibility in the next `getToday` / `getBank` and copies returned
 
 **Dependencies:** None (can run in parallel with Tasks 1–4)
 
-**Files:** `../CLAUDE.md`, `../docs/screens/README.md`, `../docs/flows.md`
+**Files:** `src/api/types.ts`, `src/api/client.ts`, `src/api/client.test.ts`
 
-**Scope:** S (3 files)
+**Scope:** S–M
+
+### Task 6: By goal view and remembered toggle
+
+**Description:** `storage/viewPreference.ts` reads and writes `'list' | 'byGoal'`. `useToday` exposes `view` / `setView`; a segmented `ViewToggle` switches between List and By goal (cards from `groupByGoal`, Free time line below).
+
+**Acceptance criteria:**
+- [x] Default is List; the chosen view persists across a remount; storage that throws falls back to List without crashing.
+- [x] By goal shows Keep life running, then "Be strong · Be fit" with its tasks.
+- [x] The toggle is two buttons with `aria-pressed`, each at least 44 px tall.
+
+**Verification:**
+- [x] `npm test`: `storage/viewPreference.test.ts`; screen test toggles, unmounts, remounts, sees By goal
+
+**Dependencies:** Tasks 2, 3
+
+**Files:** `src/storage/viewPreference.ts`, `src/storage/viewPreference.test.ts`, `src/components/ViewToggle.tsx`, `src/hooks/useToday.ts`, `src/screens/Today.tsx`, `src/screens/Today.test.tsx`
+
+**Scope:** M
+
+### Task 7: Pull from bank
+
+**Description:** The Pull from bank button opens `BankSheet`, which lists bank tasks with their sublines; picking one calls `useToday.pull`, which adds it to today optimistically and closes the sheet.
+
+**Acceptance criteria:**
+- [x] The sheet lists the mock bank (deadlift day, garage shelves, call the dentist); picking one adds it to the right group and updates "N of M".
+- [x] Empty bank → "Nothing in the bank." Rejection reverts and shows the calm message.
+- [x] The sheet is a native modal `<dialog>` with a Close button (tested).
+- [x] Focus moves in, Escape closes, focus returns to the button: browser behaviour, jsdom can't test it. Checked on the phone 2026-11-10.
+
+**Verification:**
+- [x] `npm test`: screen test for pick → row appears; hook test for rollback
+
+**Dependencies:** Tasks 4, 5
+
+**Files:** `src/components/BankSheet.tsx`, `src/hooks/useToday.ts`, `src/screens/Today.tsx`, `src/screens/Today.test.tsx`, `src/screens/Today.css`
+
+**Scope:** M
+
+### Task 8: Back to bank and Swap from the ⋯ menu
+
+**Description:** Each planned row gets a "⋯" button (labelled "More for <title>") with Back to bank and Swap (renamed from Skip, 2026-11-09). Back to bank sends the task to the bank; Swap opens `BankSheet` and replaces the task with the picked one. Both go through `useToday`, optimistically.
+
+**Acceptance criteria:**
+- [x] Back to bank removes the row and lowers the total in "N of M"; the task shows up in the bank sheet.
+- [x] Swap moves the picked task onto today and the swapped-out task into the bank; each keeps its own time, and "N of M" is unchanged.
+- [x] Done rows have no ⋯ menu (undo is the tap). Rejection reverts both tasks and shows the calm message.
+
+**Verification:**
+- [x] `npm test`: screen tests for skip and swap; hook test for swap rollback
+
+**Dependencies:** Task 7
+
+**Files:** `src/components/TaskMenu.tsx`, `src/components/TaskRow.tsx`, `src/hooks/useToday.ts`, `src/screens/Today.test.tsx`, `src/hooks/useToday.test.tsx`
+
+**Scope:** M
+
+## Checkpoint B
+- [x] Every success criterion in the spec is met
+- [x] Tests, lint and build pass
+- [x] Manual at 375 and 390 px: no horizontal scroll, tap targets ≥ 44 px, safe areas respected, light and dark
+
+## Phase 4: Wrap-up
+
+### Task 9: Docs
+
+**Description:** Record the behavior settled in the spec. Parent-repo edits go on their own branch and PR.
+
+**Acceptance criteria:**
+- [x] `../docs/screens/README.md` (Today): Free time reads "The rest is yours"; unattached tasks sit under Keep life running; By goal cards are "Goal · Aspiration"; Back to bank and Swap via a ⋯ menu (flows.md: skipping is shown as "Back to bank"); tap again to undo.
+- [x] `../docs/flows.md` Flow 5 mentions undo by tapping again.
+- [x] `web-frontend/CLAUDE.md` `storage/` line mentions the view preference in `localStorage` until #8.
+
+**Verification:**
+- [x] Manual read-through against the spec's Decisions
+
+**Dependencies:** None (can run any time after the spec)
+
+**Files:** `../docs/screens/README.md`, `../docs/flows.md`, `CLAUDE.md`
+
+**Scope:** S
 
 ## Checkpoint C
-- [x] Parent-repo PR open, referencing #1
+- [x] Web-frontend PR open, referencing #2 (#10); parent-repo PR open, referencing #2 (goals-to-actions#3)

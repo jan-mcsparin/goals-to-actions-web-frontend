@@ -97,3 +97,12 @@ export type TodayPlan = {
   aspirations: Aspiration[]
   recurringItems: RecurringItem[]
 }
+
+// This week's tasks not yet on a day, with what they reference (like TodayPlan).
+export type Bank = {
+  weekOf: string
+  tasks: Task[]
+  goals: Goal[]
+  aspirations: Aspiration[]
+  recurringItems: RecurringItem[]
+}

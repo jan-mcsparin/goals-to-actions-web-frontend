@@ -42,6 +42,21 @@ export default defineConfig({
     }),
   ],
   test: {
-    environment: 'node',
+    // Plain-TS tests run in Node; component and hook tests (.tsx) need a DOM.
+    projects: [
+      {
+        extends: true,
+        test: { name: 'node', include: ['src/**/*.test.ts'], environment: 'node' },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'dom',
+          include: ['src/**/*.test.tsx'],
+          environment: 'jsdom',
+          setupFiles: ['src/test/setup.ts'],
+        },
+      },
+    ],
   },
 })

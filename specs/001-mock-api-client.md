@@ -139,4 +139,4 @@ Vitest, `src/api/client.test.ts`, store reset before each test, system time fake
 
 ## Plan
 
-See [`tasks/plan.md`](../tasks/plan.md) and [`tasks/todo.md`](../tasks/todo.md).
+`tasks/plan.md` and `tasks/todo.md` as of commit `afa9830` (since replaced by the next issue's plan).
