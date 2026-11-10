@@ -1,8 +1,9 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getBank, getToday, pullFromBank } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
+import type { Bank } from '../api/types.ts'
 import { Today } from './Today.tsx'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
@@ -31,6 +32,22 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers()
 })
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((res) => {
+    resolve = res
+  })
+  return { promise, resolve }
+}
+
+const ONE_TASK_BANK: Bank = {
+  weekOf: '2026-11-09',
+  tasks: [{ id: 'task-dentist', title: 'Call the dentist', status: 'inBank', weekOf: '2026-11-09', rolloverCount: 2 }],
+  goals: [],
+  aspirations: [],
+  recurringItems: [],
+}
 
 function rowTitles(group: HTMLElement) {
   return within(group)
@@ -197,6 +214,47 @@ describe('Today', () => {
     await user.click(await screen.findByRole('checkbox', { name: 'Laundry' }))
 
     expect(screen.queryByRole('button', { name: 'More for Laundry' })).toBeNull()
+  })
+
+  it('shows the bank sheet loading until the bank arrives', async () => {
+    const load = deferred<Bank>()
+    vi.mocked(getBank).mockReturnValueOnce(load.promise)
+    const user = userEvent.setup()
+    render(<Today />)
+
+    await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
+    expect(within(sheet).getByText('Loading…')).toBeDefined()
+
+    await act(async () => load.resolve(ONE_TASK_BANK))
+
+    expect(within(sheet).queryByText('Loading…')).toBeNull()
+    expect(within(sheet).getByRole('button', { name: 'Call the dentist' })).toBeDefined()
+  })
+
+  it("says so inside the sheet when the bank can't load", async () => {
+    vi.mocked(getBank).mockRejectedValueOnce(new Error('offline'))
+    const user = userEvent.setup()
+    render(<Today />)
+
+    await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
+
+    expect(await within(sheet).findByText("Couldn't open the bank. Try again in a moment.")).toBeDefined()
+  })
+
+  it('reloads the bank each time the sheet opens, without showing the old list', async () => {
+    const user = userEvent.setup()
+    render(<Today />)
+    await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Close' }))
+
+    vi.mocked(getBank).mockReturnValueOnce(new Promise(() => {}))
+    await user.click(screen.getByRole('button', { name: 'Pull from bank' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
+
+    expect(within(sheet).getByText('Loading…')).toBeDefined()
+    expect(within(sheet).queryByRole('button', { name: 'Lift: deadlift day' })).toBeNull()
   })
 
   it('shows a warm empty state when nothing is planned', async () => {

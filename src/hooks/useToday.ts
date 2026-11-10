@@ -40,6 +40,7 @@ export type UseToday = {
   setView: (view: TodayViewMode) => void
   toggleDone: (taskId: string) => void
   bankRows?: TaskRow[]
+  bankMessage?: string
   loadBank: () => Promise<void>
   pull: (bankTaskId: string) => void
   sendToBank: (taskId: string) => void
@@ -51,7 +52,9 @@ export function useToday(): UseToday {
   const [message, setMessage] = useState<string>()
   const [view, setViewState] = useState(readTodayView)
   const [bank, setBank] = useState<Bank>()
+  const [bankFailed, setBankFailed] = useState(false)
   const latestRequest = useRef(new Map<string, number>())
+  const latestBankLoad = useRef(0)
 
   useEffect(() => {
     let current = true
@@ -99,11 +102,17 @@ export function useToday(): UseToday {
       })
   }
 
+  // Starts from an empty bank each time, so the sheet never shows an old list.
+  // Only the newest load may fill it in.
   async function loadBank() {
+    const load = ++latestBankLoad.current
+    setBank(undefined)
+    setBankFailed(false)
     try {
-      setBank(await getBank())
+      const loaded = await getBank()
+      if (load === latestBankLoad.current) setBank(loaded)
     } catch {
-      setMessage(BANK_FAILED)
+      if (load === latestBankLoad.current) setBankFailed(true)
     }
   }
 
@@ -167,6 +176,7 @@ export function useToday(): UseToday {
     setView,
     toggleDone,
     bankRows: bank && bankRows(bank),
+    bankMessage: bankFailed ? BANK_FAILED : undefined,
     loadBank,
     pull,
     sendToBank,

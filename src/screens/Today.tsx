@@ -8,8 +8,19 @@ import { useToday } from '../hooks/useToday.ts'
 import './Today.css'
 
 export function Today() {
-  const { today, message, view, setView, toggleDone, bankRows, loadBank, pull, sendToBank, swap } =
-    useToday()
+  const {
+    today,
+    message,
+    view,
+    setView,
+    toggleDone,
+    bankRows,
+    bankMessage,
+    loadBank,
+    pull,
+    sendToBank,
+    swap,
+  } = useToday()
   const [sheet, setSheet] = useState<Sheet>()
 
   function openSheet(next: Sheet) {
@@ -85,6 +96,7 @@ export function Today() {
         open={sheet !== undefined}
         title={sheet?.kind === 'swap' ? `Swap ${sheet.taskTitle} for` : 'Pull from bank'}
         rows={bankRows}
+        message={bankMessage}
         onPick={pickFromBank}
         onClose={() => setSheet(undefined)}
       />
