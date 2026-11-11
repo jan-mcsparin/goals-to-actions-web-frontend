@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getUpkeep } from '../api/client.ts'
@@ -26,6 +26,13 @@ function rows(section: HTMLElement) {
   return within(section)
     .getAllByRole('listitem')
     .map((row) => [row.querySelector('.upkeep-title')?.textContent, row.querySelector('.upkeep-detail')?.textContent])
+}
+
+// For the tests that wait out a message: timeouts are faked too, and still
+// run on their own so RTL's polling works.
+function fakeTimeouts() {
+  vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'], shouldAdvanceTime: true })
+  vi.setSystemTime(new Date(2026, 10, 11, 9, 0))
 }
 
 describe('Keep life running', () => {
@@ -95,5 +102,19 @@ describe('Keep life running', () => {
     expect(message.className).toBe('screen-message')
     expect(message.textContent).toBe("Couldn't load this page. Try again in a moment.")
     expect(screen.getByRole('button', { name: 'Back to Aspirations' })).toBeDefined()
+  })
+
+  it("keeps a load failure until it's tapped", async () => {
+    fakeTimeouts()
+    vi.mocked(getUpkeep).mockRejectedValueOnce(new Error('offline'))
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<Upkeep today={WEDNESDAY_DAY} onBack={() => {}} />)
+
+    const message = await screen.findByRole('button', { name: "Couldn't load this page. Try again in a moment." })
+    act(() => vi.advanceTimersByTime(60_000))
+    expect(screen.getByRole('status')).toBeDefined()
+
+    await user.click(message)
+    expect(screen.queryByRole('status')).toBeNull()
   })
 })

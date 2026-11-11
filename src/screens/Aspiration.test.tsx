@@ -1,13 +1,13 @@
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { updateAspiration } from '../api/client.ts'
+import { getAspiration, updateAspiration } from '../api/client.ts'
 import { resetStore, store } from '../api/mockStore.ts'
 import { Aspiration } from './Aspiration.tsx'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
-  return { ...actual, updateAspiration: vi.fn(actual.updateAspiration) }
+  return { ...actual, getAspiration: vi.fn(actual.getAspiration), updateAspiration: vi.fn(actual.updateAspiration) }
 })
 
 const TODAY = '2026-11-11'
@@ -198,6 +198,20 @@ describe('Aspiration, active', () => {
     expect(message.textContent).toBe("Couldn't save that. Try again.")
 
     act(() => vi.advanceTimersByTime(5000))
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
+  it("keeps a load failure until it's tapped", async () => {
+    fakeTimeouts()
+    vi.mocked(getAspiration).mockRejectedValueOnce(new Error('offline'))
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    renderPage()
+
+    const message = await screen.findByRole('button', { name: "Couldn't load this aspiration. Try again in a moment." })
+    act(() => vi.advanceTimersByTime(60_000))
+    expect(screen.getByRole('status')).toBeDefined()
+
+    await user.click(message)
     expect(screen.queryByRole('status')).toBeNull()
   })
 

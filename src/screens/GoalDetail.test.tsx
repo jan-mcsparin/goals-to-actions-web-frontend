@@ -1,14 +1,14 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { setWeeklyTarget } from '../api/client.ts'
+import { getGoal, setWeeklyTarget } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { GoalOrigin } from '../hooks/useNavigation.ts'
 import { GoalDetail } from './GoalDetail.tsx'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
-  return { ...actual, setWeeklyTarget: vi.fn(actual.setWeeklyTarget) }
+  return { ...actual, getGoal: vi.fn(actual.getGoal), setWeeklyTarget: vi.fn(actual.setWeeklyTarget) }
 })
 
 const TODAY = '2026-11-11'
@@ -495,7 +495,21 @@ describe('GoalDetail, pause and end', () => {
   })
 })
 
-describe('GoalDetail, a failed save', () => {
+describe('GoalDetail, a failed load or save', () => {
+  it("keeps a load failure until it's tapped", async () => {
+    fakeTimeouts()
+    vi.mocked(getGoal).mockRejectedValueOnce(new Error('offline'))
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    renderGoal()
+
+    const message = await screen.findByRole('button', { name: "Couldn't load this goal. Try again in a moment." })
+    act(() => vi.advanceTimersByTime(60_000))
+    expect(screen.getByRole('status')).toBeDefined()
+
+    await user.click(message)
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
   it('says so above the tab bar, and lets it go after a few seconds', async () => {
     fakeTimeouts()
     vi.mocked(setWeeklyTarget).mockRejectedValueOnce(new Error('offline'))
