@@ -41,6 +41,7 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
   const [message, setMessage] = useState<string>()
   const [notFound, setNotFound] = useState(false)
   const latestSave = useRef(0)
+  const bringingBack = useRef(false)
 
   useEffect(() => {
     let current = true
@@ -100,14 +101,19 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
   }
 
   // Waits for the save, then reloads, so the place in priority and the
-  // count of aspirations come from the API.
+  // count of aspirations come from the API. A second tap while it's on its
+  // way does nothing.
   async function bringBack(): Promise<void> {
+    if (bringingBack.current) return
+    bringingBack.current = true
     setMessage(undefined)
     try {
       await bringBackAspiration(aspirationId)
       setDetail(await getAspiration(aspirationId))
     } catch {
       setMessage(SAVE_FAILED)
+    } finally {
+      bringingBack.current = false
     }
   }
 

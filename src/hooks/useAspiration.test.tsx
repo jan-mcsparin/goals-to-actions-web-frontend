@@ -134,6 +134,19 @@ describe('useAspiration, bringing back', () => {
     expect(priorityOf(result.current.page).line).toBe('3rd of 3 aspirations')
   })
 
+  it('brings it back once when tapped twice quickly, with no message', async () => {
+    const { result } = renderHook(() => useAspiration('asp-spanish', TODAY))
+    await waitFor(() => expect(result.current.page?.kind).toBe('retired'))
+
+    await act(async () => {
+      await Promise.all([result.current.bringBack(), result.current.bringBack()])
+    })
+
+    expect(bringBackAspiration).toHaveBeenCalledTimes(1)
+    expect(result.current.page?.kind).toBe('active')
+    expect(result.current.message).toBeUndefined()
+  })
+
   it('stays retired, with a message, when the save fails', async () => {
     vi.mocked(bringBackAspiration).mockRejectedValueOnce(new Error('offline'))
     const { result } = renderHook(() => useAspiration('asp-spanish', TODAY))
