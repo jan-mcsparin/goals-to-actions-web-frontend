@@ -160,8 +160,8 @@ export function buildMockData(today: Date): MockData {
       measurableLine: 'Bench 155, squat 300, deadlift 345',
       status: 'notYet',
       result: 'Bench 152, squat 300, deadlift 340',
-      targetDate: day(-7),
-      checkedInOn: day(-7),
+      targetDate: day(-3),
+      checkedInOn: day(-3),
     },
     {
       id: 'ms-strong-3',

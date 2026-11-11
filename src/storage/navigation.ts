@@ -46,14 +46,15 @@ export function tabOf(screen: Screen): Tab {
 
 function parseScreen(value: unknown): Screen | undefined {
   if (!isRecord(value)) return undefined
-  const { screen, date, goalId } = value
-  if (screen === 'today' || screen === 'week' || screen === 'upkeep') return { screen }
+  const { screen, date, aspirationId, goalId } = value
+  if (screen === 'today' || screen === 'week' || screen === 'aspirations' || screen === 'upkeep') return { screen }
   if (screen === 'day' && typeof date === 'string' && LOCAL_DAY.test(date)) return { screen, date }
+  if (screen === 'aspiration' && isId(aspirationId)) return { screen, aspirationId }
   if (screen === 'goal' && isId(goalId)) {
     const from = parseGoalOrigin(value.from)
     return from && { screen, goalId, from }
   }
-  return parseGoalOrigin(value)
+  return undefined
 }
 
 function parseGoalOrigin(value: unknown): GoalOrigin | undefined {

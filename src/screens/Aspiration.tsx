@@ -15,7 +15,7 @@ export function Aspiration({ aspirationId, onBack }: AspirationProps) {
     <main aria-busy={!overview}>
       <header className="screen-top">
         <BackLink to="Aspirations" onBack={onBack} />
-        {aspiration && <h1>{aspiration.name}</h1>}
+        {aspiration && <h1 className="screen-title">{aspiration.name}</h1>}
       </header>
     </main>
   )

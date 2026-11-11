@@ -198,3 +198,20 @@ it('opens Keep life running from its row, comes back, and restores it after a re
 
   expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
 })
+
+it('says only "Back" on a goal whose aspiration no longer exists, and still goes there', async () => {
+  localStorage.setItem(
+    'gta.screen',
+    JSON.stringify({ screen: 'goal', goalId: 'goal-strong', from: { screen: 'aspiration', aspirationId: 'asp-gone' } }),
+  )
+  const user = userEvent.setup()
+  render(<App />)
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Be strong' })).toBeDefined()
+  expect(screen.queryByRole('button', { name: 'Back to Aspirations' })).toBeNull()
+
+  await user.click(screen.getByRole('button', { name: 'Back' }))
+
+  expect(JSON.parse(localStorage.getItem('gta.screen')!)).toEqual({ screen: 'aspiration', aspirationId: 'asp-gone' })
+  expect(currentTab()).toBe('Aspirations')
+})

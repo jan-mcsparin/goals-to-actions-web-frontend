@@ -42,10 +42,14 @@ export function whereLabel(task: Task, today: string): string {
   return fromLocalDay(task.plannedDay).toLocaleDateString('en-US', { weekday: 'long' })
 }
 
-// By week, then by day within it; tasks not on a day come after those that are.
+// By week; within a week, tasks on a day (in day order) come before the bank.
 function inPlanOrder(tasks: Task[]): Task[] {
-  const key = (task: Task) => `${task.weekOf} ${task.plannedDay ?? '9'}`
-  return [...tasks].sort((a, b) => key(a).localeCompare(key(b)))
+  return [...tasks].sort(
+    (a, b) =>
+      a.weekOf.localeCompare(b.weekOf) ||
+      Number(a.plannedDay === undefined) - Number(b.plannedDay === undefined) ||
+      (a.plannedDay ?? '').localeCompare(b.plannedDay ?? ''),
+  )
 }
 
 function shortDate(day: string): string {

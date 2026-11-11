@@ -16,7 +16,7 @@ export function Upkeep({ today, onBack }: UpkeepProps) {
     <main className="upkeep" aria-busy={!view && !message}>
       <header className="screen-top">
         <BackLink to="Aspirations" onBack={onBack} />
-        <h1>Keep life running</h1>
+        <h1 className="screen-title">Keep life running</h1>
         <p className="upkeep-note">The things that have to happen, under no goal.</p>
       </header>
 

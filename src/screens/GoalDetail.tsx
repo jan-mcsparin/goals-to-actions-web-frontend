@@ -13,16 +13,17 @@ type GoalDetailProps = {
 export function GoalDetail({ goalId, from, onBack }: GoalDetailProps) {
   const { overview } = useAspirations()
   const goal = overview?.goals.find((candidate) => candidate.id === goalId)
-  const cameFrom =
-    from.screen === 'aspiration'
-      ? overview?.aspirations.find((candidate) => candidate.id === from.aspirationId)?.name
-      : undefined
+  // Back goes to an aspiration by id; name it only once its name is known.
+  const backTo =
+    from.screen === 'aspirations'
+      ? 'Aspirations'
+      : overview?.aspirations.find((candidate) => candidate.id === from.aspirationId)?.name
 
   return (
     <main aria-busy={!overview}>
       <header className="screen-top">
-        <BackLink to={cameFrom ?? 'Aspirations'} onBack={onBack} />
-        {goal && <h1>{goal.label}</h1>}
+        <BackLink to={backTo} onBack={onBack} />
+        {goal && <h1 className="screen-title">{goal.label}</h1>}
       </header>
     </main>
   )

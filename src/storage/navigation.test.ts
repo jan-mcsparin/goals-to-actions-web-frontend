@@ -51,6 +51,8 @@ describe('current screen', () => {
     '{"screen":"day","date":"Thursday"}',
     '{"screen":"aspiration"}',
     '{"screen":"aspiration","aspirationId":7}',
+    '{"screen":"aspiration","aspirationId":""}',
+    '{"screen":"goal","goalId":"","from":{"screen":"aspirations"}}',
     '{"screen":"goal","from":{"screen":"aspirations"}}',
     '{"screen":"goal","goalId":"goal-strong"}',
     '{"screen":"goal","goalId":"goal-strong","from":{"screen":"week"}}',
