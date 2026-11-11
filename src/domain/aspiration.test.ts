@@ -210,6 +210,12 @@ describe('aspirationPage, active', () => {
     })
   })
 
+  it('refuses an active aspiration with no priority', () => {
+    const detail = detailOf({ aspiration: aspiration({ priority: undefined }) })
+
+    expect(() => aspirationPage(detail, TODAY)).toThrow('Active aspiration fit has no priority')
+  })
+
   it('carries the history line for the Retire sheet', () => {
     const page = activePage({ goals: [goal('strong')] })
 
@@ -222,6 +228,20 @@ describe('aspirationPage, retired', () => {
     const page = retiredPage({})
 
     expect(page).toMatchObject({ kind: 'retired', name: 'Be fit', retiredLine: 'Retired Nov 10' })
+  })
+
+  it('adds the year when it was retired in another year', () => {
+    const page = retiredPage({
+      aspiration: aspiration({ status: 'retired', priority: undefined, retiredAt: '2025-09-15T09:00:00Z' }),
+    })
+
+    expect(page.retiredLine).toBe('Retired Sep 15, 2025')
+  })
+
+  it('refuses a retired aspiration with no retired date', () => {
+    const detail = detailOf({ aspiration: aspiration({ status: 'retired', priority: undefined }) })
+
+    expect(() => aspirationPage(detail, TODAY)).toThrow('Retired aspiration fit has no retiredAt')
   })
 
   it('lists its past goals, its paused goals and the recurring items it paused', () => {

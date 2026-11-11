@@ -68,10 +68,11 @@ export function aspirationPage(detail: AspirationDetail, today: string): Aspirat
   const paused = detail.goals.filter((goal) => goal.status === 'paused')
 
   if (aspiration.status === 'retired') {
+    if (!aspiration.retiredAt) throw new Error(`Retired aspiration ${aspiration.id} has no retiredAt`)
     return {
       kind: 'retired',
       ...heading,
-      retiredLine: `Retired ${dayLabel(aspiration.retiredAt!, today)}`,
+      retiredLine: `Retired ${dayLabel(aspiration.retiredAt, today)}`,
       pausedGoals: paused.map((goal) => goalCard(goal, detail)),
       recurring: detail.recurringItems.filter((item) => !item.active).map((item) => recurringRow(item, true)),
       pastGoals,
@@ -80,7 +81,9 @@ export function aspirationPage(detail: AspirationDetail, today: string): Aspirat
 
   const active = detail.goals.filter((goal) => goal.status === 'active')
   const week = weekCount(aspiration.id, detail)
-  const position = aspiration.priority ?? detail.activeCount
+  // Every active aspiration has a priority, and it's its position.
+  const position = aspiration.priority
+  if (position === undefined) throw new Error(`Active aspiration ${aspiration.id} has no priority`)
   return {
     kind: 'active',
     ...heading,
