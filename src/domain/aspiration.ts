@@ -2,7 +2,7 @@
 // An active aspiration gets its week, goals, recurring items, past goals and
 // place in priority; a retired one only what it has seen and what it paused.
 // Nothing here paces or warns.
-import { fromLocalDay, mondayOf, toLocalDay } from '../api/dates.ts'
+import { fromLocalDay, mondayOfDay } from '../api/dates.ts'
 import type { Aspiration, AspirationDetail, Goal, RecurringItem } from '../api/types.ts'
 import { goalProgress, milestoneCount, weekCount } from './aspirations.ts'
 import { daysLeft, daysLeftLabel } from './week.ts'
@@ -93,7 +93,7 @@ export function aspirationPage(detail: AspirationDetail, today: string): Aspirat
       week: {
         done: week.done,
         total: week.total,
-        label: `${week.done} of ${week.total} · ${daysLeftLabel(daysLeft(weekOf(today), today))}`,
+        label: `${week.done} of ${week.total} · ${daysLeftLabel(daysLeft(mondayOfDay(today), today))}`,
       },
     }),
     activeGoalsLine: `${active.length} active`,
@@ -182,9 +182,6 @@ function isPast(goal: Goal): boolean {
   return goal.status === 'reached' || goal.status === 'ended'
 }
 
-function weekOf(today: string): string {
-  return toLocalDay(mondayOf(fromLocalDay(today)))
-}
 
 // "Nov 10", or "Sep 15, 2025" in another year.
 function dayLabel(instant: string, today: string): string {

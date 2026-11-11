@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
+import { addDays, fromLocalDay, mondayOf, mondayOfDay, toLocalDay } from './dates.ts'
 
 describe('toLocalDay', () => {
   it('uses the local date, not UTC, late in the evening', () => {
@@ -18,6 +18,18 @@ describe('mondayOf', () => {
 
   it('goes back to Monday from a Sunday', () => {
     expect(toLocalDay(mondayOf(new Date(2026, 10, 15, 22)))).toBe('2026-11-09')
+  })
+})
+
+describe('mondayOfDay', () => {
+  it("gives a day's Monday as a day", () => {
+    expect(mondayOfDay('2026-11-09')).toBe('2026-11-09')
+    expect(mondayOfDay('2026-11-11')).toBe('2026-11-09')
+    expect(mondayOfDay('2026-11-15')).toBe('2026-11-09')
+  })
+
+  it('goes back across a year end', () => {
+    expect(mondayOfDay('2027-01-01')).toBe('2026-12-28')
   })
 })
 

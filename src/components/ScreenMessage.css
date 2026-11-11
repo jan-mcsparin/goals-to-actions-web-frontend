@@ -1,0 +1,36 @@
+/* Pinned just above the tab bar (and so above the home indicator), centred in
+   the same width as a screen's content. */
+.screen-message {
+  position: fixed;
+  right: 0;
+  bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 0.5rem);
+  left: 0;
+  z-index: 2;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0 calc(1rem + env(safe-area-inset-right)) 0 calc(1rem + env(safe-area-inset-left));
+}
+
+.screen-message button {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.625rem 1rem;
+  border: none;
+  border-radius: 0.75rem;
+  background: var(--text);
+  color: var(--bg);
+  font: inherit;
+  text-align: left;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
+}
+
+.screen-message button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* While a message shows, the page gets room for it, so it never covers the
+   last row. */
+.app:has(.screen-message) {
+  padding-bottom: calc(var(--tab-bar-height) + 3.75rem);
+}

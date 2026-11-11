@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react'
 import { AspirationEditSheet } from '../components/AspirationEditSheet.tsx'
 import { BackLink } from '../components/BackLink.tsx'
 import { RetireSheet } from '../components/RetireSheet.tsx'
+import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import '../components/progressBar.css'
 import type { ActivePage, GoalCard, PastGoalRow, RecurringRow, RetiredPage } from '../domain/aspiration.ts'
 import { useAspiration } from '../hooks/useAspiration.ts'
+import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
 import './Aspiration.css'
 
 type AspirationProps = {
@@ -25,6 +27,8 @@ export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired 
     aspirationId,
     today,
   )
+  // With nothing loaded, the message is all there is, so it stays.
+  const shownMessage = useFleetingMessage(message, { sticky: !page })
   const [sheet, setSheet] = useState<OpenSheet>()
 
   useEffect(() => {
@@ -49,12 +53,6 @@ export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired 
           </>
         )}
       </header>
-
-      {message && (
-        <p className="aspiration-note" role="status">
-          {message}
-        </p>
-      )}
 
       {page?.kind === 'active' && (
         <Active page={page} onOpenGoal={onOpenGoal} onMove={move} onOpenSheet={setSheet} />
@@ -82,6 +80,8 @@ export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired 
           onClose={() => closeSheet()}
         />
       )}
+
+      <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
     </main>
   )
 }

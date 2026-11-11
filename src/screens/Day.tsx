@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { BankSheet } from '../components/BankSheet.tsx'
+import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import { TaskRow } from '../components/TaskRow.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
 import type { Task } from '../api/types.ts'
 import type { Section } from '../domain/today.ts'
 import { useDay } from '../hooks/useDay.ts'
+import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
 import './Day.css'
 
 type DayProps = {
@@ -15,6 +17,7 @@ type DayProps = {
 
 export function Day({ date, today, onBack }: DayProps) {
   const {
+    heading,
     day,
     message,
     view,
@@ -27,6 +30,8 @@ export function Day({ date, today, onBack }: DayProps) {
     sendToBank,
     swap,
   } = useDay(date, today)
+  // With nothing loaded, the message is all there is, so it stays.
+  const shownMessage = useFleetingMessage(message, { sticky: !day })
   const [sheet, setSheet] = useState<Sheet>()
   const focusAfterSwap = useRef<string>(undefined)
 
@@ -58,12 +63,13 @@ export function Day({ date, today, onBack }: DayProps) {
   if (!day) {
     return (
       <main className="today" aria-busy={!message}>
-        {message && <p role="status">{message}</p>}
+        {message && <DayTop heading={heading} onBack={onBack} />}
+        <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
       </main>
     )
   }
 
-  const { heading, isToday, canPlace, progress, sections } = day
+  const { isToday, canPlace, progress, sections } = day
   const isEmpty = progress.total === 0
   const emptyLine = isToday ? 'Nothing planned today. The day is yours.' : 'Nothing planned. The day is yours.'
   const swapTask = canPlace
@@ -72,31 +78,11 @@ export function Day({ date, today, onBack }: DayProps) {
 
   return (
     <main className="today" data-view={view}>
-      <div className="screen-top today-top">
-        {onBack && (
-          <button type="button" className="today-back" aria-label="Back to Week" onClick={onBack}>
-            ‹ Week
-          </button>
-        )}
-        <header className="today-header">
-          <h1>{heading}</h1>
-          {!isEmpty && <p className="today-count">{`${progress.done} of ${progress.total} done`}</p>}
-        </header>
-        {!isEmpty && (
-          <progress
-            className="today-progress"
-            value={progress.done}
-            max={progress.total}
-            aria-label={isToday ? 'Done today' : 'Done this day'}
-          />
-        )}
-      </div>
-
-      {message && (
-        <p className="today-message" role="status">
-          {message}
-        </p>
-      )}
+      <DayTop
+        heading={heading}
+        onBack={onBack}
+        progress={isEmpty ? undefined : { ...progress, label: isToday ? 'Done today' : 'Done this day' }}
+      />
 
       {!isEmpty && <ViewToggle view={view} onChange={setView} />}
 
@@ -134,7 +120,36 @@ export function Day({ date, today, onBack }: DayProps) {
         onPick={pickFromBank}
         onClose={() => setSheet(undefined)}
       />
+
+      <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
     </main>
+  )
+}
+
+type DayTopProps = {
+  heading: string
+  onBack?: () => void
+  // Left out while nothing has loaded, or nothing is planned.
+  progress?: { done: number; total: number; label: string }
+}
+
+// The pinned top: the way back, the heading, and the count and bar.
+function DayTop({ heading, onBack, progress }: DayTopProps) {
+  return (
+    <div className="screen-top today-top">
+      {onBack && (
+        <button type="button" className="today-back" aria-label="Back to Week" onClick={onBack}>
+          ‹ Week
+        </button>
+      )}
+      <header className="today-header">
+        <h1>{heading}</h1>
+        {progress && <p className="today-count">{`${progress.done} of ${progress.total} done`}</p>}
+      </header>
+      {progress && (
+        <progress className="today-progress" value={progress.done} max={progress.total} aria-label={progress.label} />
+      )}
+    </div>
   )
 }
 

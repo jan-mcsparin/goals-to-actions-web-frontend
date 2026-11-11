@@ -29,7 +29,6 @@ const SAVE_FAILED = "Couldn't save that. Try again."
 const BANK_FAILED = "Couldn't open the bank. Try again in a moment."
 
 export type DayView = {
-  heading: string
   isToday: boolean
   // Tasks can be placed on today and later days, not on past ones.
   canPlace: boolean
@@ -38,6 +37,8 @@ export type DayView = {
 }
 
 export type UseDay = {
+  // Known without loading, so it shows even when the day can't load.
+  heading: string
   day?: DayView
   message?: string
   view: TodayViewMode
@@ -174,6 +175,7 @@ export function useDay(date: string, today: string): UseDay {
   }
 
   return {
+    heading: dayHeading(date, today),
     day: plan && viewOf(plan, view, today),
     message,
     view,
@@ -191,7 +193,6 @@ export function useDay(date: string, today: string): UseDay {
 function viewOf(plan: DayPlan, view: TodayViewMode, today: string): DayView {
   const sections = view === 'byGoal' ? groupByGoal(plan) : groupForList(plan)
   return {
-    heading: dayHeading(plan.date, today),
     isToday: plan.date === today,
     canPlace: plan.date >= today,
     progress: progress(plan),

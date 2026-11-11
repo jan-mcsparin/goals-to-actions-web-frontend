@@ -17,6 +17,11 @@ export function mondayOf(date: Date): Date {
   return addDays(date, -daysSinceMonday)
 }
 
+// The Monday of a 'YYYY-MM-DD' day, as a day.
+export function mondayOfDay(day: string): string {
+  return toLocalDay(mondayOf(fromLocalDay(day)))
+}
+
 // Reads 'YYYY-MM-DD' as local midnight. new Date('YYYY-MM-DD') would be UTC.
 export function fromLocalDay(day: string): Date {
   const [year, month, date] = day.split('-').map(Number)

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getAspirations } from '../api/client.ts'
@@ -46,6 +46,13 @@ function goalRows(card: HTMLElement) {
       row.querySelector('.goal-row-label')?.textContent,
       row.querySelector('.goal-row-progress')?.textContent,
     ])
+}
+
+// For the tests that wait out a message: timeouts are faked too, and still
+// run on their own so RTL's polling works.
+function fakeTimeouts() {
+  vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'], shouldAdvanceTime: true })
+  vi.setSystemTime(new Date(2026, 10, 11, 9, 0))
 }
 
 describe('Aspirations', () => {
@@ -129,7 +136,23 @@ describe('Aspirations', () => {
     vi.mocked(getAspirations).mockRejectedValueOnce(new Error('offline'))
     renderTab()
 
-    expect((await screen.findByRole('status')).textContent).toBe("Couldn't load your aspirations. Try again in a moment.")
+    const message = await screen.findByRole('status')
+    expect(message.className).toBe('screen-message')
+    expect(message.textContent).toBe("Couldn't load your aspirations. Try again in a moment.")
+  })
+
+  it("keeps a load failure until it's tapped", async () => {
+    fakeTimeouts()
+    vi.mocked(getAspirations).mockRejectedValueOnce(new Error('offline'))
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    renderTab()
+
+    const message = await screen.findByRole('button', { name: "Couldn't load your aspirations. Try again in a moment." })
+    act(() => vi.advanceTimersByTime(60_000))
+    expect(screen.getByRole('status')).toBeDefined()
+
+    await user.click(message)
+    expect(screen.queryByRole('status')).toBeNull()
   })
 
   it('never mentions pace or being behind', async () => {

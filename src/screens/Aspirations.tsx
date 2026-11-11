@@ -1,6 +1,8 @@
+import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import '../components/progressBar.css'
 import type { AspirationCard, GoalRow } from '../domain/aspirations.ts'
 import { useAspirations } from '../hooks/useAspirations.ts'
+import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
 import './Aspirations.css'
 
 type AspirationsProps = {
@@ -14,18 +16,14 @@ const PRIORITY_HINT = 'In order of priority. The first comes first when goals co
 
 export function Aspirations({ onOpenAspiration, onOpenGoal, onOpenUpkeep }: AspirationsProps) {
   const { view, message } = useAspirations()
+  // With nothing loaded, the message is all there is, so it stays.
+  const shownMessage = useFleetingMessage(message, { sticky: !view })
 
   return (
     <main className="aspirations" aria-busy={!view && !message}>
       <header className="screen-top aspirations-header">
         <h1>Aspirations</h1>
       </header>
-
-      {message && (
-        <p className="aspirations-note" role="status">
-          {message}
-        </p>
-      )}
 
       {view?.cards.map((card) => (
         <Card
@@ -76,6 +74,8 @@ export function Aspirations({ onOpenAspiration, onOpenGoal, onOpenUpkeep }: Aspi
       )}
 
       {view && view.cards.length > 0 && <p className="aspirations-hint">{PRIORITY_HINT}</p>}
+
+      <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
     </main>
   )
 }
