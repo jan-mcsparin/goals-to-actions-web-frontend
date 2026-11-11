@@ -87,6 +87,15 @@ export type Task = {
   placedByHand?: boolean
 }
 
+// What the Add sheet sends to addTask. Not stored as is: the API places it.
+export type NewTask = {
+  title: string
+  goalId?: string
+  dueDate?: string
+  timeOfDay?: TimeOfDay
+  onToday?: boolean
+}
+
 export type Intensity = 'easingOff' | 'normal' | 'goingHard'
 
 // Free time has no setting: it's whatever the intensity's task cap leaves open.

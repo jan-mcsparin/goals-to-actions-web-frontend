@@ -13,9 +13,9 @@ import type {
   Goal,
   GoalDetail,
   Milestone,
+  NewTask,
   RecurringItem,
   Task,
-  TimeOfDay,
   Upkeep,
   WeekPlan,
   WeeklyTarget,
@@ -298,13 +298,7 @@ export async function getBank(): Promise<Bank> {
 
 // In the bank of this week, or of its due week when that's later. With
 // onToday it goes on today's plan, placed by hand, whatever its due date.
-export async function addTask(task: {
-  title: string
-  goalId?: string
-  dueDate?: string
-  timeOfDay?: TimeOfDay
-  onToday?: boolean
-}): Promise<Task> {
+export async function addTask(task: NewTask): Promise<Task> {
   const title = task.title.trim()
   if (!title) throw new Error('A task needs a title')
   if (task.goalId) findActiveGoal(task.goalId)
