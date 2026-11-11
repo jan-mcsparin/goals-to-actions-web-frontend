@@ -1,14 +1,17 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { checkOffTask, pullFromBank, skipTask, swapTask, uncheckTask } from '../api/client.ts'
+import { addTask, checkOffTask, getDay, pullFromBank, skipTask, swapTask, uncheckTask } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
-import type { Task } from '../api/types.ts'
+import type { DayPlan, Task } from '../api/types.ts'
+import { DataRevision } from './dataRevision.ts'
 import { useDay, type UseDay } from './useDay.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
   return {
     ...actual,
+    getDay: vi.fn(actual.getDay),
     checkOffTask: vi.fn(actual.checkOffTask),
     uncheckTask: vi.fn(actual.uncheckTask),
     pullFromBank: vi.fn(actual.pullFromBank),
@@ -224,5 +227,52 @@ describe('useDay on another day', () => {
       .flatMap((section) => section.rows)
       .find((candidate) => candidate.task.id === 'task-lift-bank')
     expect(row?.task).toMatchObject({ plannedDay: '2026-11-12', placedByHand: true })
+  })
+})
+
+describe('useDay when the data revision changes', () => {
+  function renderWithRevision() {
+    let revision = 0
+    const wrapper = ({ children }: { children: ReactNode }) => <DataRevision value={revision}>{children}</DataRevision>
+    const hook = renderHook(() => useDay('2026-11-11', '2026-11-11'), { wrapper })
+    return {
+      ...hook,
+      bump: () => {
+        revision += 1
+        hook.rerender()
+      },
+    }
+  }
+
+  function titlesOf(state: UseDay) {
+    return state.day?.sections.flatMap((section) => section.rows).map((row) => row.task.title)
+  }
+
+  it('loads the day again, showing the old one until the new one arrives', async () => {
+    const hook = renderWithRevision()
+    await waitFor(() => expect(hook.result.current.day).toBeDefined())
+    await addTask({ title: 'Call the vet', onToday: true })
+
+    act(() => hook.bump())
+
+    expect(hook.result.current.day).toBeDefined()
+    await waitFor(() => expect(titlesOf(hook.result.current)).toContain('Call the vet'))
+  })
+
+  it('settles on the newest load when two overlap', async () => {
+    const hook = renderWithRevision()
+    await waitFor(() => expect(hook.result.current.day).toBeDefined())
+    const loaded = await getDay('2026-11-11')
+    const withTitle = (title: string): DayPlan => ({ ...loaded, tasks: [{ ...loaded.tasks[0], title }] })
+    const older = deferred<DayPlan>()
+    const newer = deferred<DayPlan>()
+    vi.mocked(getDay).mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise)
+
+    act(() => hook.bump())
+    act(() => hook.bump())
+    await act(async () => newer.resolve(withTitle('Newer')))
+    await act(async () => older.resolve(withTitle('Older')))
+
+    expect(titlesOf(hook.result.current)).toEqual(['Newer'])
   })
 })

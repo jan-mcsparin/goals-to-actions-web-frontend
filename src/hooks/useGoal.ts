@@ -38,6 +38,7 @@ import {
 } from '../domain/goalDetail.ts'
 import { readTimelineExpanded, saveTimelineExpanded } from '../storage/timelinePreference.ts'
 import type { GoalOrigin } from './useNavigation.ts'
+import { useDataRevision } from './dataRevision.ts'
 
 const LOAD_FAILED = "Couldn't load this goal. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
@@ -82,6 +83,7 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
   const [justHit, setJustHit] = useState<string>()
   const pendingCount = useRef(0)
   const waiting = useRef(false)
+  const revision = useDataRevision()
 
   useEffect(() => {
     let current = true
@@ -95,7 +97,7 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
     return () => {
       current = false
     }
-  }, [goalId])
+  }, [goalId, revision])
 
   function showAll(next: boolean) {
     setExpanded(next)

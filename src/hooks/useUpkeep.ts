@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { getUpkeep } from '../api/client.ts'
 import type { Upkeep } from '../api/types.ts'
 import { upkeepView, type UpkeepView } from '../domain/upkeep.ts'
+import { useDataRevision } from './dataRevision.ts'
 
 const LOAD_FAILED = "Couldn't load this page. Try again in a moment."
 
@@ -15,6 +16,7 @@ export type UseUpkeep = {
 export function useUpkeep(today: string): UseUpkeep {
   const [upkeep, setUpkeep] = useState<Upkeep>()
   const [message, setMessage] = useState<string>()
+  const revision = useDataRevision()
 
   useEffect(() => {
     let current = true
@@ -24,7 +26,7 @@ export function useUpkeep(today: string): UseUpkeep {
     return () => {
       current = false
     }
-  }, [])
+  }, [revision])
 
   return { view: upkeep && upkeepView(upkeep, today), message }
 }

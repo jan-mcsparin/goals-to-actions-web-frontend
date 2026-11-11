@@ -23,6 +23,7 @@ import {
 } from '../domain/today.ts'
 import { readTodayView, saveTodayView, type TodayViewMode } from '../storage/viewPreference.ts'
 import { withTaskReplaced } from './planUpdates.ts'
+import { useDataRevision } from './dataRevision.ts'
 
 const LOAD_FAILED = "Couldn't load today. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
@@ -60,6 +61,7 @@ export function useDay(date: string, today: string): UseDay {
   const [bankFailed, setBankFailed] = useState(false)
   const latestRequest = useRef(new Map<string, number>())
   const latestBankLoad = useRef(0)
+  const revision = useDataRevision()
 
   useEffect(() => {
     let current = true
@@ -69,7 +71,7 @@ export function useDay(date: string, today: string): UseDay {
     return () => {
       current = false
     }
-  }, [date])
+  }, [date, revision])
 
   function replaceTask(next: Task) {
     setPlan((previous) => previous && withTaskReplaced(previous, next.id, next))

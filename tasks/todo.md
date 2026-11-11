@@ -121,12 +121,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `hooks/dataRevision.ts`: a context with a number (0 without a provider) and a way for `App` to bump it. The six load hooks list it in their load effect and keep showing what they have while they reload.
 
 **Acceptance criteria:**
-- [ ] Bumping the revision makes `useDay` and `useWeek` fetch again with no blank state in between.
-- [ ] Two quick bumps settle on the second load's data.
-- [ ] Existing hook and screen tests pass unchanged.
+- [x] Bumping the revision makes `useDay` and `useWeek` fetch again with no blank state in between.
+- [x] Two quick bumps settle on the second load's data.
+- [x] Existing hook and screen tests pass unchanged.
 
 **Verification:**
-- [ ] `npm test`: `useDay.test.tsx`, new `hooks/dataRevision.test.tsx` (`useWeek`, and one of the aspiration hooks)
+- [x] `npm test`: `useDay.test.tsx`, new `hooks/dataRevision.test.tsx` (`useWeek`, and one of the aspiration hooks)
 
 **Dependencies:** Task 4
 

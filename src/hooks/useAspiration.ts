@@ -20,6 +20,7 @@ import {
   type ItsWork,
   type NameAndWhy,
 } from '../domain/aspiration.ts'
+import { useDataRevision } from './dataRevision.ts'
 
 const LOAD_FAILED = "Couldn't load this aspiration. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
@@ -42,6 +43,7 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
   const [notFound, setNotFound] = useState(false)
   const latestSave = useRef(0)
   const bringingBack = useRef(false)
+  const revision = useDataRevision()
 
   useEffect(() => {
     let current = true
@@ -55,7 +57,7 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
     return () => {
       current = false
     }
-  }, [aspirationId])
+  }, [aspirationId, revision])
 
   // Shows the change, saves it, and puts back what was there if the save
   // fails. Only the newest save may roll back, so quick taps settle on the last.
