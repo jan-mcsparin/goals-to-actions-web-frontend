@@ -6,9 +6,14 @@ import {
   canCondense,
   condenseTimeline,
   goalPage,
+  parsedMilestone,
+  parsedTarget,
   pushedDates,
   showAllLabel,
+  targetDraft,
   weekLabel,
+  withMilestone,
+  withTarget,
   type CurrentPage,
   type EndedPage,
   type MilestoneRow,
@@ -193,6 +198,8 @@ describe('goalPage timeline', () => {
     const { timeline } = current(detail({ goal: goal({ deadline: '2027-03-01' }) }))
 
     expect(timeline.rows.at(-1)).toMatchObject({ detail: 'Goal · Wk 22 · Mar 1' })
+    expect(current(detail({ goal: goal({ deadline: '2027-03-01' }) })).deadline).toBe('2027-03-01')
+    expect(current(detail())).not.toHaveProperty('deadline')
   })
 
   it('calls them Steps on a one-off goal, and every step not done can be checked in', () => {
@@ -491,5 +498,48 @@ describe('backLabel', () => {
 describe('showAllLabel', () => {
   it('counts the milestones and the goal', () => {
     expect(showAllLabel(current(detail()).timeline)).toBe('Show all 4')
+  })
+})
+
+describe('the target form', () => {
+  it('starts from the target in force, or empty', () => {
+    expect(targetDraft(detail())).toEqual({ amount: '3', unit: 'lifting sessions' })
+    expect(targetDraft(detail({ weeklyTarget: undefined }))).toEqual({ amount: '', unit: '' })
+  })
+
+  it('takes a whole number of at least 1 and a unit, trimmed', () => {
+    expect(parsedTarget({ amount: ' 4 ', unit: ' gym visits ' })).toEqual({ amount: 4, unit: 'gym visits' })
+    for (const amount of ['0', '-1', '2.5', 'three', '']) {
+      expect(parsedTarget({ amount, unit: 'runs' })).toBeUndefined()
+    }
+    expect(parsedTarget({ amount: '3', unit: '  ' })).toBeUndefined()
+  })
+
+  it('shows a new target at once, from this week', () => {
+    const changed = withTarget(detail(), { amount: 4, unit: 'lifting sessions' }, TODAY)
+    const first = withTarget(detail({ weeklyTarget: undefined }), { amount: 2, unit: 'clean meals' }, TODAY)
+
+    expect(changed.weeklyTarget).toMatchObject({ goalId: 'strong', amount: 4, unit: 'lifting sessions', effectiveFrom: '2026-11-09' })
+    expect(first.weeklyTarget).toMatchObject({ goalId: 'strong', amount: 2, unit: 'clean meals', effectiveFrom: '2026-11-09' })
+    expect(current(changed).target).toEqual({ kind: 'weekly', line: '4 lifting sessions', action: 'Edit' })
+  })
+})
+
+describe('the add milestone form', () => {
+  it('takes a line and an optional date, no later than the deadline', () => {
+    expect(parsedMilestone({ measurableLine: ' Bench 172 ', targetDate: '' }, goal())).toEqual({ measurableLine: 'Bench 172' })
+    expect(parsedMilestone({ measurableLine: 'Bench 172', targetDate: '2027-01-04' }, goal())).toEqual({
+      measurableLine: 'Bench 172',
+      targetDate: '2027-01-04',
+    })
+    expect(parsedMilestone({ measurableLine: '  ', targetDate: '' }, goal())).toBeUndefined()
+    expect(parsedMilestone({ measurableLine: 'Paint', targetDate: '2027-01-05' }, goal({ deadline: '2027-01-04' }))).toBeUndefined()
+  })
+
+  it('adds the milestone last, at once', () => {
+    const added = withMilestone(detail(), { id: 'pending', goalId: 'strong', measurableLine: 'Bench 172', status: 'upcoming' })
+
+    expect(added.milestones.map((row) => row.id)).toEqual(['m1', 'm2', 'm3', 'pending'])
+    expect(current(added).timeline.count).toBe('1 of 5 hit')
   })
 })

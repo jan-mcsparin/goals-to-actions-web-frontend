@@ -82,6 +82,7 @@ type PageBase = {
 
 export type CurrentPage = PageBase & {
   kind: 'current'
+  deadline?: string // the latest a milestone's date can be
   target?: TargetSection
   nextCheckIn: NextCheckIn
   notYet?: NotYetCard
@@ -121,6 +122,7 @@ export function goalPage(detail: GoalDetail, today: string): GoalPage {
   return {
     kind: 'current',
     ...base,
+    ...(goal.deadline && { deadline: goal.deadline }),
     ...(target && { target }),
     nextCheckIn: nextCheckIn(detail),
     ...(notYet && { notYet }),
@@ -158,6 +160,48 @@ export function pushedDates(goal: Goal, milestones: Milestone[], movedId: string
     if (!pushes) return { ...milestone }
     return { ...milestone, targetDate: capped(plusDays(milestone.targetDate!, shift)) }
   })
+}
+
+// What the target and add-milestone sheets hold: text as typed.
+export type TargetDraft = { amount: string; unit: string }
+export type MilestoneDraft = { measurableLine: string; targetDate: string } // '' for no date
+
+export function targetDraft({ weeklyTarget }: GoalDetail): TargetDraft {
+  return weeklyTarget ? { amount: String(weeklyTarget.amount), unit: weeklyTarget.unit } : { amount: '', unit: '' }
+}
+
+// A whole number of at least 1 and a unit, or nothing to save.
+export function parsedTarget(draft: TargetDraft): { amount: number; unit: string } | undefined {
+  const amount = draft.amount.trim()
+  const unit = draft.unit.trim()
+  if (!/^\d+$/.test(amount) || Number(amount) < 1 || !unit) return undefined
+  return { amount: Number(amount), unit }
+}
+
+// The goal with its new target, from this week's Monday, as the API saves it.
+export function withTarget(detail: GoalDetail, target: { amount: number; unit: string }, today: string): GoalDetail {
+  const effectiveFrom = mondayDay(today)
+  const existing = detail.weeklyTarget?.effectiveFrom === effectiveFrom ? detail.weeklyTarget : undefined
+  return {
+    ...detail,
+    weeklyTarget: { id: existing?.id ?? 'pending', goalId: detail.goal.id, ...target, effectiveFrom },
+  }
+}
+
+// A line and an optional date no later than the deadline, or nothing to save.
+export function parsedMilestone(
+  draft: MilestoneDraft,
+  goal: Pick<Goal, 'deadline'>,
+): { measurableLine: string; targetDate?: string } | undefined {
+  const measurableLine = draft.measurableLine.trim()
+  const targetDate = draft.targetDate || undefined
+  if (!measurableLine) return undefined
+  if (targetDate && goal.deadline && targetDate > goal.deadline) return undefined
+  return { measurableLine, ...(targetDate && { targetDate }) }
+}
+
+export function withMilestone(detail: GoalDetail, milestone: Milestone): GoalDetail {
+  return { ...detail, milestones: [...detail.milestones, milestone] }
 }
 
 // Where back goes, named only when sure: the tab, or the aspiration the goal

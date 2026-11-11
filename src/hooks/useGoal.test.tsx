@@ -1,12 +1,18 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getGoal } from '../api/client.ts'
+import { addMilestone, getGoal, setWeeklyTarget } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
+import type { CurrentPage } from '../domain/goalDetail.ts'
 import { useGoal } from './useGoal.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
-  return { ...actual, getGoal: vi.fn(actual.getGoal) }
+  return {
+    ...actual,
+    getGoal: vi.fn(actual.getGoal),
+    setWeeklyTarget: vi.fn(actual.setWeeklyTarget),
+    addMilestone: vi.fn(actual.addMilestone),
+  }
 })
 
 const TODAY = '2026-11-11'
@@ -22,6 +28,8 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers()
   vi.mocked(getGoal).mockClear()
+  vi.mocked(setWeeklyTarget).mockClear()
+  vi.mocked(addMilestone).mockClear()
 })
 
 function shownKinds(rows: { kind: string }[]) {
@@ -87,5 +95,71 @@ describe('useGoal, timeline', () => {
 
     expect(result.current.timeline?.condensable).toBe(false)
     expect(shownKinds(result.current.timeline!.rows)).not.toContain('fold')
+  })
+})
+
+describe('useGoal, saving', () => {
+  async function loaded(goalId = 'goal-strong') {
+    const hook = renderHook(() => useGoal(goalId, FROM_TAB, TODAY))
+    await waitFor(() => expect(hook.result.current.page).toBeDefined())
+    return hook
+  }
+
+  function targetLine(page: unknown) {
+    return (page as CurrentPage).target?.line
+  }
+
+  it('starts the target sheet from the target in force', async () => {
+    const { result } = await loaded()
+
+    expect(result.current.targetDraft).toEqual({ amount: '3', unit: 'lifting sessions' })
+  })
+
+  it('shows a new target at once and saves it', async () => {
+    const { result } = await loaded()
+
+    act(() => result.current.setTarget({ amount: '4', unit: 'lifting sessions' }))
+
+    expect(targetLine(result.current.page)).toBe('4 lifting sessions')
+    await waitFor(() => expect(setWeeklyTarget).toHaveBeenCalledWith('goal-strong', 4, 'lifting sessions'))
+  })
+
+  it('ignores a target that can’t be saved', async () => {
+    const { result } = await loaded()
+
+    act(() => result.current.setTarget({ amount: '0', unit: 'lifting sessions' }))
+
+    expect(targetLine(result.current.page)).toBe('3 lifting sessions')
+    expect(setWeeklyTarget).not.toHaveBeenCalled()
+  })
+
+  it('adds a milestone last at once, then keeps the saved one', async () => {
+    const { result } = await loaded()
+
+    act(() => result.current.addMilestone({ measurableLine: 'Bench 172', targetDate: '' }))
+
+    expect(result.current.page?.timeline.count).toBe('1 of 7 hit')
+    await waitFor(() => expect(addMilestone).toHaveBeenCalledWith('goal-strong', { measurableLine: 'Bench 172' }))
+    await waitFor(() => {
+      const last = result.current.page?.timeline.rows.at(-2)
+      expect(last).toMatchObject({ kind: 'milestone', measurableLine: 'Bench 172' })
+      expect((last as { milestoneId: string }).milestoneId).toMatch(/^ms-/)
+    })
+  })
+
+  it('reloads the goal and says so every time a save fails', async () => {
+    vi.mocked(setWeeklyTarget).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(addMilestone).mockRejectedValueOnce(new Error('offline'))
+    const { result } = await loaded()
+
+    act(() => result.current.setTarget({ amount: '4', unit: 'lifting sessions' }))
+    act(() => result.current.addMilestone({ measurableLine: 'Bench 172', targetDate: '' }))
+
+    await waitFor(() => expect(result.current.message).toBe("Couldn't save that. Try again."))
+    await waitFor(() => {
+      expect(targetLine(result.current.page)).toBe('3 lifting sessions')
+      expect(result.current.page?.timeline.count).toBe('1 of 6 hit')
+    })
+    expect(vi.mocked(getGoal).mock.calls.length).toBeGreaterThanOrEqual(2)
   })
 })

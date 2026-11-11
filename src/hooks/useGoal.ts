@@ -1,23 +1,31 @@
-// One goal's page, ready to render, plus the timeline's Show all state.
-// Loads through the API client; the layout comes from domain/goalDetail.ts.
-// A goal that isn't there is reported as not found, so the screen can go
-// back quietly.
-import { useEffect, useState } from 'react'
-import { getGoal, NotFoundError } from '../api/client.ts'
+// One goal's page, ready to render, plus the timeline's Show all state and
+// the ways to change the goal. Loads through the API client; the layout comes
+// from domain/goalDetail.ts. A goal that isn't there is reported as not
+// found, so the screen can go back quietly.
+import { useEffect, useRef, useState } from 'react'
+import { addMilestone as saveMilestone, getGoal, NotFoundError, setWeeklyTarget } from '../api/client.ts'
 import type { GoalDetail } from '../api/types.ts'
 import {
   backLabel,
   canCondense,
   condenseTimeline,
   goalPage,
+  parsedMilestone,
+  parsedTarget,
   showAllLabel,
+  targetDraft,
+  withMilestone,
+  withTarget,
   type GoalPage,
+  type MilestoneDraft,
   type ShownRow,
+  type TargetDraft,
 } from '../domain/goalDetail.ts'
 import { readTimelineExpanded, saveTimelineExpanded } from '../storage/timelinePreference.ts'
 import type { GoalOrigin } from './useNavigation.ts'
 
 const LOAD_FAILED = "Couldn't load this goal. Try again in a moment."
+const SAVE_FAILED = "Couldn't save that. Try again."
 
 export type ShownTimeline = {
   rows: ShownRow[]
@@ -30,10 +38,14 @@ export type UseGoal = {
   page?: GoalPage
   backTo?: string
   timeline?: ShownTimeline
+  // What the target sheet starts from.
+  targetDraft?: TargetDraft
   message?: string
   notFound: boolean
   expand: () => void
   collapse: () => void
+  setTarget: (draft: TargetDraft) => void
+  addMilestone: (draft: MilestoneDraft) => void
 }
 
 export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoal {
@@ -41,6 +53,7 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
   const [message, setMessage] = useState<string>()
   const [notFound, setNotFound] = useState(false)
   const [expanded, setExpanded] = useState(() => readTimelineExpanded(goalId))
+  const pendingCount = useRef(0)
 
   useEffect(() => {
     let current = true
@@ -61,15 +74,60 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
     saveTimelineExpanded(goalId, next)
   }
 
+  // Shows the change, then saves it. If the save fails, the goal is loaded
+  // again from the API and the message shows, whichever save it was.
+  function saveOptimistically<T>(
+    change: (before: GoalDetail) => GoalDetail,
+    save: () => Promise<T>,
+    settle?: (shown: GoalDetail, saved: T) => GoalDetail,
+  ) {
+    setDetail((before) => before && change(before))
+    setMessage(undefined)
+    save()
+      .then((saved) => settle && setDetail((shown) => shown && settle(shown, saved)))
+      .catch(() => {
+        setMessage(SAVE_FAILED)
+        getGoal(goalId)
+          .then(setDetail)
+          .catch(() => {
+            // Keeps what's shown; the message already says to try again.
+          })
+      })
+  }
+
+  function setTarget(draft: TargetDraft) {
+    const target = parsedTarget(draft)
+    if (!target) return
+    saveOptimistically(
+      (before) => withTarget(before, target, today),
+      () => setWeeklyTarget(goalId, target.amount, target.unit),
+      (shown, saved) => ({ ...shown, weeklyTarget: saved }),
+    )
+  }
+
+  function addMilestone(draft: MilestoneDraft) {
+    const milestone = detail && parsedMilestone(draft, detail.goal)
+    if (!milestone) return
+    const pendingId = `pending-${++pendingCount.current}`
+    saveOptimistically(
+      (before) => withMilestone(before, { id: pendingId, goalId, status: 'upcoming', ...milestone }),
+      () => saveMilestone(goalId, milestone),
+      (shown, saved) => ({ ...shown, milestones: shown.milestones.map((row) => (row.id === pendingId ? saved : row)) }),
+    )
+  }
+
   const page = detail && goalPage(detail, today)
   return {
     page,
     backTo: detail ? backLabel(from, detail.aspiration) : from.screen === 'aspirations' ? 'Aspirations' : undefined,
     timeline: page && shownTimeline(page, expanded),
+    targetDraft: detail && targetDraft(detail),
     message,
     notFound,
     expand: () => showAll(true),
     collapse: () => showAll(false),
+    setTarget,
+    addMilestone,
   }
 }
 

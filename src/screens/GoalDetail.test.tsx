@@ -179,3 +179,92 @@ describe('GoalDetail, reached', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
+
+describe('GoalDetail, weekly target sheet', () => {
+  it('opens only from a tap, pre-filled, and shows the new target at once', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    const target = await screen.findByRole('region', { name: 'Weekly target' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    await user.click(within(target).getByRole('button', { name: 'Edit weekly target' }))
+
+    const sheet = screen.getByRole('dialog', { name: 'Weekly target' })
+    const amount = within(sheet).getByRole('textbox', { name: 'Amount' })
+    expect(amount).toHaveProperty('value', '3')
+    expect(within(sheet).getByRole('textbox', { name: 'Unit' })).toHaveProperty('value', 'lifting sessions')
+    await user.clear(amount)
+    await user.type(amount, '4')
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(within(target).getByText('4 lifting sessions')).toBeDefined()
+  })
+
+  it('sets a first target, saving only a whole number and a unit', async () => {
+    const user = userEvent.setup()
+    renderGoal('goal-look-good')
+
+    await user.click(await screen.findByRole('button', { name: 'Set weekly target' }))
+    const sheet = screen.getByRole('dialog', { name: 'Weekly target' })
+    const save = within(sheet).getByRole('button', { name: 'Save' })
+    expect(save).toHaveProperty('disabled', true)
+
+    await user.type(within(sheet).getByRole('textbox', { name: 'Amount' }), '2.5')
+    await user.type(within(sheet).getByRole('textbox', { name: 'Unit' }), 'clean meals')
+    expect(save).toHaveProperty('disabled', true)
+
+    await user.clear(within(sheet).getByRole('textbox', { name: 'Amount' }))
+    await user.type(within(sheet).getByRole('textbox', { name: 'Amount' }), '2')
+    await user.click(save)
+
+    expect(await screen.findByText('2 clean meals')).toBeDefined()
+  })
+
+  it('keeps the target as it was on Cancel', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    await user.click(await screen.findByRole('button', { name: 'Edit weekly target' }))
+    const sheet = screen.getByRole('dialog', { name: 'Weekly target' })
+    await user.type(within(sheet).getByRole('textbox', { name: 'Amount' }), '0')
+    await user.click(within(sheet).getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByText('3 lifting sessions')).toBeDefined()
+  })
+})
+
+describe('GoalDetail, add milestone sheet', () => {
+  it('adds a milestone last and counts it', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    await user.click(await screen.findByRole('button', { name: '+ Add milestone' }))
+    const sheet = screen.getByRole('dialog', { name: 'Add milestone' })
+    expect(within(sheet).getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true)
+    await user.type(within(sheet).getByRole('textbox', { name: 'Measurable line' }), 'Bench 172, squat 345, deadlift 395')
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(within(await timeline()).getByText('1 of 7 hit')).toBeDefined()
+    await user.click(screen.getByRole('button', { name: 'Show all 7' }))
+    expect(screen.getByText('Bench 172, squat 345, deadlift 395')).toBeDefined()
+  })
+
+  it('says step on a one-off goal, with dates no later than the deadline', async () => {
+    const user = userEvent.setup()
+    renderGoal('goal-garage', { screen: 'aspirations' })
+
+    await user.click(await screen.findByRole('button', { name: '+ Add step' }))
+    const sheet = screen.getByRole('dialog', { name: 'Add step' })
+    expect(within(sheet).getByLabelText('Date (optional)')).toHaveProperty('max', '2026-12-04')
+  })
+
+  it('offers no adding on a reached goal', async () => {
+    renderGoal('goal-5k')
+
+    await screen.findByText('Reached Oct 10')
+    expect(screen.queryByRole('button', { name: '+ Add milestone' })).toBeNull()
+  })
+})

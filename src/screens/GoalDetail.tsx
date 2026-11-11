@@ -1,8 +1,10 @@
 // One goal in full: where it started, the timeline from Start to the goal
 // itself (condensed past four milestones), the weekly target and the next
 // check-in. A reached or ended goal shows what it achieved.
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { AddMilestoneSheet } from '../components/AddMilestoneSheet.tsx'
 import { BackLink } from '../components/BackLink.tsx'
+import { TargetSheet } from '../components/TargetSheet.tsx'
 import type { CurrentPage, GoalPage, ShownRow } from '../domain/goalDetail.ts'
 import { useGoal, type ShownTimeline } from '../hooks/useGoal.ts'
 import type { GoalOrigin } from '../hooks/useNavigation.ts'
@@ -17,12 +19,21 @@ type GoalDetailProps = {
   onNotFound: () => void
 }
 
+// One sheet at a time, and only from a tap.
+type OpenSheet = 'target' | 'milestone'
+
 export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNotFound }: GoalDetailProps) {
-  const { page, backTo, timeline, message, notFound, expand, collapse } = useGoal(goalId, from, today)
+  const { page, backTo, timeline, targetDraft, message, notFound, expand, collapse, setTarget, addMilestone } =
+    useGoal(goalId, from, today)
+  const [sheet, setSheet] = useState<OpenSheet>()
 
   useEffect(() => {
     if (notFound) onNotFound()
   }, [notFound, onNotFound])
+
+  function closeSheet() {
+    setSheet(undefined)
+  }
 
   return (
     <main className="goal" aria-busy={!page && !message}>
@@ -63,10 +74,36 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
               {page.started.latest && <p>{page.started.latest}</p>}
             </div>
           )}
-          <TimelineSection page={page} timeline={timeline} onExpand={expand} onCollapse={collapse} />
-          {page.kind === 'current' && <CurrentSections page={page} />}
+          <TimelineSection
+            page={page}
+            timeline={timeline}
+            onExpand={expand}
+            onCollapse={collapse}
+            onAdd={() => setSheet('milestone')}
+          />
+          {page.kind === 'current' && <CurrentSections page={page} onEditTarget={() => setSheet('target')} />}
         </>
       )}
+
+      <TargetSheet
+        open={sheet === 'target'}
+        initial={targetDraft}
+        onSave={(draft) => {
+          setTarget(draft)
+          closeSheet()
+        }}
+        onClose={closeSheet}
+      />
+      <AddMilestoneSheet
+        open={sheet === 'milestone'}
+        noun={page?.timeline.heading === 'Steps' ? 'step' : 'milestone'}
+        deadline={page?.kind === 'current' ? page.deadline : undefined}
+        onSave={(draft) => {
+          addMilestone(draft)
+          closeSheet()
+        }}
+        onClose={closeSheet}
+      />
     </main>
   )
 }
@@ -96,9 +133,11 @@ type TimelineSectionProps = {
   timeline: ShownTimeline
   onExpand: () => void
   onCollapse: () => void
+  onAdd: () => void
 }
 
-function TimelineSection({ page, timeline, onExpand, onCollapse }: TimelineSectionProps) {
+function TimelineSection({ page, timeline, onExpand, onCollapse, onAdd }: TimelineSectionProps) {
+  const canAdd = page.kind === 'current'
   return (
     <section className="goal-section" aria-labelledby="goal-timeline">
       <div className="goal-section-head">
@@ -110,11 +149,18 @@ function TimelineSection({ page, timeline, onExpand, onCollapse }: TimelineSecti
           <TimelineItem key={rowKey(row)} row={row} onExpand={onExpand} />
         ))}
       </ol>
-      {timeline.condensable && (
+      {(canAdd || timeline.condensable) && (
         <div className="goal-timeline-foot">
-          <button type="button" className="goal-action" onClick={timeline.expanded ? onCollapse : onExpand}>
-            {timeline.expanded ? 'Show less' : timeline.showAllLabel}
-          </button>
+          {canAdd && (
+            <button type="button" className="goal-action" onClick={onAdd}>
+              {page.timeline.heading === 'Steps' ? '+ Add step' : '+ Add milestone'}
+            </button>
+          )}
+          {timeline.condensable && (
+            <button type="button" className="goal-action" onClick={timeline.expanded ? onCollapse : onExpand}>
+              {timeline.expanded ? 'Show less' : timeline.showAllLabel}
+            </button>
+          )}
         </div>
       )}
     </section>
@@ -162,13 +208,23 @@ function rowKey(row: ShownRow): string {
   return row.kind
 }
 
-function CurrentSections({ page }: { page: CurrentPage }) {
+function CurrentSections({ page, onEditTarget }: { page: CurrentPage; onEditTarget: () => void }) {
   return (
     <>
       {page.target?.kind === 'weekly' && (
         <section className="goal-section" aria-labelledby="goal-target">
           <h2 id="goal-target">Weekly target</h2>
-          <p className="goal-value">{page.target.line}</p>
+          <div className="goal-target">
+            <p className="goal-value">{page.target.line}</p>
+            <button
+              type="button"
+              className="goal-action"
+              aria-label={`${page.target.action} weekly target`}
+              onClick={onEditTarget}
+            >
+              {page.target.action}
+            </button>
+          </div>
         </section>
       )}
       {page.target?.kind === 'note' && <p className="goal-value">{page.target.line}</p>}

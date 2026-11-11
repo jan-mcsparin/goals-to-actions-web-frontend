@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import { canSaveName, type NameAndWhy } from '../domain/aspiration.ts'
 import './sheet.css'
-import './AspirationEditSheet.css'
+import './editForm.css'
 import { useModalDialog } from './useModalDialog.ts'
 
 type AspirationEditSheetProps = {

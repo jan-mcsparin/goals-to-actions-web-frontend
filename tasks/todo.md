@@ -126,12 +126,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** **Edit** or **Set** opens `TargetSheet` (amount, a whole number of at least 1, and a unit). **+ Add milestone** or **+ Add step** opens `AddMilestoneSheet` (a line and an optional `<input type="date">`, max the deadline). Both save optimistically through `useGoal`; on failure the hook reloads and shows "Couldn't save that. Try again."
 
 **Acceptance criteria:**
-- [ ] Changing Be strong's target to 4 shows at once, and Week reads "of 4".
-- [ ] A new milestone appears last on the timeline (expanding a condensed one isn't required) and the count becomes "1 of 7 hit".
-- [ ] A failed save reloads the goal and shows the message each time (hook test with a rejecting client).
+- [x] Changing Be strong's target to 4 shows at once, and Week reads "of 4".
+- [x] A new milestone appears last on the timeline (expanding a condensed one isn't required) and the count becomes "1 of 7 hit".
+- [x] A failed save reloads the goal and shows the message each time (hook test with a rejecting client).
 
 **Verification:**
-- [ ] `npm test`: `GoalDetail.test.tsx`, `useGoal.test.tsx`
+- [x] `npm test`: `GoalDetail.test.tsx`, `useGoal.test.tsx`
 
 **Dependencies:** Task 5
 
@@ -140,7 +140,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M
 
 ## Checkpoint B (PR 1)
-- [ ] Tests, lint and build pass
+- [x] Tests, lint and build pass
 - [ ] On the phone, 375 and 390 px, light and dark: Be strong condensed has the target and Next check-in visible without scrolling; long lines wrap; sheets clear the keyboard and the home indicator
 - [ ] Parent-repo docs: Flow 6's timeline, the condensed view and target editing as built (own branch and PR)
 - [ ] Spec status updated; PR 1 opened referencing #5 (not closing it); review with Jan before PR 2
