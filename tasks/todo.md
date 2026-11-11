@@ -86,11 +86,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Bring the spec in line with plan decisions 1–4 and the architecture decisions that change it: close the open questions, note that the confirmations use `ScreenMessage`, that only the Today screen preselects "On today", and how back works from a new goal. Mark it approved.
 
 **Acceptance criteria:**
-- [ ] No open questions left; each decision is in the section it changes.
-- [ ] The repeat-rule texts in the spec match the mock's.
+- [x] No open questions left; each decision is in the section it changes.
+- [x] The repeat-rule texts in the spec match the mock's.
 
 **Verification:**
-- [ ] Read through against `plan.md`; `npm test && npm run lint && npm run build` still pass
+- [x] Read through against `plan.md`; `npm test && npm run lint && npm run build` still pass
 
 **Dependencies:** Checkpoint 0
 
