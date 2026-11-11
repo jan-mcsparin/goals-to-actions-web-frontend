@@ -9,12 +9,12 @@ One spec per issue, numbered like the issue. This file is the index and the map 
 | [001 Mock data and API client](001-mock-api-client.md) | #1 |
 | [002 Today screen](002-today-screen.md) | #2 |
 | [003 Week screen](003-week-screen.md) | #3 |
+| [004 Aspirations tab](004-aspirations-tab.md) | #4 |
 
 ## Remaining (drafted 2026-11-10)
 
 | Module id | Spec | Issue | Responsibility | Depends on |
 |---|---|---|---|---|
-| `aspirations-tab` | [004](004-aspirations-tab.md) | #4 | Aspirations in priority order with their week, goals and recurring items; the Keep life running page; the third tab | — |
 | `aspiration-page` | [013](013-aspiration-page.md) | #13 | One aspiration: its goals, recurring items and past goals; edit, reorder, review, retire, bring back | `aspirations-tab` |
 | `goal-detail` | [005](005-goal-detail.md) | #5 | One goal in full: milestones, weekly target, check-in, Review / Pause / End | `aspirations-tab`, `aspiration-page` |
 | `add-sheet` | [006](006-add-sheet.md) | #6 | Add a task, goal, aspiration or recurring item; the + in the tab bar | `aspirations-tab`, `aspiration-page`, `goal-detail` |

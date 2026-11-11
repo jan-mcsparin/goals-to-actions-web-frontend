@@ -1,0 +1,46 @@
+.upkeep {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.upkeep-note {
+  margin: 0;
+  color: var(--muted);
+}
+
+.upkeep-section h2 {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.upkeep-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The title wraps; where it sits keeps its width. */
+.upkeep-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 2.75rem;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.upkeep-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.upkeep-detail {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}

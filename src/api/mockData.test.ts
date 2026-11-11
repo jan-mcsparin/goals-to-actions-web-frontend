@@ -63,26 +63,68 @@ describe.each([
 describe('mock data contents', () => {
   const data = buildMockData(WEDNESDAY)
 
-  it('has two aspirations, each with a goal', () => {
-    expect(data.aspirations).toHaveLength(2)
+  function hitCount(goalId: string): [number, number] {
+    const milestones = data.milestones.filter((milestone) => milestone.goalId === goalId)
+    return [milestones.filter((milestone) => milestone.status === 'hit').length, milestones.length]
+  }
+
+  it('has two active aspirations and a retired one, each with a goal', () => {
+    expect(data.aspirations.map((aspiration) => aspiration.status)).toEqual(['active', 'active', 'retired'])
+    expect(data.aspirations.find((aspiration) => aspiration.status === 'retired')?.retiredAt).toBeDefined()
+    expect(data.aspirations.find((aspiration) => aspiration.name === 'Keep a calm home')?.why).toBeUndefined()
     for (const aspiration of data.aspirations) {
       expect(data.goals.some((goal) => goal.aspirationId === aspiration.id)).toBe(true)
     }
   })
 
-  it('gives Be strong a baseline, a weekly target and three milestones', () => {
+  it('gives Be strong a baseline, a weekly target and five milestones', () => {
     const strong = data.goals.find((goal) => goal.label === 'Be strong')
     expect(strong?.baseline).toBeDefined()
     expect(data.weeklyTargets.filter((target) => target.goalId === strong?.id)).toHaveLength(1)
 
     const milestones = data.milestones.filter((milestone) => milestone.goalId === strong?.id)
-    expect(milestones.some((milestone) => milestone.status === 'hit')).toBe(true)
+    expect(milestones.map((milestone) => milestone.status)).toEqual([
+      'hit',
+      'notYet',
+      'upcoming',
+      'upcoming',
+      'upcoming',
+    ])
     expect(milestones.some((m) => m.status === 'upcoming' && m.targetDate)).toBe(true)
     expect(milestones.some((m) => m.status === 'upcoming' && !m.targetDate)).toBe(true)
   })
 
-  it('has fixed-day and flexible recurring items', () => {
-    expect(data.recurringItems).toHaveLength(3)
+  it('gives Have endurance two runs a week, one done on Monday and one in the bank', () => {
+    const runs = data.tasks.filter((task) => task.goalId === 'goal-endurance')
+    expect(data.weeklyTargets.find((target) => target.goalId === 'goal-endurance')?.amount).toBe(2)
+    expect(runs.map((task) => [task.status, task.plannedDay])).toEqual([
+      ['done', '2026-11-09'],
+      ['inBank', undefined],
+    ])
+    expect(hitCount('goal-endurance')).toEqual([2, 3])
+  })
+
+  it('gives Look good two milestones and no weekly target, and the garage five steps', () => {
+    expect(hitCount('goal-look-good')).toEqual([0, 2])
+    expect(data.weeklyTargets.some((target) => target.goalId === 'goal-look-good')).toBe(false)
+    expect(hitCount('goal-garage')).toEqual([3, 5])
+  })
+
+  it('has paused and reached goals, and goals with no aspiration', () => {
+    const under = (status: string) => data.goals.filter((goal) => goal.status === status && goal.aspirationId)
+    expect(under('paused')).toHaveLength(1)
+    expect(under('reached').length).toBeGreaterThanOrEqual(2)
+
+    const loose = data.goals.filter((goal) => !goal.aspirationId)
+    expect(loose.find((goal) => goal.status === 'active')?.deadline).toBeDefined()
+    expect(loose.some((goal) => goal.status === 'reached')).toBe(true)
+  })
+
+  it('has fixed-day and flexible recurring items, two of them under Be fit', () => {
+    expect(data.recurringItems).toHaveLength(5)
+    expect(
+      data.recurringItems.filter((item) => item.aspirationId === 'asp-fit').map((item) => item.name),
+    ).toEqual(['Stretch', 'Hockey'])
     expect(data.recurringItems.some((item) => item.fixedDay)).toBe(true)
     expect(data.recurringItems.some((item) => !item.fixedDay)).toBe(true)
   })

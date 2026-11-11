@@ -17,7 +17,7 @@ function task(id: string, plannedDay: string | undefined, fields: Partial<Task> 
   }
 }
 
-const fit: Aspiration = { id: 'asp-fit', name: 'Be fit', priority: 1, createdAt: '2026-10-01T09:00:00Z' }
+const fit: Aspiration = { id: 'asp-fit', name: 'Be fit', priority: 1, status: 'active', createdAt: '2026-10-01T09:00:00Z' }
 const strong: Goal = {
   id: 'goal-strong',
   label: 'Be strong',

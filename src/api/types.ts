@@ -2,13 +2,17 @@
 // API's OpenAPI schema once it exists; shapes follow ../docs/data-model.md.
 // Days are local 'YYYY-MM-DD' strings; instants are full ISO timestamps.
 
+export type AspirationStatus = 'active' | 'retired'
+
 export type Aspiration = {
   id: string
   name: string
   why?: string
   priority: number
+  status: AspirationStatus
   createdAt: string
   lastReviewedAt?: string
+  retiredAt?: string
 }
 
 export type GoalType = 'building' | 'quitting' | 'oneOff'
@@ -118,4 +122,21 @@ export type Bank = {
   goals: Goal[]
   aspirations: Aspiration[]
   recurringItems: RecurringItem[]
+}
+
+// Everything the Aspirations tab shows, as records. Ordering, grouping and
+// counting are left to domain/aspirations.ts.
+export type AspirationsOverview = {
+  aspirations: Aspiration[] // active and retired
+  goals: Goal[] // every status
+  milestones: Milestone[] // for those goals, in each goal's order
+  recurringItems: RecurringItem[] // active ones
+  weeklyTargets: WeeklyTarget[] // the target in force this week, per active goal
+  weekTasks: Task[] // this week's tasks that belong to a goal
+}
+
+// Keep life running: what has to happen but rolls up to no goal or aspiration.
+export type Upkeep = {
+  recurringItems: RecurringItem[] // active, with no aspiration
+  tasks: Task[] // not done, no goal and no recurring item, this week and later
 }

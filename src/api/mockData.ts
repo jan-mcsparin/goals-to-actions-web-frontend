@@ -33,13 +33,24 @@ export function buildMockData(today: Date): MockData {
       name: 'Be fit',
       why: 'So I can keep skiing, biking and playing hockey at a high level for decades.',
       priority: 1,
+      status: 'active',
       createdAt: '2026-10-01T09:00:00Z',
     },
     {
       id: 'asp-home',
       name: 'Keep a calm home',
       priority: 2,
+      status: 'active',
       createdAt: '2026-10-01T09:05:00Z',
+    },
+    {
+      id: 'asp-spanish',
+      name: 'Speak Spanish',
+      why: 'So I can talk with the family in Valencia.',
+      priority: 3,
+      status: 'retired',
+      createdAt: '2026-03-02T09:00:00Z',
+      retiredAt: '2026-09-15T09:00:00Z',
     },
   ]
 
@@ -64,6 +75,73 @@ export function buildMockData(today: Date): MockData {
       deadline: toLocalDay(addDays(monday, 25)),
       aspirationId: 'asp-home',
     },
+    {
+      id: 'goal-endurance',
+      label: 'Have endurance',
+      measurableLine: 'Run 10k in under 50 minutes',
+      type: 'building',
+      baseline: '5k in 31 minutes',
+      status: 'active',
+      startDate: '2026-10-12',
+      aspirationId: 'asp-fit',
+    },
+    {
+      id: 'goal-look-good',
+      label: 'Look good',
+      measurableLine: 'Body fat at 15%',
+      type: 'building',
+      baseline: 'Body fat at 21%',
+      status: 'active',
+      startDate: '2026-10-12',
+      aspirationId: 'asp-fit',
+    },
+    {
+      id: 'goal-5k',
+      label: 'Run a 5k',
+      measurableLine: 'Finish a 5k without walking',
+      type: 'building',
+      status: 'reached',
+      startDate: '2026-08-03',
+      endedAt: '2026-10-10',
+      aspirationId: 'asp-fit',
+    },
+    {
+      id: 'goal-cook',
+      label: 'Cook at home',
+      measurableLine: 'Cook dinner at home 5 nights a week',
+      type: 'building',
+      status: 'paused',
+      startDate: '2026-10-05',
+      aspirationId: 'asp-home',
+    },
+    {
+      id: 'goal-passport',
+      label: 'Renew my passport',
+      measurableLine: 'New passport in hand',
+      type: 'oneOff',
+      status: 'active',
+      startDate: '2026-11-02',
+      deadline: toLocalDay(addDays(monday, 40)),
+    },
+    {
+      id: 'goal-taxes',
+      label: 'File my taxes',
+      measurableLine: 'Return filed and accepted',
+      type: 'oneOff',
+      status: 'reached',
+      startDate: '2026-02-01',
+      endedAt: '2026-04-06',
+    },
+    {
+      id: 'goal-spanish-a2',
+      label: 'Hold a conversation',
+      measurableLine: 'Pass the A2 exam',
+      type: 'building',
+      status: 'reached',
+      startDate: '2026-03-02',
+      endedAt: '2026-08-20',
+      aspirationId: 'asp-spanish',
+    },
   ]
 
   const milestones: Milestone[] = [
@@ -80,15 +158,31 @@ export function buildMockData(today: Date): MockData {
       id: 'ms-strong-2',
       goalId: 'goal-strong',
       measurableLine: 'Bench 155, squat 300, deadlift 345',
-      status: 'upcoming',
-      targetDate: toLocalDay(addDays(monday, 21)),
+      status: 'notYet',
+      result: 'Bench 152, squat 300, deadlift 340',
+      targetDate: day(-3),
+      checkedInOn: day(-3),
     },
     {
       id: 'ms-strong-3',
       goalId: 'goal-strong',
-      measurableLine: 'Bench 165, squat 325, deadlift 370',
+      measurableLine: 'Bench 160, squat 310, deadlift 355',
       status: 'upcoming',
+      targetDate: toLocalDay(addDays(monday, 21)),
     },
+    upcoming('ms-strong-4', 'goal-strong', 'Bench 165, squat 325, deadlift 370'),
+    upcoming('ms-strong-5', 'goal-strong', 'Bench 170, squat 340, deadlift 385'),
+    hit('ms-endurance-1', 'goal-endurance', 'Run 5k without stopping', '2026-10-19'),
+    hit('ms-endurance-2', 'goal-endurance', 'Run 10k, any pace', '2026-11-02'),
+    upcoming('ms-endurance-3', 'goal-endurance', 'Run 10k in under 55 minutes'),
+    upcoming('ms-look-good-1', 'goal-look-good', 'Body fat at 19%'),
+    upcoming('ms-look-good-2', 'goal-look-good', 'Body fat at 17%'),
+    // A one-off goal's milestones are its steps.
+    hit('ms-garage-1', 'goal-garage', 'Empty the left wall', '2026-11-03'),
+    hit('ms-garage-2', 'goal-garage', 'Sort into keep, donate and dump', '2026-11-05'),
+    hit('ms-garage-3', 'goal-garage', 'Sell the table saw', '2026-11-07'),
+    upcoming('ms-garage-4', 'goal-garage', 'Donate and dump the rest'),
+    upcoming('ms-garage-5', 'goal-garage', 'Put up the shelves'),
   ]
 
   const weeklyTargets: WeeklyTarget[] = [
@@ -98,6 +192,13 @@ export function buildMockData(today: Date): MockData {
       amount: 3,
       unit: 'lifting sessions',
       effectiveFrom: '2026-10-05',
+    },
+    {
+      id: 'wt-endurance',
+      goalId: 'goal-endurance',
+      amount: 2,
+      unit: 'runs',
+      effectiveFrom: '2026-10-12',
     },
   ]
 
@@ -128,6 +229,24 @@ export function buildMockData(today: Date): MockData {
       active: true,
       nextDue: toLocalDay(new Date(today.getFullYear(), today.getMonth() + 1, 1)),
     },
+    {
+      id: 'rec-stretch',
+      name: 'Stretch',
+      repeatRule: '3 times a week',
+      fixedDay: false,
+      active: true,
+      nextDue: day(4),
+      aspirationId: 'asp-fit',
+    },
+    {
+      id: 'rec-hockey',
+      name: 'Hockey',
+      repeatRule: 'Every Sunday',
+      fixedDay: true,
+      active: true,
+      nextDue: day(6),
+      aspirationId: 'asp-fit',
+    },
   ]
 
   const tasks: Task[] = [
@@ -140,6 +259,16 @@ export function buildMockData(today: Date): MockData {
       goalId: 'goal-strong',
       rolloverCount: 0,
       completedAt: atTime(monday, 18, 40),
+    },
+    {
+      id: 'task-run-mon',
+      title: 'Run: easy 5k',
+      status: 'done',
+      weekOf,
+      plannedDay: day(0),
+      goalId: 'goal-endurance',
+      rolloverCount: 0,
+      completedAt: atTime(monday, 7, 10),
     },
     {
       id: 'task-trash',
@@ -333,6 +462,14 @@ export function buildMockData(today: Date): MockData {
       weekOf,
       rolloverCount: 2,
     },
+    {
+      id: 'task-run-bank',
+      title: 'Run: intervals',
+      status: 'inBank',
+      weekOf,
+      goalId: 'goal-endurance',
+      rolloverCount: 0,
+    },
   ]
 
   const settings: Settings = {
@@ -342,6 +479,14 @@ export function buildMockData(today: Date): MockData {
   }
 
   return { aspirations, goals, milestones, weeklyTargets, recurringItems, tasks, settings }
+}
+
+function hit(id: string, goalId: string, measurableLine: string, on: string): Milestone {
+  return { id, goalId, measurableLine, status: 'hit', targetDate: on, checkedInOn: on }
+}
+
+function upcoming(id: string, goalId: string, measurableLine: string): Milestone {
+  return { id, goalId, measurableLine, status: 'upcoming' }
 }
 
 function atTime(day: Date, hours: number, minutes: number): string {

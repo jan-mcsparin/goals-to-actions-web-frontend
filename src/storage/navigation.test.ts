@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { readScreen, saveScreen } from './navigation.ts'
+import { readScreen, saveScreen, tabOf, type Screen } from './navigation.ts'
 
 function memoryStorage(): Pick<Storage, 'getItem' | 'setItem'> {
   const values = new Map<string, string>()
@@ -30,7 +30,34 @@ describe('current screen', () => {
     expect(readScreen()).toEqual({ screen: 'day', date: '2026-11-12' })
   })
 
-  it.each(['not json', '{"screen":"goals"}', '{"screen":"day"}', '{"screen":"day","date":"Thursday"}'])(
+  it.each<Screen>([
+    { screen: 'aspirations' },
+    { screen: 'aspiration', aspirationId: 'asp-fit' },
+    { screen: 'upkeep' },
+    { screen: 'goal', goalId: 'goal-strong', from: { screen: 'aspirations' } },
+    { screen: 'goal', goalId: 'goal-strong', from: { screen: 'aspiration', aspirationId: 'asp-fit' } },
+  ])('remembers $screen', (opened) => {
+    vi.stubGlobal('localStorage', memoryStorage())
+
+    saveScreen(opened)
+
+    expect(readScreen()).toEqual(opened)
+  })
+
+  it.each([
+    'not json',
+    '{"screen":"goals"}',
+    '{"screen":"day"}',
+    '{"screen":"day","date":"Thursday"}',
+    '{"screen":"aspiration"}',
+    '{"screen":"aspiration","aspirationId":7}',
+    '{"screen":"aspiration","aspirationId":""}',
+    '{"screen":"goal","goalId":"","from":{"screen":"aspirations"}}',
+    '{"screen":"goal","from":{"screen":"aspirations"}}',
+    '{"screen":"goal","goalId":"goal-strong"}',
+    '{"screen":"goal","goalId":"goal-strong","from":{"screen":"week"}}',
+    '{"screen":"goal","goalId":"goal-strong","from":{"screen":"aspiration"}}',
+  ])(
     'falls back to Today for a bad stored value: %s',
     (stored) => {
       const storage = memoryStorage()
@@ -49,5 +76,19 @@ describe('current screen', () => {
 
     expect(() => saveScreen({ screen: 'week' })).not.toThrow()
     expect(readScreen()).toEqual({ screen: 'today' })
+  })
+})
+
+describe('tabOf', () => {
+  it.each<[Screen, string]>([
+    [{ screen: 'today' }, 'today'],
+    [{ screen: 'week' }, 'week'],
+    [{ screen: 'day', date: '2026-11-12' }, 'week'],
+    [{ screen: 'aspirations' }, 'aspirations'],
+    [{ screen: 'aspiration', aspirationId: 'asp-fit' }, 'aspirations'],
+    [{ screen: 'upkeep' }, 'aspirations'],
+    [{ screen: 'goal', goalId: 'goal-strong', from: { screen: 'aspirations' } }, 'aspirations'],
+  ])('counts %o as the %s tab', (opened, tab) => {
+    expect(tabOf(opened)).toBe(tab)
   })
 })

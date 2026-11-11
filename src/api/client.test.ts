@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   checkOffTask,
+  getAspirations,
   getBank,
   getDay,
+  getUpkeep,
   getWeek,
   pullFromBank,
   skipTask,
@@ -162,8 +164,8 @@ describe('getBank', () => {
     const bank = await getBank()
 
     expect(bank.weekOf).toBe('2026-11-09')
-    expect(ids(bank.tasks)).toEqual(['task-dentist', 'task-garage-shelves', 'task-lift-bank'])
-    expect(ids(bank.goals)).toEqual(['goal-garage', 'goal-strong'])
+    expect(ids(bank.tasks)).toEqual(['task-dentist', 'task-garage-shelves', 'task-lift-bank', 'task-run-bank'])
+    expect(ids(bank.goals)).toEqual(['goal-endurance', 'goal-garage', 'goal-strong'])
     expect(ids(bank.aspirations)).toEqual(['asp-fit', 'asp-home'])
     expect(bank.recurringItems).toEqual([])
   })
@@ -305,7 +307,7 @@ describe('getWeek', () => {
   it('includes the goals, aspirations and recurring items the tasks reference', async () => {
     const week = await getWeek()
 
-    expect(ids(week.goals)).toEqual(['goal-garage', 'goal-strong'])
+    expect(ids(week.goals)).toEqual(['goal-endurance', 'goal-garage', 'goal-strong'])
     expect(ids(week.aspirations)).toEqual(['asp-fit', 'asp-home'])
     expect(ids(week.recurringItems)).toEqual(['rec-laundry', 'rec-trash'])
   })
@@ -316,7 +318,7 @@ describe('getWeek', () => {
 
     const week = await getWeek()
 
-    expect(ids(week.weeklyTargets)).toEqual(['wt-strong'])
+    expect(ids(week.weeklyTargets)).toEqual(['wt-endurance', 'wt-strong'])
     expect(ids(week.goals)).toContain('goal-strong')
     expect(ids(week.aspirations)).toContain('asp-fit')
   })
@@ -326,6 +328,7 @@ describe('getWeek', () => {
 
     expect(weeklyTargets).toEqual([
       { id: 'wt-strong', goalId: 'goal-strong', amount: 3, unit: 'lifting sessions', effectiveFrom: '2026-10-05' },
+      { id: 'wt-endurance', goalId: 'goal-endurance', amount: 2, unit: 'runs', effectiveFrom: '2026-10-12' },
     ])
   })
 
@@ -341,5 +344,136 @@ describe('getWeek', () => {
     first.tasks[0].title = 'changed'
 
     expect((await getWeek()).tasks[0].title).not.toBe('changed')
+  })
+})
+
+describe('getAspirations', () => {
+  it('returns active and retired aspirations, and goals of every status', async () => {
+    const overview = await getAspirations()
+
+    expect(ids(overview.aspirations)).toEqual(['asp-fit', 'asp-home', 'asp-spanish'])
+    expect(new Set(overview.goals.map((goal) => goal.status))).toEqual(new Set(['active', 'paused', 'reached']))
+    expect(overview.goals).toHaveLength(store.goals.length)
+  })
+
+  it("returns the goals' milestones in each goal's order", async () => {
+    const { milestones } = await getAspirations()
+
+    expect(milestones.filter((milestone) => milestone.goalId === 'goal-strong').map((milestone) => milestone.id)).toEqual([
+      'ms-strong-1',
+      'ms-strong-2',
+      'ms-strong-3',
+      'ms-strong-4',
+      'ms-strong-5',
+    ])
+    expect(milestones).toHaveLength(store.milestones.length)
+  })
+
+  it('returns only active recurring items', async () => {
+    store.recurringItems.find((item) => item.id === 'rec-hockey')!.active = false
+
+    const { recurringItems } = await getAspirations()
+
+    expect(ids(recurringItems)).toEqual(['rec-laundry', 'rec-rent', 'rec-stretch', 'rec-trash'])
+  })
+
+  it('returns the weekly target in force for each active goal that has one', async () => {
+    store.weeklyTargets.push(
+      { id: 'wt-strong-next', goalId: 'goal-strong', amount: 4, unit: 'lifting sessions', effectiveFrom: '2026-11-16' },
+      { id: 'wt-cook', goalId: 'goal-cook', amount: 5, unit: 'dinners', effectiveFrom: '2026-10-05' },
+    )
+
+    const { weeklyTargets } = await getAspirations()
+
+    expect(ids(weeklyTargets)).toEqual(['wt-endurance', 'wt-strong'])
+  })
+
+  it("returns this week's tasks that belong to a goal, and no others", async () => {
+    store.tasks.push({
+      id: 'task-lift-next-week',
+      title: 'Lift: squat day',
+      status: 'inBank',
+      weekOf: '2026-11-16',
+      goalId: 'goal-strong',
+      rolloverCount: 0,
+    })
+
+    const { weekTasks } = await getAspirations()
+
+    expect(weekTasks.every((task) => task.goalId !== undefined && task.weekOf === '2026-11-09')).toBe(true)
+    expect(ids(weekTasks)).toContain('task-run-mon')
+    expect(ids(weekTasks)).not.toContain('task-groceries')
+  })
+
+  it('returns copies, so changing them does not change the store', async () => {
+    const first = await getAspirations()
+    first.aspirations[0].name = 'changed'
+    first.goals[0].label = 'changed'
+
+    const second = await getAspirations()
+    expect(second.aspirations[0].name).toBe('Be fit')
+    expect(second.goals[0].label).toBe('Be strong')
+  })
+})
+
+describe('getUpkeep', () => {
+  it('returns the active recurring items with no aspiration', async () => {
+    expect(ids((await getUpkeep()).recurringItems)).toEqual(['rec-rent'])
+
+    store.recurringItems.find((item) => item.id === 'rec-rent')!.active = false
+
+    expect((await getUpkeep()).recurringItems).toEqual([])
+  })
+
+  it('returns tasks with no goal and no recurring item that are still to do', async () => {
+    const { tasks } = await getUpkeep()
+
+    expect(ids(tasks)).toEqual([
+      'task-backup',
+      'task-ballot',
+      'task-bathroom',
+      'task-dentist',
+      'task-dentist-appt',
+      'task-dry-cleaning',
+      'task-groceries',
+      'task-lease',
+      'task-library',
+      'task-meal-prep',
+      'task-move-car',
+      'task-plants',
+      'task-plumber',
+    ])
+  })
+
+  it('leaves out goal tasks, recurring tasks and done tasks', async () => {
+    const taskIds = ids((await getUpkeep()).tasks)
+
+    expect(taskIds).not.toContain('task-lift-today')
+    expect(taskIds).not.toContain('task-laundry')
+    expect(taskIds).not.toContain('task-plan-mon')
+
+    await checkOffTask('task-ballot')
+
+    expect(ids((await getUpkeep()).tasks)).not.toContain('task-ballot')
+  })
+
+  it('includes later weeks and leaves out earlier ones', async () => {
+    const loose = { title: 'Renew the insurance', status: 'inBank' as const, rolloverCount: 0 }
+    store.tasks.push({ ...loose, id: 'task-next-week', weekOf: '2026-11-16' }, { ...loose, id: 'task-last-week', weekOf: '2026-11-02' })
+
+    const taskIds = ids((await getUpkeep()).tasks)
+
+    expect(taskIds).toContain('task-next-week')
+    expect(taskIds).not.toContain('task-last-week')
+  })
+
+  it('returns copies, so changing them does not change the store', async () => {
+    const first = await getUpkeep()
+    first.tasks[0].title = 'changed'
+    first.recurringItems[0].name = 'changed'
+
+    const second = await getUpkeep()
+    expect(second.tasks[0].title).not.toBe('changed')
+    expect(second.recurringItems[0].name).toBe('Pay rent')
   })
 })

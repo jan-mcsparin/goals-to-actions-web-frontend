@@ -1,6 +1,6 @@
 # Spec: Aspirations tab (#4)
 
-Status: draft 2026-11-10, awaiting approval. Issue: [#4](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/4). Module `aspirations-tab` in the [map](README.md). Depends on #1–#3 (done).
+Status: approved 2026-11-10, with its plan (`tasks/plan.md`). Issue: [#4](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/4). Module `aspirations-tab` in the [map](README.md). Depends on #1–#3 (done).
 
 Rewritten on 2026-11-10: the app is aspirations first, so this tab replaces the Goals screen of the Nov 2 sketch.
 
@@ -157,15 +157,27 @@ export function progressLabel(type: GoalType, hit: number, total: number): strin
 
 ## Success criteria
 
-- [ ] Every acceptance criterion on #4 is met, read as the Aspirations tab.
-- [ ] Active aspirations show as cards in priority order with why, this week, goals and recurring items.
-- [ ] Goal rows show milestone or step progress with the goal as the final milestone.
-- [ ] Other goals and Retired show as described; Keep life running opens its page, which lists recurring items and loose tasks under no goal.
-- [ ] One-off goals read "Step" everywhere.
-- [ ] A card opens its aspiration and a goal row opens its goal (placeholders); back returns; all of it survives reload.
-- [ ] Tab bar is Today | Week | Aspirations.
-- [ ] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
-- [ ] Works at 375 and 390 px, light and dark.
+- [x] Every acceptance criterion on #4 is met, read as the Aspirations tab.
+- [x] Active aspirations show as cards in priority order with why, this week, goals and recurring items.
+- [x] Goal rows show milestone or step progress with the goal as the final milestone.
+- [x] Other goals and Retired show as described; Keep life running opens its page, which lists recurring items and loose tasks under no goal.
+- [x] One-off goals read "Step" everywhere.
+- [x] A card opens its aspiration and a goal row opens its goal (placeholders); back returns; all of it survives reload.
+- [x] Tab bar is Today | Week | Aspirations.
+- [x] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
+- [x] Works at 375 and 390 px, light and dark (checked on Jan's phone).
+
+## Settled in the build
+
+- **Where a recurring item belongs is the person's call** (Jan, Nov 10), so the mock shows both: Trash and Laundry under "Keep a calm home", Pay rent under Keep life running.
+- **A to-do row on today reads "Today"**, not the weekday, as the day picker does. Rows are ordered by day, then the bank, then later weeks.
+- **The Keep life running row reads "No recurring items"** when it has none, rather than "0 recurring".
+- **Amount targets aren't told apart from counts yet.** `WeeklyTarget` has only a free-text `unit`, so the week count (and Week's progress) counts every target. The mock has none, so nothing shows wrong. Settle it in the API's data model, then update both (Jan, Nov 10).
+- **With nothing set up**, the footer hint and Retired are left out; the Keep life running row stays.
+- **"Past goals (n)" and "Retired (n)" are native `<details>`**; whether they're open isn't remembered.
+- **The mock has one reached goal with no aspiration** ("File my taxes"), so Past goals under Other goals has something to show.
+- **A remembered aspiration or goal that no longer exists** shows only the way back.
+- The new bank run shows in Today's bank sheet, so one count in #2's `Day.test.tsx` went from 3 to 4. Today's own tasks are unchanged.
 
 ## Open questions
 

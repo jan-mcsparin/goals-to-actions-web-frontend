@@ -119,7 +119,7 @@ describe('Day', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
     const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
-    expect(within(sheet).getAllByRole('listitem')).toHaveLength(3)
+    expect(within(sheet).getAllByRole('listitem')).toHaveLength(4)
 
     await user.click(within(sheet).getByRole('button', { name: 'Lift: deadlift day' }))
 
