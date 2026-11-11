@@ -1,251 +1,263 @@
-# Tasks: Goal detail (#5)
+# Tasks: Shared message (#19), then the Add sheet (#6)
 
-Plan: [`plan.md`](plan.md). Spec: [`../specs/005-goal-detail.md`](../specs/005-goal-detail.md).
+Plan: [`plan.md`](plan.md). Spec: [`../specs/006-add-sheet.md`](../specs/006-add-sheet.md).
 
 Every task: write tests first, then `npm test && npm run lint && npm run build`, then one commit. Test dates are fixed to Wednesday 11 Nov 2026. New test files call `resetStore()` in `beforeEach`.
 
-# PR 1: `goal-detail-view`
+# PR 0: `screen-message` (closes #19)
 
-## Phase 1: API and domain
+### Task 1: `useFleetingMessage` and `ScreenMessage`
 
-### Task 0: Settle spec 005
-
-**Description:** Bring the spec in line with the plan's settled decisions 1–9: close the open questions, drop Review, add the not-yet-stays-Next rule, push-out with the deadline cap, one-off steps in any order, `reopenMilestone` returning `Milestone[]`, and Wk 1 as the start week (fix the two examples). Mark the spec approved.
+**Description:** `hooks/useFleetingMessage.ts` takes a screen's message and returns `{ shown, dismiss }`. A new message shows and clears itself after 5 s, a tap clears it, and a new message restarts the timer. A `sticky` option keeps it until tapped (for load failures). `components/ScreenMessage.tsx` renders it with `role="status"`, fixed just above the tab bar and clear of the home indicator.
 
 **Acceptance criteria:**
-- [x] No open questions left; each decision is in the section it changes.
-- [x] Review, `reviewGoal` and the Review sheet are gone from the spec, its tests and its success criteria.
+- [ ] With fake timers: shown at once, gone after 5 s, gone at once on dismiss; a new message at 4 s shows until 9 s; the same message after it cleared shows again.
+- [ ] A sticky message stays past 5 s and clears on tap.
+- [ ] `ScreenMessage` renders nothing without a message, and is a tappable `role="status"` with one.
 
 **Verification:**
-- [x] Read through against `plan.md`; `npm test && npm run lint && npm run build` still pass (no code change)
+- [ ] `npm test`: new `hooks/useFleetingMessage.test.tsx`, new `components/ScreenMessage.test.tsx`
 
 **Dependencies:** None
 
-**Files:** `specs/005-goal-detail.md`, `specs/README.md` (if the shared decisions mention Review), `tasks/plan.md`, `tasks/todo.md`
+**Files:** `src/hooks/useFleetingMessage.ts`, `src/hooks/useFleetingMessage.test.tsx`, `src/components/ScreenMessage.tsx`, `src/components/ScreenMessage.css`, `src/components/ScreenMessage.test.tsx`
+
+**Scope:** S
+
+### Task 2: Day and Week use it
+
+**Description:** Replace Day's and Week's message paragraphs with `ScreenMessage`. Load failures are sticky; save failures fade. The Bank sheet's inline message stays, on purpose (the sheet covers the bottom of the screen). The screen gets bottom padding while a message shows, so the last row isn't covered.
+
+**Acceptance criteria:**
+- [ ] A failed check-off on Today shows "Couldn't save that. Try again." above the tab bar, and it's gone 5 s later. A second failure shows it again.
+- [ ] A failed load on Today or Week stays until tapped. Wording is unchanged.
+
+**Verification:**
+- [ ] `npm test`: `Day.test.tsx`, `Week.test.tsx` (existing `role="status"` queries still pass or are updated)
+
+**Dependencies:** Task 1
+
+**Files:** `src/screens/Day.tsx`, `src/screens/Day.css`, `src/screens/Week.tsx`, `src/screens/Week.css`, tests
+
+**Scope:** M
+
+### Task 3: Aspirations, Aspiration, Upkeep and Goal detail use it
+
+**Description:** Same switch for the other four screens.
+
+**Acceptance criteria:**
+- [ ] Each screen's save failure fades and its load failure stays, with the wording unchanged.
+- [ ] No screen still renders its own message paragraph (grep for `role="status"` in `screens/` finds none).
+
+**Verification:**
+- [ ] `npm test`: the four screens' tests
+
+**Dependencies:** Task 2
+
+**Files:** `src/screens/Aspirations.tsx`, `src/screens/Aspiration.tsx`, `src/screens/Upkeep.tsx`, `src/screens/GoalDetail.tsx` (+ their `.css`), tests
+
+**Scope:** M
+
+## Checkpoint 0 (PR 0)
+- [ ] Tests, lint and build pass
+- [ ] On the phone, 375 and 390 px, light and dark: the message is seen when scrolled to the bottom of Week and Goal detail, clears the home indicator, and doesn't cover the last row; with a sheet open and the keyboard up, nothing overlaps
+- [ ] PR opened, closing #19
+
+# PR 1: `add-sheet-task` (Part of #6)
+
+### Task 4: Settle spec 006
+
+**Description:** Bring the spec in line with plan decisions 1–4 and the architecture decisions that change it: close the open questions, note that the confirmations use `ScreenMessage`, that only the Today screen preselects "On today", and how back works from a new goal. Mark it approved.
+
+**Acceptance criteria:**
+- [ ] No open questions left; each decision is in the section it changes.
+- [ ] The repeat-rule texts in the spec match the mock's.
+
+**Verification:**
+- [ ] Read through against `plan.md`; `npm test && npm run lint && npm run build` still pass
+
+**Dependencies:** Checkpoint 0
+
+**Files:** `specs/006-add-sheet.md`, `tasks/plan.md`
 
 **Scope:** XS
 
-### Task 1: `getGoal`
+### Task 5: Task rules and `addTask`
 
-**Description:** Add `GoalDetail` (`goal`, `aspiration?`, `milestones` in order, `weeklyTarget?` in force this week whatever the goal's status) and `getGoal(goalId)`, which throws `NotFoundError` for an unknown id.
+**Description:** `domain/add.ts`: `taskWeek(dueDate, today)`, `taskConfirmation(...)` and `taskReady(draft)`. `addTask` stores an `inBank` task in this week, or in its due week when that's later, or a `planned`, `placedByHand` task on today when `onToday` is set.
 
 **Acceptance criteria:**
-- [x] Be strong returns Be fit, its five milestones in order (milestone 2 is `notYet`) and the 3 lifting sessions target, also when paused.
-- [x] File my taxes has no aspiration, milestones or target; Cook at home (paused) has no target and still loads.
-- [x] An unknown id rejects with `NotFoundError`; the result is a copy.
+- [ ] `taskWeek`: no date, this week and a past date give this Monday; next week and a date across the year end give that week's Monday. The confirmations are "Added to this week's bank.", "Saved for the week of Nov 23." and "Added to today."
+- [ ] A task due next week is absent from `getBank` and `getWeek`; one added on today is in `getDay(today)` with `placedByHand`; a plain one is in `getBank`.
+- [ ] A blank title or an unknown `goalId` rejects; new records pass the dataset checks.
 
 **Verification:**
-- [x] `npm test`: a `getGoal` block in `client.test.ts`
+- [ ] `npm test`: new `domain/add.test.ts`, `client.test.ts` (an `addTask` block)
 
-**Dependencies:** Task 0
+**Dependencies:** Task 4
 
-**Files:** `src/api/types.ts`, `src/api/client.ts`, `src/api/client.test.ts`
+**Files:** `src/domain/add.ts`, `src/domain/add.test.ts`, `src/api/client.ts`, `src/api/client.test.ts`
 
 **Scope:** S
 
-### Task 2: `setWeeklyTarget` and `addMilestone`
+### Task 6: The open screen reloads after an add
 
-**Description:** `setWeeklyTarget(goalId, amount, unit)` adds a row effective this Monday, or updates that row if it already exists. `addMilestone(goalId, { measurableLine, targetDate? })` appends an upcoming milestone after the goal's last one.
+**Description:** `hooks/dataRevision.ts`: a context with a number (0 without a provider) and a way for `App` to bump it. The six load hooks list it in their load effect and keep showing what they have while they reload.
 
 **Acceptance criteria:**
-- [x] A target changed twice this week leaves one row for this week and keeps the October row; `getWeek` shows the new amount. An amount below 1 or not whole, a blank unit, a goal that isn't building, or a reached or ended goal rejects.
-- [x] A new milestone is last and upcoming; a blank line, a date past the deadline, an unknown goal, or a reached or ended goal rejects.
+- [ ] Bumping the revision makes `useDay` and `useWeek` fetch again with no blank state in between.
+- [ ] Two quick bumps settle on the second load's data.
+- [ ] Existing hook and screen tests pass unchanged.
 
 **Verification:**
-- [x] `npm test`: `client.test.ts`, one block per function
+- [ ] `npm test`: `useDay.test.tsx`, new `hooks/dataRevision.test.tsx` (`useWeek`, and one of the aspiration hooks)
 
-**Dependencies:** Task 1
+**Dependencies:** Task 4
 
-**Files:** `src/api/client.ts`, `src/api/client.test.ts`
+**Files:** `src/hooks/dataRevision.ts`, `src/hooks/dataRevision.test.tsx`, `src/hooks/useDay.ts`, `src/hooks/useWeek.ts`, `src/hooks/useAspirations.ts`, `src/hooks/useAspiration.ts`, `src/hooks/useUpkeep.ts`, `src/hooks/useGoal.ts`
+
+**Scope:** M (each hook is a one-line change)
+
+### Task 7: The +, the sheet and the Task tab
+
+**Description:** `TabBar` becomes Today | Week | + | Aspirations; the + is labelled "Add" and is never current. `AddSheet` (titled "Add", tabs Task / Goal / Aspiration / Recurring, the last three empty for now) on `useModalDialog`. `TaskForm`: title, goal picker (active goals), due date, time of day ("by" / "at" and a time), and "In the bank" / "On today". `useAdd(origin)` holds the drafts, loads the pickers when the sheet opens, and saves. On save `App` closes the sheet, bumps the revision and shows the confirmation in its own `ScreenMessage`.
+
+**Acceptance criteria:**
+- [ ] The + opens the sheet on every screen with the Task title focused; Save is disabled until there's a title; a title alone saves to this week's bank.
+- [ ] From Today, "On today" is selected and the saved task appears in Today's list. From Week, an opened day or the Aspirations tab, "In the bank" is selected, and a task added while on Week appears in its bank.
+- [ ] Typed text survives switching tabs and is cleared on close.
+
+**Verification:**
+- [ ] `npm test`: new `components/AddSheet.test.tsx`, new `hooks/useAdd.test.tsx`, `App.test.tsx`
+
+**Dependencies:** Tasks 5, 6
+
+**Files:** `src/components/TabBar.tsx`, `src/components/TabBar.css`, `src/components/AddSheet.tsx`, `src/components/AddSheet.css`, `src/components/TaskForm.tsx`, `src/hooks/useAdd.ts`, `src/App.tsx`, tests
+
+**Scope:** M (at the top end; TaskForm can be its own commit)
+
+## Checkpoint 1 (PR 1)
+- [ ] Tests, lint and build pass
+- [ ] On the phone, 375 and 390 px, light and dark: the + in the tab bar, the keyboard up on open without covering Save, iOS date and time inputs, the confirmation seen after close
+- [ ] PR opened as "Part of #6"
+
+# PR 2: `add-sheet-goal` (Part of #6)
+
+### Task 8: Goal rules, `addGoal` and `addAspiration`
+
+**Description:** `splitGoalSentence`, `goalReady(draft)` (type, label, line, a valid target via `parsedTarget`, deadline not before start via `isWithinGoal`) and `aspirationReady`. `addGoal` stores an active goal, its target from this Monday, and that many `inBank` tasks titled with the label. `addAspiration` puts it last in priority.
+
+**Acceptance criteria:**
+- [ ] The split handles one colon, several and none, and trims extra spaces.
+- [ ] Be strong 2 with a target of 3 shows in `getWeek`'s targets with three bank tasks; a quitting goal defaults its start to today; a deadline before the start, a bad target, a target on a non-building goal, a blank label or line, or an unknown or retired aspiration rejects.
+- [ ] A new aspiration is last of the active ones, with or without a why; a blank name rejects.
+
+**Verification:**
+- [ ] `npm test`: `add.test.ts`, `client.test.ts`
+
+**Dependencies:** Checkpoint 1
+
+**Files:** `src/domain/add.ts`, `src/domain/add.test.ts`, `src/api/client.ts`, `src/api/client.test.ts`
 
 **Scope:** S
 
-### Task 3: `domain/goalDetail.ts`: the page
+### Task 9: The Goal tab
 
-**Description:** `goalPage(detail, today)` returns `current | reached | ended` with: header (type label, "Paused", aspiration link), started/latest lines, timeline rows (Start, milestones, Goal) with status, `weekLabel` and Next, the "1 of 6 hit" count, the target section (by type), and next check-in. Also `pushedDates(milestones, movedId, newDate, deadline?)` for PR 2, since it's pure and belongs here.
+**Description:** `GoalForm`. Type first (three buttons, nothing else until one is picked, changeable), then the sentence with the label and line shown back below it, a second field when there's no colon, "What's this for?" (None, an active aspiration, or "New aspiration" with a name), baseline, weekly target (building), start date (quitting), and deadline. On save `App` opens the goal (back per plan decision 3) and shows "Saved. Add milestones when you're ready." ("steps" for one-off).
 
 **Acceptance criteria:**
-- [x] Next is the first milestone that isn't hit, so Be strong's not-yet milestone 2 is Next. With all hit, or none, the Goal row is Next and "0 of 1 hit" for no milestones. One-off goals say "Steps" ("1 of 5 done") and every not-done step is checkable.
-- [x] Week labels count the start week as Wk 1; "No date"; Latest is the last hit or not-yet result with its date, and is left out when there's none; no baseline leaves the section out; target section: amount and unit, "No weekly target yet", "Deadline: …" for one-off, "Since Oct 5" for quitting.
-- [x] `pushedDates`: later dated milestones move by the same days, capped at the deadline; earlier and undated ones don't move; moving earlier pulls nothing in; one-off goals move only the step itself.
+- [ ] On open, only the three types show and they have focus. Without a colon the second field appears, and both are required.
+- [ ] Saving under Be fit opens the goal's page, and back goes to Be fit; with no aspiration, back goes to the tab. "New aspiration" creates both, and a failed goal save after that doesn't make a second aspiration on retry.
+- [ ] A building goal with target 3 shows "3 lifting sessions" on its page and three new tasks in Week's bank.
 
 **Verification:**
-- [x] `npm test`: new `domain/goalDetail.test.ts`; existing domain tests still pass
+- [ ] `npm test`: `AddSheet.test.tsx`, `useAdd.test.tsx`, `App.test.tsx`
 
-**Dependencies:** Task 1
+**Dependencies:** Task 8
 
-**Files:** `src/domain/goalDetail.ts`, `src/domain/goalDetail.test.ts`
+**Files:** `src/components/GoalForm.tsx`, `src/components/AddSheet.tsx`, `src/hooks/useAdd.ts`, `src/App.tsx`, tests
 
 **Scope:** M
 
-### Task 4: `condenseTimeline` and the Show all preference
+### Task 10: The Aspiration tab and "+ Add a goal for Be fit"
 
-**Description:** `condenseTimeline(timeline)` keeps the latest hit milestone, every not-yet one, Next and the Goal row, and folds the runs between them into labelled fold rows. `storage/timelinePreference.ts` remembers expanded goal IDs.
-
-**Acceptance criteria:**
-- [x] Four milestones or fewer: no folding, no toggle. Be strong condenses to Start, milestone 1 (latest hit), milestone 2 (not yet, Next), "3 more: Wk 9, No date, No date", Goal. A run of one row shows the row itself rather than a fold.
-- [x] A not-yet milestone is never folded; all hit and none hit both give sensible rows.
-- [x] The preference round-trips per goal and falls back to collapsed when storage throws or holds junk.
-
-**Verification:**
-- [x] `npm test`: `goalDetail.test.ts` (a `condenseTimeline` block), new `storage/timelinePreference.test.ts`
-
-**Dependencies:** Task 3
-
-**Files:** `src/domain/goalDetail.ts`, `src/domain/goalDetail.test.ts`, `src/storage/timelinePreference.ts`, `src/storage/timelinePreference.test.ts`
-
-**Scope:** S
-
-## Checkpoint A
-- [x] Tests, lint and build pass
-- [x] Today, Week, the tab and the aspiration page behave as before
-
-## Phase 2: The screen
-
-### Task 5: `useGoal` and the screen, shown
-
-**Description:** `useGoal(goalId, today)` loads, reports `notFound`, and returns the page and the Show all state. `GoalDetail.tsx` replaces the placeholder: pinned header with back named for where it came from, type, aspiration link; Started at / Latest; the timeline condensed or expanded (fold rows and Show all / Show less toggle); target; next check-in. Buttons that open PR 2's sheets aren't there yet. `App.tsx` passes `onOpenAspiration`, and a missing goal goes back to Aspirations.
+**Description:** `AspirationForm`: name and "What would this give you?". After saving, the sheet stays open on "Saved." with **Add a goal for this** (Goal tab, that aspiration selected) and **Done**. On an active aspiration's page, "+ Add a goal for Be fit" opens the Goal tab with it selected; not on a retired one.
 
 **Acceptance criteria:**
-- [x] Be strong renders its header, "‹ Be fit" or "‹ Aspirations" by origin, "Be fit ›" opens the aspiration, and the timeline opens condensed.
-- [x] A fold row and Show all expand it; Show less collapses it; reopening the goal restores the choice.
-- [x] A remembered goal that doesn't exist lands on Aspirations; no dialog is open on first render.
+- [ ] An aspiration saves with or without a why and shows last on the tab after Done.
+- [ ] "Add a goal for this" opens the Goal tab with the new aspiration selected.
+- [ ] The link is on Be fit's page and opens the Goal tab with Be fit selected; a retired aspiration's page has no link.
 
 **Verification:**
-- [x] `npm test`: new `hooks/useGoal.test.tsx` (load, not found), new `screens/GoalDetail.test.tsx`, `App.test.tsx`
-- [x] Manual: `npm run dev`, open Be strong and the garage goal at 390 px (done at Checkpoint B)
-
-**Dependencies:** Tasks 2, 4
-
-**Files:** `src/hooks/useGoal.ts`, `src/hooks/useGoal.test.tsx`, `src/screens/GoalDetail.tsx`, `src/screens/GoalDetail.css`, `src/screens/GoalDetail.test.tsx`, `src/App.tsx`, `src/App.test.tsx`
-
-**Scope:** M (at the top end; split the CSS into a follow-up commit if needed)
-
-### Task 6: Target sheet and Add milestone
-
-**Description:** **Edit** or **Set** opens `TargetSheet` (amount, a whole number of at least 1, and a unit). **+ Add milestone** or **+ Add step** opens `AddMilestoneSheet` (a line and an optional `<input type="date">`, max the deadline). Both save optimistically through `useGoal`; on failure the hook reloads and shows "Couldn't save that. Try again."
-
-**Acceptance criteria:**
-- [x] Changing Be strong's target to 4 shows at once, and Week reads "of 4".
-- [x] A new milestone appears last on the timeline (expanding a condensed one isn't required) and the count becomes "1 of 7 hit".
-- [x] A failed save reloads the goal and shows the message each time (hook test with a rejecting client).
-
-**Verification:**
-- [x] `npm test`: `GoalDetail.test.tsx`, `useGoal.test.tsx`
-
-**Dependencies:** Task 5
-
-**Files:** `src/components/TargetSheet.tsx`, `src/components/AddMilestoneSheet.tsx` (+ `.css`), `src/hooks/useGoal.ts`, `src/hooks/useGoal.test.tsx`, `src/screens/GoalDetail.tsx`, `src/screens/GoalDetail.test.tsx`
-
-**Scope:** M
-
-## Checkpoint B (PR 1)
-- [x] Tests, lint and build pass
-- [x] On the phone, 375 and 390 px, light and dark: Be strong condensed has the target and Next check-in visible without scrolling; long lines wrap; sheets clear the keyboard and the home indicator
-- [x] Parent-repo docs: Flow 6's timeline, the condensed view and target editing as built (own branch and PR): goals-to-actions#8
-- [x] Spec status updated; PR 1 opened referencing #5 (not closing it)
-- [x] Review with Jan before PR 2 (merged as #20)
-
-# PR 2: `goal-detail-actions`
-
-## Phase 3: API
-
-### Task 7: `checkInMilestone` and `reopenMilestone`
-
-**Description:** `checkInMilestone(id, 'hit' | 'notYet', result?)` sets status, result and `checkedInOn`. For building and quitting goals only the first milestone that isn't hit can be checked in; for one-off, any step that isn't done. `reopenMilestone(id, changes?)` returns a not-yet milestone to upcoming, applies a new line or date, pushes later ones out with `pushedDates`, and returns the goal's milestones.
-
-**Acceptance criteria:**
-- [x] Hit on Be strong milestone 2 makes milestone 3 Next; checking in milestone 4 before 3 rejects for Be strong but works for the garage's step 5.
-- [x] Moving milestone 2 three weeks later moves milestone 3 by three weeks and leaves 4 and 5 undated; with a deadline, nothing passes it.
-- [x] Rejects a hit milestone, an unknown id, a blank line, reopening one that isn't not-yet, and anything on a reached or ended goal.
-
-**Verification:**
-- [x] `npm test`: `client.test.ts`
-
-**Dependencies:** Checkpoint B
-
-**Files:** `src/api/client.ts`, `src/api/client.test.ts`
-
-**Scope:** S
-
-### Task 8: `pauseGoal`, `resumeGoal`, `endGoal`, and Other goals
-
-**Description:** Pause: active → paused, its waiting tasks this week → skipped (day kept). Resume: from paused, those skipped tasks → bank; from ended, clears `endedAt`. End: `reached` or `ended`, sets `endedAt`, tasks untouched. `otherGoals` takes in current goals whose aspiration is retired; the retired aspiration's page shows such a goal as active.
-
-**Acceptance criteria:**
-- [x] Pause Be strong: its tasks leave `getDay`, `getBank` and Week's progress; done ones stay. Resume: they're in `getBank` with no day, and other goals' skipped tasks are untouched.
-- [x] End as reached and as ended set status and `endedAt` and move no tasks; Go again on an ended goal makes it active. Pausing a paused, reached or ended goal rejects, as does resuming an active one.
-- [x] After retiring Be fit with "Pause them" and resuming Be strong: it's under Other goals on the tab, active on Be fit's retired page, and Today and Week still render it.
-
-**Verification:**
-- [x] `npm test`: `client.test.ts`, `domain/aspirations.test.ts`, `domain/aspiration.test.ts`, `domain/today.test.ts` if sorting needs a case
-
-**Dependencies:** Task 7
-
-**Files:** `src/api/client.ts`, `src/api/client.test.ts`, `src/domain/aspirations.ts`, `src/domain/aspirations.test.ts`, `src/domain/aspiration.ts`, `src/domain/aspiration.test.ts`
-
-**Scope:** M
-
-## Checkpoint C
-- [x] Tests, lint and build pass
-- [x] Today, Week, the tab, the aspiration page and Keep life running behave as before with the mock unchanged
-
-## Phase 4: The screen
-
-### Task 9: Check in and the not-yet card
-
-**Description:** **Check in** (or tapping any not-done step of a one-off goal) opens `CheckInSheet`: the milestone's line, "How did it go?", an optional result, **Hit it** / **Not yet** (**Done** / **Not yet** for steps). Hit shows "Milestone hit: …" and Next moves on. The Goal row's Hit it marks the goal reached; its Not yet changes nothing. While Next is not yet, the card shows under Next check-in, leading with "You started at … Now: …", with **Keep the date**, **Move the date** and **Adjust the milestone**, each returning it to upcoming.
-
-**Acceptance criteria:**
-- [x] Opening Be strong shows the not-yet card for milestone 2 (from the mock), leading with the baseline and its result; each of the three choices clears it, and Move the date pushes milestone 3 out.
-- [x] Hit it on milestone 2 makes milestone 3 Next; with every milestone hit, Hit it on the goal shows it reached. A garage step out of order can be marked Done.
-- [x] No "missed", "failed", "behind" or "overdue" anywhere (a test scans the rendered text).
-
-**Verification:**
-- [x] `npm test`: `GoalDetail.test.tsx`, `useGoal.test.tsx`
-
-**Dependencies:** Checkpoint C
-
-**Files:** `src/components/CheckInSheet.tsx`, `src/components/NotYetCard.tsx` (+ `.css`), `src/hooks/useGoal.ts`, `src/screens/GoalDetail.tsx`, `src/screens/GoalDetail.test.tsx`
-
-**Scope:** M
-
-### Task 10: Pause, Resume, End and Go again
-
-**Description:** Actions row **Pause · End goal** (Pause reads Resume when paused). `EndGoalSheet` leads with Started at / Latest and "2 of 6 milestones hit", then **I reached it**, **End it for now**, **Cancel**. Reached reads "Reached Nov 10" and "What's next for Be fit?"; ended reads "Not yet." with the same lines and **Go again**. These wait for the save, then reload.
-
-**Acceptance criteria:**
-- [x] Pause then Resume: tasks leave Week, then return to the bank; the tab reads "Paused" in between.
-- [x] End as reached and as ended show their states, with no Pause, Check in or Add milestone; Go again makes the goal active.
-- [x] A failed save leaves the page as it was with the message.
-
-**Verification:**
-- [x] `npm test`: `GoalDetail.test.tsx`, `App.test.tsx` (the tab reflects Pause)
+- [ ] `npm test`: `AddSheet.test.tsx`, `Aspiration.test.tsx`, `App.test.tsx`
 
 **Dependencies:** Task 9
 
-**Files:** `src/components/EndGoalSheet.tsx` (+ `.css`), `src/hooks/useGoal.ts`, `src/screens/GoalDetail.tsx`, `src/screens/GoalDetail.test.tsx`, `src/App.test.tsx`
+**Files:** `src/components/AspirationForm.tsx`, `src/components/AddSheet.tsx`, `src/hooks/useAdd.ts`, `src/screens/Aspiration.tsx`, `src/App.tsx`, tests
 
 **Scope:** M
 
-### Task 11: Docs
+## Checkpoint 2 (PR 2)
+- [ ] Tests, lint and build pass
+- [ ] On the phone, 375 and 390 px, light and dark: the Goal form with every field showing scrolls inside the sheet, and the keyboard never hides the field in use or Save
+- [ ] PR opened as "Part of #6"
 
-**Description:** Parent repo (own branch and PR): Flow 6 (check-in, not yet stays next, push-out capped at the deadline, steps in any order), Flow 7 (Pause / Resume / End, Go again, no goal Review), `data-model.md` if it mentions goal review, and the screen inventory. Front end: spec 005 marked built, `specs/README.md` moves 005 to Done.
+# PR 3: `add-sheet-recurring` (closes #6)
+
+### Task 11: Repeat rules and `addRecurringItem`
+
+**Description:** `repeatRuleText(choice)`, `nextDue(choice, today)` and `recurringReady`. `addRecurringItem` stores an active item, with the aspiration or none (Keep life running).
 
 **Acceptance criteria:**
-- [x] No doc still describes goal Review, or a not-yet milestone being passed over.
-- [x] Every rule in plan decisions 5–9 appears in `docs/`.
+- [ ] Each choice gives the mock's style of text: "Every Tuesday", "Monthly on the 1st", "Once a week", "3 times a week", "Every two weeks", "Once a month".
+- [ ] Next due: a weekday later this week or next week; a monthly day already past this month gives next month's; flexible choices give today.
+- [ ] Without an aspiration it's in `getUpkeep`; with Be fit, in `getAspiration`; a blank name or unknown aspiration rejects.
 
 **Verification:**
-- [x] `npm test && npm run lint && npm run build`; read-through of the parent diff
+- [ ] `npm test`: `add.test.ts`, `client.test.ts`
 
-**Dependencies:** Task 10
+**Dependencies:** Checkpoint 2
 
-**Files:** `../docs/flows.md`, `../docs/data-model.md`, `../docs/screens/README.md`, `specs/005-goal-detail.md`, `specs/README.md`
+**Files:** `src/domain/add.ts`, `src/domain/add.test.ts`, `src/api/client.ts`, `src/api/client.test.ts`
 
 **Scope:** S
 
-## Checkpoint D (PR 2)
-- [x] Tests, lint and build pass
-- [x] On the phone, 375 and 390 px, light and dark: check-in sheet, not-yet card with a date picker, End sheet; nothing opens unprompted
-- [x] PR 2 opened, closing #5; the parent-repo docs PR linked (goals-to-actions#9)
+### Task 12: The Recurring tab, "+ Add recurring" and the tab hint
+
+**Description:** `RecurringForm`: name, Fixed day (weekday or 1st–28th) or Flexible (the listed choices), and an optional aspiration. It confirms with "Added. It will show up in the plan when it's next due." An active aspiration's page gets "+ Add recurring". The Aspirations tab's footer hint ends with "Add one with +."
+
+**Acceptance criteria:**
+- [ ] Each choice saves the right rule. With no aspiration the item appears on Keep life running; under Be fit it appears on Be fit's card and page.
+- [ ] "+ Add recurring" opens the Recurring tab with Be fit selected; not on a retired aspiration.
+
+**Verification:**
+- [ ] `npm test`: `AddSheet.test.tsx`, `Aspiration.test.tsx`, `Aspirations.test.tsx`, `App.test.tsx`
+
+**Dependencies:** Task 11
+
+**Files:** `src/components/RecurringForm.tsx`, `src/components/AddSheet.tsx`, `src/hooks/useAdd.ts`, `src/screens/Aspiration.tsx`, `src/screens/Aspirations.tsx`, tests
+
+**Scope:** M
+
+### Task 13: Docs
+
+**Description:** Parent repo (own branch and PR): Flows 1–3 for what the four forms settled (the type picked first, the sentence split, where a task goes, the repeat choices, back from a new goal), and the screen inventory. Front end: spec 006 marked built, and `specs/README.md` moves 006 to Done.
+
+**Acceptance criteria:**
+- [ ] Every rule in plan decisions 2–4 appears in `docs/`.
+- [ ] No doc says a new task goes onto a day other than today.
+
+**Verification:**
+- [ ] `npm test && npm run lint && npm run build`; read-through of the parent diff
+
+**Dependencies:** Task 12
+
+**Files:** `../docs/flows.md`, `../docs/screens/README.md`, `specs/006-add-sheet.md`, `specs/README.md`
+
+**Scope:** S
+
+## Checkpoint 3 (PR 3)
+- [ ] Tests, lint and build pass
+- [ ] On the phone, 375 and 390 px, light and dark: the Recurring form, and both links on Be fit's page
+- [ ] Every success criterion in spec 006 met
+- [ ] PR opened, closing #6, with the parent-repo docs PR linked
