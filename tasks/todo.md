@@ -113,7 +113,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Verification:**
 - [x] `npm test`: new `hooks/useGoal.test.tsx` (load, not found), new `screens/GoalDetail.test.tsx`, `App.test.tsx`
-- [ ] Manual: `npm run dev`, open Be strong and the garage goal at 390 px (folded into Checkpoint B)
+- [x] Manual: `npm run dev`, open Be strong and the garage goal at 390 px (done at Checkpoint B)
 
 **Dependencies:** Tasks 2, 4
 
@@ -141,9 +141,10 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 ## Checkpoint B (PR 1)
 - [x] Tests, lint and build pass
-- [ ] On the phone, 375 and 390 px, light and dark: Be strong condensed has the target and Next check-in visible without scrolling; long lines wrap; sheets clear the keyboard and the home indicator
-- [ ] Parent-repo docs: Flow 6's timeline, the condensed view and target editing as built (own branch and PR)
-- [ ] Spec status updated; PR 1 opened referencing #5 (not closing it); review with Jan before PR 2
+- [x] On the phone, 375 and 390 px, light and dark: Be strong condensed has the target and Next check-in visible without scrolling; long lines wrap; sheets clear the keyboard and the home indicator
+- [x] Parent-repo docs: Flow 6's timeline, the condensed view and target editing as built (own branch and PR): goals-to-actions#8
+- [x] Spec status updated; PR 1 opened referencing #5 (not closing it)
+- [ ] Review with Jan before PR 2
 
 # PR 2: `goal-detail-actions`
 
