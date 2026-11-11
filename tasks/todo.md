@@ -71,12 +71,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `aspirationPage(detail, today)` returns the active or retired view: header, this week (count, "6 days left", bar values), goal cards (active then paused, each with progress label, measurable line, milestone bar values and week line), recurring rows, past goals, priority line and which moves apply, history line. Widen `goalProgress` and `weekCount` to `Pick<…>`; export `daysLeft` from `domain/week.ts`.
 
 **Acceptance criteria:**
-- [ ] Goal cards: "This week: 1 of 3 lifting sessions", "No weekly target yet" for a building goal without one, no week line for one-off or quitting, "Paused" for paused; This week left out when no goal has a target.
-- [ ] `priorityLine` for 1st, 2nd, 3rd and "1st of 1 aspiration"; move up off for the first, down off for the last, both off when alone.
-- [ ] History line leaves out zeros and adds the year only when it isn't this year; the retired view has "Retired Nov 10", past goals, paused goals and recurring items marked "Paused", and nothing else.
+- [x] Goal cards: "This week: 1 of 3 lifting sessions", "No weekly target yet" for a building goal without one, no week line for one-off or quitting, "Paused" for paused; This week left out when no goal has a target.
+- [x] `priorityLine` for 1st, 2nd, 3rd and "1st of 1 aspiration"; move up off for the first, down off for the last, both off when alone.
+- [x] History line leaves out zeros and adds the year only when it isn't this year; the retired view has "Retired Nov 10", past goals, paused goals and recurring items marked "Paused", and nothing else.
 
 **Verification:**
-- [ ] `npm test`: new `domain/aspiration.test.ts`; `aspirations.test.ts` and `week.test.ts` still pass
+- [x] `npm test`: new `domain/aspiration.test.ts`; `aspirations.test.ts` and `week.test.ts` still pass
 
 **Dependencies:** Task 1
 
