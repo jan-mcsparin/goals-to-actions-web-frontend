@@ -1,0 +1,30 @@
+.review-questions p {
+  margin: 0.75rem 0 0;
+}
+
+.review-place {
+  color: var(--muted);
+}
+
+.review-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.review-choice {
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  text-align: left;
+}
+
+.review-choice:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

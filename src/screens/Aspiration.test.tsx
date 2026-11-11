@@ -264,6 +264,83 @@ describe('Aspiration, active', () => {
     expect(store.aspirations.find((aspiration) => aspiration.id === 'asp-fit')?.status).toBe('active')
   })
 
+  async function openReview(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole('button', { name: 'Review' }))
+    return screen.getByRole('dialog', { name: 'Review Be fit' })
+  }
+
+  const lastReviewed = () => store.aspirations.find((aspiration) => aspiration.id === 'asp-fit')?.lastReviewedAt
+
+  it('asks the two review questions, with where it sits', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    const sheet = await openReview(user)
+
+    expect(within(sheet).getByText('Still the right aspiration?')).toBeDefined()
+    expect(within(sheet).getByText('Still in the right place?')).toBeDefined()
+    expect(within(sheet).getByText('1st of 2 aspirations')).toBeDefined()
+    const choices = within(sheet).getByRole('group', { name: 'Review choices' })
+    expect(within(choices).getAllByRole('button').map((button) => button.textContent)).toEqual([
+      'Keep as is',
+      'Edit name and why',
+      'Move it',
+      'Retire',
+    ])
+  })
+
+  it('closes without recording a review', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(within(await openReview(user)).getByRole('button', { name: 'Close' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(lastReviewed()).toBeUndefined()
+  })
+
+  it('records the review and closes on Keep as is', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(within(await openReview(user)).getByRole('button', { name: 'Keep as is' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    await vi.waitFor(() => expect(lastReviewed()).toBe(new Date(2026, 10, 11, 9, 0).toISOString()))
+  })
+
+  it('records the review and opens the edit sheet on Edit name and why', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(within(await openReview(user)).getByRole('button', { name: 'Edit name and why' }))
+
+    expect(screen.getByRole('dialog', { name: 'Edit name and why' })).toBeDefined()
+    expect(screen.queryByRole('dialog', { name: 'Review Be fit' })).toBeNull()
+    await vi.waitFor(() => expect(lastReviewed()).toBeDefined())
+  })
+
+  it('records the review, closes, and goes to Priority on Move it', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(within(await openReview(user)).getByRole('button', { name: 'Move it' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: 'Priority' }))
+    await vi.waitFor(() => expect(lastReviewed()).toBeDefined())
+  })
+
+  it('records the review and opens the Retire sheet on Retire', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(within(await openReview(user)).getByRole('button', { name: 'Retire' }))
+
+    expect(screen.getByRole('dialog', { name: 'Retire Be fit?' })).toBeDefined()
+    await vi.waitFor(() => expect(lastReviewed()).toBeDefined())
+  })
+
   it('offers Edit name and why, Review and Retire, with no dialog open', async () => {
     renderPage()
 

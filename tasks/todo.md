@@ -170,11 +170,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `ReviewSheet`: the name, "Still the right aspiration?", "Still in the right place?" with "1st of 2", and Keep as is, Edit name and why, Move it, Retire. Each records the review, then: closes; opens Edit; closes and focuses the Priority heading; opens Retire.
 
 **Acceptance criteria:**
-- [ ] Each choice sets `lastReviewedAt` to today and leads where described.
-- [ ] Nothing opens it but the Review button: no prompt, badge or reminder anywhere.
+- [x] Each choice sets `lastReviewedAt` to today and leads where described.
+- [x] Nothing opens it but the Review button: no prompt, badge or reminder anywhere.
 
 **Verification:**
-- [ ] `npm test`: `Aspiration.test.tsx`, plus a hook check that review is optimistic
+- [x] `npm test`: `Aspiration.test.tsx`, plus a hook check that review is optimistic
 
 **Dependencies:** Tasks 6, 7, 8
 

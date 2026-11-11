@@ -8,6 +8,7 @@ import {
   moveAspiration,
   NotFoundError,
   retireAspiration,
+  reviewAspiration,
   updateAspiration,
 } from '../api/client.ts'
 import type { AspirationDetail } from '../api/types.ts'
@@ -28,6 +29,7 @@ export type UseAspiration = {
   message?: string
   notFound: boolean
   edit: (changes: NameAndWhy) => void
+  review: () => void
   retire: (itsWork: ItsWork) => Promise<boolean>
   move: (direction: 'up' | 'down') => void
 }
@@ -75,6 +77,13 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
     )
   }
 
+  function review() {
+    saveOptimistically(
+      (before) => ({ ...before, aspiration: { ...before.aspiration, lastReviewedAt: new Date().toISOString() } }),
+      () => reviewAspiration(aspirationId),
+    )
+  }
+
   // Rare, and the page is left afterwards, so this waits for the save.
   // Resolves true once it's saved; on failure, the page stays with a message.
   async function retire(itsWork: ItsWork): Promise<boolean> {
@@ -106,6 +115,7 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
     message,
     notFound,
     edit,
+    review,
     retire,
     move,
   }
