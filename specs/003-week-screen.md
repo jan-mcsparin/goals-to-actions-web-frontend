@@ -148,12 +148,12 @@ npm run dev -- --host   # check on the phone
 
 ## Success criteria
 
-- [ ] Every acceptance criterion on #3 is met, with drag replaced by tap-then-pick-a-day.
-- [ ] Any day opens as a full day screen with every Today action, placing pulled and swapped tasks on that day.
-- [ ] Tab bar switches Today and Week; the current screen (including an open day) survives reload.
-- [ ] `placedByHand` is set and cleared as described, and documented in the data model.
-- [ ] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
-- [ ] Works at 375 and 390 px, light and dark.
+- [x] Every acceptance criterion on #3 is met, with drag replaced by tap-then-pick-a-day.
+- [x] Any day opens as a full day screen with every Today action, placing pulled and swapped tasks on that day.
+- [x] Tab bar switches Today and Week; the current screen (including an open day) survives reload.
+- [x] `placedByHand` is set and cleared as described, and documented in the data model.
+- [x] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
+- [x] Works at 375 and 390 px, light and dark.
 
 ## Decisions
 
