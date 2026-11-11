@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import type { ItsWork } from '../hooks/useAspiration.ts'
+import type { ItsWork } from '../domain/aspiration.ts'
 import './sheet.css'
 import './RetireSheet.css'
 import { useModalDialog } from './useModalDialog.ts'

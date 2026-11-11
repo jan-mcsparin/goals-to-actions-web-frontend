@@ -108,9 +108,14 @@ export function aspirationPage(detail: AspirationDetail, today: string): Aspirat
   }
 }
 
+export type NameAndWhy = { name: string; why: string }
+
+// What retiring does with the aspiration's goals and recurring items.
+export type ItsWork = 'pause' | 'keep'
+
 // The aspiration as an edit leaves it, as the API saves it: both trimmed, a
 // blank why removed. A blank name isn't valid; callers check canSaveName first.
-export function withNameAndWhy(aspiration: Aspiration, changes: { name: string; why: string }): Aspiration {
+export function withNameAndWhy(aspiration: Aspiration, changes: NameAndWhy): Aspiration {
   const { why: _oldWhy, ...rest } = aspiration
   const why = changes.why.trim()
   return { ...rest, name: changes.name.trim(), ...(why && { why }) }

@@ -13,15 +13,17 @@ import {
   updateAspiration,
 } from '../api/client.ts'
 import type { AspirationDetail } from '../api/types.ts'
-import { aspirationPage, canSaveName, withNameAndWhy, type AspirationPage } from '../domain/aspiration.ts'
+import {
+  aspirationPage,
+  canSaveName,
+  withNameAndWhy,
+  type AspirationPage,
+  type ItsWork,
+  type NameAndWhy,
+} from '../domain/aspiration.ts'
 
 const LOAD_FAILED = "Couldn't load this aspiration. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
-
-export type NameAndWhy = { name: string; why: string }
-
-// What retiring does with the aspiration's goals and recurring items.
-export type ItsWork = 'pause' | 'keep'
 
 export type UseAspiration = {
   page?: AspirationPage

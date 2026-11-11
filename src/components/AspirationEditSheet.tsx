@@ -1,6 +1,5 @@
 import { useId, useState } from 'react'
-import { canSaveName } from '../domain/aspiration.ts'
-import type { NameAndWhy } from '../hooks/useAspiration.ts'
+import { canSaveName, type NameAndWhy } from '../domain/aspiration.ts'
 import './sheet.css'
 import './AspirationEditSheet.css'
 import { useModalDialog } from './useModalDialog.ts'
