@@ -120,7 +120,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Verification:**
 - [x] `npm test`: `useAspiration.test.tsx`, `Aspiration.test.tsx`, `App.test.tsx`
-- [ ] Manual: Week's progress rows and Today's By goal view follow
+- [x] Manual: Week's progress rows and Today's By goal view follow
 
 **Dependencies:** Tasks 2, 5
 
@@ -157,7 +157,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Verification:**
 - [x] `npm test`: `Aspiration.test.tsx`, `App.test.tsx`
-- [ ] Manual: fits without scrolling at 375 px
+- [x] Manual: fits without scrolling at 375 px
 
 **Dependencies:** Tasks 3, 5
 
@@ -203,9 +203,9 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** S
 
 ## Checkpoint C
-- [ ] Every success criterion in the spec and every acceptance criterion on #13 is met
-- [ ] Tests, lint and build pass
-- [ ] On the phone, 375 and 390 px, light and dark: every sheet, reorder then Week and Today, retire both ways, bring back, reload on the page
+- [x] Every success criterion in the spec and every acceptance criterion on #13 is met
+- [x] Tests, lint and build pass
+- [x] On the phone, 375 and 390 px, light and dark: every sheet, reorder then Week and Today, retire both ways, bring back, reload on the page
 
 ## Phase 4: Docs
 
@@ -214,13 +214,13 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Record what was built and anything the build settled.
 
 **Acceptance criteria:**
-- [ ] `specs/013-aspiration-page.md` is marked approved, with priority for active ones only, the history line's year and the open question moved to #5.
-- [ ] `specs/README.md` moves 013 to Done (after Jan's review), and spec 005 notes the resume question.
-- [ ] `../docs/data-model.md` says priority is for active aspirations only; it and `../docs/flows.md` say set-aside tasks include ones placed by hand and keep their day. Own branch and PR in the parent repo.
-- [ ] Review is dropped from the aspiration: spec 013, `../docs/flows.md` (Flow 1, Flow 7's light reviews), `../docs/product-rules.md` ("No review prompts") and `../docs/data-model.md` (no "last reviewed" on aspirations). Note on #5 that Goal detail's Review raises the same question.
+- [x] `specs/013-aspiration-page.md` is marked approved, with priority for active ones only, the history line's year and the open question moved to #5.
+- [x] `specs/README.md` moves 013 to Done (after Jan's review), and spec 005 notes the resume question.
+- [x] `../docs/data-model.md` says priority is for active aspirations only; it and `../docs/flows.md` say set-aside tasks include ones placed by hand and keep their day. Own branch and PR in the parent repo.
+- [x] Review is dropped from the aspiration: spec 013, `../docs/flows.md` (Flow 1, Flow 7's light reviews), `../docs/product-rules.md` ("No review prompts") and `../docs/data-model.md` (no "last reviewed" on aspirations). Note on #5 that Goal detail's Review raises the same question.
 
 **Verification:**
-- [ ] Read-through against the build
+- [x] Read-through against the build
 
 **Dependencies:** Task 10
 
