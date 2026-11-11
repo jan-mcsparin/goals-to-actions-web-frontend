@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addMilestone, checkInMilestone, getGoal, reopenMilestone, setWeeklyTarget } from '../api/client.ts'
+import { addMilestone, checkInMilestone, getGoal, pauseGoal, reopenMilestone, setWeeklyTarget } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { CurrentPage } from '../domain/goalDetail.ts'
 import { useGoal } from './useGoal.ts'
@@ -14,6 +14,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     addMilestone: vi.fn(actual.addMilestone),
     checkInMilestone: vi.fn(actual.checkInMilestone),
     reopenMilestone: vi.fn(actual.reopenMilestone),
+    pauseGoal: vi.fn(actual.pauseGoal),
   }
 })
 
@@ -34,6 +35,7 @@ afterEach(() => {
   vi.mocked(addMilestone).mockClear()
   vi.mocked(checkInMilestone).mockClear()
   vi.mocked(reopenMilestone).mockClear()
+  vi.mocked(pauseGoal).mockClear()
 })
 
 function shownKinds(rows: { kind: string }[]) {
@@ -223,5 +225,46 @@ describe('useGoal, checking in', () => {
     await waitFor(() => expect(result.current.message).toBe("Couldn't save that. Try again."))
     await waitFor(() => expect(current(result.current.page).notYet?.milestoneId).toBe('ms-strong-2'))
     expect(result.current.justHit).toBeUndefined()
+  })
+})
+
+describe('useGoal, pause and end', () => {
+  async function loaded(goalId = 'goal-strong') {
+    const hook = renderHook(() => useGoal(goalId, FROM_TAB, TODAY))
+    await waitFor(() => expect(hook.result.current.page).toBeDefined())
+    return hook
+  }
+
+  it('pauses and resumes, showing the saved goal', async () => {
+    const { result } = await loaded()
+
+    await act(() => result.current.pause())
+    expect(result.current.page?.header.kindLine).toBe('Building · Paused')
+
+    await act(() => result.current.resume())
+    expect(result.current.page?.header.kindLine).toBe('Building')
+  })
+
+  it('ends as reached or for now, and goes again', async () => {
+    const { result } = await loaded()
+
+    await act(() => result.current.end('ended'))
+    expect(result.current.page?.kind).toBe('ended')
+
+    await act(() => result.current.resume())
+    expect(result.current.page?.kind).toBe('current')
+
+    await act(() => result.current.end('reached'))
+    expect(result.current.page).toMatchObject({ kind: 'reached', reachedLine: 'Reached Nov 11' })
+  })
+
+  it('leaves the page as it was, with the message, when a save fails', async () => {
+    vi.mocked(pauseGoal).mockRejectedValueOnce(new Error('offline'))
+    const { result } = await loaded()
+
+    await act(() => result.current.pause())
+
+    expect(result.current.page?.header.kindLine).toBe('Building')
+    expect(result.current.message).toBe("Couldn't save that. Try again.")
   })
 })

@@ -9,7 +9,9 @@ import {
   endGoal,
   getGoal,
   NotFoundError,
+  pauseGoal,
   reopenMilestone,
+  resumeGoal,
   setWeeklyTarget,
 } from '../api/client.ts'
 import type { GoalDetail } from '../api/types.ts'
@@ -65,6 +67,11 @@ export type UseGoal = {
   addMilestone: (draft: MilestoneDraft) => void
   checkIn: (milestoneId: string | undefined, outcome: 'hit' | 'notYet', result: string) => void
   reopen: (milestoneId: string, changes: ReopenChanges) => void
+  // These change the goal's status and its tasks, so they wait for the save.
+  pause: () => Promise<void>
+  // From paused, or from ended (Go again).
+  resume: () => Promise<void>
+  end: (outcome: 'reached' | 'ended') => Promise<void>
 }
 
 export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoal {
@@ -197,6 +204,9 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
     addMilestone,
     checkIn,
     reopen,
+    pause: () => saveThenReload(() => pauseGoal(goalId)),
+    resume: () => saveThenReload(() => resumeGoal(goalId)),
+    end: (outcome) => saveThenReload(() => endGoal(goalId, outcome)),
   }
 }
 

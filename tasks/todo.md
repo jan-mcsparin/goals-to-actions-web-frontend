@@ -215,12 +215,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Actions row **Pause · End goal** (Pause reads Resume when paused). `EndGoalSheet` leads with Started at / Latest and "2 of 6 milestones hit", then **I reached it**, **End it for now**, **Cancel**. Reached reads "Reached Nov 10" and "What's next for Be fit?"; ended reads "Not yet." with the same lines and **Go again**. These wait for the save, then reload.
 
 **Acceptance criteria:**
-- [ ] Pause then Resume: tasks leave Week, then return to the bank; the tab reads "Paused" in between.
-- [ ] End as reached and as ended show their states, with no Pause, Check in or Add milestone; Go again makes the goal active.
-- [ ] A failed save leaves the page as it was with the message.
+- [x] Pause then Resume: tasks leave Week, then return to the bank; the tab reads "Paused" in between.
+- [x] End as reached and as ended show their states, with no Pause, Check in or Add milestone; Go again makes the goal active.
+- [x] A failed save leaves the page as it was with the message.
 
 **Verification:**
-- [ ] `npm test`: `GoalDetail.test.tsx`, `App.test.tsx` (the tab reflects Pause)
+- [x] `npm test`: `GoalDetail.test.tsx`, `App.test.tsx` (the tab reflects Pause)
 
 **Dependencies:** Task 9
 

@@ -89,6 +89,9 @@ export type CurrentPage = PageBase & {
   target?: TargetSection
   nextCheckIn: NextCheckIn
   notYet?: NotYetCard
+  pauseAction: 'Pause' | 'Resume'
+  // What the End sheet leads with, after Started at / Latest.
+  achievement: string
 }
 
 export type ReachedPage = PageBase & {
@@ -129,6 +132,8 @@ export function goalPage(detail: GoalDetail, today: string): GoalPage {
     ...(target && { target }),
     nextCheckIn: nextCheckIn(detail),
     ...(notYet && { notYet }),
+    pauseAction: goal.status === 'paused' ? 'Resume' : 'Pause',
+    achievement: achievementLine(detail),
   }
 }
 

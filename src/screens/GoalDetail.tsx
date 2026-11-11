@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { AddMilestoneSheet } from '../components/AddMilestoneSheet.tsx'
 import { BackLink } from '../components/BackLink.tsx'
 import { CheckInSheet } from '../components/CheckInSheet.tsx'
+import { EndGoalSheet } from '../components/EndGoalSheet.tsx'
 import { ReopenSheet } from '../components/ReopenSheet.tsx'
 import { TargetSheet } from '../components/TargetSheet.tsx'
 import {
@@ -29,7 +30,7 @@ type GoalDetailProps = {
 }
 
 // One sheet at a time, and only from a tap.
-type OpenSheet = 'target' | 'milestone' | 'checkIn' | 'move' | 'adjust'
+type OpenSheet = 'target' | 'milestone' | 'checkIn' | 'move' | 'adjust' | 'end'
 
 // What a check-in is for: a milestone, or the goal itself (no milestoneId).
 type CheckInTarget = { milestoneId?: string; measurableLine: string }
@@ -87,7 +88,7 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
 
       {page && timeline && (
         <>
-          <Outcome page={page} />
+          <Outcome page={page} onGoAgain={goal.resume} />
           {page.started && (
             <div className="goal-started">
               <p>{page.started.startedAt}</p>
@@ -112,6 +113,20 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
               onMoveDate={() => setSheet('move')}
               onAdjust={() => setSheet('adjust')}
             />
+          )}
+          {page.kind === 'current' && (
+            <div className="goal-actions">
+              <button
+                type="button"
+                className="goal-action"
+                onClick={page.pauseAction === 'Pause' ? goal.pause : goal.resume}
+              >
+                {page.pauseAction}
+              </button>
+              <button type="button" className="goal-action" onClick={() => setSheet('end')}>
+                End goal
+              </button>
+            </div>
           )}
         </>
       )}
@@ -145,6 +160,18 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
         }}
         onClose={closeSheet}
       />
+      {page?.kind === 'current' && (
+        <EndGoalSheet
+          open={sheet === 'end'}
+          started={page.started}
+          achievement={page.achievement}
+          onEnd={(outcome) => {
+            closeSheet()
+            void goal.end(outcome)
+          }}
+          onClose={closeSheet}
+        />
+      )}
       {notYet && (
         <ReopenSheet
           open={sheet === 'move' || sheet === 'adjust'}
@@ -163,7 +190,7 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
   )
 }
 
-function Outcome({ page }: { page: GoalPage }) {
+function Outcome({ page, onGoAgain }: { page: GoalPage; onGoAgain: () => void }) {
   if (page.kind === 'reached') {
     return (
       <div className="goal-outcome">
@@ -177,6 +204,9 @@ function Outcome({ page }: { page: GoalPage }) {
       <div className="goal-outcome">
         <p className="goal-outcome-line">Not yet.</p>
         <p className="goal-note">{page.achievement}</p>
+        <button type="button" className="goal-action" onClick={onGoAgain}>
+          Go again
+        </button>
       </div>
     )
   }

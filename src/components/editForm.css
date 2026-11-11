@@ -74,3 +74,8 @@
   color: var(--muted);
   font-size: 0.875rem;
 }
+
+/* Three choices can be wider than a phone: let them wrap, keeping the main one last. */
+.end-goal-actions {
+  flex-wrap: wrap;
+}

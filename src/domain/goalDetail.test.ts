@@ -665,3 +665,14 @@ describe('the move and adjust forms', () => {
     expect(reopenDraft(detail(), 'm3')).toEqual({ measurableLine: 'Line m3', targetDate: '' })
   })
 })
+
+describe('goalPage actions', () => {
+  it('offers Pause on an active goal and Resume on a paused one', () => {
+    expect(current(detail()).pauseAction).toBe('Pause')
+    expect(current(detail({ goal: goal({ status: 'paused' }) })).pauseAction).toBe('Resume')
+  })
+
+  it('gives the End sheet what was achieved', () => {
+    expect(current(detail()).achievement).toBe('1 of 4 milestones hit')
+  })
+})

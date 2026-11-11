@@ -364,3 +364,25 @@ it('shows a goal resumed under a retired aspiration under Other goals, active on
   expect(within(active).getByRole('button', { name: /^Be strong/ })).toBeDefined()
   expect(within(screen.getByRole('region', { name: 'Paused goals' })).getAllByRole('button')).toHaveLength(2)
 })
+
+it("pausing a goal takes it out of Week and reads Paused on the tab; resuming puts its tasks back in the bank", async () => {
+  localStorage.setItem('gta.screen', JSON.stringify({ screen: 'goal', goalId: 'goal-strong', from: { screen: 'aspirations' } }))
+  const user = userEvent.setup()
+  render(<App />)
+
+  await user.click(await screen.findByRole('button', { name: 'Pause' }))
+  await screen.findByText('Building · Paused')
+
+  await user.click(screen.getByRole('button', { name: 'Week' }))
+  const progress = await screen.findByRole('region', { name: 'Progress' })
+  expect(within(progress).queryByText('Be strong · Be fit')).toBeNull()
+
+  await user.click(screen.getByRole('button', { name: 'Aspirations' }))
+  expect(await screen.findByRole('button', { name: /^Be strong\s*Paused/ })).toBeDefined()
+
+  await user.click(screen.getByRole('button', { name: /^Be strong/ }))
+  await user.click(await screen.findByRole('button', { name: 'Resume' }))
+  await screen.findByRole('button', { name: 'Pause' })
+  await user.click(screen.getByRole('button', { name: 'Week' }))
+  expect(within(await screen.findByRole('region', { name: 'Progress' })).getByText('Be strong · Be fit')).toBeDefined()
+})

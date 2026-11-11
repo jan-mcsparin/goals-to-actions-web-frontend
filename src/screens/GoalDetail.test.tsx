@@ -404,3 +404,62 @@ describe('GoalDetail, checking in', () => {
     expect(document.body.textContent).not.toMatch(/missed|failed|behind|overdue/i)
   })
 })
+
+describe('GoalDetail, pause and end', () => {
+  it('pauses and resumes from the actions', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    await user.click(await screen.findByRole('button', { name: 'Pause' }))
+    expect(await screen.findByText('Building · Paused')).toBeDefined()
+
+    await user.click(screen.getByRole('button', { name: 'Resume' }))
+    expect(await screen.findByText('Building')).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeDefined()
+  })
+
+  it('ends as reached from a sheet that leads with what was achieved', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    await user.click(await screen.findByRole('button', { name: 'End goal' }))
+    const sheet = screen.getByRole('dialog', { name: 'End goal' })
+    expect(within(sheet).getByText('Started at: Bench 145, squat 275, deadlift 315')).toBeDefined()
+    expect(within(sheet).getByText('Latest: Bench 152, squat 300, deadlift 340 · Nov 6')).toBeDefined()
+    expect(within(sheet).getByText('1 of 6 milestones hit')).toBeDefined()
+    await user.click(within(sheet).getByRole('button', { name: 'I reached it' }))
+
+    expect(await screen.findByText('Reached Nov 11')).toBeDefined()
+    expect(screen.getByText('What’s next for Be fit?')).toBeDefined()
+    for (const name of ['Pause', 'End goal', 'Check in', '+ Add milestone']) {
+      expect(screen.queryByRole('button', { name })).toBeNull()
+    }
+  })
+
+  it('ends for now, reading Not yet with what was achieved, and goes again', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    await user.click(await screen.findByRole('button', { name: 'End goal' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'End goal' })).getByRole('button', { name: 'End it for now' }))
+
+    expect(await screen.findByText('Not yet.')).toBeDefined()
+    expect(screen.getByText('1 of 6 milestones hit')).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Check in' })).toBeNull()
+    expect(document.body.textContent).not.toMatch(/missed|failed|behind|overdue/i)
+
+    await user.click(screen.getByRole('button', { name: 'Go again' }))
+    expect(await screen.findByRole('button', { name: 'Check in' })).toBeDefined()
+  })
+
+  it('cancel leaves the goal as it was', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    await user.click(await screen.findByRole('button', { name: 'End goal' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'End goal' })).getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeDefined()
+  })
+})
