@@ -14,6 +14,7 @@
 
 /* 16px text, so iOS Safari doesn't zoom in on focus. */
 .edit-form input,
+.edit-form select,
 .edit-form textarea {
   margin-bottom: 0.75rem;
   padding: 0.625rem 0.75rem;
@@ -62,6 +63,7 @@
 }
 
 .edit-form input:focus-visible,
+.edit-form select:focus-visible,
 .edit-form textarea:focus-visible,
 .edit-form-cancel:focus-visible,
 .edit-form-save:focus-visible {
