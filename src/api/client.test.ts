@@ -625,6 +625,21 @@ describe('retireAspiration', () => {
     expect(['task-laundry', 'task-donate-bikes'].map(taskStatus)).toEqual(['planned', 'planned'])
   })
 
+  it("with pause, leaves its goals' tasks in other weeks alone", async () => {
+    store.tasks.push({
+      id: 'task-lift-next-week',
+      title: 'Lift: squat day',
+      status: 'inBank',
+      weekOf: '2026-11-16',
+      goalId: 'goal-strong',
+      rolloverCount: 0,
+    })
+
+    await retireAspiration('asp-fit', 'pause')
+
+    expect(taskStatus('task-lift-next-week')).toBe('inBank')
+  })
+
   it('with pause, leaves its tasks off every day, the bank, Week and Keep life running', async () => {
     addStretchOnThursday()
 
