@@ -48,7 +48,11 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
   useEffect(() => {
     let current = true
     getAspiration(aspirationId)
-      .then((loaded) => current && setDetail(loaded))
+      .then((loaded) => {
+        if (!current) return
+        setDetail(loaded)
+        setMessage((shown) => (shown === LOAD_FAILED ? undefined : shown))
+      })
       .catch((error: unknown) => {
         if (!current) return
         if (error instanceof NotFoundError) setNotFound(true)

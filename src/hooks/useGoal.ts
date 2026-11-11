@@ -88,7 +88,11 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
   useEffect(() => {
     let current = true
     getGoal(goalId)
-      .then((loaded) => current && setDetail(loaded))
+      .then((loaded) => {
+        if (!current) return
+        setDetail(loaded)
+        setMessage((shown) => (shown === LOAD_FAILED ? undefined : shown))
+      })
       .catch((error: unknown) => {
         if (!current) return
         if (error instanceof NotFoundError) setNotFound(true)

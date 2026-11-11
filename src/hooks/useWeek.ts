@@ -42,7 +42,11 @@ export function useWeek(today: string): UseWeek {
   useEffect(() => {
     let current = true
     getWeek()
-      .then((loaded) => current && setPlan(loaded))
+      .then((loaded) => {
+        if (!current) return
+        setPlan(loaded)
+        setMessage((shown) => (shown === LOAD_FAILED ? undefined : shown))
+      })
       .catch(() => current && setMessage(LOAD_FAILED))
     return () => {
       current = false

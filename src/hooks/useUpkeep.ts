@@ -21,7 +21,11 @@ export function useUpkeep(today: string): UseUpkeep {
   useEffect(() => {
     let current = true
     getUpkeep()
-      .then((loaded) => current && setUpkeep(loaded))
+      .then((loaded) => {
+        if (!current) return
+        setUpkeep(loaded)
+        setMessage((shown) => (shown === LOAD_FAILED ? undefined : shown))
+      })
       .catch(() => current && setMessage(LOAD_FAILED))
     return () => {
       current = false

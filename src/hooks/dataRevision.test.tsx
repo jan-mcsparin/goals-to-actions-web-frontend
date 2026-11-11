@@ -1,11 +1,37 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addTask, updateAspiration } from '../api/client.ts'
+import {
+  addTask,
+  getAspiration,
+  getAspirations,
+  getDay,
+  getGoal,
+  getUpkeep,
+  getWeek,
+  updateAspiration,
+} from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import { DataRevision, useDataRevision, useRevisionCounter } from './dataRevision.ts'
+import { useAspiration } from './useAspiration.ts'
 import { useAspirations } from './useAspirations.ts'
+import { useDay } from './useDay.ts'
+import { useGoal } from './useGoal.ts'
+import { useUpkeep } from './useUpkeep.ts'
 import { useWeek } from './useWeek.ts'
+
+vi.mock('../api/client.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../api/client.ts')>()
+  return {
+    ...actual,
+    getDay: vi.fn(actual.getDay),
+    getWeek: vi.fn(actual.getWeek),
+    getAspirations: vi.fn(actual.getAspirations),
+    getAspiration: vi.fn(actual.getAspiration),
+    getUpkeep: vi.fn(actual.getUpkeep),
+    getGoal: vi.fn(actual.getGoal),
+  }
+})
 
 const TODAY = '2026-11-11'
 
@@ -76,5 +102,24 @@ describe('useAspirations when the data revision changes', () => {
 
     expect(hook.result.current.view).toBeDefined()
     await waitFor(() => expect(JSON.stringify(hook.result.current.view)).toContain('Be fitter'))
+  })
+})
+
+describe.each([
+  ['useDay', getDay, () => useDay(TODAY, TODAY)],
+  ['useWeek', getWeek, () => useWeek(TODAY)],
+  ['useAspirations', getAspirations, () => useAspirations()],
+  ['useAspiration', getAspiration, () => useAspiration('asp-fit', TODAY)],
+  ['useUpkeep', getUpkeep, () => useUpkeep(TODAY)],
+  ['useGoal', getGoal, () => useGoal('goal-strong', { screen: 'aspirations' }, TODAY)],
+] as const)('%s after a failed load', (_name, load, useHook) => {
+  it('clears the load message once a reload works', async () => {
+    vi.mocked(load).mockRejectedValueOnce(new Error('offline'))
+    const hook = renderWithRevision<{ message?: string }>(useHook)
+    await waitFor(() => expect(hook.result.current.message).toBeDefined())
+
+    act(() => hook.bump())
+
+    await waitFor(() => expect(hook.result.current.message).toBeUndefined())
   })
 })

@@ -66,7 +66,11 @@ export function useDay(date: string, today: string): UseDay {
   useEffect(() => {
     let current = true
     getDay(date)
-      .then((loaded) => current && setPlan(loaded))
+      .then((loaded) => {
+        if (!current) return
+        setPlan(loaded)
+        setMessage((shown) => (shown === LOAD_FAILED ? undefined : shown))
+      })
       .catch(() => current && setMessage(LOAD_FAILED))
     return () => {
       current = false
