@@ -307,7 +307,7 @@ export async function addTask(task: {
 }): Promise<Task> {
   const title = task.title.trim()
   if (!title) throw new Error('A task needs a title')
-  if (task.goalId) findGoal(task.goalId)
+  if (task.goalId) findActiveGoal(task.goalId)
 
   const today = toLocalDay(new Date())
   const added: Task = { id: newId('task'), title, status: 'inBank', weekOf: taskWeek(task.dueDate, today), rolloverCount: 0 }
@@ -419,6 +419,13 @@ function findMilestone(milestoneId: string): Milestone {
   const milestone = store.milestones.find((candidate) => candidate.id === milestoneId)
   if (!milestone) throw new NotFoundError(`No milestone with id ${milestoneId}`)
   return milestone
+}
+
+// New work can only go to an active goal, as the Add sheet's picker offers.
+function findActiveGoal(goalId: string): Goal {
+  const goal = findGoal(goalId)
+  if (goal.status !== 'active') throw new Error(`${goalId} is ${goal.status}`)
+  return goal
 }
 
 // In the goal's order.

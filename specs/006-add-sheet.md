@@ -22,7 +22,7 @@ References: [Flow 1](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 2](..
 - **Put it:** "In the bank" or "On today". "On today" is selected to start when the sheet was opened from the Today screen; from anywhere else, "In the bank" is, including a day opened from Week, even when that day is today.
 - Where it goes (Flow 3):
   - in the bank, with no due date or due this week or earlier: this week's bank. "Added to this week's bank."
-  - in the bank, due in a later week: it waits, and joins the bank of the week it's due. "Saved for the week of Nov 23."
+  - in the bank, due in a later week: it waits, and joins the bank of the week it's due. "Saved for the week of Nov 23." (with the year when it's in another year: "Saved for the week of Jan 4, 2027.", as Goal detail shows dates)
   - on today: it's on today's plan at once, marked placed by hand, whatever its due date. "Added to today."
 - It only lands on a day when the person chose "On today".
 
@@ -82,6 +82,7 @@ A building goal saved with a weekly target also gets that many tasks in this wee
 addTask(task: { title: string; goalId?: string; dueDate?: string; timeOfDay?: TimeOfDay; onToday?: boolean }): Promise<Task>
 // status 'inBank'; weekOf is this week's Monday, or the Monday of the due date's week when that is later.
 // With onToday: status 'planned', plannedDay today, weekOf this week, placedByHand.
+// Rejects a goalId that isn't an active goal (the picker offers active goals only).
 
 addGoal(goal: {
   label: string

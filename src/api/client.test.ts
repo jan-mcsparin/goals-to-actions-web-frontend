@@ -1199,4 +1199,12 @@ describe('addTask', () => {
     await expect(addTask({ title: 'Lift', goalId: 'goal-nope' })).rejects.toBeInstanceOf(NotFoundError)
     expect(store.tasks).toHaveLength(before)
   })
+
+  it.each(['paused', 'reached', 'ended'] as const)('rejects a %s goal and stores nothing', async (status) => {
+    store.goals.find((goal) => goal.id === 'goal-strong')!.status = status
+    const before = store.tasks.length
+
+    await expect(addTask({ title: 'Lift', goalId: 'goal-strong' })).rejects.toThrow()
+    expect(store.tasks).toHaveLength(before)
+  })
 })

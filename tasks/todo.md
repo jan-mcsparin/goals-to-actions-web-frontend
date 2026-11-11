@@ -105,7 +105,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Acceptance criteria:**
 - [x] `taskWeek`: no date, this week and a past date give this Monday; next week and a date across the year end give that week's Monday. The confirmations are "Added to this week's bank.", "Saved for the week of Nov 23." and "Added to today."
 - [x] A task due next week is absent from `getBank` and `getWeek`; one added on today is in `getDay(today)` with `placedByHand`; a plain one is in `getBank`.
-- [x] A blank title or an unknown `goalId` rejects; new records pass the dataset checks.
+- [x] A blank title or an unknown or not-active `goalId` rejects; new records pass the dataset checks.
 
 **Verification:**
 - [x] `npm test`: new `domain/add.test.ts`, `client.test.ts` (an `addTask` block)
