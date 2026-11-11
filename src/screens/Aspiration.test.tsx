@@ -368,6 +368,20 @@ describe('Aspiration, retired', () => {
   })
 })
 
+describe('Aspiration, brought back', () => {
+  it('shows the full page again, last in priority', async () => {
+    const user = userEvent.setup()
+    renderPage('asp-spanish')
+
+    await user.click(await screen.findByRole('button', { name: 'Bring back' }))
+
+    const priority = await screen.findByRole('region', { name: 'Priority' })
+    expect(within(priority).getByText('3rd of 3 aspirations')).toBeDefined()
+    expect(screen.queryByText('Retired Sep 15')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Bring back' })).toBeNull()
+  })
+})
+
 describe('Aspiration, not there', () => {
   it('goes back quietly', async () => {
     const { onBack } = renderPage('asp-gone')

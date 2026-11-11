@@ -204,6 +204,35 @@ it('lands on the tab after retiring, with the aspiration under Retired', async (
   expect(screen.queryByRole('region', { name: 'Be fit' })).toBeNull()
 })
 
+it('shows what retiring paused, and brings it back last with its goals still paused', async () => {
+  const user = userEvent.setup()
+  render(<App />)
+  await user.click(await screen.findByRole('button', { name: 'Aspirations' }))
+  await user.click(await screen.findByRole('button', { name: 'Be fit' }))
+  await user.click(await screen.findByRole('button', { name: 'Retire' }))
+  await user.click(screen.getByRole('button', { name: 'Retire Be fit' }))
+
+  const retired = (await screen.findByText('Retired (2)')).closest('details')!
+  await user.click(within(retired).getByText('Retired (2)'))
+  await user.click(within(retired).getByRole('button', { name: 'Be fit' }))
+
+  const paused = await screen.findByRole('region', { name: 'Paused goals' })
+  expect(within(paused).getAllByRole('button')).toHaveLength(3)
+  const recurring = screen.getByRole('region', { name: 'Recurring' })
+  expect(within(recurring).getAllByRole('listitem').map((row) => row.textContent)).toEqual([
+    'StretchPaused',
+    'HockeyPaused',
+  ])
+
+  await user.click(screen.getByRole('button', { name: 'Bring back' }))
+
+  const priority = await screen.findByRole('region', { name: 'Priority' })
+  expect(within(priority).getByText('2nd of 2 aspirations')).toBeDefined()
+  const goals = screen.getByRole('region', { name: 'Goals' })
+  expect(within(goals).getByText('0 active')).toBeDefined()
+  expect(within(goals).getAllByText('Paused')).toHaveLength(3)
+})
+
 it('puts the goals under Other goals after retiring with Keep them going', async () => {
   const user = userEvent.setup()
   render(<App />)

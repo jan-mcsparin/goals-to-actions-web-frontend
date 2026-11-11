@@ -1,6 +1,13 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getAspiration, moveAspiration, retireAspiration, reviewAspiration, updateAspiration } from '../api/client.ts'
+import {
+  bringBackAspiration,
+  getAspiration,
+  moveAspiration,
+  retireAspiration,
+  reviewAspiration,
+  updateAspiration,
+} from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { ActivePage } from '../domain/aspiration.ts'
 import { useAspiration } from './useAspiration.ts'
@@ -14,6 +21,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     updateAspiration: vi.fn(actual.updateAspiration),
     retireAspiration: vi.fn(actual.retireAspiration),
     reviewAspiration: vi.fn(actual.reviewAspiration),
+    bringBackAspiration: vi.fn(actual.bringBackAspiration),
   }
 })
 
@@ -36,6 +44,7 @@ afterEach(() => {
   vi.mocked(updateAspiration).mockClear()
   vi.mocked(retireAspiration).mockClear()
   vi.mocked(reviewAspiration).mockClear()
+  vi.mocked(bringBackAspiration).mockClear()
 })
 
 describe('useAspiration, editing', () => {
@@ -111,6 +120,29 @@ describe('useAspiration, retiring', () => {
     expect(worked).toBe(false)
     expect(result.current.message).toBe("Couldn't save that. Try again.")
     expect(result.current.page?.kind).toBe('active')
+  })
+})
+
+describe('useAspiration, bringing back', () => {
+  it('waits for the save, then shows it active and last', async () => {
+    const { result } = renderHook(() => useAspiration('asp-spanish', TODAY))
+    await waitFor(() => expect(result.current.page?.kind).toBe('retired'))
+
+    await act(async () => result.current.bringBack())
+
+    expect(result.current.page?.kind).toBe('active')
+    expect(priorityOf(result.current.page).line).toBe('3rd of 3 aspirations')
+  })
+
+  it('stays retired, with a message, when the save fails', async () => {
+    vi.mocked(bringBackAspiration).mockRejectedValueOnce(new Error('offline'))
+    const { result } = renderHook(() => useAspiration('asp-spanish', TODAY))
+    await waitFor(() => expect(result.current.page?.kind).toBe('retired'))
+
+    await act(async () => result.current.bringBack())
+
+    expect(result.current.page?.kind).toBe('retired')
+    expect(result.current.message).toBe("Couldn't save that. Try again.")
   })
 })
 

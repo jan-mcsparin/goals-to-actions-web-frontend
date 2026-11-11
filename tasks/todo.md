@@ -187,12 +187,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** The retired view renders: name, why, "Retired Nov 10", past goals, goals and recurring items paused by retiring (goals open), and one action, Bring back. Bring back waits for the save, then shows the active page, last in priority.
 
 **Acceptance criteria:**
-- [ ] Speak Spanish shows only what the spec lists; no This week, Priority, Edit, Review or Retire.
-- [ ] Retire Be fit with Pause them, open it from Retired, bring it back: "2nd of 2 aspirations", its goals still Paused.
-- [ ] A failed bring back stays on the retired page with the message.
+- [x] Speak Spanish shows only what the spec lists; no This week, Priority, Edit, Review or Retire.
+- [x] Retire Be fit with Pause them, open it from Retired, bring it back: "2nd of 2 aspirations", its goals still Paused.
+- [x] A failed bring back stays on the retired page with the message.
 
 **Verification:**
-- [ ] `npm test`: `Aspiration.test.tsx`, `App.test.tsx`
+- [x] `npm test`: `Aspiration.test.tsx`, `App.test.tsx`
 
 **Dependencies:** Tasks 2, 8
 

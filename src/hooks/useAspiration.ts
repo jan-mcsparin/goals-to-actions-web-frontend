@@ -4,6 +4,7 @@
 // back quietly. Changes show at once and roll back if the save fails.
 import { useEffect, useRef, useState } from 'react'
 import {
+  bringBackAspiration,
   getAspiration,
   moveAspiration,
   NotFoundError,
@@ -31,6 +32,7 @@ export type UseAspiration = {
   edit: (changes: NameAndWhy) => void
   review: () => void
   retire: (itsWork: ItsWork) => Promise<boolean>
+  bringBack: () => Promise<void>
   move: (direction: 'up' | 'down') => void
 }
 
@@ -97,6 +99,18 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
     }
   }
 
+  // Waits for the save, then reloads, so the place in priority and the
+  // count of aspirations come from the API.
+  async function bringBack(): Promise<void> {
+    setMessage(undefined)
+    try {
+      await bringBackAspiration(aspirationId)
+      setDetail(await getAspiration(aspirationId))
+    } catch {
+      setMessage(SAVE_FAILED)
+    }
+  }
+
   function move(direction: 'up' | 'down') {
     const position = detail?.aspiration.priority
     if (!detail || position === undefined) return
@@ -117,6 +131,7 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
     edit,
     review,
     retire,
+    bringBack,
     move,
   }
 }

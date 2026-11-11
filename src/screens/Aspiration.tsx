@@ -30,7 +30,10 @@ const AFTER_REVIEW: Record<ReviewChoice, OpenSheet | undefined> = {
 }
 
 export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired }: AspirationProps) {
-  const { page, editing, message, notFound, edit, review, retire, move } = useAspiration(aspirationId, today)
+  const { page, editing, message, notFound, edit, review, retire, bringBack, move } = useAspiration(
+    aspirationId,
+    today,
+  )
   const [sheet, setSheet] = useState<OpenSheet>()
   const goToPriority = useRef(false)
   const priorityHeading = useRef<HTMLHeadingElement>(null)
@@ -89,7 +92,7 @@ export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired 
           onOpenSheet={setSheet}
         />
       )}
-      {page?.kind === 'retired' && <Retired page={page} onOpenGoal={onOpenGoal} />}
+      {page?.kind === 'retired' && <Retired page={page} onOpenGoal={onOpenGoal} onBringBack={bringBack} />}
 
       <AspirationEditSheet
         open={sheet === 'edit'}
@@ -213,7 +216,13 @@ function Active({ page, priorityHeading, onOpenGoal, onMove, onOpenSheet }: Acti
   )
 }
 
-function Retired({ page, onOpenGoal }: { page: RetiredPage; onOpenGoal: (goalId: string) => void }) {
+type RetiredProps = {
+  page: RetiredPage
+  onOpenGoal: (goalId: string) => void
+  onBringBack: () => void
+}
+
+function Retired({ page, onOpenGoal, onBringBack }: RetiredProps) {
   return (
     <>
       <p className="aspiration-note">{page.retiredLine}</p>
@@ -229,7 +238,7 @@ function Retired({ page, onOpenGoal }: { page: RetiredPage; onOpenGoal: (goalId:
       <PastGoals rows={page.pastGoals} onOpenGoal={onOpenGoal} />
 
       <div className="aspiration-actions">
-        <button type="button" className="aspiration-action">
+        <button type="button" className="aspiration-action" onClick={onBringBack}>
           Bring back
         </button>
       </div>
