@@ -218,6 +218,76 @@ export function withMilestone(detail: GoalDetail, milestone: Milestone): GoalDet
   return { ...detail, milestones: [...detail.milestones, milestone] }
 }
 
+// The goal with a milestone checked in today, as the API saves it.
+export function withCheckIn(
+  detail: GoalDetail,
+  milestoneId: string,
+  outcome: 'hit' | 'notYet',
+  result: string,
+  today: string,
+): GoalDetail {
+  const trimmed = result.trim()
+  return withMilestoneChanged(detail, milestoneId, (milestone) => {
+    const { result: _old, ...rest } = milestone
+    return { ...rest, status: outcome, checkedInOn: today, ...(trimmed && { result: trimmed }) }
+  })
+}
+
+// "Milestone hit: Bench 155, …", or "Step done: …" on a one-off goal.
+export function hitLine({ goal, milestones }: GoalDetail, milestoneId: string): string {
+  const line = milestones.find((milestone) => milestone.id === milestoneId)?.measurableLine ?? ''
+  return goal.type === 'oneOff' ? `Step done: ${line}` : `Milestone hit: ${line}`
+}
+
+// What Move the date and Adjust the milestone change.
+export type ReopenChanges = { measurableLine?: string; targetDate?: string }
+
+// The goal with a not-yet milestone back to upcoming, as the API saves it:
+// a later date pushes the ones after it out.
+export function withReopened(detail: GoalDetail, milestoneId: string, changes: ReopenChanges): GoalDetail {
+  const moved = changes.targetDate
+    ? { ...detail, milestones: pushedDates(detail.goal, detail.milestones, milestoneId, changes.targetDate) }
+    : detail
+  const measurableLine = changes.measurableLine?.trim()
+  return withMilestoneChanged(moved, milestoneId, (milestone) => ({
+    ...milestone,
+    status: 'upcoming',
+    ...(measurableLine && { measurableLine }),
+  }))
+}
+
+// Move the date needs a date; Adjust the milestone needs a line, and the date
+// is optional. Either date falls within the goal.
+export function parsedReopen(
+  mode: 'move' | 'adjust',
+  draft: MilestoneDraft,
+  goal: Pick<Goal, 'startDate' | 'deadline'>,
+): ReopenChanges | undefined {
+  const targetDate = draft.targetDate || undefined
+  if (targetDate && !isWithinGoal(targetDate, goal)) return undefined
+  if (mode === 'move') return targetDate ? { targetDate } : undefined
+  const measurableLine = draft.measurableLine.trim()
+  if (!measurableLine) return undefined
+  return { measurableLine, ...(targetDate && { targetDate }) }
+}
+
+// What the move and adjust sheets start from.
+export function reopenDraft({ milestones }: GoalDetail, milestoneId: string): MilestoneDraft {
+  const milestone = milestones.find((candidate) => candidate.id === milestoneId)
+  return { measurableLine: milestone?.measurableLine ?? '', targetDate: milestone?.targetDate ?? '' }
+}
+
+function withMilestoneChanged(
+  detail: GoalDetail,
+  milestoneId: string,
+  change: (milestone: Milestone) => Milestone,
+): GoalDetail {
+  return {
+    ...detail,
+    milestones: detail.milestones.map((milestone) => (milestone.id === milestoneId ? change(milestone) : milestone)),
+  }
+}
+
 // Where back goes, named only when sure: the tab, or the aspiration the goal
 // was opened from while it's still the goal's own.
 export function backLabel(

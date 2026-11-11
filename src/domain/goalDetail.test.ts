@@ -6,14 +6,19 @@ import {
   canCondense,
   condenseTimeline,
   goalPage,
+  hitLine,
   parsedMilestone,
+  parsedReopen,
   parsedTarget,
   pushedDates,
+  reopenDraft,
   showAllLabel,
   shownRowKey,
   targetDraft,
   weekLabel,
+  withCheckIn,
   withMilestone,
+  withReopened,
   withTarget,
   type CurrentPage,
   type EndedPage,
@@ -586,5 +591,77 @@ describe('the add milestone form', () => {
 
     expect(added.milestones.map((row) => row.id)).toEqual(['m1', 'm2', 'm3', 'pending'])
     expect(current(added).timeline.count).toBe('1 of 5 hit')
+  })
+})
+
+describe('checking in, shown at once', () => {
+  it('marks a milestone hit or not yet with today and the trimmed result', () => {
+    const hit = withCheckIn(detail(), 'm2', 'hit', ' Bench 155 ', TODAY)
+    const notYet = withCheckIn(detail(), 'm2', 'notYet', '  ', TODAY)
+
+    expect(hit.milestones[1]).toMatchObject({ status: 'hit', result: 'Bench 155', checkedInOn: TODAY })
+    expect(notYet.milestones[1]).toMatchObject({ status: 'notYet', checkedInOn: TODAY })
+    expect(notYet.milestones[1]).not.toHaveProperty('result')
+    expect(milestoneRows(current(hit)).find((row) => row.next)?.milestoneId).toBe('m3')
+    expect(current(notYet).notYet?.milestoneId).toBe('m2')
+  })
+
+  it('says what was hit, or which step is done', () => {
+    expect(hitLine(detail(), 'm2')).toBe('Milestone hit: Line m2')
+    expect(hitLine(detail({ goal: goal({ type: 'oneOff' }) }), 'm2')).toBe('Step done: Line m2')
+  })
+})
+
+describe('reopening a not-yet milestone, shown at once', () => {
+  const notYetDetail = () =>
+    detail({
+      milestones: [
+        milestone('m1', 'hit', { targetDate: '2026-11-02' }),
+        milestone('m2', 'notYet', { targetDate: '2026-11-08', result: 'Bench 152' }),
+        milestone('m3', 'upcoming', { targetDate: '2026-11-30' }),
+      ],
+    })
+
+  it('keeps the date: back to upcoming, still Next, the card gone', () => {
+    const kept = withReopened(notYetDetail(), 'm2', {})
+
+    expect(kept.milestones.map((row) => [row.status, row.targetDate])).toEqual([
+      ['hit', '2026-11-02'],
+      ['upcoming', '2026-11-08'],
+      ['upcoming', '2026-11-30'],
+    ])
+    expect(current(kept).notYet).toBeUndefined()
+    expect(current(kept).nextCheckIn.milestoneId).toBe('m2')
+  })
+
+  it('moves the date and pushes the later ones out', () => {
+    const moved = withReopened(notYetDetail(), 'm2', { targetDate: '2026-11-22' })
+
+    expect(moved.milestones.map((row) => row.targetDate)).toEqual(['2026-11-02', '2026-11-22', '2026-12-14'])
+  })
+
+  it('adjusts the line, trimmed', () => {
+    const adjusted = withReopened(notYetDetail(), 'm2', { measurableLine: ' Bench 153 ' })
+
+    expect(adjusted.milestones[1]).toMatchObject({ measurableLine: 'Bench 153', status: 'upcoming' })
+  })
+})
+
+describe('the move and adjust forms', () => {
+  it('needs a date within the goal to move, and a line to adjust', () => {
+    expect(parsedReopen('move', { measurableLine: 'Line', targetDate: '2026-11-22' }, goal())).toEqual({ targetDate: '2026-11-22' })
+    expect(parsedReopen('move', { measurableLine: 'Line', targetDate: '' }, goal())).toBeUndefined()
+    expect(parsedReopen('move', { measurableLine: 'Line', targetDate: '2026-09-01' }, goal())).toBeUndefined()
+    expect(parsedReopen('adjust', { measurableLine: ' Bench 153 ', targetDate: '' }, goal())).toEqual({ measurableLine: 'Bench 153' })
+    expect(parsedReopen('adjust', { measurableLine: 'Bench 153', targetDate: '2026-11-22' }, goal())).toEqual({
+      measurableLine: 'Bench 153',
+      targetDate: '2026-11-22',
+    })
+    expect(parsedReopen('adjust', { measurableLine: '  ', targetDate: '' }, goal())).toBeUndefined()
+  })
+
+  it('starts from the milestone as it is', () => {
+    expect(reopenDraft(detail(), 'm2')).toEqual({ measurableLine: 'Line m2', targetDate: '2026-11-30' })
+    expect(reopenDraft(detail(), 'm3')).toEqual({ measurableLine: 'Line m3', targetDate: '' })
   })
 })

@@ -197,12 +197,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** **Check in** (or tapping any not-done step of a one-off goal) opens `CheckInSheet`: the milestone's line, "How did it go?", an optional result, **Hit it** / **Not yet** (**Done** / **Not yet** for steps). Hit shows "Milestone hit: …" and Next moves on. The Goal row's Hit it marks the goal reached; its Not yet changes nothing. While Next is not yet, the card shows under Next check-in, leading with "You started at … Now: …", with **Keep the date**, **Move the date** and **Adjust the milestone**, each returning it to upcoming.
 
 **Acceptance criteria:**
-- [ ] Opening Be strong shows the not-yet card for milestone 2 (from the mock), leading with the baseline and its result; each of the three choices clears it, and Move the date pushes milestone 3 out.
-- [ ] Hit it on milestone 2 makes milestone 3 Next; with every milestone hit, Hit it on the goal shows it reached. A garage step out of order can be marked Done.
-- [ ] No "missed", "failed", "behind" or "overdue" anywhere (a test scans the rendered text).
+- [x] Opening Be strong shows the not-yet card for milestone 2 (from the mock), leading with the baseline and its result; each of the three choices clears it, and Move the date pushes milestone 3 out.
+- [x] Hit it on milestone 2 makes milestone 3 Next; with every milestone hit, Hit it on the goal shows it reached. A garage step out of order can be marked Done.
+- [x] No "missed", "failed", "behind" or "overdue" anywhere (a test scans the rendered text).
 
 **Verification:**
-- [ ] `npm test`: `GoalDetail.test.tsx`, `useGoal.test.tsx`
+- [x] `npm test`: `GoalDetail.test.tsx`, `useGoal.test.tsx`
 
 **Dependencies:** Checkpoint C
 

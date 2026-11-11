@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resetStore } from '../api/mockStore.ts'
@@ -267,5 +267,140 @@ describe('GoalDetail, add milestone sheet', () => {
 
     await screen.findByText('Reached Oct 10')
     expect(screen.queryByRole('button', { name: '+ Add milestone' })).toBeNull()
+  })
+})
+
+describe('GoalDetail, the not-yet card', () => {
+  async function notYetCard() {
+    return screen.findByRole('region', { name: 'Not yet' })
+  }
+
+  it('shows for the mock’s not-yet milestone, leading with the baseline, then its result', async () => {
+    renderGoal()
+
+    const card = await notYetCard()
+    expect(within(card).getByText('Bench 155, squat 300, deadlift 345')).toBeDefined()
+    expect(
+      within(card).getByText(
+        'You started at bench 145, squat 275, deadlift 315. Now: bench 152, squat 300, deadlift 340.',
+      ),
+    ).toBeDefined()
+  })
+
+  it('keep the date: the card goes and the milestone stays Next', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    await user.click(within(await notYetCard()).getByRole('button', { name: 'Keep the date' }))
+
+    expect(screen.queryByRole('region', { name: 'Not yet' })).toBeNull()
+    const checkIn = screen.getByRole('region', { name: 'Next check-in' })
+    expect(within(checkIn).getByText('Bench 155, squat 300, deadlift 345')).toBeDefined()
+  })
+
+  it('move the date: the card goes and the next milestone moves by as much', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    await user.click(within(await notYetCard()).getByRole('button', { name: 'Move the date' }))
+    const sheet = screen.getByRole('dialog', { name: 'Move the date' })
+    const date = within(sheet).getByLabelText('New date')
+    expect(date).toHaveProperty('value', '2026-11-06')
+    fireEvent.change(date, { target: { value: '2026-11-27' } })
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }))
+
+    expect(screen.queryByRole('region', { name: 'Not yet' })).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Show all 6' }))
+    const third = screen.getByText('Bench 160, squat 310, deadlift 355').closest('li') as HTMLElement
+    expect(within(third).getByText('Wk 12 · Dec 21')).toBeDefined()
+  })
+
+  it('adjust the milestone: a new line, and the card goes', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    await user.click(within(await notYetCard()).getByRole('button', { name: 'Adjust the milestone' }))
+    const sheet = screen.getByRole('dialog', { name: 'Adjust the milestone' })
+    const line = within(sheet).getByRole('textbox', { name: 'Measurable line' })
+    await user.clear(line)
+    await user.type(line, 'Bench 153, squat 300, deadlift 345')
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }))
+
+    expect(screen.queryByRole('region', { name: 'Not yet' })).toBeNull()
+    expect(within(screen.getByRole('region', { name: 'Next check-in' })).getByText('Bench 153, squat 300, deadlift 345')).toBeDefined()
+  })
+})
+
+describe('GoalDetail, checking in', () => {
+  it('opens only from a tap, titled with the milestone, and a hit moves Next on', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    const checkIn = await screen.findByRole('region', { name: 'Next check-in' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    await user.click(within(checkIn).getByRole('button', { name: 'Check in' }))
+    const sheet = screen.getByRole('dialog', { name: 'Bench 155, squat 300, deadlift 345' })
+    expect(within(sheet).getByText('How did it go?')).toBeDefined()
+    await user.type(within(sheet).getByRole('textbox', { name: 'Result (optional)' }), 'Bench 155, squat 305, deadlift 350')
+    await user.click(within(sheet).getByRole('button', { name: 'Hit it' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(within(checkIn).getByText('Milestone hit: Bench 155, squat 300, deadlift 345')).toBeDefined()
+    expect(within(checkIn).getByText('Bench 160, squat 310, deadlift 355')).toBeDefined()
+    expect(screen.queryByRole('region', { name: 'Not yet' })).toBeNull()
+    expect(screen.getByText('Latest: Bench 155, squat 305, deadlift 350 · Nov 11')).toBeDefined()
+  })
+
+  it('a not yet brings up the card', async () => {
+    const user = userEvent.setup()
+    renderGoal('goal-endurance')
+
+    await user.click(within(await screen.findByRole('region', { name: 'Next check-in' })).getByRole('button', { name: 'Check in' }))
+    const sheet = screen.getByRole('dialog', { name: 'Run 10k in under 55 minutes' })
+    await user.type(within(sheet).getByRole('textbox', { name: 'Result (optional)' }), '10k in 57 minutes')
+    await user.click(within(sheet).getByRole('button', { name: 'Not yet' }))
+
+    const card = screen.getByRole('region', { name: 'Not yet' })
+    expect(within(card).getByText('You started at 5k in 31 minutes. Now: 10k in 57 minutes.')).toBeDefined()
+  })
+
+  it('with every milestone hit, hitting the goal itself marks it reached', async () => {
+    const user = userEvent.setup()
+    renderGoal('goal-look-good')
+
+    for (const line of ['Body fat at 19%', 'Body fat at 17%']) {
+      const checkIn = await screen.findByRole('region', { name: 'Next check-in' })
+      await user.click(within(checkIn).getByRole('button', { name: 'Check in' }))
+      await user.click(within(screen.getByRole('dialog', { name: line })).getByRole('button', { name: 'Hit it' }))
+    }
+    const checkIn = screen.getByRole('region', { name: 'Next check-in' })
+    expect(within(checkIn).getByText('Body fat at 15%')).toBeDefined()
+    await user.click(within(checkIn).getByRole('button', { name: 'Check in' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Body fat at 15%' })).getByRole('button', { name: 'Hit it' }))
+
+    expect(await screen.findByText('Reached Nov 11')).toBeDefined()
+    expect(screen.queryByRole('region', { name: 'Next check-in' })).toBeNull()
+  })
+
+  it('a one-off goal’s later step can be done first, from its row', async () => {
+    const user = userEvent.setup()
+    renderGoal('goal-garage', { screen: 'aspirations' })
+
+    await user.click(await screen.findByRole('button', { name: /^Put up the shelves/ }))
+    const sheet = screen.getByRole('dialog', { name: 'Put up the shelves' })
+    await user.click(within(sheet).getByRole('button', { name: 'Done' }))
+
+    expect(within(screen.getByRole('region', { name: 'Steps' })).getByText('4 of 6 done')).toBeDefined()
+    expect(screen.getByText('Step done: Put up the shelves')).toBeDefined()
+    expect(within(screen.getByRole('region', { name: 'Next check-in' })).getByText('Donate and dump the rest')).toBeDefined()
+  })
+
+  it('never uses words of judgment', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    await screen.findByRole('region', { name: 'Not yet' })
+    await user.click(screen.getByRole('button', { name: 'Show all 6' }))
+    expect(document.body.textContent).not.toMatch(/missed|failed|behind|overdue/i)
   })
 })

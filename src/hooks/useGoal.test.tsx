@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addMilestone, getGoal, setWeeklyTarget } from '../api/client.ts'
+import { addMilestone, checkInMilestone, getGoal, reopenMilestone, setWeeklyTarget } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { CurrentPage } from '../domain/goalDetail.ts'
 import { useGoal } from './useGoal.ts'
@@ -12,6 +12,8 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     getGoal: vi.fn(actual.getGoal),
     setWeeklyTarget: vi.fn(actual.setWeeklyTarget),
     addMilestone: vi.fn(actual.addMilestone),
+    checkInMilestone: vi.fn(actual.checkInMilestone),
+    reopenMilestone: vi.fn(actual.reopenMilestone),
   }
 })
 
@@ -30,6 +32,8 @@ afterEach(() => {
   vi.mocked(getGoal).mockClear()
   vi.mocked(setWeeklyTarget).mockClear()
   vi.mocked(addMilestone).mockClear()
+  vi.mocked(checkInMilestone).mockClear()
+  vi.mocked(reopenMilestone).mockClear()
 })
 
 function shownKinds(rows: { kind: string }[]) {
@@ -161,5 +165,63 @@ describe('useGoal, saving', () => {
       expect(result.current.page?.timeline.count).toBe('1 of 6 hit')
     })
     expect(vi.mocked(getGoal).mock.calls.length).toBeGreaterThanOrEqual(2)
+  })
+})
+
+describe('useGoal, checking in', () => {
+  async function loaded(goalId = 'goal-strong') {
+    const hook = renderHook(() => useGoal(goalId, FROM_TAB, TODAY))
+    await waitFor(() => expect(hook.result.current.page).toBeDefined())
+    return hook
+  }
+
+  function current(page: unknown) {
+    return page as CurrentPage
+  }
+
+  it('shows a hit at once, says so, and moves Next on', async () => {
+    const { result } = await loaded()
+
+    act(() => result.current.checkIn('ms-strong-2', 'hit', 'Bench 155, squat 300, deadlift 345'))
+
+    expect(current(result.current.page).nextCheckIn.milestoneId).toBe('ms-strong-3')
+    expect(current(result.current.page).notYet).toBeUndefined()
+    expect(result.current.justHit).toBe('Milestone hit: Bench 155, squat 300, deadlift 345')
+    await waitFor(() => expect(checkInMilestone).toHaveBeenCalledWith('ms-strong-2', 'hit', 'Bench 155, squat 300, deadlift 345'))
+  })
+
+  it('reopens with a new date at once, pushing the next one out', async () => {
+    const { result } = await loaded()
+
+    act(() => result.current.reopen('ms-strong-2', { targetDate: '2026-11-27' }))
+
+    expect(current(result.current.page).notYet).toBeUndefined()
+    expect(result.current.page?.timeline.rows.find((row) => row.kind === 'milestone' && row.milestoneId === 'ms-strong-3')).toMatchObject({
+      when: 'Wk 12 · Dec 21',
+    })
+    await waitFor(() => expect(reopenMilestone).toHaveBeenCalledWith('ms-strong-2', { targetDate: '2026-11-27' }))
+  })
+
+  it('marks the goal reached when its own check-in is hit, and changes nothing on not yet', async () => {
+    const { result } = await loaded('goal-look-good')
+    act(() => result.current.checkIn('ms-look-good-1', 'hit', ''))
+    act(() => result.current.checkIn('ms-look-good-2', 'hit', ''))
+
+    act(() => result.current.checkIn(undefined, 'notYet', 'close'))
+    expect(result.current.page?.kind).toBe('current')
+
+    await act(async () => result.current.checkIn(undefined, 'hit', ''))
+    await waitFor(() => expect(result.current.page?.kind).toBe('reached'))
+  })
+
+  it('reloads and says so when a check-in fails', async () => {
+    vi.mocked(checkInMilestone).mockRejectedValueOnce(new Error('offline'))
+    const { result } = await loaded()
+
+    act(() => result.current.checkIn('ms-strong-2', 'hit', ''))
+
+    await waitFor(() => expect(result.current.message).toBe("Couldn't save that. Try again."))
+    await waitFor(() => expect(current(result.current.page).notYet?.milestoneId).toBe('ms-strong-2'))
+    expect(result.current.justHit).toBeUndefined()
   })
 })
