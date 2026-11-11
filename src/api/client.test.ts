@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   addMilestone,
   bringBackAspiration,
+  checkInMilestone,
   checkOffTask,
+  endGoal,
   getAspiration,
   getAspirations,
   getBank,
@@ -12,7 +14,10 @@ import {
   getWeek,
   moveAspiration,
   NotFoundError,
+  pauseGoal,
   pullFromBank,
+  reopenMilestone,
+  resumeGoal,
   retireAspiration,
   setWeeklyTarget,
   skipTask,
@@ -655,6 +660,187 @@ describe('addMilestone', () => {
     await expect(addMilestone('goal-garage', { measurableLine: 'Paint', targetDate: deadline })).resolves.toBeDefined()
     await expect(addMilestone('goal-5k', { measurableLine: 'Run 6k' })).rejects.toThrow()
     await expect(addMilestone('goal-nope', { measurableLine: 'Run 6k' })).rejects.toThrow(NotFoundError)
+  })
+})
+
+describe('checkInMilestone', () => {
+  function milestoneById(id: string) {
+    return store.milestones.find((milestone) => milestone.id === id)!
+  }
+
+  it('marks Next hit with today and the result, so the following one is Next', async () => {
+    const checked = await checkInMilestone('ms-strong-2', 'hit', ' Bench 155, squat 305, deadlift 350 ')
+
+    expect(checked).toMatchObject({
+      status: 'hit',
+      result: 'Bench 155, squat 305, deadlift 350',
+      checkedInOn: WEDNESDAY_DAY,
+    })
+    await expect(checkInMilestone('ms-strong-3', 'notYet')).resolves.toMatchObject({ status: 'notYet' })
+  })
+
+  it('marks not yet with the result, and keeps no blank result', async () => {
+    const checked = await checkInMilestone('ms-strong-2', 'notYet', '   ')
+
+    expect(checked.status).toBe('notYet')
+    expect(checked.checkedInOn).toBe(WEDNESDAY_DAY)
+    expect(checked).not.toHaveProperty('result')
+  })
+
+  it('takes only Next on a building goal, but any step not done on a one-off goal', async () => {
+    await expect(checkInMilestone('ms-strong-4', 'hit')).rejects.toThrow()
+    expect(milestoneById('ms-strong-4').status).toBe('upcoming')
+
+    await expect(checkInMilestone('ms-garage-5', 'hit')).resolves.toMatchObject({ status: 'hit' })
+  })
+
+  it('rejects a hit milestone, an unknown one, and any on a reached goal', async () => {
+    await expect(checkInMilestone('ms-strong-1', 'hit')).rejects.toThrow()
+    await expect(checkInMilestone('ms-nope', 'hit')).rejects.toThrow(NotFoundError)
+    store.goals.find((goal) => goal.id === 'goal-strong')!.status = 'reached'
+    await expect(checkInMilestone('ms-strong-2', 'hit')).rejects.toThrow()
+  })
+})
+
+describe('reopenMilestone', () => {
+  function datesOf(milestones: { targetDate?: string }[]) {
+    return milestones.map((milestone) => milestone.targetDate)
+  }
+
+  it('keeps the date: back to upcoming, still Next, nothing else moves', async () => {
+    const milestones = await reopenMilestone('ms-strong-2')
+
+    expect(milestones.map((milestone) => milestone.status)).toEqual(['hit', 'upcoming', 'upcoming', 'upcoming', 'upcoming'])
+    expect(datesOf(milestones)).toEqual(['2026-11-02', '2026-11-06', '2026-11-30', undefined, undefined])
+    expect(milestones[1].result).toBe('Bench 152, squat 300, deadlift 340')
+  })
+
+  it('moves the date three weeks later and pushes the next one by three weeks', async () => {
+    const milestones = await reopenMilestone('ms-strong-2', { targetDate: '2026-11-27' })
+
+    expect(datesOf(milestones)).toEqual(['2026-11-02', '2026-11-27', '2026-12-21', undefined, undefined])
+    expect(datesOf((await getGoal('goal-strong')).milestones)).toEqual(datesOf(milestones))
+  })
+
+  it('pushes nothing past the deadline', async () => {
+    store.goals.find((goal) => goal.id === 'goal-strong')!.deadline = '2026-12-10'
+
+    const milestones = await reopenMilestone('ms-strong-2', { targetDate: '2026-11-27' })
+
+    expect(datesOf(milestones)).toEqual(['2026-11-02', '2026-11-27', '2026-12-10', undefined, undefined])
+  })
+
+  it('adjusts the line, trimmed', async () => {
+    const milestones = await reopenMilestone('ms-strong-2', { measurableLine: ' Bench 153, squat 300, deadlift 340 ' })
+
+    expect(milestones[1]).toMatchObject({ measurableLine: 'Bench 153, squat 300, deadlift 340', status: 'upcoming' })
+  })
+
+  it('rejects a blank line, a date outside the goal, one not marked not yet, an unknown one and a reached goal', async () => {
+    await expect(reopenMilestone('ms-strong-2', { measurableLine: '  ' })).rejects.toThrow()
+    await expect(reopenMilestone('ms-strong-2', { targetDate: '2026-10-01' })).rejects.toThrow()
+    await expect(reopenMilestone('ms-strong-3')).rejects.toThrow()
+    await expect(reopenMilestone('ms-nope')).rejects.toThrow(NotFoundError)
+    expect(store.milestones.find((milestone) => milestone.id === 'ms-strong-2')!.status).toBe('notYet')
+
+    store.goals.find((goal) => goal.id === 'goal-strong')!.status = 'ended'
+    await expect(reopenMilestone('ms-strong-2')).rejects.toThrow()
+  })
+})
+
+describe('pauseGoal and resumeGoal', () => {
+  const task = (id: string) => store.tasks.find((candidate) => candidate.id === id)!
+  const goalById = (id: string) => store.goals.find((goal) => goal.id === id)!
+
+  it('pausing sets this week’s waiting tasks aside, keeping their day, and leaves done ones', async () => {
+    const paused = await pauseGoal('goal-strong')
+
+    expect(paused.status).toBe('paused')
+    expect(task('task-lift-today')).toMatchObject({ status: 'skipped', plannedDay: WEDNESDAY_DAY })
+    expect(task('task-lift-bank').status).toBe('skipped')
+    expect(task('task-lift-mon').status).toBe('done')
+    expect(ids((await getDay(WEDNESDAY_DAY)).tasks)).not.toContain('task-lift-today')
+    expect(ids((await getBank()).tasks)).not.toContain('task-lift-bank')
+    expect((await getWeek()).weeklyTargets.map((target) => target.goalId)).not.toContain('goal-strong')
+  })
+
+  it('resuming puts those tasks back in this week’s bank, with no day', async () => {
+    await pauseGoal('goal-strong')
+    await pauseGoal('goal-endurance')
+
+    const resumed = await resumeGoal('goal-strong')
+
+    expect(resumed.status).toBe('active')
+    for (const id of ['task-lift-today', 'task-lift-bank']) {
+      expect(task(id).status).toBe('inBank')
+      expect(task(id)).not.toHaveProperty('plannedDay')
+      expect(task(id)).not.toHaveProperty('placedByHand')
+    }
+    expect(ids((await getBank()).tasks)).toEqual(expect.arrayContaining(['task-lift-bank', 'task-lift-today']))
+    expect(task('task-run-bank').status).toBe('skipped')
+    expect(task('task-lift-mon').status).toBe('done')
+  })
+
+  it('resumes a goal whose aspiration is retired, keeping the aspiration', async () => {
+    await retireAspiration('asp-fit', 'pause')
+
+    const resumed = await resumeGoal('goal-strong')
+
+    expect(resumed).toMatchObject({ status: 'active', aspirationId: 'asp-fit' })
+    expect(ids((await getBank()).tasks)).toContain('task-lift-bank')
+  })
+
+  it('rejects pausing a goal that isn’t active, resuming an active one, and unknown ids', async () => {
+    await expect(pauseGoal('goal-cook')).rejects.toThrow()
+    await expect(pauseGoal('goal-5k')).rejects.toThrow()
+    await expect(resumeGoal('goal-strong')).rejects.toThrow()
+    await expect(pauseGoal('goal-nope')).rejects.toThrow(NotFoundError)
+    await expect(resumeGoal('goal-nope')).rejects.toThrow(NotFoundError)
+    expect(goalById('goal-5k').status).toBe('reached')
+  })
+
+  it('reopens a reached goal: active again, no end date, its milestones as they were', async () => {
+    await endGoal('goal-strong', 'reached')
+
+    const reopened = await resumeGoal('goal-strong')
+
+    expect(reopened.status).toBe('active')
+    expect(reopened).not.toHaveProperty('endedAt')
+    expect(store.milestones.find((milestone) => milestone.id === 'ms-strong-2')?.status).toBe('notYet')
+  })
+})
+
+describe('endGoal', () => {
+  const task = (id: string) => store.tasks.find((candidate) => candidate.id === id)!
+
+  it('marks it reached today, and moves no tasks', async () => {
+    const ended = await endGoal('goal-strong', 'reached')
+
+    expect(ended).toMatchObject({ status: 'reached', endedAt: WEDNESDAY_DAY })
+    expect(task('task-lift-today').status).toBe('planned')
+    expect(task('task-lift-bank').status).toBe('inBank')
+  })
+
+  it('ends it for now, from active or paused', async () => {
+    await expect(endGoal('goal-strong', 'ended')).resolves.toMatchObject({ status: 'ended', endedAt: WEDNESDAY_DAY })
+    await expect(endGoal('goal-cook', 'ended')).resolves.toMatchObject({ status: 'ended' })
+  })
+
+  it('goes again: resuming an ended goal makes it active and clears the end date', async () => {
+    await endGoal('goal-strong', 'ended')
+
+    const again = await resumeGoal('goal-strong')
+
+    expect(again.status).toBe('active')
+    expect(again).not.toHaveProperty('endedAt')
+    expect(task('task-lift-today').status).toBe('planned')
+  })
+
+  it('rejects ending a reached or ended goal, and an unknown one', async () => {
+    await expect(endGoal('goal-5k', 'ended')).rejects.toThrow()
+    await endGoal('goal-strong', 'ended')
+    await expect(endGoal('goal-strong', 'reached')).rejects.toThrow()
+    await expect(endGoal('goal-nope', 'reached')).rejects.toThrow(NotFoundError)
   })
 })
 

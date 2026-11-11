@@ -34,7 +34,9 @@ export type MilestoneRow = {
   week: string // "Wk 9", for fold rows
   status: MilestoneStatus
   result?: string
-  statusLine?: string // "Hit · Bench 150, …", "Not yet", or none while upcoming
+  statusLine?: string // "Hit · Bench 150, …", "Not yet", "Passed on the way", or none while upcoming
+  // On a reached goal, a milestone never checked in: passed on the way.
+  passed: boolean
   next: boolean
   checkable: boolean
 }
@@ -89,6 +91,9 @@ export type CurrentPage = PageBase & {
   target?: TargetSection
   nextCheckIn: NextCheckIn
   notYet?: NotYetCard
+  pauseAction: 'Pause' | 'Resume'
+  // What the End sheet leads with, after Started at / Latest.
+  achievement: string
 }
 
 export type ReachedPage = PageBase & {
@@ -129,6 +134,8 @@ export function goalPage(detail: GoalDetail, today: string): GoalPage {
     ...(target && { target }),
     nextCheckIn: nextCheckIn(detail),
     ...(notYet && { notYet }),
+    pauseAction: goal.status === 'paused' ? 'Resume' : 'Pause',
+    achievement: achievementLine(detail),
   }
 }
 
@@ -216,6 +223,76 @@ export function isWithinGoal(day: string, goal: Pick<Goal, 'startDate' | 'deadli
 
 export function withMilestone(detail: GoalDetail, milestone: Milestone): GoalDetail {
   return { ...detail, milestones: [...detail.milestones, milestone] }
+}
+
+// The goal with a milestone checked in today, as the API saves it.
+export function withCheckIn(
+  detail: GoalDetail,
+  milestoneId: string,
+  outcome: 'hit' | 'notYet',
+  result: string,
+  today: string,
+): GoalDetail {
+  const trimmed = result.trim()
+  return withMilestoneChanged(detail, milestoneId, (milestone) => {
+    const { result: _old, ...rest } = milestone
+    return { ...rest, status: outcome, checkedInOn: today, ...(trimmed && { result: trimmed }) }
+  })
+}
+
+// "Milestone hit: Bench 155, …", or "Step done: …" on a one-off goal.
+export function hitLine({ goal, milestones }: GoalDetail, milestoneId: string): string {
+  const line = milestones.find((milestone) => milestone.id === milestoneId)?.measurableLine ?? ''
+  return goal.type === 'oneOff' ? `Step done: ${line}` : `Milestone hit: ${line}`
+}
+
+// What Move the date and Adjust the milestone change.
+export type ReopenChanges = { measurableLine?: string; targetDate?: string }
+
+// The goal with a not-yet milestone back to upcoming, as the API saves it:
+// a later date pushes the ones after it out.
+export function withReopened(detail: GoalDetail, milestoneId: string, changes: ReopenChanges): GoalDetail {
+  const moved = changes.targetDate
+    ? { ...detail, milestones: pushedDates(detail.goal, detail.milestones, milestoneId, changes.targetDate) }
+    : detail
+  const measurableLine = changes.measurableLine?.trim()
+  return withMilestoneChanged(moved, milestoneId, (milestone) => ({
+    ...milestone,
+    status: 'upcoming',
+    ...(measurableLine && { measurableLine }),
+  }))
+}
+
+// Move the date needs a date; Adjust the milestone needs a line, and the date
+// is optional. Either date falls within the goal.
+export function parsedReopen(
+  mode: 'move' | 'adjust',
+  draft: MilestoneDraft,
+  goal: Pick<Goal, 'startDate' | 'deadline'>,
+): ReopenChanges | undefined {
+  const targetDate = draft.targetDate || undefined
+  if (targetDate && !isWithinGoal(targetDate, goal)) return undefined
+  if (mode === 'move') return targetDate ? { targetDate } : undefined
+  const measurableLine = draft.measurableLine.trim()
+  if (!measurableLine) return undefined
+  return { measurableLine, ...(targetDate && { targetDate }) }
+}
+
+// What the move and adjust sheets start from.
+export function reopenDraft({ milestones }: GoalDetail, milestoneId: string): MilestoneDraft {
+  const milestone = milestones.find((candidate) => candidate.id === milestoneId)
+  return { measurableLine: milestone?.measurableLine ?? '', targetDate: milestone?.targetDate ?? '' }
+}
+
+function withMilestoneChanged(
+  detail: GoalDetail,
+  milestoneId: string,
+  change: (milestone: Milestone) => Milestone,
+): GoalDetail {
+  return {
+    ...detail,
+    milestones: detail.milestones.map((milestone) => (milestone.id === milestoneId ? change(milestone) : milestone)),
+  }
 }
 
 // Where back goes, named only when sure: the tab, or the aspiration the goal
@@ -345,6 +422,8 @@ function timeline(detail: GoalDetail): Timeline {
   const start: StartRow = { kind: 'start', when: shortDate(goal.startDate), ...(goal.baseline && { baseline: goal.baseline }) }
   const rows = milestones.map((milestone): MilestoneRow => {
     const isNext = milestone === next
+    const passed = goal.status === 'reached' && milestone.status !== 'hit'
+    const status = rowStatusLine(milestone, passed)
     const week = weekOnly(goal.startDate, milestone.targetDate)
     return {
       kind: 'milestone',
@@ -354,7 +433,8 @@ function timeline(detail: GoalDetail): Timeline {
       week,
       status: milestone.status,
       ...(milestone.result && { result: milestone.result }),
-      ...(milestone.status !== 'upcoming' && { statusLine: statusLine(milestone) }),
+      ...(status && { statusLine: status }),
+      passed,
       next: isNext,
       checkable: current && (oneOff ? milestone.status !== 'hit' : isNext),
     }
@@ -377,6 +457,12 @@ function timeline(detail: GoalDetail): Timeline {
   }
 }
 
+// What a milestone row says under its line, if anything.
+function rowStatusLine(milestone: Milestone, passed: boolean): string | undefined {
+  if (passed) return 'Passed on the way'
+  return milestone.status === 'upcoming' ? undefined : statusLine(milestone)
+}
+
 // "Hit · Bench 150, squat 290", "Not yet · Bench 152", or the word alone.
 function statusLine({ status, result }: Milestone): string {
   const label = status === 'hit' ? 'Hit' : 'Not yet'
@@ -384,7 +470,7 @@ function statusLine({ status, result }: Milestone): string {
 }
 
 // Not yet stays next: nothing is passed over until it's hit.
-function nextMilestone(milestones: Milestone[]): Milestone | undefined {
+export function nextMilestone(milestones: Milestone[]): Milestone | undefined {
   return milestones.find((milestone) => milestone.status !== 'hit')
 }
 

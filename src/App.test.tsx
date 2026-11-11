@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { resumeGoal, retireAspiration } from './api/client.ts'
 import { resetStore } from './api/mockStore.ts'
 import App from './App.tsx'
 
@@ -338,4 +339,50 @@ it("changes Week's count when a goal's weekly target changes", async () => {
 
   const progress = await screen.findByRole('region', { name: 'Progress' })
   expect(await within(progress).findByText('1 of 4')).toBeDefined()
+})
+
+it('shows a goal resumed under a retired aspiration under Other goals, active on its page, and on Week and Today', async () => {
+  await retireAspiration('asp-fit', 'pause')
+  await resumeGoal('goal-strong')
+  const user = userEvent.setup()
+  render(<App />)
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Today · Wednesday' })).toBeDefined()
+
+  await user.click(screen.getByRole('button', { name: 'Week' }))
+  const progress = await screen.findByRole('region', { name: 'Progress' })
+  expect(within(progress).getByText('Be strong · Be fit')).toBeDefined()
+
+  await user.click(screen.getByRole('button', { name: 'Aspirations' }))
+  const other = await screen.findByRole('region', { name: 'Other goals' })
+  expect(within(other).getByRole('button', { name: /^Be strong/ })).toBeDefined()
+
+  const retired = screen.getByText('Retired (2)').closest('details')!
+  await user.click(within(retired).getByText('Retired (2)'))
+  await user.click(within(retired).getByRole('button', { name: 'Be fit' }))
+  const active = await screen.findByRole('region', { name: 'Active goals' })
+  expect(within(active).getByRole('button', { name: /^Be strong/ })).toBeDefined()
+  expect(within(screen.getByRole('region', { name: 'Paused goals' })).getAllByRole('button')).toHaveLength(2)
+})
+
+it("pausing a goal takes it out of Week and reads Paused on the tab; resuming puts its tasks back in the bank", async () => {
+  localStorage.setItem('gta.screen', JSON.stringify({ screen: 'goal', goalId: 'goal-strong', from: { screen: 'aspirations' } }))
+  const user = userEvent.setup()
+  render(<App />)
+
+  await user.click(await screen.findByRole('button', { name: 'Pause' }))
+  await screen.findByText('Building · Paused')
+
+  await user.click(screen.getByRole('button', { name: 'Week' }))
+  const progress = await screen.findByRole('region', { name: 'Progress' })
+  expect(within(progress).queryByText('Be strong · Be fit')).toBeNull()
+
+  await user.click(screen.getByRole('button', { name: 'Aspirations' }))
+  expect(await screen.findByRole('button', { name: /^Be strong\s*Paused/ })).toBeDefined()
+
+  await user.click(screen.getByRole('button', { name: /^Be strong/ }))
+  await user.click(await screen.findByRole('button', { name: 'Resume' }))
+  await screen.findByRole('button', { name: 'Pause' })
+  await user.click(screen.getByRole('button', { name: 'Week' }))
+  expect(within(await screen.findByRole('region', { name: 'Progress' })).getByText('Be strong · Be fit')).toBeDefined()
 })

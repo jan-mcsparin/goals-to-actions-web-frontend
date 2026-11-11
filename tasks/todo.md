@@ -144,7 +144,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 - [x] On the phone, 375 and 390 px, light and dark: Be strong condensed has the target and Next check-in visible without scrolling; long lines wrap; sheets clear the keyboard and the home indicator
 - [x] Parent-repo docs: Flow 6's timeline, the condensed view and target editing as built (own branch and PR): goals-to-actions#8
 - [x] Spec status updated; PR 1 opened referencing #5 (not closing it)
-- [ ] Review with Jan before PR 2
+- [x] Review with Jan before PR 2 (merged as #20)
 
 # PR 2: `goal-detail-actions`
 
@@ -155,12 +155,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `checkInMilestone(id, 'hit' | 'notYet', result?)` sets status, result and `checkedInOn`. For building and quitting goals only the first milestone that isn't hit can be checked in; for one-off, any step that isn't done. `reopenMilestone(id, changes?)` returns a not-yet milestone to upcoming, applies a new line or date, pushes later ones out with `pushedDates`, and returns the goal's milestones.
 
 **Acceptance criteria:**
-- [ ] Hit on Be strong milestone 2 makes milestone 3 Next; checking in milestone 4 before 3 rejects for Be strong but works for the garage's step 5.
-- [ ] Moving milestone 2 three weeks later moves milestone 3 by three weeks and leaves 4 and 5 undated; with a deadline, nothing passes it.
-- [ ] Rejects a hit milestone, an unknown id, a blank line, reopening one that isn't not-yet, and anything on a reached or ended goal.
+- [x] Hit on Be strong milestone 2 makes milestone 3 Next; checking in milestone 4 before 3 rejects for Be strong but works for the garage's step 5.
+- [x] Moving milestone 2 three weeks later moves milestone 3 by three weeks and leaves 4 and 5 undated; with a deadline, nothing passes it.
+- [x] Rejects a hit milestone, an unknown id, a blank line, reopening one that isn't not-yet, and anything on a reached or ended goal.
 
 **Verification:**
-- [ ] `npm test`: `client.test.ts`
+- [x] `npm test`: `client.test.ts`
 
 **Dependencies:** Checkpoint B
 
@@ -173,12 +173,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Pause: active → paused, its waiting tasks this week → skipped (day kept). Resume: from paused, those skipped tasks → bank; from ended, clears `endedAt`. End: `reached` or `ended`, sets `endedAt`, tasks untouched. `otherGoals` takes in current goals whose aspiration is retired; the retired aspiration's page shows such a goal as active.
 
 **Acceptance criteria:**
-- [ ] Pause Be strong: its tasks leave `getDay`, `getBank` and Week's progress; done ones stay. Resume: they're in `getBank` with no day, and other goals' skipped tasks are untouched.
-- [ ] End as reached and as ended set status and `endedAt` and move no tasks; Go again on an ended goal makes it active. Pausing a paused, reached or ended goal rejects, as does resuming an active one.
-- [ ] After retiring Be fit with "Pause them" and resuming Be strong: it's under Other goals on the tab, active on Be fit's retired page, and Today and Week still render it.
+- [x] Pause Be strong: its tasks leave `getDay`, `getBank` and Week's progress; done ones stay. Resume: they're in `getBank` with no day, and other goals' skipped tasks are untouched.
+- [x] End as reached and as ended set status and `endedAt` and move no tasks; Go again on an ended goal makes it active. Pausing a paused, reached or ended goal rejects, as does resuming an active one.
+- [x] After retiring Be fit with "Pause them" and resuming Be strong: it's under Other goals on the tab, active on Be fit's retired page, and Today and Week still render it.
 
 **Verification:**
-- [ ] `npm test`: `client.test.ts`, `domain/aspirations.test.ts`, `domain/aspiration.test.ts`, `domain/today.test.ts` if sorting needs a case
+- [x] `npm test`: `client.test.ts`, `domain/aspirations.test.ts`, `domain/aspiration.test.ts`, `domain/today.test.ts` if sorting needs a case
 
 **Dependencies:** Task 7
 
@@ -187,8 +187,8 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M
 
 ## Checkpoint C
-- [ ] Tests, lint and build pass
-- [ ] Today, Week, the tab, the aspiration page and Keep life running behave as before with the mock unchanged
+- [x] Tests, lint and build pass
+- [x] Today, Week, the tab, the aspiration page and Keep life running behave as before with the mock unchanged
 
 ## Phase 4: The screen
 
@@ -197,12 +197,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** **Check in** (or tapping any not-done step of a one-off goal) opens `CheckInSheet`: the milestone's line, "How did it go?", an optional result, **Hit it** / **Not yet** (**Done** / **Not yet** for steps). Hit shows "Milestone hit: …" and Next moves on. The Goal row's Hit it marks the goal reached; its Not yet changes nothing. While Next is not yet, the card shows under Next check-in, leading with "You started at … Now: …", with **Keep the date**, **Move the date** and **Adjust the milestone**, each returning it to upcoming.
 
 **Acceptance criteria:**
-- [ ] Opening Be strong shows the not-yet card for milestone 2 (from the mock), leading with the baseline and its result; each of the three choices clears it, and Move the date pushes milestone 3 out.
-- [ ] Hit it on milestone 2 makes milestone 3 Next; with every milestone hit, Hit it on the goal shows it reached. A garage step out of order can be marked Done.
-- [ ] No "missed", "failed", "behind" or "overdue" anywhere (a test scans the rendered text).
+- [x] Opening Be strong shows the not-yet card for milestone 2 (from the mock), leading with the baseline and its result; each of the three choices clears it, and Move the date pushes milestone 3 out.
+- [x] Hit it on milestone 2 makes milestone 3 Next; with every milestone hit, Hit it on the goal shows it reached. A garage step out of order can be marked Done.
+- [x] No "missed", "failed", "behind" or "overdue" anywhere (a test scans the rendered text).
 
 **Verification:**
-- [ ] `npm test`: `GoalDetail.test.tsx`, `useGoal.test.tsx`
+- [x] `npm test`: `GoalDetail.test.tsx`, `useGoal.test.tsx`
 
 **Dependencies:** Checkpoint C
 
@@ -215,12 +215,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Actions row **Pause · End goal** (Pause reads Resume when paused). `EndGoalSheet` leads with Started at / Latest and "2 of 6 milestones hit", then **I reached it**, **End it for now**, **Cancel**. Reached reads "Reached Nov 10" and "What's next for Be fit?"; ended reads "Not yet." with the same lines and **Go again**. These wait for the save, then reload.
 
 **Acceptance criteria:**
-- [ ] Pause then Resume: tasks leave Week, then return to the bank; the tab reads "Paused" in between.
-- [ ] End as reached and as ended show their states, with no Pause, Check in or Add milestone; Go again makes the goal active.
-- [ ] A failed save leaves the page as it was with the message.
+- [x] Pause then Resume: tasks leave Week, then return to the bank; the tab reads "Paused" in between.
+- [x] End as reached and as ended show their states, with no Pause, Check in or Add milestone; Go again makes the goal active.
+- [x] A failed save leaves the page as it was with the message.
 
 **Verification:**
-- [ ] `npm test`: `GoalDetail.test.tsx`, `App.test.tsx` (the tab reflects Pause)
+- [x] `npm test`: `GoalDetail.test.tsx`, `App.test.tsx` (the tab reflects Pause)
 
 **Dependencies:** Task 9
 
@@ -233,11 +233,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Parent repo (own branch and PR): Flow 6 (check-in, not yet stays next, push-out capped at the deadline, steps in any order), Flow 7 (Pause / Resume / End, Go again, no goal Review), `data-model.md` if it mentions goal review, and the screen inventory. Front end: spec 005 marked built, `specs/README.md` moves 005 to Done.
 
 **Acceptance criteria:**
-- [ ] No doc still describes goal Review, or a not-yet milestone being passed over.
-- [ ] Every rule in plan decisions 5–9 appears in `docs/`.
+- [x] No doc still describes goal Review, or a not-yet milestone being passed over.
+- [x] Every rule in plan decisions 5–9 appears in `docs/`.
 
 **Verification:**
-- [ ] `npm test && npm run lint && npm run build`; read-through of the parent diff
+- [x] `npm test && npm run lint && npm run build`; read-through of the parent diff
 
 **Dependencies:** Task 10
 
@@ -246,6 +246,6 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** S
 
 ## Checkpoint D (PR 2)
-- [ ] Tests, lint and build pass
-- [ ] On the phone, 375 and 390 px, light and dark: check-in sheet, not-yet card with a date picker, End sheet; nothing opens unprompted
-- [ ] PR 2 opened, closing #5; the parent-repo docs PR linked
+- [x] Tests, lint and build pass
+- [x] On the phone, 375 and 390 px, light and dark: check-in sheet, not-yet card with a date picker, End sheet; nothing opens unprompted
+- [x] PR 2 opened, closing #5; the parent-repo docs PR linked (goals-to-actions#9)

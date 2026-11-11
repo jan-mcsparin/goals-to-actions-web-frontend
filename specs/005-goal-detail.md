@@ -1,6 +1,6 @@
 # Spec: Goal detail screen (#5)
 
-Status: approved 2026-11-10; PR 1 built (the screen, condensed timeline, target and Add milestone), PR 2 next; plan in [`../tasks/plan.md`](../tasks/plan.md). Issue: [#5](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/5). Module `goal-detail` in the [map](README.md). Depends on #4 and the [aspiration page](013-aspiration-page.md).
+Status: built 2026-11-11 in two PRs (#20: the screen, condensed timeline, target and Add milestone; PR 2: check-in, not yet, pause and end), Review dropped; plan in [`../tasks/plan.md`](../tasks/plan.md). Issue: [#5](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/5). Module `goal-detail` in the [map](README.md). Depends on #4 and the [aspiration page](013-aspiration-page.md).
 
 ## Objective
 
@@ -58,7 +58,8 @@ A milestone whose date has passed doesn't change by itself in the click-through;
 - **Pause:** the goal becomes paused, at once, no confirmation. Its tasks from this week that aren't done leave the days and the bank, as they do when an aspiration is retired with "Pause them"; done tasks stay. It drops out of Week's progress rows and reads "Paused" on the Aspirations tab and its aspiration's page. **Resume** makes it active again and returns those tasks to this week's bank.
 - **Resuming when the aspiration is retired** is allowed. The goal keeps its aspiration, shows under Other goals on the Aspirations tab until the aspiration is brought back, and shows as active (not "Paused") on the retired aspiration's page.
 - **End goal:** a sheet that leads with what was achieved: "Started at … Latest …" and "2 of 6 milestones hit". Then **I reached it**, **End it for now** and **Cancel**. The person says which; nothing can tell whether "bench 175" was crossed.
-  - Reached: status `reached`. The page then reads "Reached Nov 10" and, when it has an aspiration, "What's next for Be fit?" as plain text.
+  - Reached: status `reached`. The page then reads "Reached Nov 10" and, when it has an aspiration, "What's next for Be fit?" as plain text, with a quiet **Reopen** in case it was reached by mistake: active again, milestones and tasks as they were.
+  - A reached goal counts complete ("6 of 6 hit", here and on the tab): milestones never checked in read "Passed on the way". Their records don't change.
   - Ended: status `ended`. The page reads "Not yet." followed by the same achievement lines, with one action, **Go again**, which makes it active.
   - A reached or ended goal shows no Pause, Check in or Add milestone.
 - **No Review.** As on the aspiration page (#13), a Review sheet's choices would only repeat what's already here (edit the target, Pause, End goal), and nothing shows a last-reviewed date.
@@ -99,7 +100,7 @@ reopenMilestone(milestoneId: string, changes?: { measurableLine?: string; target
 // Returns the goal's milestones, since a later date pushes the ones after it out.
 
 pauseGoal(goalId: string): Promise<Goal>    // its not-done tasks this week -> 'skipped'
-resumeGoal(goalId: string): Promise<Goal>   // from paused or ended; clears endedAt; this week's skipped tasks -> 'inBank'
+resumeGoal(goalId: string): Promise<Goal>   // from paused; or from ended (Go again) or reached (Reopen), clearing endedAt; this week's skipped tasks -> 'inBank'
 endGoal(goalId: string, outcome: 'reached' | 'ended'): Promise<Goal>   // sets endedAt to today (a day, not an instant)
 ```
 
@@ -156,3 +157,8 @@ Settled with Jan on 2026-11-10:
 7. **A not-yet milestone stays Next** until it's hit, rather than being passed over.
 8. **Moving a date later pushes the later dated milestones out by the same amount, capped at the deadline.** One-off steps don't push each other.
 9. **A one-off goal's steps can be checked in in any order.**
+
+Settled during the phone check, 2026-11-11:
+
+10. **A reached goal counts complete.** Milestones never checked in were passed on the way; they read so, and nothing is written to them.
+11. **A reached goal can be reopened,** since Hit it on the goal's own check-in reaches it in one tap.

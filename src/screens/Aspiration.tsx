@@ -179,6 +179,13 @@ function Retired({ page, onOpenGoal, onBringBack }: RetiredProps) {
     <>
       <p className="aspiration-note">{page.retiredLine}</p>
 
+      {page.activeGoals.length > 0 && (
+        <section className="aspiration-section" aria-labelledby="aspiration-active">
+          <h2 id="aspiration-active">Active goals</h2>
+          <GoalCards cards={page.activeGoals} onOpenGoal={onOpenGoal} />
+        </section>
+      )}
+
       {page.pausedGoals.length > 0 && (
         <section className="aspiration-section" aria-labelledby="aspiration-paused">
           <h2 id="aspiration-paused">Paused goals</h2>

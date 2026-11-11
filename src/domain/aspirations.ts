@@ -74,14 +74,16 @@ export function goalProgress(goal: Goal, overview: Pick<AspirationsOverview, 'mi
   return goal.type === 'oneOff' && goal.deadline ? `${label} · by ${shortDate(goal.deadline)}` : label
 }
 
-// Milestones hit, plus the goal itself (the last milestone) once reached.
+// Milestones hit, plus the goal itself (the last milestone). A reached goal
+// counts complete: milestones never checked in were passed on the way.
 export function milestoneCount(
   goal: Goal,
   overview: Pick<AspirationsOverview, 'milestones'>,
 ): { reached: number; total: number } {
   const milestones = overview.milestones.filter((milestone) => milestone.goalId === goal.id)
-  const hit = milestones.filter((milestone) => milestone.status === 'hit').length
-  return { reached: hit + (goal.status === 'reached' ? 1 : 0), total: milestones.length + 1 }
+  const total = milestones.length + 1
+  if (goal.status === 'reached') return { reached: total, total }
+  return { reached: milestones.filter((milestone) => milestone.status === 'hit').length, total }
 }
 
 // Sessions done against the week's targets, across the aspiration's active
@@ -106,8 +108,16 @@ export function weekCount(
 }
 
 // Goals with no aspiration; their reached and ended goals are kept apart.
+// An active goal whose aspiration is retired (resumed on its own) shows here
+// too, until the aspiration is brought back.
 export function otherGoals(overview: AspirationsOverview): OtherGoals | undefined {
-  const loose = overview.goals.filter((goal) => goal.aspirationId === undefined)
+  const retiredIds = new Set(
+    overview.aspirations.filter((aspiration) => aspiration.status === 'retired').map((aspiration) => aspiration.id),
+  )
+  const loose = overview.goals.filter(
+    (goal) =>
+      goal.aspirationId === undefined || (goal.status === 'active' && retiredIds.has(goal.aspirationId)),
+  )
   if (loose.length === 0) return undefined
   return {
     goals: loose.filter(isCurrent).map((goal) => rowFor(goal, overview)),

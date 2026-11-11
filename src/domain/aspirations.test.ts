@@ -178,6 +178,12 @@ describe('goalProgress', () => {
     expect(goalProgress(goal('5k', { status: 'reached' }), overview)).toBe('Milestone 3 of 3')
   })
 
+  it('counts a reached goal complete, even with milestones never checked in', () => {
+    const overview = { milestones: milestones('5k', 'hit', 'upcoming', 'notYet') }
+
+    expect(goalProgress(goal('5k', { status: 'reached' }), overview)).toBe('Milestone 4 of 4')
+  })
+
   it("only counts the goal's own milestones", () => {
     const overview = { milestones: [...milestones('strong', 'hit'), ...milestones('endurance', 'hit', 'hit')] }
 
@@ -272,6 +278,24 @@ describe('otherGoals', () => {
     ])
     expect(other?.past.map((row) => row.goalId)).toEqual(['taxes', 'blog'])
     expect(other?.past[0].progress).toBe('Step 1 of 1')
+  })
+
+  it('takes in an active goal whose aspiration is retired, until it is brought back', () => {
+    const spanish = aspiration('spanish', 0, { status: 'retired', priority: undefined, retiredAt: '2026-11-10' })
+    const other = otherGoals(
+      overviewOf({
+        aspirations: [aspiration('fit', 1), spanish],
+        goals: [
+          goal('talk', { aspirationId: 'spanish' }),
+          goal('read', { aspirationId: 'spanish', status: 'paused' }),
+          goal('a2', { aspirationId: 'spanish', status: 'reached' }),
+          goal('strong'),
+        ],
+      }),
+    )
+
+    expect(other?.goals.map((row) => row.goalId)).toEqual(['talk'])
+    expect(other?.past).toEqual([])
   })
 
   it('is left out when every goal has an aspiration', () => {
