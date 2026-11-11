@@ -47,12 +47,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `retireAspiration(id, 'pause' | 'keep')`. Pause: active goals → paused, recurring items → inactive, their not-done tasks this week → `skipped` (day kept). Keep: active and paused goals and recurring items lose `aspirationId`. Both: status retired, `retiredAt` now, priority cleared and the ones below moved up; reached and ended goals keep their aspiration. `getDay` leaves out skipped tasks.
 
 **Acceptance criteria:**
-- [ ] Pause on Be fit: its goals paused, Stretch and Hockey inactive, this week's planned and bank tasks for them skipped, done tasks untouched, hand-placed ones included.
-- [ ] After that, `getDay`, `getBank`, `getWeek` (day lines and progress rows) and `getUpkeep` show none of them, and Be fit's paused goals aren't in Week's progress.
-- [ ] Keep on Be fit: goals and items have no aspiration and are otherwise unchanged; Run a 5k stays with Be fit. Either way Be fit has no priority and Keep a calm home becomes 1. Retiring a retired one or an unknown id rejects.
+- [x] Pause on Be fit: its goals paused, Stretch and Hockey inactive, this week's planned and bank tasks for them skipped, done tasks untouched, hand-placed ones included.
+- [x] After that, `getDay`, `getBank`, `getWeek` (day lines and progress rows) and `getUpkeep` show none of them, and Be fit's paused goals aren't in Week's progress.
+- [x] Keep on Be fit: goals and items have no aspiration and are otherwise unchanged; Run a 5k stays with Be fit. Either way Be fit has no priority and Keep a calm home becomes 1. Retiring a retired one or an unknown id rejects.
 
 **Verification:**
-- [ ] `npm test`: `client.test.ts`; `domain/week.test.ts` if the progress check needs a domain case
+- [x] `npm test`: `client.test.ts`; `domain/week.test.ts` if the progress check needs a domain case
 
 **Dependencies:** Task 2
 
@@ -61,8 +61,8 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M
 
 ## Checkpoint A
-- [ ] Tests, lint and build pass
-- [ ] Today, Week, the tab and Keep life running behave as before
+- [x] Tests, lint and build pass
+- [x] Today, Week, the tab and Keep life running behave as before
 
 ## Phase 2: The page, shown
 
