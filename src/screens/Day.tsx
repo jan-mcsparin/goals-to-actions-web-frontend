@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { BankSheet } from '../components/BankSheet.tsx'
+import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import { TaskRow } from '../components/TaskRow.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
 import type { Task } from '../api/types.ts'
 import type { Section } from '../domain/today.ts'
 import { useDay } from '../hooks/useDay.ts'
+import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
 import './Day.css'
 
 type DayProps = {
@@ -27,6 +29,8 @@ export function Day({ date, today, onBack }: DayProps) {
     sendToBank,
     swap,
   } = useDay(date, today)
+  // With nothing loaded, the message is all there is, so it stays.
+  const shownMessage = useFleetingMessage(message, { sticky: !day })
   const [sheet, setSheet] = useState<Sheet>()
   const focusAfterSwap = useRef<string>(undefined)
 
@@ -58,7 +62,7 @@ export function Day({ date, today, onBack }: DayProps) {
   if (!day) {
     return (
       <main className="today" aria-busy={!message}>
-        {message && <p role="status">{message}</p>}
+        <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
       </main>
     )
   }
@@ -91,12 +95,6 @@ export function Day({ date, today, onBack }: DayProps) {
           />
         )}
       </div>
-
-      {message && (
-        <p className="today-message" role="status">
-          {message}
-        </p>
-      )}
 
       {!isEmpty && <ViewToggle view={view} onChange={setView} />}
 
@@ -134,6 +132,8 @@ export function Day({ date, today, onBack }: DayProps) {
         onPick={pickFromBank}
         onClose={() => setSheet(undefined)}
       />
+
+      <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
     </main>
   )
 }

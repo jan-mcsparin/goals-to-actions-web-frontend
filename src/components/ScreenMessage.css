@@ -28,3 +28,9 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* While a message shows, the page gets room for it, so it never covers the
+   last row. */
+.app:has(.screen-message) {
+  padding-bottom: calc(var(--tab-bar-height) + 3.75rem);
+}

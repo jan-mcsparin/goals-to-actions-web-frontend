@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import type { Task } from '../api/types.ts'
 import { DayPickerSheet } from '../components/DayPickerSheet.tsx'
+import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import type { DaySummary, ProgressRow } from '../domain/week.ts'
+import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
 import { useWeek } from '../hooks/useWeek.ts'
 import '../components/progressBar.css'
 import './Week.css'
@@ -14,11 +16,13 @@ type WeekProps = {
 export function Week({ today, onOpenDay }: WeekProps) {
   const { week, message, place } = useWeek(today)
   const [placing, setPlacing] = useState<Task>()
+  // With nothing loaded, the message is all there is, so it stays.
+  const shownMessage = useFleetingMessage(message, { sticky: !week })
 
   if (!week) {
     return (
       <main className="week" aria-busy={!message}>
-        {message && <p role="status">{message}</p>}
+        <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
       </main>
     )
   }
@@ -29,12 +33,6 @@ export function Week({ today, onOpenDay }: WeekProps) {
         <h1>This week</h1>
         <p className="week-range">{week.range}</p>
       </header>
-
-      {message && (
-        <p className="week-message" role="status">
-          {message}
-        </p>
-      )}
 
       {week.progress.length > 0 && (
         <section className="week-section" aria-labelledby="week-progress">
@@ -84,6 +82,8 @@ export function Week({ today, onOpenDay }: WeekProps) {
         }}
         onClose={() => setPlacing(undefined)}
       />
+
+      <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
     </main>
   )
 }

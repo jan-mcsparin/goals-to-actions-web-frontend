@@ -26,14 +26,14 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 ### Task 2: Day and Week use it
 
-**Description:** Replace Day's and Week's message paragraphs with `ScreenMessage`. Load failures are sticky; save failures fade. The Bank sheet's inline message stays, on purpose (the sheet covers the bottom of the screen). The screen gets bottom padding while a message shows, so the last row isn't covered.
+**Description:** Replace Day's and Week's message paragraphs with `ScreenMessage`. Load failures are sticky; save failures fade. The Bank sheet's inline message stays, on purpose (the sheet covers the bottom of the screen). While a message shows, `.app:has(.screen-message)` adds bottom padding, so the last row isn't covered (one rule in `ScreenMessage.css`, not per screen).
 
 **Acceptance criteria:**
-- [ ] A failed check-off on Today shows "Couldn't save that. Try again." above the tab bar, and it's gone 5 s later. A second failure shows it again.
-- [ ] A failed load on Today or Week stays until tapped. Wording is unchanged.
+- [x] A failed check-off on Today shows "Couldn't save that. Try again." above the tab bar, and it's gone 5 s later. A second failure shows it again.
+- [x] A failed load on Today or Week stays until tapped. Wording is unchanged.
 
 **Verification:**
-- [ ] `npm test`: `Day.test.tsx`, `Week.test.tsx` (existing `role="status"` queries still pass or are updated)
+- [x] `npm test`: `Day.test.tsx`, `Week.test.tsx` (existing `role="status"` queries still pass or are updated)
 
 **Dependencies:** Task 1
 

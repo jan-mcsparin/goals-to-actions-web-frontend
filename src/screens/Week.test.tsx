@@ -22,6 +22,13 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
+// For the tests that wait out a message: timeouts are faked too, and still
+// run on their own so RTL's polling works.
+function fakeTimeouts() {
+  vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'], shouldAdvanceTime: true })
+  vi.setSystemTime(new Date(2026, 10, 11, 9, 0))
+}
+
 function dayButtons() {
   return within(screen.getByRole('region', { name: 'Days' })).getAllByRole('button')
 }
@@ -141,7 +148,36 @@ describe('Week', () => {
 
     expect(screen.getByRole('region', { name: 'Bank · 4 not on a day' })).toBeDefined()
     expect(dayButtons()[4].textContent).not.toContain('Call the dentist')
-    expect(screen.getByText("Couldn't save that. Try again.")).toBeDefined()
+    expect(screen.getByRole('status').className).toBe('screen-message')
+    expect(screen.getByRole('status').textContent).toBe("Couldn't save that. Try again.")
+  })
+
+  it('lets a failed save go after a few seconds', async () => {
+    fakeTimeouts()
+    vi.mocked(pullFromBank).mockRejectedValueOnce(new Error('offline'))
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<Week today={WEDNESDAY_DAY} onOpenDay={() => {}} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Call the dentist' }))
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Friday' }))
+    expect(await screen.findByRole('status')).toBeDefined()
+
+    act(() => vi.advanceTimersByTime(5000))
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
+  it("keeps a load failure until it's tapped", async () => {
+    fakeTimeouts()
+    vi.mocked(getWeek).mockRejectedValueOnce(new Error('offline'))
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<Week today={WEDNESDAY_DAY} onOpenDay={() => {}} />)
+
+    const message = await screen.findByRole('button', { name: "Couldn't load this week. Try again in a moment." })
+    act(() => vi.advanceTimersByTime(60_000))
+    expect(screen.getByRole('status')).toBeDefined()
+
+    await user.click(message)
+    expect(screen.queryByRole('status')).toBeNull()
   })
 
   it('says so when the bank is empty', async () => {
