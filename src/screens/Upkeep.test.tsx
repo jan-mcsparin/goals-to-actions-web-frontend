@@ -91,7 +91,9 @@ describe('Keep life running', () => {
     vi.mocked(getUpkeep).mockRejectedValueOnce(new Error('offline'))
     render(<Upkeep today={WEDNESDAY_DAY} onBack={() => {}} />)
 
-    expect((await screen.findByRole('status')).textContent).toBe("Couldn't load this page. Try again in a moment.")
+    const message = await screen.findByRole('status')
+    expect(message.className).toBe('screen-message')
+    expect(message.textContent).toBe("Couldn't load this page. Try again in a moment.")
     expect(screen.getByRole('button', { name: 'Back to Aspirations' })).toBeDefined()
   })
 })

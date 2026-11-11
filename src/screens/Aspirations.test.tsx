@@ -129,7 +129,9 @@ describe('Aspirations', () => {
     vi.mocked(getAspirations).mockRejectedValueOnce(new Error('offline'))
     renderTab()
 
-    expect((await screen.findByRole('status')).textContent).toBe("Couldn't load your aspirations. Try again in a moment.")
+    const message = await screen.findByRole('status')
+    expect(message.className).toBe('screen-message')
+    expect(message.textContent).toBe("Couldn't load your aspirations. Try again in a moment.")
   })
 
   it('never mentions pace or being behind', async () => {

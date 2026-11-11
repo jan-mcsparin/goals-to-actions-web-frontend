@@ -1,10 +1,23 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { updateAspiration } from '../api/client.ts'
 import { resetStore, store } from '../api/mockStore.ts'
 import { Aspiration } from './Aspiration.tsx'
 
+vi.mock('../api/client.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../api/client.ts')>()
+  return { ...actual, updateAspiration: vi.fn(actual.updateAspiration) }
+})
+
 const TODAY = '2026-11-11'
+
+// For the tests that wait out a message: timeouts are faked too, and still
+// run on their own so RTL's polling works.
+function fakeTimeouts() {
+  vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'], shouldAdvanceTime: true })
+  vi.setSystemTime(new Date(2026, 10, 11, 9, 0))
+}
 
 // Wednesday 11 Nov 2026, 9 a.m. local time.
 beforeEach(() => {
@@ -167,6 +180,25 @@ describe('Aspiration, active', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.getByRole('heading', { level: 1, name: 'Be fit for life' })).toBeDefined()
     expect(screen.getByText('To ski at 80.')).toBeDefined()
+  })
+
+  it('says a failed save above the tab bar, and lets it go after a few seconds', async () => {
+    fakeTimeouts()
+    vi.mocked(updateAspiration).mockRejectedValueOnce(new Error('offline'))
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Edit name and why' }))
+    const sheet = screen.getByRole('dialog', { name: 'Edit name and why' })
+    await user.type(within(sheet).getByRole('textbox', { name: 'Name' }), ' for life')
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }))
+
+    const message = await screen.findByRole('status')
+    expect(message.className).toBe('screen-message')
+    expect(message.textContent).toBe("Couldn't save that. Try again.")
+
+    act(() => vi.advanceTimersByTime(5000))
+    expect(screen.queryByRole('status')).toBeNull()
   })
 
   it('removes the why when it is cleared', async () => {

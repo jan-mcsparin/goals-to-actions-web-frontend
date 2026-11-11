@@ -1,6 +1,8 @@
 // Keep life running: what has to happen, under no goal. The page only shows;
 // checking off and placing happen on Today and Week.
 import { BackLink } from '../components/BackLink.tsx'
+import { ScreenMessage } from '../components/ScreenMessage.tsx'
+import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
 import { useUpkeep } from '../hooks/useUpkeep.ts'
 import './Upkeep.css'
 
@@ -11,6 +13,8 @@ type UpkeepProps = {
 
 export function Upkeep({ today, onBack }: UpkeepProps) {
   const { view, message } = useUpkeep(today)
+  // With nothing loaded, the message is all there is, so it stays.
+  const shownMessage = useFleetingMessage(message, { sticky: !view })
 
   return (
     <main className="upkeep" aria-busy={!view && !message}>
@@ -19,12 +23,6 @@ export function Upkeep({ today, onBack }: UpkeepProps) {
         <h1 className="screen-title">Keep life running</h1>
         <p className="upkeep-note">The things that have to happen, under no goal.</p>
       </header>
-
-      {message && (
-        <p className="upkeep-note" role="status">
-          {message}
-        </p>
-      )}
 
       {view && (
         <>
@@ -61,6 +59,8 @@ export function Upkeep({ today, onBack }: UpkeepProps) {
           </section>
         </>
       )}
+
+      <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
     </main>
   )
 }

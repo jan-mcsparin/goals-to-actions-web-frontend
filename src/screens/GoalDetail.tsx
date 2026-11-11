@@ -8,6 +8,7 @@ import { BackLink } from '../components/BackLink.tsx'
 import { CheckInSheet } from '../components/CheckInSheet.tsx'
 import { EndGoalSheet } from '../components/EndGoalSheet.tsx'
 import { ReopenSheet } from '../components/ReopenSheet.tsx'
+import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import { TargetSheet } from '../components/TargetSheet.tsx'
 import {
   shownRowKey,
@@ -17,6 +18,7 @@ import {
   type ShownRow,
 } from '../domain/goalDetail.ts'
 import { useGoal, type ShownTimeline } from '../hooks/useGoal.ts'
+import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
 import type { GoalOrigin } from '../hooks/useNavigation.ts'
 import './GoalDetail.css'
 
@@ -38,6 +40,8 @@ type CheckInTarget = { milestoneId?: string; measurableLine: string }
 export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNotFound }: GoalDetailProps) {
   const goal = useGoal(goalId, from, today)
   const { page, backTo, timeline, message, notFound, expand, collapse } = goal
+  // With nothing loaded, the message is all there is, so it stays.
+  const shownMessage = useFleetingMessage(message, { sticky: !page })
   const [sheet, setSheet] = useState<OpenSheet>()
   const [checkingIn, setCheckingIn] = useState<CheckInTarget>()
   const steps = page?.timeline.heading === 'Steps'
@@ -79,12 +83,6 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
           </>
         )}
       </header>
-
-      {message && (
-        <p className="goal-note" role="status">
-          {message}
-        </p>
-      )}
 
       {page && timeline && (
         <>
@@ -186,6 +184,8 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
           onClose={closeSheet}
         />
       )}
+
+      <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
     </main>
   )
 }

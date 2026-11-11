@@ -46,11 +46,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Same switch for the other four screens.
 
 **Acceptance criteria:**
-- [ ] Each screen's save failure fades and its load failure stays, with the wording unchanged.
-- [ ] No screen still renders its own message paragraph (grep for `role="status"` in `screens/` finds none).
+- [x] Each screen's save failure fades and its load failure stays, with the wording unchanged.
+- [x] No screen still renders its own save or load message. Left inline on purpose: Goal detail's "Milestone hit: …" (it sits by the new Next, where the check-in happened) and the Bank sheet's message (inside the sheet).
 
 **Verification:**
-- [ ] `npm test`: the four screens' tests
+- [x] `npm test`: the four screens' tests
 
 **Dependencies:** Task 2
 
