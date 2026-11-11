@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  addMilestone,
   bringBackAspiration,
   checkOffTask,
   getAspiration,
@@ -13,6 +14,7 @@ import {
   NotFoundError,
   pullFromBank,
   retireAspiration,
+  setWeeklyTarget,
   skipTask,
   swapTask,
   uncheckTask,
@@ -554,6 +556,86 @@ describe('getGoal', () => {
     expect(second.goal.label).toBe('Be strong')
     expect(second.milestones[0].measurableLine).not.toBe('changed')
     expect(second.weeklyTarget?.amount).toBe(3)
+  })
+})
+
+describe('setWeeklyTarget', () => {
+  it('adds a target from this Monday and keeps the earlier one', async () => {
+    const target = await setWeeklyTarget('goal-strong', 4, 'lifting sessions')
+
+    expect(target).toMatchObject({ goalId: 'goal-strong', amount: 4, unit: 'lifting sessions', effectiveFrom: '2026-11-09' })
+    expect(store.weeklyTargets.find((row) => row.id === 'wt-strong')?.amount).toBe(3)
+    expect((await getGoal('goal-strong')).weeklyTarget?.amount).toBe(4)
+  })
+
+  it('updates this week’s row when changed again the same week', async () => {
+    await setWeeklyTarget('goal-strong', 4, 'lifting sessions')
+    await setWeeklyTarget('goal-strong', 2, ' gym visits ')
+
+    const rows = store.weeklyTargets.filter((row) => row.goalId === 'goal-strong')
+    expect(rows.map((row) => [row.effectiveFrom, row.amount, row.unit])).toEqual([
+      ['2026-10-05', 3, 'lifting sessions'],
+      ['2026-11-09', 2, 'gym visits'],
+    ])
+  })
+
+  it('gives a goal its first target', async () => {
+    await setWeeklyTarget('goal-look-good', 4, 'clean meals')
+
+    expect((await getGoal('goal-look-good')).weeklyTarget).toMatchObject({ amount: 4, unit: 'clean meals' })
+  })
+
+  it('shows on Week at once', async () => {
+    await setWeeklyTarget('goal-strong', 4, 'lifting sessions')
+
+    const week = await getWeek()
+    expect(week.weeklyTargets.find((row) => row.goalId === 'goal-strong')?.amount).toBe(4)
+  })
+
+  it('rejects an amount below 1 or not whole, and a blank unit', async () => {
+    await expect(setWeeklyTarget('goal-strong', 0, 'lifting sessions')).rejects.toThrow()
+    await expect(setWeeklyTarget('goal-strong', 2.5, 'lifting sessions')).rejects.toThrow()
+    await expect(setWeeklyTarget('goal-strong', 3, '  ')).rejects.toThrow()
+    expect(store.weeklyTargets.filter((row) => row.goalId === 'goal-strong')).toHaveLength(1)
+  })
+
+  it('rejects a goal that is not building, or is reached or ended, and an unknown one', async () => {
+    await expect(setWeeklyTarget('goal-garage', 1, 'trips to the dump')).rejects.toThrow()
+    await expect(setWeeklyTarget('goal-5k', 3, 'runs')).rejects.toThrow()
+    await expect(setWeeklyTarget('goal-nope', 3, 'runs')).rejects.toThrow(NotFoundError)
+  })
+})
+
+describe('addMilestone', () => {
+  it('adds an upcoming milestone after the goal’s last one', async () => {
+    const milestone = await addMilestone('goal-strong', { measurableLine: ' Bench 172 ', targetDate: '2027-02-01' })
+
+    expect(milestone).toMatchObject({
+      goalId: 'goal-strong',
+      measurableLine: 'Bench 172',
+      status: 'upcoming',
+      targetDate: '2027-02-01',
+    })
+    const { milestones } = await getGoal('goal-strong')
+    expect(milestones.map((row) => row.id).at(-1)).toBe(milestone.id)
+    expect(milestones).toHaveLength(6)
+  })
+
+  it('adds one with no date, and a goal’s first', async () => {
+    const milestone = await addMilestone('goal-cook', { measurableLine: 'Cook 3 nights a week' })
+
+    expect(milestone.targetDate).toBeUndefined()
+    expect((await getGoal('goal-cook')).milestones.map((row) => row.id)).toEqual([milestone.id])
+  })
+
+  it('rejects a blank line, a date past the deadline, a reached goal and an unknown one', async () => {
+    const deadline = store.goals.find((goal) => goal.id === 'goal-garage')!.deadline!
+
+    await expect(addMilestone('goal-strong', { measurableLine: '  ' })).rejects.toThrow()
+    await expect(addMilestone('goal-garage', { measurableLine: 'Paint', targetDate: '2027-06-01' })).rejects.toThrow()
+    await expect(addMilestone('goal-garage', { measurableLine: 'Paint', targetDate: deadline })).resolves.toBeDefined()
+    await expect(addMilestone('goal-5k', { measurableLine: 'Run 6k' })).rejects.toThrow()
+    await expect(addMilestone('goal-nope', { measurableLine: 'Run 6k' })).rejects.toThrow(NotFoundError)
   })
 })
 

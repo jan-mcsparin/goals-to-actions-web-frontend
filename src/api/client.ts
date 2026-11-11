@@ -10,6 +10,7 @@ import type {
   DayPlan,
   Goal,
   GoalDetail,
+  Milestone,
   RecurringItem,
   Task,
   Upkeep,
@@ -91,6 +92,43 @@ export async function getGoal(goalId: string): Promise<GoalDetail> {
     milestones: store.milestones.filter((milestone) => milestone.goalId === goalId),
     weeklyTarget: currentTarget(goalId, sundayOf(thisWeek())),
   })
+}
+
+// Takes effect this week. A second change in the same week updates that
+// week's row, so earlier weeks keep the target they had.
+export async function setWeeklyTarget(goalId: string, amount: number, unit: string): Promise<WeeklyTarget> {
+  const goal = findCurrentGoal(goalId)
+  if (goal.type !== 'building') throw new Error(`${goalId} is not a building goal`)
+  if (!Number.isInteger(amount) || amount < 1) throw new Error('A weekly target is a whole number, at least 1')
+  const trimmedUnit = unit.trim()
+  if (!trimmedUnit) throw new Error('A weekly target needs a unit')
+
+  const weekOf = thisWeek()
+  let target = store.weeklyTargets.find((row) => row.goalId === goalId && row.effectiveFrom === weekOf)
+  if (!target) {
+    target = { id: newId('wt'), goalId, amount, unit: trimmedUnit, effectiveFrom: weekOf }
+    store.weeklyTargets.push(target)
+  }
+  target.amount = amount
+  target.unit = trimmedUnit
+  return structuredClone(target)
+}
+
+// Goes after the goal's last milestone, upcoming, never past the deadline.
+export async function addMilestone(
+  goalId: string,
+  milestone: { measurableLine: string; targetDate?: string },
+): Promise<Milestone> {
+  const goal = findCurrentGoal(goalId)
+  const measurableLine = milestone.measurableLine.trim()
+  if (!measurableLine) throw new Error('A milestone needs a measurable line')
+  const { targetDate } = milestone
+  if (targetDate && goal.deadline && targetDate > goal.deadline) throw new Error("A milestone can't come after the deadline")
+
+  const added: Milestone = { id: newId('ms'), goalId, measurableLine, status: 'upcoming' }
+  if (targetDate) added.targetDate = targetDate
+  store.milestones.push(added)
+  return structuredClone(added)
 }
 
 // A blank why is removed; anything not given stays as it was.
@@ -260,6 +298,18 @@ function findGoal(goalId: string): Goal {
   const goal = store.goals.find((candidate) => candidate.id === goalId)
   if (!goal) throw new NotFoundError(`No goal with id ${goalId}`)
   return goal
+}
+
+// Active or paused: a reached or ended goal can't be changed.
+function findCurrentGoal(goalId: string): Goal {
+  const goal = findGoal(goalId)
+  if (!isCurrentGoal(goal)) throw new Error(`${goalId} is ${goal.status}`)
+  return goal
+}
+
+// The real API assigns ids; the mock makes its own.
+function newId(prefix: string): string {
+  return `${prefix}-${crypto.randomUUID()}`
 }
 
 function pauseWork(goals: Goal[], items: RecurringItem[]) {

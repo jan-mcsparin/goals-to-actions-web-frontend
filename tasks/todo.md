@@ -48,11 +48,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `setWeeklyTarget(goalId, amount, unit)` adds a row effective this Monday, or updates that row if it already exists. `addMilestone(goalId, { measurableLine, targetDate? })` appends an upcoming milestone after the goal's last one.
 
 **Acceptance criteria:**
-- [ ] A target changed twice this week leaves one row for this week and keeps the October row; `getWeek` shows the new amount. An amount below 1, a blank unit, or a goal that isn't building rejects.
-- [ ] A new milestone is last and upcoming; a blank line, an unknown goal, or a reached or ended goal rejects.
+- [x] A target changed twice this week leaves one row for this week and keeps the October row; `getWeek` shows the new amount. An amount below 1 or not whole, a blank unit, a goal that isn't building, or a reached or ended goal rejects.
+- [x] A new milestone is last and upcoming; a blank line, a date past the deadline, an unknown goal, or a reached or ended goal rejects.
 
 **Verification:**
-- [ ] `npm test`: `client.test.ts`, one block per function
+- [x] `npm test`: `client.test.ts`, one block per function
 
 **Dependencies:** Task 1
 
