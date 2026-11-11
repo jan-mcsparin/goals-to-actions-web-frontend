@@ -157,15 +157,15 @@ export function progressLabel(type: GoalType, hit: number, total: number): strin
 
 ## Success criteria
 
-- [ ] Every acceptance criterion on #4 is met, read as the Aspirations tab.
-- [ ] Active aspirations show as cards in priority order with why, this week, goals and recurring items.
-- [ ] Goal rows show milestone or step progress with the goal as the final milestone.
-- [ ] Other goals and Retired show as described; Keep life running opens its page, which lists recurring items and loose tasks under no goal.
-- [ ] One-off goals read "Step" everywhere.
-- [ ] A card opens its aspiration and a goal row opens its goal (placeholders); back returns; all of it survives reload.
-- [ ] Tab bar is Today | Week | Aspirations.
-- [ ] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
-- [ ] Works at 375 and 390 px, light and dark.
+- [x] Every acceptance criterion on #4 is met, read as the Aspirations tab.
+- [x] Active aspirations show as cards in priority order with why, this week, goals and recurring items.
+- [x] Goal rows show milestone or step progress with the goal as the final milestone.
+- [x] Other goals and Retired show as described; Keep life running opens its page, which lists recurring items and loose tasks under no goal.
+- [x] One-off goals read "Step" everywhere.
+- [x] A card opens its aspiration and a goal row opens its goal (placeholders); back returns; all of it survives reload.
+- [x] Tab bar is Today | Week | Aspirations.
+- [x] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
+- [x] Works at 375 and 390 px, light and dark (checked on Jan's phone).
 
 ## Settled in the build
 
