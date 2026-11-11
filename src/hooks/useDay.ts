@@ -1,7 +1,7 @@
 // A day's plan, ready to render, plus the actions the screen offers. Changes
 // show immediately and are saved in the background; if a save fails the task
 // goes back to how it was (ADR-004). Rules come from domain/today.ts.
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import {
   checkOffTask,
   getBank,
@@ -23,7 +23,7 @@ import {
 } from '../domain/today.ts'
 import { readTodayView, saveTodayView, type TodayViewMode } from '../storage/viewPreference.ts'
 import { withTaskReplaced } from './planUpdates.ts'
-import { useDataRevision } from './dataRevision.ts'
+import { useLoaded } from './useLoaded.ts'
 
 const LOAD_FAILED = "Couldn't load today. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
@@ -54,28 +54,15 @@ export type UseDay = {
 }
 
 export function useDay(date: string, today: string): UseDay {
-  const [plan, setPlan] = useState<DayPlan>()
-  const [message, setMessage] = useState<string>()
+  const { data: plan, setData: setPlan, message, setMessage } = useLoaded(
+    useCallback(() => getDay(date), [date]),
+    LOAD_FAILED,
+  )
   const [view, setViewState] = useState(readTodayView)
   const [bank, setBank] = useState<Bank>()
   const [bankFailed, setBankFailed] = useState(false)
   const latestRequest = useRef(new Map<string, number>())
   const latestBankLoad = useRef(0)
-  const revision = useDataRevision()
-
-  useEffect(() => {
-    let current = true
-    getDay(date)
-      .then((loaded) => {
-        if (!current) return
-        setPlan(loaded)
-        setMessage((shown) => (shown === LOAD_FAILED ? undefined : shown))
-      })
-      .catch(() => current && setMessage(LOAD_FAILED))
-    return () => {
-      current = false
-    }
-  }, [date, revision])
 
   function replaceTask(next: Task) {
     setPlan((previous) => previous && withTaskReplaced(previous, next.id, next))

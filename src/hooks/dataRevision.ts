@@ -1,6 +1,6 @@
 // A number App raises after something is added, so the open screen loads
-// again. The load hooks list it in their load effect and keep showing what
-// they have meanwhile. It's 0 without a provider.
+// again. useLoaded (which the screens' load hooks use) reloads on it and keeps
+// showing what it has meanwhile. It's 0 without a provider.
 import { createContext, useCallback, useContext, useState } from 'react'
 
 export const DataRevision = createContext(0)
