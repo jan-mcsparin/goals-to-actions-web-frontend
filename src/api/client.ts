@@ -1,6 +1,7 @@
 // The functions screens and hooks call. They read the in-memory mock store for
 // now; later they call the real API and keep the same signatures.
 import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
+import { taskWeek } from '../domain/add.ts'
 import { isWithinGoal, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
 import { store } from './mockStore.ts'
 import type {
@@ -14,6 +15,7 @@ import type {
   Milestone,
   RecurringItem,
   Task,
+  TimeOfDay,
   Upkeep,
   WeekPlan,
   WeeklyTarget,
@@ -292,6 +294,32 @@ export async function getBank(): Promise<Bank> {
   const weekOf = thisWeek()
   const tasks = store.tasks.filter((task) => task.status === 'inBank' && task.weekOf === weekOf)
   return structuredClone({ weekOf, tasks, ...recordsReferencedBy(tasks) })
+}
+
+// In the bank of this week, or of its due week when that's later. With
+// onToday it goes on today's plan, placed by hand, whatever its due date.
+export async function addTask(task: {
+  title: string
+  goalId?: string
+  dueDate?: string
+  timeOfDay?: TimeOfDay
+  onToday?: boolean
+}): Promise<Task> {
+  const title = task.title.trim()
+  if (!title) throw new Error('A task needs a title')
+  if (task.goalId) findGoal(task.goalId)
+
+  const today = toLocalDay(new Date())
+  const added: Task = { id: newId('task'), title, status: 'inBank', weekOf: taskWeek(task.dueDate, today), rolloverCount: 0 }
+  if (task.goalId) added.goalId = task.goalId
+  if (task.dueDate) added.dueDate = task.dueDate
+  if (task.timeOfDay) added.timeOfDay = { ...task.timeOfDay }
+  if (task.onToday) {
+    added.weekOf = thisWeek()
+    placeOn(added, today)
+  }
+  store.tasks.push(added)
+  return structuredClone(added)
 }
 
 // Skipping sends a task back to the bank. It isn't a rollover, so the count stays.

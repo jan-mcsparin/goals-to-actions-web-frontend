@@ -103,12 +103,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `domain/add.ts`: `taskWeek(dueDate, today)`, `taskConfirmation(...)` and `taskReady(draft)`. `addTask` stores an `inBank` task in this week, or in its due week when that's later, or a `planned`, `placedByHand` task on today when `onToday` is set.
 
 **Acceptance criteria:**
-- [ ] `taskWeek`: no date, this week and a past date give this Monday; next week and a date across the year end give that week's Monday. The confirmations are "Added to this week's bank.", "Saved for the week of Nov 23." and "Added to today."
-- [ ] A task due next week is absent from `getBank` and `getWeek`; one added on today is in `getDay(today)` with `placedByHand`; a plain one is in `getBank`.
-- [ ] A blank title or an unknown `goalId` rejects; new records pass the dataset checks.
+- [x] `taskWeek`: no date, this week and a past date give this Monday; next week and a date across the year end give that week's Monday. The confirmations are "Added to this week's bank.", "Saved for the week of Nov 23." and "Added to today."
+- [x] A task due next week is absent from `getBank` and `getWeek`; one added on today is in `getDay(today)` with `placedByHand`; a plain one is in `getBank`.
+- [x] A blank title or an unknown `goalId` rejects; new records pass the dataset checks.
 
 **Verification:**
-- [ ] `npm test`: new `domain/add.test.ts`, `client.test.ts` (an `addTask` block)
+- [x] `npm test`: new `domain/add.test.ts`, `client.test.ts` (an `addTask` block)
 
 **Dependencies:** Task 4
 
