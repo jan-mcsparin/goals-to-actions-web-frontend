@@ -31,7 +31,8 @@ export type MilestoneRow = {
   kind: 'milestone'
   milestoneId: string
   measurableLine: string
-  when: string
+  when: string // "Wk 9 · Nov 30"
+  week: string // "Wk 9", for fold rows
   status: MilestoneStatus
   result?: string
   next: boolean
@@ -158,6 +159,66 @@ export function pushedDates(goal: Goal, milestones: Milestone[], movedId: string
   })
 }
 
+// A run of timeline rows folded into one tappable row.
+export type FoldRow = {
+  kind: 'fold'
+  label: string
+  hidden: number
+}
+
+export type ShownRow = TimelineRow | FoldRow
+
+const MOST_SHOWN_IN_FULL = 4
+
+// More than four milestones fold, so the target and Check in stay near the top.
+export function canCondense(timeline: Timeline): boolean {
+  return timeline.rows.filter((row) => row.kind === 'milestone').length > MOST_SHOWN_IN_FULL
+}
+
+// Keeps the latest hit milestone, every not-yet one, Next and the goal; each
+// run of two or more rows between them folds. A run of one shows itself.
+export function condenseTimeline(timeline: Timeline): ShownRow[] {
+  const { rows } = timeline
+  if (!canCondense(timeline)) return rows
+  const steps = timeline.heading === 'Steps'
+  const latestHit = rows.findLast((row) => row.kind === 'milestone' && row.status === 'hit')
+  const kept = (row: TimelineRow) =>
+    row.kind === 'goal' || row === latestHit || (row.kind === 'milestone' && (row.next || row.status === 'notYet'))
+
+  const shown: ShownRow[] = []
+  let run: TimelineRow[] = []
+  const closeRun = () => {
+    if (run.length === 1) shown.push(run[0])
+    else if (run.length > 1) shown.push({ kind: 'fold', label: foldLabel(run, steps), hidden: run.length })
+    run = []
+  }
+  for (const row of rows) {
+    if (!kept(row)) {
+      run.push(row)
+      continue
+    }
+    closeRun()
+    shown.push(row)
+  }
+  closeRun()
+  return shown
+}
+
+// "Start and 2 hit milestones", "2 more: Wk 16, No date".
+function foldLabel(run: TimelineRow[], steps: boolean): string {
+  const milestones = run.filter((row): row is MilestoneRow => row.kind === 'milestone')
+  const count = milestones.length
+  let rest: string
+  if (!milestones.every((row) => row.status === 'hit')) {
+    rest = `${count} more: ${milestones.map((row) => row.week).join(', ')}`
+  } else if (steps) {
+    rest = `${count} ${count === 1 ? 'step' : 'steps'} done`
+  } else {
+    rest = `${count} hit ${count === 1 ? 'milestone' : 'milestones'}`
+  }
+  return run[0].kind === 'start' ? `Start and ${rest}` : rest
+}
+
 function header({ goal, aspiration }: GoalDetail): Header {
   return {
     goalId: goal.id,
@@ -205,6 +266,7 @@ function timeline(detail: GoalDetail): Timeline {
       milestoneId: milestone.id,
       measurableLine: milestone.measurableLine,
       when: weekLabel(goal.startDate, milestone.targetDate),
+      week: milestone.targetDate ? `Wk ${weekNumber(goal.startDate, milestone.targetDate)}` : 'No date',
       status: milestone.status,
       ...(milestone.result && { result: milestone.result }),
       next: isNext,

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { Aspiration, Goal, GoalDetail, Milestone, MilestoneStatus, WeeklyTarget } from '../api/types.ts'
 import {
   achievementLine,
+  canCondense,
+  condenseTimeline,
   goalPage,
   pushedDates,
   weekLabel,
@@ -372,5 +374,93 @@ describe('pushedDates', () => {
     pushedDates(goal(), later, 'm2', '2026-11-29')
 
     expect(later).toEqual(before)
+  })
+})
+
+describe('condenseTimeline', () => {
+  // What each shown row is: a milestone's id, 'start', 'goal', or a fold's label.
+  function shape(input: GoalDetail): string[] {
+    const page = goalPage(input, TODAY)
+    return condenseTimeline(page.timeline).map((row) => {
+      if (row.kind === 'fold') return `fold: ${row.label}`
+      if (row.kind === 'milestone') return row.milestoneId
+      return row.kind
+    })
+  }
+
+  function strong(statuses: MilestoneStatus[], dates: (string | undefined)[] = []): GoalDetail {
+    return detail({
+      milestones: statuses.map((status, index) => milestone(`m${index + 1}`, status, dates[index] ? { targetDate: dates[index] } : {})),
+    })
+  }
+
+  it('shows every row with four milestones or fewer, and says so', () => {
+    const input = strong(['hit', 'hit', 'upcoming', 'upcoming'])
+
+    expect(canCondense(goalPage(input, TODAY).timeline)).toBe(false)
+    expect(shape(input)).toEqual(['start', 'm1', 'm2', 'm3', 'm4', 'goal'])
+  })
+
+  it('keeps the latest hit, the not-yet Next and the goal, as on Be strong', () => {
+    const input = strong(['hit', 'notYet', 'upcoming', 'upcoming', 'upcoming'], [undefined, undefined, '2026-11-30'])
+
+    expect(canCondense(goalPage(input, TODAY).timeline)).toBe(true)
+    expect(shape(input)).toEqual(['start', 'm1', 'm2', 'fold: 3 more: Wk 9, No date, No date', 'goal'])
+  })
+
+  it('folds Start with the hit milestones before the latest one', () => {
+    const input = strong(['hit', 'hit', 'hit', 'upcoming', 'upcoming', 'upcoming'], [undefined, undefined, undefined, undefined, '2027-01-25', '2027-02-22'])
+
+    expect(shape(input)).toEqual(['fold: Start and 2 hit milestones', 'm3', 'm4', 'fold: 2 more: Wk 17, Wk 21', 'goal'])
+  })
+
+  it('says 1 hit milestone in the singular', () => {
+    const input = strong(['hit', 'hit', 'upcoming', 'upcoming', 'upcoming'])
+
+    expect(shape(input)[0]).toBe('fold: Start and 1 hit milestone')
+  })
+
+  it('never folds a not-yet step on a one-off goal', () => {
+    const input = detail({
+      goal: goal({ type: 'oneOff' }),
+      milestones: [
+        milestone('s1', 'upcoming'),
+        milestone('s2', 'hit'),
+        milestone('s3', 'upcoming'),
+        milestone('s4', 'notYet'),
+        milestone('s5', 'upcoming'),
+        milestone('s6', 'upcoming'),
+      ],
+    })
+
+    expect(shape(input)).toEqual(['start', 's1', 's2', 's3', 's4', 'fold: 2 more: No date, No date', 'goal'])
+  })
+
+  it('names done steps on a one-off goal', () => {
+    const input = detail({
+      goal: goal({ type: 'oneOff' }),
+      milestones: ['hit', 'hit', 'hit', 'upcoming', 'upcoming'].map((status, index) => milestone(`s${index + 1}`, status as MilestoneStatus)),
+    })
+
+    expect(shape(input)[0]).toBe('fold: Start and 2 steps done')
+  })
+
+  it('keeps the last hit and the goal when all are hit', () => {
+    const input = strong(['hit', 'hit', 'hit', 'hit', 'hit'])
+
+    expect(shape(input)).toEqual(['fold: Start and 4 hit milestones', 'm5', 'goal'])
+  })
+
+  it('keeps Start, Next and the goal when none are hit', () => {
+    const input = strong(['upcoming', 'upcoming', 'upcoming', 'upcoming', 'upcoming'])
+
+    expect(shape(input)).toEqual(['start', 'm1', 'fold: 4 more: No date, No date, No date, No date', 'goal'])
+  })
+
+  it('counts the rows each fold hides', () => {
+    const input = strong(['hit', 'hit', 'hit', 'upcoming', 'upcoming', 'upcoming'])
+    const folds = condenseTimeline(goalPage(input, TODAY).timeline).filter((row) => row.kind === 'fold')
+
+    expect(folds.map((fold) => fold.hidden)).toEqual([3, 2])
   })
 })

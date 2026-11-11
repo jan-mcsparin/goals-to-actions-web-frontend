@@ -80,15 +80,15 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 ### Task 4: `condenseTimeline` and the Show all preference
 
-**Description:** `condenseTimeline(rows)` keeps the latest hit milestone, every not-yet one, Next and the Goal row, and folds the runs between them into labelled fold rows. `storage/timelinePreference.ts` remembers expanded goal IDs.
+**Description:** `condenseTimeline(timeline)` keeps the latest hit milestone, every not-yet one, Next and the Goal row, and folds the runs between them into labelled fold rows. `storage/timelinePreference.ts` remembers expanded goal IDs.
 
 **Acceptance criteria:**
-- [ ] Four milestones or fewer: no folding, no toggle. Be strong condenses to Start, milestone 1 (latest hit), milestone 2 (not yet, Next), "3 more: Wk 9, No date, No date", Goal. A run of one row shows the row itself rather than a fold.
-- [ ] A not-yet milestone is never folded; all hit and none hit both give sensible rows.
-- [ ] The preference round-trips per goal and falls back to collapsed when storage throws or holds junk.
+- [x] Four milestones or fewer: no folding, no toggle. Be strong condenses to Start, milestone 1 (latest hit), milestone 2 (not yet, Next), "3 more: Wk 9, No date, No date", Goal. A run of one row shows the row itself rather than a fold.
+- [x] A not-yet milestone is never folded; all hit and none hit both give sensible rows.
+- [x] The preference round-trips per goal and falls back to collapsed when storage throws or holds junk.
 
 **Verification:**
-- [ ] `npm test`: `goalDetail.test.ts` (a `condenseTimeline` block), new `storage/timelinePreference.test.ts`
+- [x] `npm test`: `goalDetail.test.ts` (a `condenseTimeline` block), new `storage/timelinePreference.test.ts`
 
 **Dependencies:** Task 3
 
@@ -97,8 +97,8 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** S
 
 ## Checkpoint A
-- [ ] Tests, lint and build pass
-- [ ] Today, Week, the tab and the aspiration page behave as before
+- [x] Tests, lint and build pass
+- [x] Today, Week, the tab and the aspiration page behave as before
 
 ## Phase 2: The screen
 
