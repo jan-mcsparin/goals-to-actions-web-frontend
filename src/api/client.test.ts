@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   addMilestone,
   bringBackAspiration,
+  checkInMilestone,
   checkOffTask,
   getAspiration,
   getAspirations,
@@ -13,6 +14,7 @@ import {
   moveAspiration,
   NotFoundError,
   pullFromBank,
+  reopenMilestone,
   retireAspiration,
   setWeeklyTarget,
   skipTask,
@@ -655,6 +657,91 @@ describe('addMilestone', () => {
     await expect(addMilestone('goal-garage', { measurableLine: 'Paint', targetDate: deadline })).resolves.toBeDefined()
     await expect(addMilestone('goal-5k', { measurableLine: 'Run 6k' })).rejects.toThrow()
     await expect(addMilestone('goal-nope', { measurableLine: 'Run 6k' })).rejects.toThrow(NotFoundError)
+  })
+})
+
+describe('checkInMilestone', () => {
+  function milestoneById(id: string) {
+    return store.milestones.find((milestone) => milestone.id === id)!
+  }
+
+  it('marks Next hit with today and the result, so the following one is Next', async () => {
+    const checked = await checkInMilestone('ms-strong-2', 'hit', ' Bench 155, squat 305, deadlift 350 ')
+
+    expect(checked).toMatchObject({
+      status: 'hit',
+      result: 'Bench 155, squat 305, deadlift 350',
+      checkedInOn: WEDNESDAY_DAY,
+    })
+    await expect(checkInMilestone('ms-strong-3', 'notYet')).resolves.toMatchObject({ status: 'notYet' })
+  })
+
+  it('marks not yet with the result, and keeps no blank result', async () => {
+    const checked = await checkInMilestone('ms-strong-2', 'notYet', '   ')
+
+    expect(checked.status).toBe('notYet')
+    expect(checked.checkedInOn).toBe(WEDNESDAY_DAY)
+    expect(checked).not.toHaveProperty('result')
+  })
+
+  it('takes only Next on a building goal, but any step not done on a one-off goal', async () => {
+    await expect(checkInMilestone('ms-strong-4', 'hit')).rejects.toThrow()
+    expect(milestoneById('ms-strong-4').status).toBe('upcoming')
+
+    await expect(checkInMilestone('ms-garage-5', 'hit')).resolves.toMatchObject({ status: 'hit' })
+  })
+
+  it('rejects a hit milestone, an unknown one, and any on a reached goal', async () => {
+    await expect(checkInMilestone('ms-strong-1', 'hit')).rejects.toThrow()
+    await expect(checkInMilestone('ms-nope', 'hit')).rejects.toThrow(NotFoundError)
+    store.goals.find((goal) => goal.id === 'goal-strong')!.status = 'reached'
+    await expect(checkInMilestone('ms-strong-2', 'hit')).rejects.toThrow()
+  })
+})
+
+describe('reopenMilestone', () => {
+  function datesOf(milestones: { targetDate?: string }[]) {
+    return milestones.map((milestone) => milestone.targetDate)
+  }
+
+  it('keeps the date: back to upcoming, still Next, nothing else moves', async () => {
+    const milestones = await reopenMilestone('ms-strong-2')
+
+    expect(milestones.map((milestone) => milestone.status)).toEqual(['hit', 'upcoming', 'upcoming', 'upcoming', 'upcoming'])
+    expect(datesOf(milestones)).toEqual(['2026-11-02', '2026-11-06', '2026-11-30', undefined, undefined])
+    expect(milestones[1].result).toBe('Bench 152, squat 300, deadlift 340')
+  })
+
+  it('moves the date three weeks later and pushes the next one by three weeks', async () => {
+    const milestones = await reopenMilestone('ms-strong-2', { targetDate: '2026-11-27' })
+
+    expect(datesOf(milestones)).toEqual(['2026-11-02', '2026-11-27', '2026-12-21', undefined, undefined])
+    expect(datesOf((await getGoal('goal-strong')).milestones)).toEqual(datesOf(milestones))
+  })
+
+  it('pushes nothing past the deadline', async () => {
+    store.goals.find((goal) => goal.id === 'goal-strong')!.deadline = '2026-12-10'
+
+    const milestones = await reopenMilestone('ms-strong-2', { targetDate: '2026-11-27' })
+
+    expect(datesOf(milestones)).toEqual(['2026-11-02', '2026-11-27', '2026-12-10', undefined, undefined])
+  })
+
+  it('adjusts the line, trimmed', async () => {
+    const milestones = await reopenMilestone('ms-strong-2', { measurableLine: ' Bench 153, squat 300, deadlift 340 ' })
+
+    expect(milestones[1]).toMatchObject({ measurableLine: 'Bench 153, squat 300, deadlift 340', status: 'upcoming' })
+  })
+
+  it('rejects a blank line, a date outside the goal, one not marked not yet, an unknown one and a reached goal', async () => {
+    await expect(reopenMilestone('ms-strong-2', { measurableLine: '  ' })).rejects.toThrow()
+    await expect(reopenMilestone('ms-strong-2', { targetDate: '2026-10-01' })).rejects.toThrow()
+    await expect(reopenMilestone('ms-strong-3')).rejects.toThrow()
+    await expect(reopenMilestone('ms-nope')).rejects.toThrow(NotFoundError)
+    expect(store.milestones.find((milestone) => milestone.id === 'ms-strong-2')!.status).toBe('notYet')
+
+    store.goals.find((goal) => goal.id === 'goal-strong')!.status = 'ended'
+    await expect(reopenMilestone('ms-strong-2')).rejects.toThrow()
   })
 })
 

@@ -1,7 +1,7 @@
 // The functions screens and hooks call. They read the in-memory mock store for
 // now; later they call the real API and keep the same signatures.
 import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
-import { isWithinGoal } from '../domain/goalDetail.ts'
+import { isWithinGoal, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
 import { store } from './mockStore.ts'
 import type {
   Aspiration,
@@ -90,7 +90,7 @@ export async function getGoal(goalId: string): Promise<GoalDetail> {
   return structuredClone({
     goal,
     aspiration: store.aspirations.find((aspiration) => aspiration.id === goal.aspirationId),
-    milestones: store.milestones.filter((milestone) => milestone.goalId === goalId),
+    milestones: milestonesOf(goalId),
     weeklyTarget: currentTarget(goalId, sundayOf(thisWeek())),
   })
 }
@@ -130,6 +130,55 @@ export async function addMilestone(
   if (targetDate) added.targetDate = targetDate
   store.milestones.push(added)
   return structuredClone(added)
+}
+
+// Hit or not yet, with today and the result. A building or quitting goal's
+// milestones are checked in in order, so only Next can be; a one-off goal's
+// steps can be done in any order.
+export async function checkInMilestone(
+  milestoneId: string,
+  outcome: 'hit' | 'notYet',
+  result?: string,
+): Promise<Milestone> {
+  const milestone = findMilestone(milestoneId)
+  const goal = findCurrentGoal(milestone.goalId)
+  if (milestone.status === 'hit') throw new Error(`${milestoneId} is already hit`)
+  if (goal.type !== 'oneOff' && nextMilestone(milestonesOf(goal.id)) !== milestone) {
+    throw new Error(`${milestoneId} isn't next`)
+  }
+
+  milestone.status = outcome
+  milestone.checkedInOn = toLocalDay(new Date())
+  const trimmed = result?.trim()
+  if (trimmed) milestone.result = trimmed
+  else delete milestone.result
+  return structuredClone(milestone)
+}
+
+// A not-yet milestone back to upcoming: keep the date (no changes), move it,
+// or adjust its line and date. A later date pushes the ones after it out.
+// Returns the goal's milestones, since several can move.
+export async function reopenMilestone(
+  milestoneId: string,
+  changes: { measurableLine?: string; targetDate?: string } = {},
+): Promise<Milestone[]> {
+  const milestone = findMilestone(milestoneId)
+  const goal = findCurrentGoal(milestone.goalId)
+  if (milestone.status !== 'notYet') throw new Error(`${milestoneId} isn't marked not yet`)
+  const measurableLine = changes.measurableLine?.trim()
+  if (measurableLine === '') throw new Error('A milestone needs a measurable line')
+  const { targetDate } = changes
+  if (targetDate && !isWithinGoal(targetDate, goal)) {
+    throw new Error("A milestone's date must fall between the goal's start and its deadline")
+  }
+
+  if (targetDate) {
+    const moved = pushedDates(goal, milestonesOf(goal.id), milestoneId, targetDate)
+    for (const row of moved) findMilestone(row.id).targetDate = row.targetDate
+  }
+  if (measurableLine) milestone.measurableLine = measurableLine
+  milestone.status = 'upcoming'
+  return structuredClone(milestonesOf(goal.id))
 }
 
 // A blank why is removed; anything not given stays as it was.
@@ -299,6 +348,17 @@ function findGoal(goalId: string): Goal {
   const goal = store.goals.find((candidate) => candidate.id === goalId)
   if (!goal) throw new NotFoundError(`No goal with id ${goalId}`)
   return goal
+}
+
+function findMilestone(milestoneId: string): Milestone {
+  const milestone = store.milestones.find((candidate) => candidate.id === milestoneId)
+  if (!milestone) throw new NotFoundError(`No milestone with id ${milestoneId}`)
+  return milestone
+}
+
+// In the goal's order.
+function milestonesOf(goalId: string): Milestone[] {
+  return store.milestones.filter((milestone) => milestone.goalId === goalId)
 }
 
 // Active or paused: a reached or ended goal can't be changed.

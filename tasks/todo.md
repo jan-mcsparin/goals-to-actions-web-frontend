@@ -144,7 +144,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 - [x] On the phone, 375 and 390 px, light and dark: Be strong condensed has the target and Next check-in visible without scrolling; long lines wrap; sheets clear the keyboard and the home indicator
 - [x] Parent-repo docs: Flow 6's timeline, the condensed view and target editing as built (own branch and PR): goals-to-actions#8
 - [x] Spec status updated; PR 1 opened referencing #5 (not closing it)
-- [ ] Review with Jan before PR 2
+- [x] Review with Jan before PR 2 (merged as #20)
 
 # PR 2: `goal-detail-actions`
 
@@ -155,12 +155,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `checkInMilestone(id, 'hit' | 'notYet', result?)` sets status, result and `checkedInOn`. For building and quitting goals only the first milestone that isn't hit can be checked in; for one-off, any step that isn't done. `reopenMilestone(id, changes?)` returns a not-yet milestone to upcoming, applies a new line or date, pushes later ones out with `pushedDates`, and returns the goal's milestones.
 
 **Acceptance criteria:**
-- [ ] Hit on Be strong milestone 2 makes milestone 3 Next; checking in milestone 4 before 3 rejects for Be strong but works for the garage's step 5.
-- [ ] Moving milestone 2 three weeks later moves milestone 3 by three weeks and leaves 4 and 5 undated; with a deadline, nothing passes it.
-- [ ] Rejects a hit milestone, an unknown id, a blank line, reopening one that isn't not-yet, and anything on a reached or ended goal.
+- [x] Hit on Be strong milestone 2 makes milestone 3 Next; checking in milestone 4 before 3 rejects for Be strong but works for the garage's step 5.
+- [x] Moving milestone 2 three weeks later moves milestone 3 by three weeks and leaves 4 and 5 undated; with a deadline, nothing passes it.
+- [x] Rejects a hit milestone, an unknown id, a blank line, reopening one that isn't not-yet, and anything on a reached or ended goal.
 
 **Verification:**
-- [ ] `npm test`: `client.test.ts`
+- [x] `npm test`: `client.test.ts`
 
 **Dependencies:** Checkpoint B
 

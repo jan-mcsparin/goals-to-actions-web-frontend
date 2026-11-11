@@ -384,7 +384,7 @@ function statusLine({ status, result }: Milestone): string {
 }
 
 // Not yet stays next: nothing is passed over until it's hit.
-function nextMilestone(milestones: Milestone[]): Milestone | undefined {
+export function nextMilestone(milestones: Milestone[]): Milestone | undefined {
   return milestones.find((milestone) => milestone.status !== 'hit')
 }
 
