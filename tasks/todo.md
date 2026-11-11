@@ -17,7 +17,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Verification:**
 - [x] `npm test`: `mockData.test.ts` contents; updated `Week.test.tsx`, `client.test.ts` and the one bank count in `Day.test.tsx`
-- [ ] Manual: `npm run dev`, Today looks the same, Week shows the run
+- [x] Manual: `npm run dev`, Today looks the same, Week shows the run
 
 **Dependencies:** None
 
@@ -60,7 +60,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Verification:**
 - [x] `npm test`: `storage/navigation.test.ts`, `App.test.tsx`
-- [ ] Manual: three labels fit at 375 px
+- [x] Manual: three labels fit at 375 px
 
 **Dependencies:** None (can run alongside Tasks 1–2)
 
@@ -69,8 +69,8 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M
 
 ## Checkpoint B
-- [ ] Tests, lint and build pass
-- [ ] Review with Jan on the phone: three tabs, bar clears the home indicator
+- [x] Tests, lint and build pass
+- [x] Review with Jan on the phone: three tabs, bar clears the home indicator
 
 ## Phase 3: The tab
 
@@ -121,7 +121,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Verification:**
 - [x] `npm test`: `screens/Aspirations.test.tsx`
-- [ ] Manual: 375 and 390 px, light and dark; a long goal label wraps and the count stays put
+- [x] Manual: 375 and 390 px, light and dark; a long goal label wraps and the count stays put
 
 **Dependencies:** Tasks 3, 5
 
@@ -158,7 +158,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Verification:**
 - [x] `npm test`: `App.test.tsx`
-- [ ] Manual on the phone: card top and goal rows are easy to hit apart
+- [x] Manual on the phone: card top and goal rows are easy to hit apart
 
 **Dependencies:** Task 7
 
@@ -167,8 +167,8 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M
 
 ## Checkpoint C
-- [ ] Tests, lint and build pass
-- [ ] Review with Jan: the tab at 375 and 390 px, light and dark; open and back for an aspiration and a goal; reload restores
+- [x] Tests, lint and build pass
+- [x] Review with Jan: the tab at 375 and 390 px, light and dark; open and back for an aspiration and a goal; reload restores
 
 ## Phase 4: Keep life running
 
@@ -201,7 +201,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Verification:**
 - [x] `npm test`: `screens/Upkeep.test.tsx`, `App.test.tsx`
-- [ ] Manual: 375 and 390 px, light and dark
+- [x] Manual: 375 and 390 px, light and dark
 
 **Dependencies:** Tasks 7, 9
 
@@ -210,9 +210,9 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M
 
 ## Checkpoint D
-- [ ] Every success criterion in the spec and every acceptance criterion on #4 is met
-- [ ] Tests, lint and build pass
-- [ ] On the phone: all three tabs, every open and back, reload on each new screen
+- [x] Every success criterion in the spec and every acceptance criterion on #4 is met
+- [x] Tests, lint and build pass
+- [x] On the phone: all three tabs, every open and back, reload on each new screen
 
 ## Phase 5: Docs
 
@@ -222,11 +222,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Acceptance criteria:**
 - [x] `specs/004-aspirations-tab.md` is marked approved, with any detail the build settled.
-- [ ] `specs/README.md` moves 004 to Done (after Jan's review).
+- [x] `specs/README.md` moves 004 to Done (after Jan's review).
 - [x] `../docs/screens/README.md` still matches the tab and the Keep life running page; fixed on its own branch in the parent repo if not.
 
 **Verification:**
-- [ ] Manual read-through of both against the running app
+- [x] Read-through of both against the build
 
 **Dependencies:** Task 10
 
