@@ -3,7 +3,7 @@
 // place in priority; a retired one only what it has seen and what it paused.
 // Nothing here paces or warns.
 import { fromLocalDay, mondayOf, toLocalDay } from '../api/dates.ts'
-import type { AspirationDetail, Goal, RecurringItem } from '../api/types.ts'
+import type { Aspiration, AspirationDetail, Goal, RecurringItem } from '../api/types.ts'
 import { goalProgress, milestoneCount, weekCount } from './aspirations.ts'
 import { daysLeft, daysLeftLabel } from './week.ts'
 
@@ -106,6 +106,18 @@ export function aspirationPage(detail: AspirationDetail, today: string): Aspirat
     },
     historyLine: historyLine(detail, today),
   }
+}
+
+// The aspiration as an edit leaves it, as the API saves it: both trimmed, a
+// blank why removed. A blank name isn't valid; callers check canSaveName first.
+export function withNameAndWhy(aspiration: Aspiration, changes: { name: string; why: string }): Aspiration {
+  const { why: _oldWhy, ...rest } = aspiration
+  const why = changes.why.trim()
+  return { ...rest, name: changes.name.trim(), ...(why && { why }) }
+}
+
+export function canSaveName(name: string): boolean {
+  return name.trim() !== ''
 }
 
 export function priorityLine(position: number, activeCount: number): string {

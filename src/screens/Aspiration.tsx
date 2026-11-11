@@ -1,6 +1,7 @@
 // One aspiration: its week, goals, recurring items, past goals and place in
 // priority. A retired one shows what it has seen and offers Bring back.
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { AspirationEditSheet } from '../components/AspirationEditSheet.tsx'
 import { BackLink } from '../components/BackLink.tsx'
 import '../components/progressBar.css'
 import type { ActivePage, GoalCard, PastGoalRow, RecurringRow, RetiredPage } from '../domain/aspiration.ts'
@@ -14,8 +15,12 @@ type AspirationProps = {
   onOpenGoal: (goalId: string) => void
 }
 
+// One sheet at a time, and only from a tap.
+type OpenSheet = 'edit'
+
 export function Aspiration({ aspirationId, today, onBack, onOpenGoal }: AspirationProps) {
-  const { page, message, notFound, move } = useAspiration(aspirationId, today)
+  const { page, editing, message, notFound, edit, move } = useAspiration(aspirationId, today)
+  const [sheet, setSheet] = useState<OpenSheet>()
 
   useEffect(() => {
     if (notFound) onBack()
@@ -42,8 +47,20 @@ export function Aspiration({ aspirationId, today, onBack, onOpenGoal }: Aspirati
         </p>
       )}
 
-      {page?.kind === 'active' && <Active page={page} onOpenGoal={onOpenGoal} onMove={move} />}
+      {page?.kind === 'active' && (
+        <Active page={page} onOpenGoal={onOpenGoal} onMove={move} onOpenSheet={setSheet} />
+      )}
       {page?.kind === 'retired' && <Retired page={page} onOpenGoal={onOpenGoal} />}
+
+      <AspirationEditSheet
+        open={sheet === 'edit'}
+        initial={editing}
+        onSave={(changes) => {
+          edit(changes)
+          setSheet(undefined)
+        }}
+        onClose={() => setSheet(undefined)}
+      />
     </main>
   )
 }
@@ -52,9 +69,10 @@ type ActiveProps = {
   page: ActivePage
   onOpenGoal: (goalId: string) => void
   onMove: (direction: 'up' | 'down') => void
+  onOpenSheet: (sheet: OpenSheet) => void
 }
 
-function Active({ page, onOpenGoal, onMove }: ActiveProps) {
+function Active({ page, onOpenGoal, onMove, onOpenSheet }: ActiveProps) {
   return (
     <>
       {page.week && (
@@ -120,7 +138,7 @@ function Active({ page, onOpenGoal, onMove }: ActiveProps) {
       </section>
 
       <div className="aspiration-actions">
-        <button type="button" className="aspiration-action">
+        <button type="button" className="aspiration-action" onClick={() => onOpenSheet('edit')}>
           Edit name and why
         </button>
         <button type="button" className="aspiration-action">

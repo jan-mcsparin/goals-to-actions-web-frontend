@@ -9,7 +9,15 @@ import type {
   Task,
   WeeklyTarget,
 } from '../api/types.ts'
-import { aspirationPage, historyLine, priorityLine, type ActivePage, type RetiredPage } from './aspiration.ts'
+import {
+  aspirationPage,
+  canSaveName,
+  historyLine,
+  priorityLine,
+  withNameAndWhy,
+  type ActivePage,
+  type RetiredPage,
+} from './aspiration.ts'
 
 // Wednesday 11 Nov 2026.
 const TODAY = '2026-11-11'
@@ -261,6 +269,29 @@ describe('aspirationPage, retired', () => {
     expect(page).not.toHaveProperty('week')
     expect(page).not.toHaveProperty('priority')
     expect(page).not.toHaveProperty('historyLine')
+  })
+})
+
+describe('withNameAndWhy', () => {
+  it('trims both', () => {
+    expect(withNameAndWhy(aspiration(), { name: ' Be fit for life ', why: ' To ski. ' })).toMatchObject({
+      name: 'Be fit for life',
+      why: 'To ski.',
+    })
+  })
+
+  it('removes a blank why', () => {
+    expect(withNameAndWhy(aspiration({ why: 'Old' }), { name: 'Be fit', why: '  ' })).not.toHaveProperty('why')
+  })
+})
+
+describe('canSaveName', () => {
+  it.each([
+    ['Be fit', true],
+    ['', false],
+    ['   ', false],
+  ])('"%s" → %s', (name, can) => {
+    expect(canSaveName(name)).toBe(can)
   })
 })
 

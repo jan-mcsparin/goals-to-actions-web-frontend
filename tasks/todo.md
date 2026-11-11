@@ -133,12 +133,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `AspirationEditSheet`: name (required) and why (optional, placeholder "What would this give you?"). Save is disabled while the name is blank; saving updates the page at once, rolling back on failure.
 
 **Acceptance criteria:**
-- [ ] Opens only from "Edit name and why", pre-filled; no dialog open on first render.
-- [ ] Saving changes the header; clearing the why removes it.
-- [ ] Cancel and Escape change nothing.
+- [x] Opens only from "Edit name and why", pre-filled; no dialog open on first render.
+- [x] Saving changes the header; clearing the why removes it.
+- [x] Cancel and Escape change nothing.
 
 **Verification:**
-- [ ] `npm test`: `Aspiration.test.tsx`
+- [x] `npm test`: `Aspiration.test.tsx`
 
 **Dependencies:** Tasks 2, 5
 

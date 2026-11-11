@@ -137,6 +137,70 @@ describe('Aspiration, active', () => {
     expect(up).toHaveProperty('disabled', true)
   })
 
+  it('edits the name and why in a sheet, pre-filled', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Edit name and why' }))
+    const sheet = screen.getByRole('dialog', { name: 'Edit name and why' })
+    const name = within(sheet).getByRole('textbox', { name: 'Name' })
+    const why = within(sheet).getByRole('textbox', { name: 'Why' })
+    expect(name).toHaveProperty('value', 'Be fit')
+    expect(why).toHaveProperty('value', 'So I can keep skiing, biking and playing hockey at a high level for decades.')
+    expect(why.getAttribute('placeholder')).toBe('What would this give you?')
+
+    await user.clear(name)
+    await user.type(name, 'Be fit for life')
+    await user.clear(why)
+    await user.type(why, 'To ski at 80.')
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('heading', { level: 1, name: 'Be fit for life' })).toBeDefined()
+    expect(screen.getByText('To ski at 80.')).toBeDefined()
+  })
+
+  it('removes the why when it is cleared', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Edit name and why' }))
+    const sheet = screen.getByRole('dialog', { name: 'Edit name and why' })
+    await user.clear(within(sheet).getByRole('textbox', { name: 'Why' }))
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }))
+
+    expect(screen.queryByText(/^So I can keep skiing/)).toBeNull()
+  })
+
+  it("won't save without a name", async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Edit name and why' }))
+    const sheet = screen.getByRole('dialog', { name: 'Edit name and why' })
+    await user.clear(within(sheet).getByRole('textbox', { name: 'Name' }))
+    await user.type(within(sheet).getByRole('textbox', { name: 'Name' }), '   ')
+
+    expect(within(sheet).getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true)
+  })
+
+  it('changes nothing on Cancel, and starts fresh the next time', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Edit name and why' }))
+    let sheet = screen.getByRole('dialog', { name: 'Edit name and why' })
+    await user.type(within(sheet).getByRole('textbox', { name: 'Name' }), ' and strong')
+    await user.click(within(sheet).getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('heading', { level: 1, name: 'Be fit' })).toBeDefined()
+
+    await user.click(screen.getByRole('button', { name: 'Edit name and why' }))
+    sheet = screen.getByRole('dialog', { name: 'Edit name and why' })
+    expect(within(sheet).getByRole('textbox', { name: 'Name' })).toHaveProperty('value', 'Be fit')
+  })
+
   it('offers Edit name and why, Review and Retire, with no dialog open', async () => {
     renderPage()
 
