@@ -75,9 +75,9 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** S
 
 ## Checkpoint 0 (PR 0)
-- [ ] Tests, lint and build pass
-- [ ] On the phone, 375 and 390 px, light and dark: the message is seen when scrolled to the bottom of Week and Goal detail, clears the home indicator, and doesn't cover the last row; with a sheet open and the keyboard up, nothing overlaps
-- [ ] PR opened, closing #19
+- [x] Tests, lint and build pass
+- [x] On the phone, 375 and 390 px, light and dark: the message is seen when scrolled to the bottom of Week and Goal detail, clears the home indicator, and doesn't cover the last row; with a sheet open and the keyboard up, nothing overlaps (checked with a temporary `?fail=save` / `?fail=load` switch, not committed; found Task 3a)
+- [x] PR opened, closing #19
 
 # PR 1: `add-sheet-task` (Part of #6)
 
