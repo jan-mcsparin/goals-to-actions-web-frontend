@@ -8,15 +8,15 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 ### Task 1: `useFleetingMessage` and `ScreenMessage`
 
-**Description:** `hooks/useFleetingMessage.ts` takes a screen's message and returns `{ shown, dismiss }`. A new message shows and clears itself after 5 s, a tap clears it, and a new message restarts the timer. A `sticky` option keeps it until tapped (for load failures). `components/ScreenMessage.tsx` renders it with `role="status"`, fixed just above the tab bar and clear of the home indicator.
+**Description:** `hooks/useFleetingMessage.ts` takes a screen's message and returns `{ shown, dismiss }`. A new message shows and clears itself after 5 s, a tap clears it, and a new message restarts the timer. A `sticky` option keeps it until tapped; the screen passes it when nothing has loaded (a load failure). `components/ScreenMessage.tsx` renders it with `role="status"`, fixed just above the tab bar and clear of the home indicator.
 
 **Acceptance criteria:**
-- [ ] With fake timers: shown at once, gone after 5 s, gone at once on dismiss; a new message at 4 s shows until 9 s; the same message after it cleared shows again.
-- [ ] A sticky message stays past 5 s and clears on tap.
-- [ ] `ScreenMessage` renders nothing without a message, and is a tappable `role="status"` with one.
+- [x] With fake timers: shown at once, gone after 5 s, gone at once on dismiss; a new message at 4 s shows until 9 s; the same message after it cleared shows again.
+- [x] A sticky message stays past 5 s and clears on tap.
+- [x] `ScreenMessage` renders nothing without a message, and is a tappable `role="status"` with one.
 
 **Verification:**
-- [ ] `npm test`: new `hooks/useFleetingMessage.test.tsx`, new `components/ScreenMessage.test.tsx`
+- [x] `npm test`: new `hooks/useFleetingMessage.test.tsx`, new `components/ScreenMessage.test.tsx`
 
 **Dependencies:** None
 
