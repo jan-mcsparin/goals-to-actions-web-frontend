@@ -247,5 +247,5 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 ## Checkpoint D (PR 2)
 - [x] Tests, lint and build pass
-- [ ] On the phone, 375 and 390 px, light and dark: check-in sheet, not-yet card with a date picker, End sheet; nothing opens unprompted
-- [ ] PR 2 opened, closing #5; the parent-repo docs PR linked
+- [x] On the phone, 375 and 390 px, light and dark: check-in sheet, not-yet card with a date picker, End sheet; nothing opens unprompted
+- [x] PR 2 opened, closing #5; the parent-repo docs PR linked (goals-to-actions#9)
