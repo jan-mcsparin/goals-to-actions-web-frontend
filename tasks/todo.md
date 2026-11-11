@@ -229,5 +229,5 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** S
 
 ## Checkpoint D
-- [ ] Web-frontend PR open from `aspiration-page`, referencing #13
-- [ ] Parent-repo docs PR, if any
+- [x] Web-frontend PR open from `aspiration-page`, referencing #13
+- [x] Parent-repo docs PR, if any
