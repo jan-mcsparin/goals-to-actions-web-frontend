@@ -146,6 +146,14 @@ export type AspirationDetail = {
   activeCount: number // active aspirations, for "1st of 3"
 }
 
+// One goal's page, as records. Laid out by domain/goalDetail.ts.
+export type GoalDetail = {
+  goal: Goal
+  aspiration?: Aspiration
+  milestones: Milestone[] // in order
+  weeklyTarget?: WeeklyTarget // in force this week, whatever the goal's status
+}
+
 // Keep life running: what has to happen but rolls up to no goal or aspiration.
 export type Upkeep = {
   recurringItems: RecurringItem[] // active, with no aspiration

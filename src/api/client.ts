@@ -9,6 +9,7 @@ import type {
   Bank,
   DayPlan,
   Goal,
+  GoalDetail,
   RecurringItem,
   Task,
   Upkeep,
@@ -79,6 +80,16 @@ export async function getAspiration(aspirationId: string): Promise<AspirationDet
     weeklyTargets: targetsInForce(weekOf).filter((target) => goalIds.has(target.goalId)),
     weekTasks: store.tasks.filter((task) => task.weekOf === weekOf && task.goalId !== undefined && goalIds.has(task.goalId)),
     activeCount: activeAspirations().length,
+  })
+}
+
+export async function getGoal(goalId: string): Promise<GoalDetail> {
+  const goal = findGoal(goalId)
+  return structuredClone({
+    goal,
+    aspiration: store.aspirations.find((aspiration) => aspiration.id === goal.aspirationId),
+    milestones: store.milestones.filter((milestone) => milestone.goalId === goalId),
+    weeklyTarget: currentTarget(goalId, sundayOf(thisWeek())),
   })
 }
 
@@ -222,10 +233,14 @@ function thisWeek(): string {
 
 // Each active goal's target for the week starting on weekOf, if it has one.
 function targetsInForce(weekOf: string): WeeklyTarget[] {
-  const sunday = toLocalDay(addDays(fromLocalDay(weekOf), 6))
+  const sunday = sundayOf(weekOf)
   return store.goals
     .filter((goal) => goal.status === 'active')
     .flatMap((goal) => currentTarget(goal.id, sunday) ?? [])
+}
+
+function sundayOf(weekOf: string): string {
+  return toLocalDay(addDays(fromLocalDay(weekOf), 6))
 }
 
 // A target change adds a row; the one in force is the latest that has started.
@@ -239,6 +254,12 @@ function findAspiration(aspirationId: string): Aspiration {
   const aspiration = store.aspirations.find((candidate) => candidate.id === aspirationId)
   if (!aspiration) throw new NotFoundError(`No aspiration with id ${aspirationId}`)
   return aspiration
+}
+
+function findGoal(goalId: string): Goal {
+  const goal = store.goals.find((candidate) => candidate.id === goalId)
+  if (!goal) throw new NotFoundError(`No goal with id ${goalId}`)
+  return goal
 }
 
 function pauseWork(goals: Goal[], items: RecurringItem[]) {

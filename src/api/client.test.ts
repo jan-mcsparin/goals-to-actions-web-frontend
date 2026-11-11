@@ -6,6 +6,7 @@ import {
   getAspirations,
   getBank,
   getDay,
+  getGoal,
   getUpkeep,
   getWeek,
   moveAspiration,
@@ -483,6 +484,76 @@ describe('getAspiration', () => {
     const second = await getAspiration('asp-fit')
     expect(second.aspiration.name).toBe('Be fit')
     expect(second.goals.map((goal) => goal.label)).not.toContain('changed')
+  })
+})
+
+describe('getGoal', () => {
+  it('returns the goal with its aspiration, its milestones in order and the target in force', async () => {
+    const detail = await getGoal('goal-strong')
+
+    expect(detail.goal).toMatchObject({ id: 'goal-strong', label: 'Be strong' })
+    expect(detail.aspiration).toMatchObject({ id: 'asp-fit', name: 'Be fit' })
+    expect(detail.milestones.map((milestone) => milestone.id)).toEqual([
+      'ms-strong-1',
+      'ms-strong-2',
+      'ms-strong-3',
+      'ms-strong-4',
+      'ms-strong-5',
+    ])
+    expect(detail.milestones[1].status).toBe('notYet')
+    expect(detail.weeklyTarget).toMatchObject({ id: 'wt-strong', amount: 3, unit: 'lifting sessions' })
+  })
+
+  it('returns the latest target that has started this week', async () => {
+    store.weeklyTargets.push(
+      { id: 'wt-strong-4', goalId: 'goal-strong', amount: 4, unit: 'lifting sessions', effectiveFrom: '2026-11-09' },
+      { id: 'wt-strong-next', goalId: 'goal-strong', amount: 5, unit: 'lifting sessions', effectiveFrom: '2026-11-16' },
+    )
+
+    const { weeklyTarget } = await getGoal('goal-strong')
+
+    expect(weeklyTarget?.id).toBe('wt-strong-4')
+  })
+
+  it('still returns the target of a paused goal', async () => {
+    store.goals.find((goal) => goal.id === 'goal-strong')!.status = 'paused'
+
+    const { weeklyTarget } = await getGoal('goal-strong')
+
+    expect(weeklyTarget?.id).toBe('wt-strong')
+  })
+
+  it('returns a goal with no aspiration, milestones or target', async () => {
+    const detail = await getGoal('goal-taxes')
+
+    expect(detail.goal.status).toBe('reached')
+    expect(detail.aspiration).toBeUndefined()
+    expect(detail.milestones).toEqual([])
+    expect(detail.weeklyTarget).toBeUndefined()
+  })
+
+  it('returns a paused goal with no target', async () => {
+    const detail = await getGoal('goal-cook')
+
+    expect(detail.goal.status).toBe('paused')
+    expect(detail.aspiration?.id).toBe('asp-home')
+    expect(detail.weeklyTarget).toBeUndefined()
+  })
+
+  it('rejects an unknown id as not found', async () => {
+    await expect(getGoal('goal-nope')).rejects.toThrow(NotFoundError)
+  })
+
+  it('returns copies, so changing them does not change the store', async () => {
+    const first = await getGoal('goal-strong')
+    first.goal.label = 'changed'
+    first.milestones[0].measurableLine = 'changed'
+    first.weeklyTarget!.amount = 9
+
+    const second = await getGoal('goal-strong')
+    expect(second.goal.label).toBe('Be strong')
+    expect(second.milestones[0].measurableLine).not.toBe('changed')
+    expect(second.weeklyTarget?.amount).toBe(3)
   })
 })
 

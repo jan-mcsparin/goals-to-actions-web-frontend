@@ -30,12 +30,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Add `GoalDetail` (`goal`, `aspiration?`, `milestones` in order, `weeklyTarget?` in force this week whatever the goal's status) and `getGoal(goalId)`, which throws `NotFoundError` for an unknown id.
 
 **Acceptance criteria:**
-- [ ] Be strong returns Be fit, its five milestones in order (milestone 2 is `notYet`) and the 3 lifting sessions target.
-- [ ] Renew my passport has no aspiration; Cook at home (paused) has no target and still loads.
-- [ ] An unknown id rejects with `NotFoundError`; the result is a copy.
+- [x] Be strong returns Be fit, its five milestones in order (milestone 2 is `notYet`) and the 3 lifting sessions target, also when paused.
+- [x] File my taxes has no aspiration, milestones or target; Cook at home (paused) has no target and still loads.
+- [x] An unknown id rejects with `NotFoundError`; the result is a copy.
 
 **Verification:**
-- [ ] `npm test`: a `getGoal` block in `client.test.ts`
+- [x] `npm test`: a `getGoal` block in `client.test.ts`
 
 **Dependencies:** Task 0
 
