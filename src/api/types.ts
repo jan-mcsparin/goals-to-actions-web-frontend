@@ -28,7 +28,7 @@ export type Goal = {
   startDate: string
   deadline?: string
   lastReviewedAt?: string
-  endedAt?: string
+  endedAt?: string // a day, set when reached or ended
   aspirationId?: string
 }
 
@@ -144,6 +144,14 @@ export type AspirationDetail = {
   weeklyTargets: WeeklyTarget[] // the target in force this week, per active goal
   weekTasks: Task[] // this week's tasks for its goals
   activeCount: number // active aspirations, for "1st of 3"
+}
+
+// One goal's page, as records. Laid out by domain/goalDetail.ts.
+export type GoalDetail = {
+  goal: Goal
+  aspiration?: Aspiration
+  milestones: Milestone[] // in order
+  weeklyTarget?: WeeklyTarget // in force this week, whatever the goal's status
 }
 
 // Keep life running: what has to happen but rolls up to no goal or aspiration.

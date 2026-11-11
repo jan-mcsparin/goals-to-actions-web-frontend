@@ -1,6 +1,7 @@
 // The functions screens and hooks call. They read the in-memory mock store for
 // now; later they call the real API and keep the same signatures.
 import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
+import { isWithinGoal } from '../domain/goalDetail.ts'
 import { store } from './mockStore.ts'
 import type {
   Aspiration,
@@ -9,6 +10,8 @@ import type {
   Bank,
   DayPlan,
   Goal,
+  GoalDetail,
+  Milestone,
   RecurringItem,
   Task,
   Upkeep,
@@ -80,6 +83,53 @@ export async function getAspiration(aspirationId: string): Promise<AspirationDet
     weekTasks: store.tasks.filter((task) => task.weekOf === weekOf && task.goalId !== undefined && goalIds.has(task.goalId)),
     activeCount: activeAspirations().length,
   })
+}
+
+export async function getGoal(goalId: string): Promise<GoalDetail> {
+  const goal = findGoal(goalId)
+  return structuredClone({
+    goal,
+    aspiration: store.aspirations.find((aspiration) => aspiration.id === goal.aspirationId),
+    milestones: store.milestones.filter((milestone) => milestone.goalId === goalId),
+    weeklyTarget: currentTarget(goalId, sundayOf(thisWeek())),
+  })
+}
+
+// Takes effect this week. A second change in the same week updates that
+// week's row, so earlier weeks keep the target they had.
+export async function setWeeklyTarget(goalId: string, amount: number, unit: string): Promise<WeeklyTarget> {
+  const goal = findCurrentGoal(goalId)
+  if (goal.type !== 'building') throw new Error(`${goalId} is not a building goal`)
+  if (!Number.isInteger(amount) || amount < 1) throw new Error('A weekly target is a whole number, at least 1')
+  const trimmedUnit = unit.trim()
+  if (!trimmedUnit) throw new Error('A weekly target needs a unit')
+
+  const weekOf = thisWeek()
+  let target = store.weeklyTargets.find((row) => row.goalId === goalId && row.effectiveFrom === weekOf)
+  if (!target) {
+    target = { id: newId('wt'), goalId, amount, unit: trimmedUnit, effectiveFrom: weekOf }
+    store.weeklyTargets.push(target)
+  }
+  target.amount = amount
+  target.unit = trimmedUnit
+  return structuredClone(target)
+}
+
+// Goes after the goal's last milestone, upcoming, never past the deadline.
+export async function addMilestone(
+  goalId: string,
+  milestone: { measurableLine: string; targetDate?: string },
+): Promise<Milestone> {
+  const goal = findCurrentGoal(goalId)
+  const measurableLine = milestone.measurableLine.trim()
+  if (!measurableLine) throw new Error('A milestone needs a measurable line')
+  const { targetDate } = milestone
+  if (targetDate && !isWithinGoal(targetDate, goal)) throw new Error("A milestone's date must fall between the goal's start and its deadline")
+
+  const added: Milestone = { id: newId('ms'), goalId, measurableLine, status: 'upcoming' }
+  if (targetDate) added.targetDate = targetDate
+  store.milestones.push(added)
+  return structuredClone(added)
 }
 
 // A blank why is removed; anything not given stays as it was.
@@ -222,10 +272,14 @@ function thisWeek(): string {
 
 // Each active goal's target for the week starting on weekOf, if it has one.
 function targetsInForce(weekOf: string): WeeklyTarget[] {
-  const sunday = toLocalDay(addDays(fromLocalDay(weekOf), 6))
+  const sunday = sundayOf(weekOf)
   return store.goals
     .filter((goal) => goal.status === 'active')
     .flatMap((goal) => currentTarget(goal.id, sunday) ?? [])
+}
+
+function sundayOf(weekOf: string): string {
+  return toLocalDay(addDays(fromLocalDay(weekOf), 6))
 }
 
 // A target change adds a row; the one in force is the latest that has started.
@@ -239,6 +293,28 @@ function findAspiration(aspirationId: string): Aspiration {
   const aspiration = store.aspirations.find((candidate) => candidate.id === aspirationId)
   if (!aspiration) throw new NotFoundError(`No aspiration with id ${aspirationId}`)
   return aspiration
+}
+
+function findGoal(goalId: string): Goal {
+  const goal = store.goals.find((candidate) => candidate.id === goalId)
+  if (!goal) throw new NotFoundError(`No goal with id ${goalId}`)
+  return goal
+}
+
+// Active or paused: a reached or ended goal can't be changed.
+function findCurrentGoal(goalId: string): Goal {
+  const goal = findGoal(goalId)
+  if (!isCurrentGoal(goal)) throw new Error(`${goalId} is ${goal.status}`)
+  return goal
+}
+
+// The real API assigns ids; the mock makes its own. A counter, not
+// crypto.randomUUID, which browsers leave out on plain-http pages such as the
+// dev server opened from a phone. The store resets on reload, and so does this.
+let lastId = 0
+
+function newId(prefix: string): string {
+  return `${prefix}-new-${++lastId}`
 }
 
 function pauseWork(goals: Goal[], items: RecurringItem[]) {

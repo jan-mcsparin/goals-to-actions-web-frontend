@@ -304,3 +304,38 @@ it('says only "Back" on a goal whose aspiration no longer exists, and lands on A
   expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
   expect(currentTab()).toBe('Aspirations')
 })
+
+it('lands on Aspirations, quietly, for a remembered goal that no longer exists', async () => {
+  localStorage.setItem('gta.screen', JSON.stringify({ screen: 'goal', goalId: 'goal-gone', from: { screen: 'aspirations' } }))
+  render(<App />)
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
+  expect(currentTab()).toBe('Aspirations')
+})
+
+it("opens a goal's aspiration from the link under its name", async () => {
+  localStorage.setItem('gta.screen', JSON.stringify({ screen: 'goal', goalId: 'goal-strong', from: { screen: 'aspirations' } }))
+  const user = userEvent.setup()
+  render(<App />)
+
+  await user.click(await screen.findByRole('button', { name: 'Be fit ›' }))
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Be fit' })).toBeDefined()
+  expect(JSON.parse(localStorage.getItem('gta.screen')!)).toEqual({ screen: 'aspiration', aspirationId: 'asp-fit' })
+})
+
+it("changes Week's count when a goal's weekly target changes", async () => {
+  localStorage.setItem('gta.screen', JSON.stringify({ screen: 'goal', goalId: 'goal-strong', from: { screen: 'aspirations' } }))
+  const user = userEvent.setup()
+  render(<App />)
+
+  await user.click(await screen.findByRole('button', { name: 'Edit weekly target' }))
+  const sheet = screen.getByRole('dialog', { name: 'Weekly target' })
+  await user.clear(within(sheet).getByRole('textbox', { name: 'Amount' }))
+  await user.type(within(sheet).getByRole('textbox', { name: 'Amount' }), '4')
+  await user.click(within(sheet).getByRole('button', { name: 'Save' }))
+  await user.click(screen.getByRole('button', { name: 'Week' }))
+
+  const progress = await screen.findByRole('region', { name: 'Progress' })
+  expect(await within(progress).findByText('1 of 4')).toBeDefined()
+})

@@ -1,6 +1,5 @@
 // The Aspirations tab, ready to render. Loads through the API client; the
-// grouping and counting come from domain/aspirations.ts. The records are
-// passed along too, so an opened aspiration or goal can show its name.
+// grouping and counting come from domain/aspirations.ts.
 import { useEffect, useState } from 'react'
 import { getAspirations } from '../api/client.ts'
 import type { AspirationsOverview } from '../api/types.ts'
@@ -10,7 +9,6 @@ const LOAD_FAILED = "Couldn't load your aspirations. Try again in a moment."
 
 export type UseAspirations = {
   view?: AspirationsView
-  overview?: AspirationsOverview
   message?: string
 }
 
@@ -28,5 +26,5 @@ export function useAspirations(): UseAspirations {
     }
   }, [])
 
-  return { view: overview && aspirationsView(overview), overview, message }
+  return { view: overview && aspirationsView(overview), message }
 }
