@@ -107,13 +107,13 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `useGoal(goalId, today)` loads, reports `notFound`, and returns the page and the Show all state. `GoalDetail.tsx` replaces the placeholder: pinned header with back named for where it came from, type, aspiration link; Started at / Latest; the timeline condensed or expanded (fold rows and Show all / Show less toggle); target; next check-in. Buttons that open PR 2's sheets aren't there yet. `App.tsx` passes `onOpenAspiration`, and a missing goal goes back to Aspirations.
 
 **Acceptance criteria:**
-- [ ] Be strong renders its header, "‹ Be fit" or "‹ Aspirations" by origin, "Be fit ›" opens the aspiration, and the timeline opens condensed.
-- [ ] A fold row and Show all expand it; Show less collapses it; reopening the goal restores the choice.
-- [ ] A remembered goal that doesn't exist lands on Aspirations; no dialog is open on first render.
+- [x] Be strong renders its header, "‹ Be fit" or "‹ Aspirations" by origin, "Be fit ›" opens the aspiration, and the timeline opens condensed.
+- [x] A fold row and Show all expand it; Show less collapses it; reopening the goal restores the choice.
+- [x] A remembered goal that doesn't exist lands on Aspirations; no dialog is open on first render.
 
 **Verification:**
-- [ ] `npm test`: new `hooks/useGoal.test.tsx` (load, not found), new `screens/GoalDetail.test.tsx`, `App.test.tsx`
-- [ ] Manual: `npm run dev`, open Be strong and the garage goal at 390 px
+- [x] `npm test`: new `hooks/useGoal.test.tsx` (load, not found), new `screens/GoalDetail.test.tsx`, `App.test.tsx`
+- [ ] Manual: `npm run dev`, open Be strong and the garage goal at 390 px (folded into Checkpoint B)
 
 **Dependencies:** Tasks 2, 4
 

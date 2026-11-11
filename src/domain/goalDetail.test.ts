@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest'
 import type { Aspiration, Goal, GoalDetail, Milestone, MilestoneStatus, WeeklyTarget } from '../api/types.ts'
 import {
   achievementLine,
+  backLabel,
   canCondense,
   condenseTimeline,
   goalPage,
   pushedDates,
+  showAllLabel,
   weekLabel,
   type CurrentPage,
   type EndedPage,
@@ -85,8 +87,7 @@ describe('goalPage header', () => {
       goalId: 'strong',
       label: 'Be strong',
       measurableLine: 'Bench 175, squat 350, deadlift 400',
-      typeLabel: 'Building',
-      paused: false,
+      kindLine: 'Building',
       aspiration: { aspirationId: 'fit', name: 'Be fit' },
     })
   })
@@ -94,10 +95,9 @@ describe('goalPage header', () => {
   it('names each type, marks a paused goal and leaves out a missing aspiration', () => {
     const header = current(detail({ goal: goal({ type: 'quitting', status: 'paused' }), aspiration: undefined })).header
 
-    expect(header.typeLabel).toBe('Quitting')
-    expect(header.paused).toBe(true)
+    expect(header.kindLine).toBe('Quitting · Paused')
     expect(header.aspiration).toBeUndefined()
-    expect(current(detail({ goal: goal({ type: 'oneOff' }) })).header.typeLabel).toBe('One-off')
+    expect(current(detail({ goal: goal({ type: 'oneOff' }) })).header.kindLine).toBe('One-off')
   })
 })
 
@@ -139,10 +139,21 @@ describe('goalPage timeline', () => {
     expect(timeline.rows.at(-1)).toEqual({
       kind: 'goal',
       measurableLine: 'Bench 175, squat 350, deadlift 400',
+      detail: 'Goal',
       status: 'upcoming',
       next: false,
       checkable: false,
     })
+  })
+
+  it('words each status: hit and not yet with their results, the goal Reached', () => {
+    const rows = milestoneRows(
+      current(detail({ milestones: [milestone('m1', 'hit', { result: 'Bench 150' }), milestone('m2', 'hit'), milestone('m3', 'notYet', { result: 'Bench 152' }), milestone('m4', 'upcoming')] })),
+    )
+    const reached = goalPage(detail({ goal: goal({ status: 'reached', endedAt: '2026-11-10', deadline: '2027-03-01' }) }), TODAY)
+
+    expect(rows.map((row) => row.statusLine)).toEqual(['Hit · Bench 150', 'Hit', 'Not yet · Bench 152', undefined])
+    expect(reached.timeline.rows.at(-1)).toMatchObject({ detail: 'Goal · Wk 22 · Mar 1', statusLine: 'Reached' })
   })
 
   it('gives each milestone its line, when, status and result', () => {
@@ -181,7 +192,7 @@ describe('goalPage timeline', () => {
   it('gives the Goal row its deadline', () => {
     const { timeline } = current(detail({ goal: goal({ deadline: '2027-03-01' }) }))
 
-    expect(timeline.rows.at(-1)).toMatchObject({ when: 'Wk 22 · Mar 1' })
+    expect(timeline.rows.at(-1)).toMatchObject({ detail: 'Goal · Wk 22 · Mar 1' })
   })
 
   it('calls them Steps on a one-off goal, and every step not done can be checked in', () => {
@@ -462,5 +473,23 @@ describe('condenseTimeline', () => {
     const folds = condenseTimeline(goalPage(input, TODAY).timeline).filter((row) => row.kind === 'fold')
 
     expect(folds.map((fold) => fold.hidden)).toEqual([3, 2])
+  })
+})
+
+describe('backLabel', () => {
+  it('names the tab, or the aspiration the goal was opened from', () => {
+    expect(backLabel({ screen: 'aspirations' }, BE_FIT)).toBe('Aspirations')
+    expect(backLabel({ screen: 'aspiration', aspirationId: 'fit' }, BE_FIT)).toBe('Be fit')
+  })
+
+  it('says nothing it can’t be sure of', () => {
+    expect(backLabel({ screen: 'aspiration', aspirationId: 'gone' }, BE_FIT)).toBeUndefined()
+    expect(backLabel({ screen: 'aspiration', aspirationId: 'fit' }, undefined)).toBeUndefined()
+  })
+})
+
+describe('showAllLabel', () => {
+  it('counts the milestones and the goal', () => {
+    expect(showAllLabel(current(detail()).timeline)).toBe('Show all 4')
   })
 })

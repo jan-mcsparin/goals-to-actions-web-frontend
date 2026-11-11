@@ -304,3 +304,22 @@ it('says only "Back" on a goal whose aspiration no longer exists, and lands on A
   expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
   expect(currentTab()).toBe('Aspirations')
 })
+
+it('lands on Aspirations, quietly, for a remembered goal that no longer exists', async () => {
+  localStorage.setItem('gta.screen', JSON.stringify({ screen: 'goal', goalId: 'goal-gone', from: { screen: 'aspirations' } }))
+  render(<App />)
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
+  expect(currentTab()).toBe('Aspirations')
+})
+
+it("opens a goal's aspiration from the link under its name", async () => {
+  localStorage.setItem('gta.screen', JSON.stringify({ screen: 'goal', goalId: 'goal-strong', from: { screen: 'aspirations' } }))
+  const user = userEvent.setup()
+  render(<App />)
+
+  await user.click(await screen.findByRole('button', { name: 'Be fit ›' }))
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Be fit' })).toBeDefined()
+  expect(JSON.parse(localStorage.getItem('gta.screen')!)).toEqual({ screen: 'aspiration', aspirationId: 'asp-fit' })
+})

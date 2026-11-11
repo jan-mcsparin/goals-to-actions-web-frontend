@@ -47,7 +47,15 @@ function App() {
         />
       )}
       {current.screen === 'goal' && (
-        <GoalDetail key={current.goalId} goalId={current.goalId} from={current.from} onBack={() => goTo(current.from)} />
+        <GoalDetail
+          key={current.goalId}
+          goalId={current.goalId}
+          from={current.from}
+          today={today}
+          onBack={() => goTo(current.from)}
+          onOpenAspiration={(aspirationId) => goTo({ screen: 'aspiration', aspirationId })}
+          onNotFound={backToAspirations}
+        />
       )}
       <TabBar current={tabOf(current)} onSelect={(tab) => goTo({ screen: tab })} />
     </div>

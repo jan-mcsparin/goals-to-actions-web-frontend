@@ -4,15 +4,14 @@
 // with progress. Also the push-out rule for moving a milestone's date.
 // Nothing here paces or warns: a passed date reads like any other.
 import { addDays, fromLocalDay, mondayOf, toLocalDay } from '../api/dates.ts'
-import type { Goal, GoalDetail, GoalType, Milestone, MilestoneStatus } from '../api/types.ts'
+import type { Aspiration, Goal, GoalDetail, GoalType, Milestone, MilestoneStatus } from '../api/types.ts'
 import { milestoneCount } from './aspirations.ts'
 
 export type Header = {
   goalId: string
   label: string
   measurableLine: string
-  typeLabel: string
-  paused: boolean
+  kindLine: string // "Building", or "Building · Paused"
   aspiration?: { aspirationId: string; name: string }
 }
 
@@ -35,6 +34,7 @@ export type MilestoneRow = {
   week: string // "Wk 9", for fold rows
   status: MilestoneStatus
   result?: string
+  statusLine?: string // "Hit · Bench 150, …", "Not yet", or none while upcoming
   next: boolean
   checkable: boolean
 }
@@ -43,8 +43,9 @@ export type MilestoneRow = {
 export type GoalEndRow = {
   kind: 'goal'
   measurableLine: string
-  when?: string
+  detail: string // "Goal", or "Goal · Wk 22 · Mar 1" with a deadline
   status: 'hit' | 'upcoming'
+  statusLine?: 'Reached'
   next: boolean
   checkable: boolean
 }
@@ -159,6 +160,21 @@ export function pushedDates(goal: Goal, milestones: Milestone[], movedId: string
   })
 }
 
+// Where back goes, named only when sure: the tab, or the aspiration the goal
+// was opened from while it's still the goal's own.
+export function backLabel(
+  from: { screen: 'aspirations' } | { screen: 'aspiration'; aspirationId: string },
+  aspiration: Aspiration | undefined,
+): string | undefined {
+  if (from.screen === 'aspirations') return 'Aspirations'
+  return aspiration?.id === from.aspirationId ? aspiration.name : undefined
+}
+
+// "Show all 6": the milestones and the goal.
+export function showAllLabel(timeline: Timeline): string {
+  return `Show all ${timeline.rows.filter((row) => row.kind !== 'start').length}`
+}
+
 // A run of timeline rows folded into one tappable row.
 export type FoldRow = {
   kind: 'fold'
@@ -224,8 +240,7 @@ function header({ goal, aspiration }: GoalDetail): Header {
     goalId: goal.id,
     label: goal.label,
     measurableLine: goal.measurableLine,
-    typeLabel: TYPE_LABELS[goal.type],
-    paused: goal.status === 'paused',
+    kindLine: goal.status === 'paused' ? `${TYPE_LABELS[goal.type]} · Paused` : TYPE_LABELS[goal.type],
     ...(aspiration && { aspiration: { aspirationId: aspiration.id, name: aspiration.name } }),
   }
 }
@@ -269,6 +284,7 @@ function timeline(detail: GoalDetail): Timeline {
       week: milestone.targetDate ? `Wk ${weekNumber(goal.startDate, milestone.targetDate)}` : 'No date',
       status: milestone.status,
       ...(milestone.result && { result: milestone.result }),
+      ...(milestone.status !== 'upcoming' && { statusLine: statusLine(milestone) }),
       next: isNext,
       checkable: current && (oneOff ? milestone.status !== 'hit' : isNext),
     }
@@ -277,8 +293,9 @@ function timeline(detail: GoalDetail): Timeline {
   const end: GoalEndRow = {
     kind: 'goal',
     measurableLine: goal.measurableLine,
-    ...(goal.deadline && { when: weekLabel(goal.startDate, goal.deadline) }),
+    detail: goal.deadline ? `Goal · ${weekLabel(goal.startDate, goal.deadline)}` : 'Goal',
     status: goal.status === 'reached' ? 'hit' : 'upcoming',
+    ...(goal.status === 'reached' && { statusLine: 'Reached' as const }),
     next: goalIsNext,
     checkable: goalIsNext,
   }
@@ -288,6 +305,12 @@ function timeline(detail: GoalDetail): Timeline {
     count: `${reached} of ${total} ${oneOff ? 'done' : 'hit'}`,
     rows: [start, ...rows, end],
   }
+}
+
+// "Hit · Bench 150, squat 290", "Not yet · Bench 152", or the word alone.
+function statusLine({ status, result }: Milestone): string {
+  const label = status === 'hit' ? 'Hit' : 'Not yet'
+  return result ? `${label} · ${result}` : label
 }
 
 // Not yet stays next: nothing is passed over until it's hit.
