@@ -89,12 +89,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** The hook loads the detail and returns the view, a message, and `notFound`. `screens/Aspiration.tsx` replaces the placeholder: pinned header ("‹ Aspirations", "Aspiration"), name and why, This week, goal cards as buttons, Recurring, Past goals in `<details>`, Priority (buttons present, not wired), the three actions (not wired). App passes `onOpenGoal` with `from: { screen: 'aspiration', aspirationId }`. Not found calls `onBack`.
 
 **Acceptance criteria:**
-- [ ] Be fit renders as in `aspirations.png`; a goal card opens that goal, and back returns to Be fit.
-- [ ] Past goals is closed at first and opens to "Run a 5k · Reached".
-- [ ] A remembered aspiration id that doesn't exist lands on Aspirations (App test).
+- [x] Be fit renders as in `aspirations.png`; a goal card opens that goal, and back returns to Be fit.
+- [x] Past goals is closed at first and opens to "Run a 5k · Reached".
+- [x] A remembered aspiration id that doesn't exist lands on Aspirations (App test).
 
 **Verification:**
-- [ ] `npm test`: new `hooks/useAspiration.test.tsx` (loads, not found), new `screens/Aspiration.test.tsx`, `App.test.tsx`
+- [x] `npm test`: new `hooks/useAspiration.test.tsx` (loads, not found), new `screens/Aspiration.test.tsx`, `App.test.tsx`
 - [ ] Manual: 375 px, light and dark, a long why
 
 **Dependencies:** Task 4

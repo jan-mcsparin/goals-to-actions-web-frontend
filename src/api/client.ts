@@ -16,6 +16,12 @@ import type {
   WeeklyTarget,
 } from './types.ts'
 
+// A record that isn't there (the API's 404), so a screen can tell it apart
+// from a failed request.
+export class NotFoundError extends Error {
+  name = 'NotFoundError'
+}
+
 // Set-aside (skipped) tasks keep their day but don't show on it.
 export async function getDay(date: string): Promise<DayPlan> {
   const tasks = store.tasks.filter((task) => task.plannedDay === date && task.status !== 'skipped')
@@ -237,7 +243,7 @@ function currentTarget(goalId: string, onOrBefore: string): WeeklyTarget | undef
 
 function findAspiration(aspirationId: string): Aspiration {
   const aspiration = store.aspirations.find((candidate) => candidate.id === aspirationId)
-  if (!aspiration) throw new Error(`No aspiration with id ${aspirationId}`)
+  if (!aspiration) throw new NotFoundError(`No aspiration with id ${aspirationId}`)
   return aspiration
 }
 

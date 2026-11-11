@@ -40,7 +40,7 @@ export type ActivePage = {
   goals: GoalCard[]
   recurring: RecurringRow[]
   pastGoals: PastGoalRow[]
-  priority: { line: string; canMoveUp: boolean; canMoveDown: boolean }
+  priority: { line: string; hint: string; canMoveUp: boolean; canMoveDown: boolean }
   historyLine: string
 }
 
@@ -97,6 +97,7 @@ export function aspirationPage(detail: AspirationDetail, today: string): Aspirat
     pastGoals,
     priority: {
       line: priorityLine(position, detail.activeCount),
+      hint: position === 1 ? 'Comes first when goals compete for time' : 'Higher ones come first when goals compete for time',
       canMoveUp: position > 1,
       canMoveDown: position < detail.activeCount,
     },

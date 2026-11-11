@@ -189,10 +189,12 @@ describe('aspirationPage, active', () => {
   it('places it in priority and says which moves apply', () => {
     expect(activePage({ aspiration: aspiration({ priority: 1 }), activeCount: 3 }).priority).toEqual({
       line: '1st of 3 aspirations',
+      hint: 'Comes first when goals compete for time',
       canMoveUp: false,
       canMoveDown: true,
     })
     expect(activePage({ aspiration: aspiration({ priority: 2 }), activeCount: 3 }).priority).toMatchObject({
+      hint: 'Higher ones come first when goals compete for time',
       canMoveUp: true,
       canMoveDown: true,
     })
@@ -202,6 +204,7 @@ describe('aspirationPage, active', () => {
     })
     expect(activePage({ activeCount: 1 }).priority).toEqual({
       line: '1st of 1 aspiration',
+      hint: 'Comes first when goals compete for time',
       canMoveUp: false,
       canMoveDown: false,
     })

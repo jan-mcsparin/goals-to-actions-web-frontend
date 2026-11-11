@@ -9,6 +9,7 @@ import {
   getUpkeep,
   getWeek,
   moveAspiration,
+  NotFoundError,
   pullFromBank,
   retireAspiration,
   reviewAspiration,
@@ -471,8 +472,8 @@ describe('getAspiration', () => {
     expect(ids(detail.goals)).toEqual(['goal-spanish-a2'])
   })
 
-  it('rejects an unknown id', async () => {
-    await expect(getAspiration('asp-nope')).rejects.toThrow('No aspiration with id asp-nope')
+  it('rejects an unknown id as not found', async () => {
+    await expect(getAspiration('asp-nope')).rejects.toThrow(NotFoundError)
   })
 
   it('returns copies, so changing them does not change the store', async () => {
