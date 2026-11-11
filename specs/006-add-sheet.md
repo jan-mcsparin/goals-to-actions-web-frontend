@@ -35,7 +35,7 @@ References: [Flow 1](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 2](..
    - Building: **Weekly target**, a number and a unit ("3", "lifting sessions"). Optional.
    - Quitting: **Start date**, today unless changed.
    - One-off: nothing extra; its steps are added on its page.
-6. **Deadline:** optional, for any type.
+6. **Deadline:** optional, for any type. Not before the start date.
 
 Saving opens the new goal's page, where milestones or steps are added: "Saved. Add milestones when you're ready." ("steps" for one-off).
 
@@ -62,7 +62,9 @@ A building goal saved with a weekly target also gets that many tasks in this wee
 - `domain/add.ts`: splitting the goal sentence, which week a task belongs to, repeat-rule text and next due date, what makes each form ready to save.
 - `hooks/useAdd.ts`: saving, errors, and telling the open screen to reload.
 - `components/AddSheet.tsx` with one form component per tab; the + in `TabBar`; a short confirmation line.
-- On the aspiration page: "+ Add a goal for Be fit" (Goal tab) and "+ Add recurring" (Recurring tab), each with that aspiration selected. On the Aspirations tab: the footer hint's "Add one with +."
+- On an active aspiration's page: "+ Add a goal for Be fit" (Goal tab) and "+ Add recurring" (Recurring tab), each with that aspiration selected. Not on a retired one, to match the pickers. On the Aspirations tab: the footer hint's "Add one with +."
+- Reuse what Goal detail built: `useModalDialog` (keeps the sheet above the keyboard), `sheet.css` and `editForm.css`. Focus on open: the Task tab's title field (keyboard up, since it's the one required field); the Goal tab's type choice, with no keyboard until a type is picked.
+- The confirmation lines use the shared save/load message from [#19](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/19), so they're seen without scrolling and clear themselves. Build #19 first, or with this.
 - Docs: mostly there already (the + in the tab bar, where a new task goes). Add what the build settles about the four forms.
 
 **Out (later):**
@@ -104,7 +106,7 @@ addRecurringItem(item: {
 }): Promise<RecurringItem>
 ```
 
-The mock makes IDs with `crypto.randomUUID()`. All keep #1's rules: async, return copies, reject empty required text (after trimming) and unknown `goalId` / `aspirationId`. No changes to the entity types: a task due in a later week is an `inBank` task with that week's `weekOf`, which `getWeek` and `getBank` already leave out of this week.
+The mock makes IDs with its own counter (`newId` in `api/client.ts`), not `crypto.randomUUID()`, which is missing over plain http and broke saving on the phone; the real API will make IDs. A goal's weekly target follows the rule `setWeeklyTarget` already enforces (`parsedTarget` in `domain/goalDetail.ts`: a whole number of at least 1, and a unit). `addGoal` rejects a deadline before its start date, as Goal detail does for milestone dates (`isWithinGoal`). All keep #1's rules: async, return copies, reject empty required text (after trimming) and unknown `goalId` / `aspirationId`. No changes to the entity types: a task due in a later week is an `inBank` task with that week's `weekOf`, which `getWeek` and `getBank` already leave out of this week.
 
 The Goal and Aspiration pickers read `getAspirations()` from #4, and offer active goals and active aspirations only.
 
@@ -123,7 +125,7 @@ export function splitGoalSentence(sentence: string): { label: string; measurable
 ## Testing strategy
 
 - **`domain/add.test.ts`:** sentence split (one colon, several, none, extra spaces); task week for no date, this week, a past date, next week and across a year end; repeat-rule text and next due for each choice ("3 times a week" included), including a monthly day already past this month; ready-to-save rules.
-- **`api/client.test.ts`:** each add function stores and returns the record with its defaults; a task due later is absent from `getBank` and `getWeek`; a task added on today is in `getDay(today)` with `placedByHand`; a goal with a target shows in `getWeek`'s targets with that many bank tasks; rejections; new records pass the dataset consistency checks.
+- **`api/client.test.ts`:** each add function stores and returns the record with its defaults; a task due later is absent from `getBank` and `getWeek`; a task added on today is in `getDay(today)` with `placedByHand`; a goal with a target shows in `getWeek`'s targets with that many bank tasks; rejections, including a deadline before the start date and a target that isn't a whole number of at least 1; new records pass the dataset consistency checks.
 - **`components/AddSheet.test.tsx`:** Task is open first and saves with only a title; "In the bank" is selected at first, or "On today" when opened from Today, and "On today" passes `onToday`; Save disabled when empty; Goal shows nothing but the three types until one is picked; the second field appears without a colon; "New aspiration" creates both; Aspiration saves without a why and "Add a goal for this" opens the Goal tab with it selected; each Recurring choice saves the right rule; typed text survives switching tabs and is cleared on close.
 - **`App.test.tsx`:** the + opens the sheet on any screen and isn't marked current; a task added while on Week appears in the bank; each link on an aspiration's page opens its tab with the aspiration selected; the sheet opened from Today has "On today" selected and the saved task appears in the list; opened from Week, Goals or an opened day it has "In the bank" selected; saving a goal opens its page.
 - **Manual:** 375 and 390 px, light and dark; the keyboard doesn't cover the field in use or Save; date and time inputs on iOS; the sheet scrolls when the Goal form is taller than the screen.
@@ -151,3 +153,4 @@ export function splitGoalSentence(sentence: string): { label: string; measurable
 
 1. **Repeat choices** are the ones listed. Yearly, "every N weeks" and a time of day on a recurring item ("Thursdays at 8 p.m." in the design) are left out for now.
 2. **Deadline is offered for every goal type**, optional, as Flow 2 step 6 says, though the short form could drop it for building and quitting goals.
+3. **Back from a new goal's page.** Goal detail goes back to the Aspirations tab or to an aspiration's page. Suggested: its aspiration's page when it has one, otherwise the Aspirations tab, whichever screen the sheet was opened over.

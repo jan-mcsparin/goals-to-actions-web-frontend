@@ -15,7 +15,8 @@ References: [ADR-001](../../docs/adr/0001-pwa.md), [ADR-004](../../docs/adr/0004
 - Web app manifest from `vite.config.ts`: name from `APP_NAME`, standalone display, theme colour, 192 and 512 px icons, a 180 px `apple-touch-icon`.
 - A service worker from vite-plugin-pwa that precaches every built file.
 - iOS meta tags in `index.html` and `viewport-fit=cover`.
-- The open screen (`gta.screen`) and Today's List / By goal choice kept in `localStorage`.
+- The open screen (`gta.screen`), Today's List / By goal choice (`gta.todayView`) and each goal's Show all / Show less (`gta.timelineExpanded`) kept in `localStorage`.
+- Sheets follow the visual viewport so they sit above the keyboard (`useModalDialog`), checked only in a Safari tab so far.
 
 None of it has been checked on a phone from an installed copy.
 
@@ -23,7 +24,7 @@ None of it has been checked on a phone from an installed copy.
 
 1. **Install:** Safari's Share → Add to Home Screen offers the app's name and its icon. Opened from the home screen it runs standalone: no Safari bars, content clear of the notch and the home indicator, in light and dark.
 2. **Opens offline:** in airplane mode, a cold start shows the app, on the remembered screen, with no error and no blank page.
-3. **Comes back where it was:** after iOS closes the app in the background, or the person swipes it away, it reopens on the same screen: Today, Week, an opened day, Aspirations, an opened aspiration, an opened goal or Settings. Today's List / By goal choice is kept too.
+3. **Comes back where it was:** after iOS closes the app in the background, or the person swipes it away, it reopens on the same screen: Today, Week, an opened day, Aspirations, an opened aspiration, Keep life running, an opened goal or Settings. Today's List / By goal choice and each goal's Show all / Show less are kept too.
 4. **Knows what day it is:** if the app was left open overnight, coming back to it shows the new day as Today. (Today is worked out once at launch now, so it would still show yesterday.)
 5. **Updates quietly:** a new version is picked up without the person doing anything, never reloads the page while they're using it, and is running by the next time the app is opened. No "update available" prompt.
 
@@ -52,7 +53,7 @@ npm run build
 npm run preview -- --host   # the production build, with the service worker
 ```
 
-A service worker only registers over HTTPS (or on localhost), so `npm run dev -- --host` over Wi-Fi can't show offline behaviour on the phone. The phone checks need the built app on an HTTPS address.
+A service worker only registers over HTTPS (or on localhost), so `npm run dev -- --host` over Wi-Fi can't show offline behaviour on the phone. Plain http also hides other browser features altogether (`crypto.randomUUID()` was one, and broke saving), so the phone checks need the built app on an HTTPS address.
 
 ## Code style
 
@@ -83,8 +84,9 @@ export function useToday(): string {
   - [ ] Add to Home Screen shows the right name and icon.
   - [ ] Opens standalone; header and tab bar clear the notch and the home indicator; light and dark.
   - [ ] Airplane mode, app swiped away, reopened: it opens.
-  - [ ] Reopens on each of: Today, Week, an opened day, Aspirations, an opened aspiration, an opened goal (with back still going where it should), Settings.
-  - [ ] List / By goal is kept.
+  - [ ] Reopens on each of: Today, Week, an opened day, Aspirations, an opened aspiration, Keep life running, an opened goal (with back still going where it should), Settings.
+  - [ ] List / By goal is kept, and so is a goal's Show all.
+  - [ ] A sheet with a text field (check-in, Add) sits above the keyboard, with its field and Save in view.
   - [ ] Left open past midnight (or with the phone's date changed): Today is the new day.
   - [ ] After a new deploy: the new version is running by the second open, with no prompt and no reload in the middle of use.
 

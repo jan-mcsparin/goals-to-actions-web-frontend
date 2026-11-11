@@ -29,7 +29,7 @@ In the click-through nothing reads the intensity yet; the planner will, from its
 **In:**
 - `api/`: `getSettings`, `setIntensity`.
 - `domain/settings.ts`: the three intensities in order with their labels.
-- `hooks/useSettings.ts`: load, optimistic change, rollback with a message on failure.
+- `hooks/useSettings.ts`: load, optimistic change, rollback with a message on failure. The message uses the shared save/load message from [#19](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/19) if it exists by then.
 - `screens/Settings.tsx`; the gear in `screens/Aspirations.tsx`; `settings` in `storage/navigation.ts`, `useNavigation` and `App.tsx`.
 - Docs: screens README (what each Settings row does; the gear is already there).
 
