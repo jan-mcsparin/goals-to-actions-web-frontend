@@ -341,7 +341,11 @@ describe('GoalDetail, checking in', () => {
     await user.click(within(checkIn).getByRole('button', { name: 'Check in' }))
     const sheet = screen.getByRole('dialog', { name: 'Bench 155, squat 300, deadlift 345' })
     expect(within(sheet).getByText('How did it go?')).toBeDefined()
-    await user.type(within(sheet).getByRole('textbox', { name: 'Result (optional)' }), 'Bench 155, squat 305, deadlift 350')
+    // The result is optional, so the keyboard waits for a tap on it.
+    expect(document.activeElement).toBe(within(sheet).getByRole('heading', { name: 'Bench 155, squat 300, deadlift 345' }))
+    const result = within(sheet).getByRole('textbox', { name: 'Result (optional)' })
+    expect(result.getAttribute('placeholder')).toBeNull()
+    await user.type(result, 'Bench 155, squat 305, deadlift 350')
     await user.click(within(sheet).getByRole('button', { name: 'Hit it' }))
 
     expect(screen.queryByRole('dialog')).toBeNull()

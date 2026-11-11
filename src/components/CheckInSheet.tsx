@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import './editForm.css'
 import './sheet.css'
 import { useModalDialog } from './useModalDialog.ts'
@@ -14,15 +14,23 @@ type CheckInSheetProps = {
 }
 
 // The result field lives inside only while the sheet is open, so each
-// check-in starts empty.
+// check-in starts empty. The result is optional, so focus goes to the title
+// rather than the field: on iOS the keyboard waits for a tap on it.
 export function CheckInSheet({ open, title, doneLabel, onCheckIn, onClose }: CheckInSheetProps) {
   const dialog = useModalDialog(open)
   const titleId = useId()
+  const heading = useRef<HTMLHeadingElement>(null)
+
+  useEffect(() => {
+    if (open) heading.current?.focus()
+  }, [open])
 
   return (
     <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose}>
       <header className="sheet-header">
-        <h2 id={titleId}>{title}</h2>
+        <h2 id={titleId} ref={heading} tabIndex={-1}>
+          {title}
+        </h2>
       </header>
       {open && <CheckInForm doneLabel={doneLabel} onCheckIn={onCheckIn} onCancel={onClose} />}
     </dialog>
@@ -53,7 +61,6 @@ function CheckInForm({ doneLabel, onCheckIn, onCancel }: CheckInFormProps) {
         id={resultId}
         value={result}
         autoComplete="off"
-        placeholder="Bench 155, squat 300, deadlift 345"
         onChange={(event) => setResult(event.target.value)}
       />
 

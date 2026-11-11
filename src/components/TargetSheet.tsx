@@ -62,7 +62,7 @@ function TargetForm({ initial, onSave, onCancel }: TargetFormProps) {
       <input
         id={unitId}
         value={unit}
-        placeholder="lifting sessions"
+        placeholder="sessions, runs, pages…"
         autoComplete="off"
         required
         onChange={(event) => setUnit(event.target.value)}

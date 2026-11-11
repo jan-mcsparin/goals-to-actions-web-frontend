@@ -1,9 +1,11 @@
-/* Bottom sheet on a native <dialog>, shared by BankSheet and DayPickerSheet. */
+/* Bottom sheet on a native <dialog>, shared by every sheet. It sits on the
+   on-screen keyboard when one is up (--keyboard-inset, set by useModalDialog)
+   and gets shorter to fit what's left. */
 .sheet {
   width: 100%;
   max-width: 40rem;
-  max-height: 80dvh;
-  margin: auto auto 0;
+  max-height: min(80dvh, calc(100dvh - var(--keyboard-inset, 0px) - 1rem));
+  margin: auto auto var(--keyboard-inset, 0px);
   padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
   border: none;
   border-radius: 1rem 1rem 0 0;
@@ -43,4 +45,10 @@
 
 .sheet-note {
   margin: 1rem 0 0;
+}
+
+/* A sheet's title can take focus when it opens (so the keyboard waits), but
+   isn't something to tab to; no ring for that. */
+.sheet-header h2[tabindex='-1']:focus {
+  outline: none;
 }
