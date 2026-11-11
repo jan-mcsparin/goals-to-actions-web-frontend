@@ -172,6 +172,23 @@ it('lands on Aspirations, quietly, for a remembered aspiration that no longer ex
   expect(JSON.parse(localStorage.getItem('gta.screen')!)).toEqual({ screen: 'aspirations' })
 })
 
+it('shows a new priority order on the tab after moving an aspiration', async () => {
+  const user = userEvent.setup()
+  render(<App />)
+  await user.click(await screen.findByRole('button', { name: 'Aspirations' }))
+  await user.click(await screen.findByRole('button', { name: 'Be fit' }))
+
+  await user.click(await screen.findByRole('button', { name: 'Move down' }))
+  await user.click(screen.getByRole('button', { name: 'Back to Aspirations' }))
+
+  await screen.findByRole('heading', { level: 1, name: 'Aspirations' })
+  const cards = await screen.findAllByRole('button', { name: /^(Be fit|Keep a calm home)$/ })
+  expect(cards).toEqual([
+    screen.getByRole('button', { name: 'Keep a calm home' }),
+    screen.getByRole('button', { name: 'Be fit' }),
+  ])
+})
+
 it('opens a goal from an aspiration page and comes back to it', async () => {
   const user = userEvent.setup()
   render(<App />)

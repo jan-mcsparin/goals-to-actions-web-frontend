@@ -117,6 +117,26 @@ describe('Aspiration, active', () => {
     expect(within(priority).getByRole('button', { name: 'Move down' })).toHaveProperty('disabled', false)
   })
 
+  it('moves down, then back up, turning off the move that no longer applies', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    const priority = await screen.findByRole('region', { name: 'Priority' })
+    const up = within(priority).getByRole('button', { name: 'Move up' })
+    const down = within(priority).getByRole('button', { name: 'Move down' })
+
+    await user.click(down)
+
+    expect(within(priority).getByText('2nd of 2 aspirations')).toBeDefined()
+    expect(within(priority).getByText('Higher ones come first when goals compete for time')).toBeDefined()
+    expect(down).toHaveProperty('disabled', true)
+    expect(up).toHaveProperty('disabled', false)
+
+    await user.click(up)
+
+    expect(within(priority).getByText('1st of 2 aspirations')).toBeDefined()
+    expect(up).toHaveProperty('disabled', true)
+  })
+
   it('offers Edit name and why, Review and Retire, with no dialog open', async () => {
     renderPage()
 

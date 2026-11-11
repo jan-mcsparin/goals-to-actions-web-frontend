@@ -15,7 +15,7 @@ type AspirationProps = {
 }
 
 export function Aspiration({ aspirationId, today, onBack, onOpenGoal }: AspirationProps) {
-  const { page, message, notFound } = useAspiration(aspirationId, today)
+  const { page, message, notFound, move } = useAspiration(aspirationId, today)
 
   useEffect(() => {
     if (notFound) onBack()
@@ -42,13 +42,19 @@ export function Aspiration({ aspirationId, today, onBack, onOpenGoal }: Aspirati
         </p>
       )}
 
-      {page?.kind === 'active' && <Active page={page} onOpenGoal={onOpenGoal} />}
+      {page?.kind === 'active' && <Active page={page} onOpenGoal={onOpenGoal} onMove={move} />}
       {page?.kind === 'retired' && <Retired page={page} onOpenGoal={onOpenGoal} />}
     </main>
   )
 }
 
-function Active({ page, onOpenGoal }: { page: ActivePage; onOpenGoal: (goalId: string) => void }) {
+type ActiveProps = {
+  page: ActivePage
+  onOpenGoal: (goalId: string) => void
+  onMove: (direction: 'up' | 'down') => void
+}
+
+function Active({ page, onOpenGoal, onMove }: ActiveProps) {
   return (
     <>
       {page.week && (
@@ -91,7 +97,13 @@ function Active({ page, onOpenGoal }: { page: ActivePage; onOpenGoal: (goalId: s
             <p className="aspiration-note">{page.priority.hint}</p>
           </div>
           <div className="aspiration-moves">
-            <button type="button" className="aspiration-move" aria-label="Move up" disabled={!page.priority.canMoveUp}>
+            <button
+              type="button"
+              className="aspiration-move"
+              aria-label="Move up"
+              disabled={!page.priority.canMoveUp}
+              onClick={() => onMove('up')}
+            >
               ↑
             </button>
             <button
@@ -99,6 +111,7 @@ function Active({ page, onOpenGoal }: { page: ActivePage; onOpenGoal: (goalId: s
               className="aspiration-move"
               aria-label="Move down"
               disabled={!page.priority.canMoveDown}
+              onClick={() => onMove('down')}
             >
               ↓
             </button>

@@ -95,7 +95,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Verification:**
 - [x] `npm test`: new `hooks/useAspiration.test.tsx` (loads, not found), new `screens/Aspiration.test.tsx`, `App.test.tsx`
-- [ ] Manual: 375 px, light and dark, a long why
+- [x] Manual: 375 px, light and dark, a long why
 
 **Dependencies:** Task 4
 
@@ -104,8 +104,8 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M (L on file count, but most are new and small)
 
 ## Checkpoint B
-- [ ] Tests, lint and build pass
-- [ ] On the phone: open each aspiration from the tab, open a goal and come back, reload on the page
+- [x] Tests, lint and build pass
+- [x] On the phone: open each aspiration from the tab, open a goal and come back, reload on the page
 
 ## Phase 3: Managing
 
@@ -114,12 +114,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** The Priority buttons call the hook's `move`, which updates `position` at once and rolls back with "Couldn't save that. Try again." on failure.
 
 **Acceptance criteria:**
-- [ ] Move Be fit down: "2nd of 2 aspirations", down disabled, up enabled; move up restores it.
-- [ ] A failed move rolls back and shows the message (hook test, mocked client).
-- [ ] After moving, the tab's cards are in the new order (App test).
+- [x] Move Be fit down: "2nd of 2 aspirations", down disabled, up enabled; move up restores it.
+- [x] A failed move rolls back and shows the message (hook test, mocked client).
+- [x] After moving, the tab's cards are in the new order (App test).
 
 **Verification:**
-- [ ] `npm test`: `useAspiration.test.tsx`, `Aspiration.test.tsx`, `App.test.tsx`
+- [x] `npm test`: `useAspiration.test.tsx`, `Aspiration.test.tsx`, `App.test.tsx`
 - [ ] Manual: Week's progress rows and Today's By goal view follow
 
 **Dependencies:** Tasks 2, 5

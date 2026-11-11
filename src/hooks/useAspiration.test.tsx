@@ -1,13 +1,22 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getAspiration } from '../api/client.ts'
+import { getAspiration, moveAspiration } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
+import type { ActivePage } from '../domain/aspiration.ts'
 import { useAspiration } from './useAspiration.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
-  return { ...actual, getAspiration: vi.fn(actual.getAspiration) }
+  return {
+    ...actual,
+    getAspiration: vi.fn(actual.getAspiration),
+    moveAspiration: vi.fn(actual.moveAspiration),
+  }
 })
+
+function priorityOf(page: unknown) {
+  return (page as ActivePage).priority
+}
 
 const TODAY = '2026-11-11'
 
@@ -20,6 +29,44 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers()
   vi.mocked(getAspiration).mockClear()
+  vi.mocked(moveAspiration).mockClear()
+})
+
+describe('useAspiration, moving', () => {
+  it('moves at once, before the save finishes', async () => {
+    let finishSave: () => void = () => {}
+    vi.mocked(moveAspiration).mockImplementationOnce(
+      () => new Promise((resolve) => (finishSave = () => resolve([]))),
+    )
+    const { result } = renderHook(() => useAspiration('asp-fit', TODAY))
+    await waitFor(() => expect(result.current.page).toBeDefined())
+
+    act(() => result.current.move('down'))
+
+    expect(priorityOf(result.current.page)).toMatchObject({ line: '2nd of 2 aspirations', canMoveDown: false })
+    await act(async () => finishSave())
+  })
+
+  it('goes back to where it was, with a message, when the save fails', async () => {
+    vi.mocked(moveAspiration).mockRejectedValueOnce(new Error('offline'))
+    const { result } = renderHook(() => useAspiration('asp-fit', TODAY))
+    await waitFor(() => expect(result.current.page).toBeDefined())
+
+    act(() => result.current.move('down'))
+
+    await waitFor(() => expect(result.current.message).toBe("Couldn't save that. Try again."))
+    expect(priorityOf(result.current.page).line).toBe('1st of 2 aspirations')
+  })
+
+  it("does nothing when the move doesn't apply", async () => {
+    const { result } = renderHook(() => useAspiration('asp-fit', TODAY))
+    await waitFor(() => expect(result.current.page).toBeDefined())
+
+    act(() => result.current.move('up'))
+
+    expect(moveAspiration).not.toHaveBeenCalled()
+    expect(priorityOf(result.current.page).line).toBe('1st of 2 aspirations')
+  })
 })
 
 describe('useAspiration', () => {
