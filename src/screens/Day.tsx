@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BankSheet } from '../components/BankSheet.tsx'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import { TaskRow } from '../components/TaskRow.tsx'
@@ -81,17 +81,8 @@ export function Day({ date, today, onBack }: DayProps) {
       <DayTop
         heading={heading}
         onBack={onBack}
-        count={isEmpty ? undefined : `${progress.done} of ${progress.total} done`}
-      >
-        {!isEmpty && (
-          <progress
-            className="today-progress"
-            value={progress.done}
-            max={progress.total}
-            aria-label={isToday ? 'Done today' : 'Done this day'}
-          />
-        )}
-      </DayTop>
+        progress={isEmpty ? undefined : { ...progress, label: isToday ? 'Done today' : 'Done this day' }}
+      />
 
       {!isEmpty && <ViewToggle view={view} onChange={setView} />}
 
@@ -138,12 +129,12 @@ export function Day({ date, today, onBack }: DayProps) {
 type DayTopProps = {
   heading: string
   onBack?: () => void
-  count?: string
-  children?: ReactNode
+  // Left out while nothing has loaded, or nothing is planned.
+  progress?: { done: number; total: number; label: string }
 }
 
-// The pinned top: the way back, the heading, and (once loaded) the count and bar.
-function DayTop({ heading, onBack, count, children }: DayTopProps) {
+// The pinned top: the way back, the heading, and the count and bar.
+function DayTop({ heading, onBack, progress }: DayTopProps) {
   return (
     <div className="screen-top today-top">
       {onBack && (
@@ -153,9 +144,11 @@ function DayTop({ heading, onBack, count, children }: DayTopProps) {
       )}
       <header className="today-header">
         <h1>{heading}</h1>
-        {count && <p className="today-count">{count}</p>}
+        {progress && <p className="today-count">{`${progress.done} of ${progress.total} done`}</p>}
       </header>
-      {children}
+      {progress && (
+        <progress className="today-progress" value={progress.done} max={progress.total} aria-label={progress.label} />
+      )}
     </div>
   )
 }
