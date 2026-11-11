@@ -59,8 +59,57 @@ export async function getAspiration(aspirationId: string): Promise<AspirationDet
     recurringItems: store.recurringItems.filter((item) => item.aspirationId === aspirationId),
     weeklyTargets: targetsInForce(weekOf).filter((target) => goalIds.has(target.goalId)),
     weekTasks: store.tasks.filter((task) => task.weekOf === weekOf && task.goalId !== undefined && goalIds.has(task.goalId)),
-    activeCount: store.aspirations.filter((candidate) => candidate.status === 'active').length,
+    activeCount: activeAspirations().length,
   })
+}
+
+// A blank why is removed; anything not given stays as it was.
+export async function updateAspiration(
+  aspirationId: string,
+  changes: { name?: string; why?: string },
+): Promise<Aspiration> {
+  const aspiration = findAspiration(aspirationId)
+  const name = changes.name?.trim()
+  if (name === '') throw new Error('An aspiration needs a name')
+
+  if (name !== undefined) aspiration.name = name
+  if (changes.why !== undefined) {
+    const why = changes.why.trim()
+    if (why) aspiration.why = why
+    else delete aspiration.why
+  }
+  return structuredClone(aspiration)
+}
+
+export async function reviewAspiration(aspirationId: string): Promise<Aspiration> {
+  const aspiration = findAspiration(aspirationId)
+  aspiration.lastReviewedAt = new Date().toISOString()
+  return structuredClone(aspiration)
+}
+
+// Swaps priority with the active aspiration just above or below.
+export async function moveAspiration(aspirationId: string, direction: 'up' | 'down'): Promise<Aspiration[]> {
+  const aspiration = findActiveAspiration(aspirationId)
+  const order = activeAspirations()
+  const index = order.indexOf(aspiration)
+  const neighbour = order[direction === 'up' ? index - 1 : index + 1]
+  if (!neighbour) throw new Error(`${aspirationId} is already ${direction === 'up' ? 'first' : 'last'}`)
+
+  const priority = aspiration.priority
+  aspiration.priority = neighbour.priority
+  neighbour.priority = priority
+  return structuredClone(activeAspirations())
+}
+
+// Active again, last in priority. Goals and recurring items it paused stay paused.
+export async function bringBackAspiration(aspirationId: string): Promise<Aspiration> {
+  const aspiration = findAspiration(aspirationId)
+  if (aspiration.status !== 'retired') throw new Error(`${aspirationId} is not retired`)
+
+  aspiration.priority = activeAspirations().length + 1
+  aspiration.status = 'active'
+  delete aspiration.retiredAt
+  return structuredClone(aspiration)
 }
 
 export async function getUpkeep(): Promise<Upkeep> {
@@ -158,6 +207,19 @@ function findAspiration(aspirationId: string): Aspiration {
   const aspiration = store.aspirations.find((candidate) => candidate.id === aspirationId)
   if (!aspiration) throw new Error(`No aspiration with id ${aspirationId}`)
   return aspiration
+}
+
+function findActiveAspiration(aspirationId: string): Aspiration {
+  const aspiration = findAspiration(aspirationId)
+  if (aspiration.status !== 'active') throw new Error(`${aspirationId} is retired`)
+  return aspiration
+}
+
+// In priority order. Only active aspirations have a priority.
+function activeAspirations(): Aspiration[] {
+  return store.aspirations
+    .filter((aspiration) => aspiration.status === 'active')
+    .sort((a, b) => a.priority! - b.priority!)
 }
 
 function findTask(taskId: string): Task {

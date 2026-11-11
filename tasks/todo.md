@@ -29,12 +29,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `updateAspiration`, `reviewAspiration`, `moveAspiration` and `bringBackAspiration`, with #1's rules.
 
 **Acceptance criteria:**
-- [ ] `updateAspiration` changes name and why; an empty or blank name rejects. `reviewAspiration` sets `lastReviewedAt` to today.
-- [ ] `moveAspiration` swaps priority with the one above or below and returns the active ones in order; moving the first up, the last down, or a retired one rejects.
-- [ ] `bringBackAspiration` makes it active, clears `retiredAt`, and gives it priority `activeCount + 1`; its paused goals stay paused. Bringing back an active one rejects.
+- [x] `updateAspiration` changes name and why; an empty or blank name rejects. `reviewAspiration` sets `lastReviewedAt` to today.
+- [x] `moveAspiration` swaps priority with the one above or below and returns the active ones in order; moving the first up, the last down, or a retired one rejects.
+- [x] `bringBackAspiration` makes it active, clears `retiredAt`, and gives it priority `activeCount + 1`; its paused goals stay paused. Bringing back an active one rejects.
 
 **Verification:**
-- [ ] `npm test`: `client.test.ts`, one block per function
+- [x] `npm test`: `client.test.ts`, one block per function
 
 **Dependencies:** Task 1
 

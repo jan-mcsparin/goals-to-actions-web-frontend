@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  bringBackAspiration,
   checkOffTask,
   getAspiration,
   getAspirations,
@@ -7,10 +8,13 @@ import {
   getDay,
   getUpkeep,
   getWeek,
+  moveAspiration,
   pullFromBank,
+  reviewAspiration,
   skipTask,
   swapTask,
   uncheckTask,
+  updateAspiration,
 } from './client.ts'
 import { resetStore, store } from './mockStore.ts'
 
@@ -478,6 +482,113 @@ describe('getAspiration', () => {
     const second = await getAspiration('asp-fit')
     expect(second.aspiration.name).toBe('Be fit')
     expect(second.goals.map((goal) => goal.label)).not.toContain('changed')
+  })
+})
+
+describe('updateAspiration', () => {
+  it('changes the name and the why, trimmed', async () => {
+    const saved = await updateAspiration('asp-fit', { name: '  Be fit for life ', why: ' To keep skiing. ' })
+
+    expect(saved).toMatchObject({ name: 'Be fit for life', why: 'To keep skiing.' })
+    expect(store.aspirations.find((aspiration) => aspiration.id === 'asp-fit')?.name).toBe('Be fit for life')
+  })
+
+  it('removes the why when it is cleared, and leaves what is not given alone', async () => {
+    const saved = await updateAspiration('asp-fit', { why: '  ' })
+
+    expect(saved.why).toBeUndefined()
+    expect(saved.name).toBe('Be fit')
+  })
+
+  it('rejects an empty name and changes nothing', async () => {
+    await expect(updateAspiration('asp-fit', { name: '   ', why: 'New why' })).rejects.toThrow('An aspiration needs a name')
+    expect(store.aspirations.find((aspiration) => aspiration.id === 'asp-fit')?.why).toMatch(/^So I can keep skiing/)
+  })
+
+  it('rejects an unknown id', async () => {
+    await expect(updateAspiration('asp-nope', { name: 'X' })).rejects.toThrow('No aspiration with id asp-nope')
+  })
+})
+
+describe('reviewAspiration', () => {
+  it('records now as the last review', async () => {
+    const saved = await reviewAspiration('asp-home')
+
+    expect(saved.lastReviewedAt).toBe(WEDNESDAY.toISOString())
+    expect(store.aspirations.find((aspiration) => aspiration.id === 'asp-home')?.lastReviewedAt).toBe(
+      WEDNESDAY.toISOString(),
+    )
+  })
+
+  it('rejects an unknown id', async () => {
+    await expect(reviewAspiration('asp-nope')).rejects.toThrow('No aspiration with id asp-nope')
+  })
+})
+
+describe('moveAspiration', () => {
+  function addActive(id: string, priority: number) {
+    store.aspirations.push({ id, name: id, priority, status: 'active', createdAt: '2026-11-01T09:00:00Z' })
+  }
+
+  it('moves the first one down, and returns the active ones in order', async () => {
+    const order = await moveAspiration('asp-fit', 'down')
+
+    expect(order.map((aspiration) => [aspiration.id, aspiration.priority])).toEqual([
+      ['asp-home', 1],
+      ['asp-fit', 2],
+    ])
+  })
+
+  it('moves the last one up', async () => {
+    const order = await moveAspiration('asp-home', 'up')
+
+    expect(order.map((aspiration) => aspiration.id)).toEqual(['asp-home', 'asp-fit'])
+  })
+
+  it('moves one in the middle either way, touching only its neighbour', async () => {
+    addActive('asp-build', 3)
+
+    const up = await moveAspiration('asp-home', 'up')
+    expect(up.map((aspiration) => aspiration.id)).toEqual(['asp-home', 'asp-fit', 'asp-build'])
+
+    const down = await moveAspiration('asp-fit', 'down')
+    expect(down.map((aspiration) => [aspiration.id, aspiration.priority])).toEqual([
+      ['asp-home', 1],
+      ['asp-build', 2],
+      ['asp-fit', 3],
+    ])
+  })
+
+  it('rejects moving the first up or the last down', async () => {
+    await expect(moveAspiration('asp-fit', 'up')).rejects.toThrow('asp-fit is already first')
+    await expect(moveAspiration('asp-home', 'down')).rejects.toThrow('asp-home is already last')
+  })
+
+  it('rejects moving a retired aspiration or an unknown id', async () => {
+    await expect(moveAspiration('asp-spanish', 'up')).rejects.toThrow('asp-spanish is retired')
+    await expect(moveAspiration('asp-nope', 'up')).rejects.toThrow('No aspiration with id asp-nope')
+  })
+})
+
+describe('bringBackAspiration', () => {
+  it('makes a retired aspiration active again, last in priority', async () => {
+    const saved = await bringBackAspiration('asp-spanish')
+
+    expect(saved).toMatchObject({ status: 'active', priority: 3 })
+    expect(saved.retiredAt).toBeUndefined()
+  })
+
+  it('leaves its paused goals paused', async () => {
+    store.goals.find((goal) => goal.id === 'goal-spanish-a2')!.status = 'paused'
+
+    await bringBackAspiration('asp-spanish')
+
+    expect(store.goals.find((goal) => goal.id === 'goal-spanish-a2')?.status).toBe('paused')
+  })
+
+  it('rejects an active aspiration or an unknown id', async () => {
+    await expect(bringBackAspiration('asp-fit')).rejects.toThrow('asp-fit is not retired')
+    await expect(bringBackAspiration('asp-nope')).rejects.toThrow('No aspiration with id asp-nope')
   })
 })
 
