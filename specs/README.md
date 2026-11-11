@@ -16,7 +16,7 @@ One spec per issue, numbered like the issue. This file is the index and the map 
 
 | Module id | Spec | Issue | Responsibility | Depends on |
 |---|---|---|---|---|
-| `goal-detail` | [005](005-goal-detail.md) | #5 | One goal in full: milestones, weekly target, check-in, Review / Pause / End | `aspirations-tab`, `aspiration-page` |
+| `goal-detail` | [005](005-goal-detail.md) | #5 | One goal in full: milestones, weekly target, check-in, Pause / End | `aspirations-tab`, `aspiration-page` |
 | `add-sheet` | [006](006-add-sheet.md) | #6 | Add a task, goal, aspiration or recurring item; the + in the tab bar | `aspirations-tab`, `aspiration-page`, `goal-detail` |
 | `settings-screen` | [007](007-settings-screen.md) | #7 | Intensity and the few preferences; the gear | `aspirations-tab` |
 | `install-instant-open` | [008](008-install-instant-open.md) | #8 | Installs on iPhone, opens offline, comes back where it was | all of the above |
@@ -37,7 +37,7 @@ Settled with Jan on 2026-11-10:
 4. **Aspirations are managed in the click-through:** add, edit the name and why, move up and down, retire and bring back. A new one goes last in priority. (Review was dropped while building #13.)
 5. **A one-off goal's steps are its milestones**, and they're called steps everywhere ("Step 3 of 6", never "Stage"). Checking off a task never moves the step; the person marks a step reached on the goal's page. No new entity.
 6. **The final milestone is the goal itself.** The timeline's last row is the goal's measurable line, and it counts in "1 of 6". Reaching it is reaching the goal. It isn't a separate milestone record. A goal with no milestones of its own reads "0 of 1".
-7. **Goal detail works fully, mocked:** Pause, End, Review and milestone check-in all change data.
+7. **Goal detail works fully, mocked:** Pause, End and milestone check-in all change data. (Goal Review was dropped while planning #5, as it was for aspirations.)
 8. **Goal detail's timeline is vertical**, and condenses past four milestones (spec 005, `goal-detail-timeline.png`).
 9. **Adding a goal is a short form.** Milestones and steps are added afterwards on Goal detail. Quitting goals can be created; their daily log comes later.
 10. **Past goals are collapsed:** on each aspiration's page, and under Other goals on the tab for goals with no aspiration.

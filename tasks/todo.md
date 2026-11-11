@@ -1,40 +1,58 @@
-# Tasks: Aspiration page (#13)
+# Tasks: Goal detail (#5)
 
-Plan: [`plan.md`](plan.md). Spec: [`../specs/013-aspiration-page.md`](../specs/013-aspiration-page.md).
+Plan: [`plan.md`](plan.md). Spec: [`../specs/005-goal-detail.md`](../specs/005-goal-detail.md).
 
-Every task: write tests first, then `npm test && npm run lint && npm run build`, then one commit. Test dates are fixed to Wednesday 11 Nov 2026, as before. New test files call `resetStore()` in `beforeEach`.
+Every task: write tests first, then `npm test && npm run lint && npm run build`, then one commit. Test dates are fixed to Wednesday 11 Nov 2026. New test files call `resetStore()` in `beforeEach`.
 
-## Phase 1: API
+# PR 1: `goal-detail-view`
 
-### Task 1: `getAspiration`
+## Phase 1: API and domain
 
-**Description:** Make `Aspiration.priority` optional (active only) and drop Speak Spanish's. Add `AspirationDetail` and `getAspiration(aspirationId)`: the aspiration, its goals of every status, their milestones in order, its recurring items (active and inactive), this week's targets and goal tasks for its goals, and `activeCount`.
+### Task 0: Settle spec 005
+
+**Description:** Bring the spec in line with the plan's settled decisions 1–9: close the open questions, drop Review, add the not-yet-stays-Next rule, push-out with the deadline cap, one-off steps in any order, `reopenMilestone` returning `Milestone[]`, and Wk 1 as the start week (fix the two examples). Mark the spec approved.
 
 **Acceptance criteria:**
-- [x] Every active aspiration has a priority, numbered 1…n with no gaps; retired ones have none (mock consistency test). The tab and Today sort as before.
-- [x] Be fit returns its four goals (three active, one reached), Stretch and Hockey, targets for Be strong and Have endurance, priority 1 and `activeCount` 2. Speak Spanish returns its reached goal and no priority.
-- [x] An unknown id rejects; the result is a copy.
+- [x] No open questions left; each decision is in the section it changes.
+- [x] Review, `reviewGoal` and the Review sheet are gone from the spec, its tests and its success criteria.
 
 **Verification:**
-- [x] `npm test`: `mockData.test.ts`, `client.test.ts` (a `getAspiration` block), existing domain tests
+- [x] Read through against `plan.md`; `npm test && npm run lint && npm run build` still pass (no code change)
 
 **Dependencies:** None
 
-**Files:** `src/api/types.ts`, `src/api/mockData.ts`, `src/api/mockData.test.ts`, `src/api/client.ts`, `src/api/client.test.ts`, `src/domain/aspirations.ts`
+**Files:** `specs/005-goal-detail.md`, `specs/README.md` (if the shared decisions mention Review), `tasks/plan.md`, `tasks/todo.md`
+
+**Scope:** XS
+
+### Task 1: `getGoal`
+
+**Description:** Add `GoalDetail` (`goal`, `aspiration?`, `milestones` in order, `weeklyTarget?` in force this week whatever the goal's status) and `getGoal(goalId)`, which throws `NotFoundError` for an unknown id.
+
+**Acceptance criteria:**
+- [ ] Be strong returns Be fit, its five milestones in order (milestone 2 is `notYet`) and the 3 lifting sessions target.
+- [ ] Renew my passport has no aspiration; Cook at home (paused) has no target and still loads.
+- [ ] An unknown id rejects with `NotFoundError`; the result is a copy.
+
+**Verification:**
+- [ ] `npm test`: a `getGoal` block in `client.test.ts`
+
+**Dependencies:** Task 0
+
+**Files:** `src/api/types.ts`, `src/api/client.ts`, `src/api/client.test.ts`
 
 **Scope:** S
 
-### Task 2: Edit, review, move and bring back
+### Task 2: `setWeeklyTarget` and `addMilestone`
 
-**Description:** `updateAspiration`, `reviewAspiration`, `moveAspiration` and `bringBackAspiration`, with #1's rules.
+**Description:** `setWeeklyTarget(goalId, amount, unit)` adds a row effective this Monday, or updates that row if it already exists. `addMilestone(goalId, { measurableLine, targetDate? })` appends an upcoming milestone after the goal's last one.
 
 **Acceptance criteria:**
-- [x] `updateAspiration` changes name and why; an empty or blank name rejects. `reviewAspiration` sets `lastReviewedAt` to today.
-- [x] `moveAspiration` swaps priority with the one above or below and returns the active ones in order; moving the first up, the last down, or a retired one rejects.
-- [x] `bringBackAspiration` makes it active, clears `retiredAt`, and gives it priority `activeCount + 1`; its paused goals stay paused. Bringing back an active one rejects.
+- [ ] A target changed twice this week leaves one row for this week and keeps the October row; `getWeek` shows the new amount. An amount below 1, a blank unit, or a goal that isn't building rejects.
+- [ ] A new milestone is last and upcoming; a blank line, an unknown goal, or a reached or ended goal rejects.
 
 **Verification:**
-- [x] `npm test`: `client.test.ts`, one block per function
+- [ ] `npm test`: `client.test.ts`, one block per function
 
 **Dependencies:** Task 1
 
@@ -42,192 +60,191 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Scope:** S
 
-### Task 3: `retireAspiration`
+### Task 3: `domain/goalDetail.ts`: the page
 
-**Description:** `retireAspiration(id, 'pause' | 'keep')`. Pause: active goals → paused, recurring items → inactive, their not-done tasks this week → `skipped` (day kept). Keep: active and paused goals and recurring items lose `aspirationId`. Both: status retired, `retiredAt` now, priority cleared and the ones below moved up; reached and ended goals keep their aspiration. `getDay` leaves out skipped tasks.
+**Description:** `goalPage(detail, today)` returns `current | reached | ended` with: header (type label, "Paused", aspiration link), started/latest lines, timeline rows (Start, milestones, Goal) with status, `weekLabel` and Next, the "1 of 6 hit" count, the target section (by type), and next check-in. Also `pushedDates(milestones, movedId, newDate, deadline?)` for PR 2, since it's pure and belongs here.
 
 **Acceptance criteria:**
-- [x] Pause on Be fit: its goals paused, Stretch and Hockey inactive, this week's planned and bank tasks for them skipped, done tasks untouched, hand-placed ones included.
-- [x] After that, `getDay`, `getBank`, `getWeek` (day lines and progress rows) and `getUpkeep` show none of them, and Be fit's paused goals aren't in Week's progress.
-- [x] Keep on Be fit: goals and items have no aspiration and are otherwise unchanged; Run a 5k stays with Be fit. Either way Be fit has no priority and Keep a calm home becomes 1. Retiring a retired one or an unknown id rejects.
+- [ ] Next is the first milestone that isn't hit, so Be strong's not-yet milestone 2 is Next. With all hit, or none, the Goal row is Next and "0 of 1 hit" for no milestones. One-off goals say "Steps" and every not-done step is checkable.
+- [ ] Week labels count the start week as Wk 1; "No date"; Latest is the last hit or not-yet result with its date, and is left out when there's none; no baseline leaves the section out; target section: amount and unit, "No weekly target yet", "Deadline: …" for one-off, "Since Oct 5" for quitting.
+- [ ] `pushedDates`: later dated milestones move by the same days, capped at the deadline; earlier and undated ones don't move; moving earlier pulls nothing in; one-off goals move only the step itself.
 
 **Verification:**
-- [x] `npm test`: `client.test.ts`; `domain/week.test.ts` if the progress check needs a domain case
+- [ ] `npm test`: new `domain/goalDetail.test.ts`; existing domain tests still pass
 
-**Dependencies:** Task 2
+**Dependencies:** Task 1
 
-**Files:** `src/api/client.ts`, `src/api/client.test.ts`
+**Files:** `src/domain/goalDetail.ts`, `src/domain/goalDetail.test.ts`
 
 **Scope:** M
+
+### Task 4: `condenseTimeline` and the Show all preference
+
+**Description:** `condenseTimeline(rows)` keeps the latest hit milestone, every not-yet one, Next and the Goal row, and folds the runs between them into labelled fold rows. `storage/timelinePreference.ts` remembers expanded goal IDs.
+
+**Acceptance criteria:**
+- [ ] Four milestones or fewer: no folding, no toggle. Be strong condenses to Start, milestone 1 (latest hit), milestone 2 (not yet, Next), "3 more: Wk 9, No date, No date", Goal. A run of one row shows the row itself rather than a fold.
+- [ ] A not-yet milestone is never folded; all hit and none hit both give sensible rows.
+- [ ] The preference round-trips per goal and falls back to collapsed when storage throws or holds junk.
+
+**Verification:**
+- [ ] `npm test`: `goalDetail.test.ts` (a `condenseTimeline` block), new `storage/timelinePreference.test.ts`
+
+**Dependencies:** Task 3
+
+**Files:** `src/domain/goalDetail.ts`, `src/domain/goalDetail.test.ts`, `src/storage/timelinePreference.ts`, `src/storage/timelinePreference.test.ts`
+
+**Scope:** S
 
 ## Checkpoint A
-- [x] Tests, lint and build pass
-- [x] Today, Week, the tab and Keep life running behave as before
+- [ ] Tests, lint and build pass
+- [ ] Today, Week, the tab and the aspiration page behave as before
 
-## Phase 2: The page, shown
+## Phase 2: The screen
 
-### Task 4: `domain/aspiration.ts`
+### Task 5: `useGoal` and the screen, shown
 
-**Description:** `aspirationPage(detail, today)` returns the active or retired view: header, this week (count, "6 days left", bar values), goal cards (active then paused, each with progress label, measurable line, milestone bar values and week line), recurring rows, past goals, priority line and which moves apply, history line. Widen `goalProgress` and `weekCount` to `Pick<…>`; export `daysLeft` from `domain/week.ts`.
+**Description:** `useGoal(goalId, today)` loads, reports `notFound`, and returns the page and the Show all state. `GoalDetail.tsx` replaces the placeholder: pinned header with back named for where it came from, type, aspiration link; Started at / Latest; the timeline condensed or expanded (fold rows and Show all / Show less toggle); target; next check-in. Buttons that open PR 2's sheets aren't there yet. `App.tsx` passes `onOpenAspiration`, and a missing goal goes back to Aspirations.
 
 **Acceptance criteria:**
-- [x] Goal cards: "This week: 1 of 3 lifting sessions", "No weekly target yet" for a building goal without one, no week line for one-off or quitting, "Paused" for paused; This week left out when no goal has a target.
-- [x] `priorityLine` for 1st, 2nd, 3rd and "1st of 1 aspiration"; move up off for the first, down off for the last, both off when alone.
-- [x] History line leaves out zeros and adds the year only when it isn't this year; the retired view has "Retired Nov 10", past goals, paused goals and recurring items marked "Paused", and nothing else.
+- [ ] Be strong renders its header, "‹ Be fit" or "‹ Aspirations" by origin, "Be fit ›" opens the aspiration, and the timeline opens condensed.
+- [ ] A fold row and Show all expand it; Show less collapses it; reopening the goal restores the choice.
+- [ ] A remembered goal that doesn't exist lands on Aspirations; no dialog is open on first render.
 
 **Verification:**
-- [x] `npm test`: new `domain/aspiration.test.ts`; `aspirations.test.ts` and `week.test.ts` still pass
+- [ ] `npm test`: new `hooks/useGoal.test.tsx` (load, not found), new `screens/GoalDetail.test.tsx`, `App.test.tsx`
+- [ ] Manual: `npm run dev`, open Be strong and the garage goal at 390 px
 
-**Dependencies:** Task 1
+**Dependencies:** Tasks 2, 4
 
-**Files:** `src/domain/aspiration.ts`, `src/domain/aspiration.test.ts`, `src/domain/aspirations.ts`, `src/domain/week.ts`
+**Files:** `src/hooks/useGoal.ts`, `src/hooks/useGoal.test.tsx`, `src/screens/GoalDetail.tsx`, `src/screens/GoalDetail.css`, `src/screens/GoalDetail.test.tsx`, `src/App.tsx`, `src/App.test.tsx`
+
+**Scope:** M (at the top end; split the CSS into a follow-up commit if needed)
+
+### Task 6: Target sheet and Add milestone
+
+**Description:** **Edit** or **Set** opens `TargetSheet` (amount, a whole number of at least 1, and a unit). **+ Add milestone** or **+ Add step** opens `AddMilestoneSheet` (a line and an optional `<input type="date">`, max the deadline). Both save optimistically through `useGoal`; on failure the hook reloads and shows "Couldn't save that. Try again."
+
+**Acceptance criteria:**
+- [ ] Changing Be strong's target to 4 shows at once, and Week reads "of 4".
+- [ ] A new milestone appears last on the timeline (expanding a condensed one isn't required) and the count becomes "1 of 7 hit".
+- [ ] A failed save reloads the goal and shows the message each time (hook test with a rejecting client).
+
+**Verification:**
+- [ ] `npm test`: `GoalDetail.test.tsx`, `useGoal.test.tsx`
+
+**Dependencies:** Task 5
+
+**Files:** `src/components/TargetSheet.tsx`, `src/components/AddMilestoneSheet.tsx` (+ `.css`), `src/hooks/useGoal.ts`, `src/hooks/useGoal.test.tsx`, `src/screens/GoalDetail.tsx`, `src/screens/GoalDetail.test.tsx`
 
 **Scope:** M
 
-### Task 5: `useAspiration` and the page, show-only
+## Checkpoint B (PR 1)
+- [ ] Tests, lint and build pass
+- [ ] On the phone, 375 and 390 px, light and dark: Be strong condensed has the target and Next check-in visible without scrolling; long lines wrap; sheets clear the keyboard and the home indicator
+- [ ] Parent-repo docs: Flow 6's timeline, the condensed view and target editing as built (own branch and PR)
+- [ ] Spec status updated; PR 1 opened referencing #5 (not closing it); review with Jan before PR 2
 
-**Description:** The hook loads the detail and returns the view, a message, and `notFound`. `screens/Aspiration.tsx` replaces the placeholder: pinned header ("‹ Aspirations", "Aspiration"), name and why, This week, goal cards as buttons, Recurring, Past goals in `<details>`, Priority (buttons present, not wired), the three actions (not wired). App passes `onOpenGoal` with `from: { screen: 'aspiration', aspirationId }`. Not found calls `onBack`.
+# PR 2: `goal-detail-actions`
 
-**Acceptance criteria:**
-- [x] Be fit renders as in `aspirations.png`; a goal card opens that goal, and back returns to Be fit.
-- [x] Past goals is closed at first and opens to "Run a 5k · Reached".
-- [x] A remembered aspiration id that doesn't exist lands on Aspirations (App test).
+## Phase 3: API
 
-**Verification:**
-- [x] `npm test`: new `hooks/useAspiration.test.tsx` (loads, not found), new `screens/Aspiration.test.tsx`, `App.test.tsx`
-- [x] Manual: 375 px, light and dark, a long why
+### Task 7: `checkInMilestone` and `reopenMilestone`
 
-**Dependencies:** Task 4
-
-**Files:** `src/hooks/useAspiration.ts`, `src/hooks/useAspiration.test.tsx`, `src/screens/Aspiration.tsx`, `src/screens/Aspiration.css`, `src/screens/Aspiration.test.tsx`, `src/App.tsx`, `src/App.test.tsx`
-
-**Scope:** M (L on file count, but most are new and small)
-
-## Checkpoint B
-- [x] Tests, lint and build pass
-- [x] On the phone: open each aspiration from the tab, open a goal and come back, reload on the page
-
-## Phase 3: Managing
-
-### Task 6: Move up and move down
-
-**Description:** The Priority buttons call the hook's `move`, which updates `position` at once and rolls back with "Couldn't save that. Try again." on failure.
+**Description:** `checkInMilestone(id, 'hit' | 'notYet', result?)` sets status, result and `checkedInOn`. For building and quitting goals only the first milestone that isn't hit can be checked in; for one-off, any step that isn't done. `reopenMilestone(id, changes?)` returns a not-yet milestone to upcoming, applies a new line or date, pushes later ones out with `pushedDates`, and returns the goal's milestones.
 
 **Acceptance criteria:**
-- [x] Move Be fit down: "2nd of 2 aspirations", down disabled, up enabled; move up restores it.
-- [x] A failed move rolls back and shows the message (hook test, mocked client).
-- [x] After moving, the tab's cards are in the new order (App test).
+- [ ] Hit on Be strong milestone 2 makes milestone 3 Next; checking in milestone 4 before 3 rejects for Be strong but works for the garage's step 5.
+- [ ] Moving milestone 2 three weeks later moves milestone 3 by three weeks and leaves 4 and 5 undated; with a deadline, nothing passes it.
+- [ ] Rejects a hit milestone, an unknown id, a blank line, reopening one that isn't not-yet, and anything on a reached or ended goal.
 
 **Verification:**
-- [x] `npm test`: `useAspiration.test.tsx`, `Aspiration.test.tsx`, `App.test.tsx`
-- [x] Manual: Week's progress rows and Today's By goal view follow
+- [ ] `npm test`: `client.test.ts`
 
-**Dependencies:** Tasks 2, 5
+**Dependencies:** Checkpoint B
 
-**Files:** `src/hooks/useAspiration.ts`, `src/hooks/useAspiration.test.tsx`, `src/screens/Aspiration.tsx`, `src/screens/Aspiration.test.tsx`, `src/App.test.tsx`
+**Files:** `src/api/client.ts`, `src/api/client.test.ts`
 
 **Scope:** S
 
-### Task 7: Edit name and why
+### Task 8: `pauseGoal`, `resumeGoal`, `endGoal`, and Other goals
 
-**Description:** `AspirationEditSheet`: name (required) and why (optional, placeholder "What would this give you?"). Save is disabled while the name is blank; saving updates the page at once, rolling back on failure.
-
-**Acceptance criteria:**
-- [x] Opens only from "Edit name and why", pre-filled; no dialog open on first render.
-- [x] Saving changes the header; clearing the why removes it.
-- [x] Cancel and Escape change nothing.
-
-**Verification:**
-- [x] `npm test`: `Aspiration.test.tsx`
-
-**Dependencies:** Tasks 2, 5
-
-**Files:** `src/components/AspirationEditSheet.tsx`, `src/components/AspirationEditSheet.css`, `src/hooks/useAspiration.ts`, `src/screens/Aspiration.tsx`, `src/screens/Aspiration.test.tsx`
-
-**Scope:** S
-
-### Task 8: Retire
-
-**Description:** `RetireSheet`, titled "Retire Be fit?": the history line, "What should happen to its goals and recurring items?", Pause them (selected) and Keep them going with their lines, the note, "Retire Be fit" and Cancel. Retiring waits for the save, then App goes to Aspirations.
+**Description:** Pause: active → paused, its waiting tasks this week → skipped (day kept). Resume: from paused, those skipped tasks → bank; from ended, clears `endedAt`. End: `reached` or `ended`, sets `endedAt`, tasks untouched. `otherGoals` takes in current goals whose aspiration is retired; the retired aspiration's page shows such a goal as active.
 
 **Acceptance criteria:**
-- [x] The sheet leads with "Since October: 1 goal reached, 3 goals active, 2 recurring items." and Pause them is selected.
-- [x] Each choice does what it says; afterwards the tab shows Be fit under Retired, and with Keep them going its goals under Other goals (App tests).
-- [x] A failed retire stays on the page with the message.
+- [ ] Pause Be strong: its tasks leave `getDay`, `getBank` and Week's progress; done ones stay. Resume: they're in `getBank` with no day, and other goals' skipped tasks are untouched.
+- [ ] End as reached and as ended set status and `endedAt` and move no tasks; Go again on an ended goal makes it active. Pausing a paused, reached or ended goal rejects, as does resuming an active one.
+- [ ] After retiring Be fit with "Pause them" and resuming Be strong: it's under Other goals on the tab, active on Be fit's retired page, and Today and Week still render it.
 
 **Verification:**
-- [x] `npm test`: `Aspiration.test.tsx`, `App.test.tsx`
-- [x] Manual: fits without scrolling at 375 px
+- [ ] `npm test`: `client.test.ts`, `domain/aspirations.test.ts`, `domain/aspiration.test.ts`, `domain/today.test.ts` if sorting needs a case
 
-**Dependencies:** Tasks 3, 5
+**Dependencies:** Task 7
 
-**Files:** `src/components/RetireSheet.tsx`, `src/components/RetireSheet.css`, `src/hooks/useAspiration.ts`, `src/screens/Aspiration.tsx`, `src/App.tsx`, tests
+**Files:** `src/api/client.ts`, `src/api/client.test.ts`, `src/domain/aspirations.ts`, `src/domain/aspirations.test.ts`, `src/domain/aspiration.ts`, `src/domain/aspiration.test.ts`
 
 **Scope:** M
-
-### Task 9: Review (built, then dropped)
-
-**Dropped after Checkpoint C review:** its choices repeated Edit, the Priority arrows and Retire, and nothing showed the last-reviewed date. The sheet, `reviewAspiration` and `lastReviewedAt` on aspirations were removed.
-
-**Description:** `ReviewSheet`: the name, "Still the right aspiration?", "Still in the right place?" with "1st of 2", and Keep as is, Edit name and why, Move it, Retire. Each records the review, then: closes; opens Edit; closes and focuses the Priority heading; opens Retire.
-
-**Acceptance criteria:**
-- [x] Each choice sets `lastReviewedAt` to today and leads where described.
-- [x] Nothing opens it but the Review button: no prompt, badge or reminder anywhere.
-
-**Verification:**
-- [x] `npm test`: `Aspiration.test.tsx`, plus a hook check that review is optimistic
-
-**Dependencies:** Tasks 6, 7, 8
-
-**Files:** `src/components/ReviewSheet.tsx`, `src/hooks/useAspiration.ts`, `src/screens/Aspiration.tsx`, `src/screens/Aspiration.test.tsx`
-
-**Scope:** S
-
-### Task 10: A retired aspiration's page and Bring back
-
-**Description:** The retired view renders: name, why, "Retired Nov 10", past goals, goals and recurring items paused by retiring (goals open), and one action, Bring back. Bring back waits for the save, then shows the active page, last in priority.
-
-**Acceptance criteria:**
-- [x] Speak Spanish shows only what the spec lists; no This week, Priority, Edit, Review or Retire.
-- [x] Retire Be fit with Pause them, open it from Retired, bring it back: "2nd of 2 aspirations", its goals still Paused.
-- [x] A failed bring back stays on the retired page with the message.
-
-**Verification:**
-- [x] `npm test`: `Aspiration.test.tsx`, `App.test.tsx`
-
-**Dependencies:** Tasks 2, 8
-
-**Files:** `src/hooks/useAspiration.ts`, `src/screens/Aspiration.tsx`, `src/screens/Aspiration.css`, tests
-
-**Scope:** S
 
 ## Checkpoint C
-- [x] Every success criterion in the spec and every acceptance criterion on #13 is met
-- [x] Tests, lint and build pass
-- [x] On the phone, 375 and 390 px, light and dark: every sheet, reorder then Week and Today, retire both ways, bring back, reload on the page
+- [ ] Tests, lint and build pass
+- [ ] Today, Week, the tab, the aspiration page and Keep life running behave as before with the mock unchanged
 
-## Phase 4: Docs
+## Phase 4: The screen
+
+### Task 9: Check in and the not-yet card
+
+**Description:** **Check in** (or tapping any not-done step of a one-off goal) opens `CheckInSheet`: the milestone's line, "How did it go?", an optional result, **Hit it** / **Not yet** (**Done** / **Not yet** for steps). Hit shows "Milestone hit: …" and Next moves on. The Goal row's Hit it marks the goal reached; its Not yet changes nothing. While Next is not yet, the card shows under Next check-in, leading with "You started at … Now: …", with **Keep the date**, **Move the date** and **Adjust the milestone**, each returning it to upcoming.
+
+**Acceptance criteria:**
+- [ ] Opening Be strong shows the not-yet card for milestone 2 (from the mock), leading with the baseline and its result; each of the three choices clears it, and Move the date pushes milestone 3 out.
+- [ ] Hit it on milestone 2 makes milestone 3 Next; with every milestone hit, Hit it on the goal shows it reached. A garage step out of order can be marked Done.
+- [ ] No "missed", "failed", "behind" or "overdue" anywhere (a test scans the rendered text).
+
+**Verification:**
+- [ ] `npm test`: `GoalDetail.test.tsx`, `useGoal.test.tsx`
+
+**Dependencies:** Checkpoint C
+
+**Files:** `src/components/CheckInSheet.tsx`, `src/components/NotYetCard.tsx` (+ `.css`), `src/hooks/useGoal.ts`, `src/screens/GoalDetail.tsx`, `src/screens/GoalDetail.test.tsx`
+
+**Scope:** M
+
+### Task 10: Pause, Resume, End and Go again
+
+**Description:** Actions row **Pause · End goal** (Pause reads Resume when paused). `EndGoalSheet` leads with Started at / Latest and "2 of 6 milestones hit", then **I reached it**, **End it for now**, **Cancel**. Reached reads "Reached Nov 10" and "What's next for Be fit?"; ended reads "Not yet." with the same lines and **Go again**. These wait for the save, then reload.
+
+**Acceptance criteria:**
+- [ ] Pause then Resume: tasks leave Week, then return to the bank; the tab reads "Paused" in between.
+- [ ] End as reached and as ended show their states, with no Pause, Check in or Add milestone; Go again makes the goal active.
+- [ ] A failed save leaves the page as it was with the message.
+
+**Verification:**
+- [ ] `npm test`: `GoalDetail.test.tsx`, `App.test.tsx` (the tab reflects Pause)
+
+**Dependencies:** Task 9
+
+**Files:** `src/components/EndGoalSheet.tsx` (+ `.css`), `src/hooks/useGoal.ts`, `src/screens/GoalDetail.tsx`, `src/screens/GoalDetail.test.tsx`, `src/App.test.tsx`
+
+**Scope:** M
 
 ### Task 11: Docs
 
-**Description:** Record what was built and anything the build settled.
+**Description:** Parent repo (own branch and PR): Flow 6 (check-in, not yet stays next, push-out capped at the deadline, steps in any order), Flow 7 (Pause / Resume / End, Go again, no goal Review), `data-model.md` if it mentions goal review, and the screen inventory. Front end: spec 005 marked built, `specs/README.md` moves 005 to Done.
 
 **Acceptance criteria:**
-- [x] `specs/013-aspiration-page.md` is marked approved, with priority for active ones only, the history line's year and the open question moved to #5.
-- [x] `specs/README.md` moves 013 to Done (after Jan's review), and spec 005 notes the resume question.
-- [x] `../docs/data-model.md` says priority is for active aspirations only; it and `../docs/flows.md` say set-aside tasks include ones placed by hand and keep their day. Own branch and PR in the parent repo.
-- [x] Review is dropped from the aspiration: spec 013, `../docs/flows.md` (Flow 1, Flow 7's light reviews), `../docs/product-rules.md` ("No review prompts") and `../docs/data-model.md` (no "last reviewed" on aspirations). Note on #5 that Goal detail's Review raises the same question.
+- [ ] No doc still describes goal Review, or a not-yet milestone being passed over.
+- [ ] Every rule in plan decisions 5–9 appears in `docs/`.
 
 **Verification:**
-- [x] Read-through against the build
+- [ ] `npm test && npm run lint && npm run build`; read-through of the parent diff
 
 **Dependencies:** Task 10
 
-**Files:** `specs/013-aspiration-page.md`, `specs/005-goal-detail.md`, `specs/README.md`, possibly `../docs/flows.md`, `../docs/data-model.md`
+**Files:** `../docs/flows.md`, `../docs/data-model.md`, `../docs/screens/README.md`, `specs/005-goal-detail.md`, `specs/README.md`
 
 **Scope:** S
 
-## Checkpoint D
-- [x] Web-frontend PR open from `aspiration-page`, referencing #13
-- [x] Parent-repo docs PR, if any
+## Checkpoint D (PR 2)
+- [ ] Tests, lint and build pass
+- [ ] On the phone, 375 and 390 px, light and dark: check-in sheet, not-yet card with a date picker, End sheet; nothing opens unprompted
+- [ ] PR 2 opened, closing #5; the parent-repo docs PR linked
