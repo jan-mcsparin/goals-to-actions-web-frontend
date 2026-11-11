@@ -9,9 +9,11 @@ import {
   getGoal,
   getUpkeep,
   getWeek,
+  pullFromBank,
   updateAspiration,
 } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
+import type { WeekPlan } from '../api/types.ts'
 import { DataRevision, useDataRevision, useRevisionCounter } from './dataRevision.ts'
 import { useAspiration } from './useAspiration.ts'
 import { useAspirations } from './useAspirations.ts'
@@ -30,6 +32,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     getAspiration: vi.fn(actual.getAspiration),
     getUpkeep: vi.fn(actual.getUpkeep),
     getGoal: vi.fn(actual.getGoal),
+    pullFromBank: vi.fn(actual.pullFromBank),
   }
 })
 
@@ -121,5 +124,23 @@ describe.each([
     act(() => hook.bump())
 
     await waitFor(() => expect(hook.result.current.message).toBeUndefined())
+  })
+})
+
+describe('useWeek after a failed save', () => {
+  it('keeps the save message through a reload, since the reload does not redo the save', async () => {
+    const hook = renderWithRevision(() => useWeek(TODAY))
+    await waitFor(() => expect(hook.result.current.week).toBeDefined())
+    vi.mocked(pullFromBank).mockRejectedValueOnce(new Error('offline'))
+    await act(async () => hook.result.current.place(hook.result.current.week!.bank[0].id, TODAY))
+    expect(hook.result.current.message).toBe("Couldn't save that. Try again.")
+    const reloaded = await getWeek()
+    let finishReload!: (plan: WeekPlan) => void
+    vi.mocked(getWeek).mockReturnValueOnce(new Promise((resolve) => (finishReload = resolve)))
+
+    act(() => hook.bump())
+    await act(async () => finishReload(reloaded))
+
+    expect(hook.result.current.message).toBe("Couldn't save that. Try again.")
   })
 })
