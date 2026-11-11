@@ -790,14 +790,23 @@ describe('pauseGoal and resumeGoal', () => {
     expect(ids((await getBank()).tasks)).toContain('task-lift-bank')
   })
 
-  it('rejects pausing a goal that isn’t active, resuming an active or reached one, and unknown ids', async () => {
+  it('rejects pausing a goal that isn’t active, resuming an active one, and unknown ids', async () => {
     await expect(pauseGoal('goal-cook')).rejects.toThrow()
     await expect(pauseGoal('goal-5k')).rejects.toThrow()
     await expect(resumeGoal('goal-strong')).rejects.toThrow()
-    await expect(resumeGoal('goal-5k')).rejects.toThrow()
     await expect(pauseGoal('goal-nope')).rejects.toThrow(NotFoundError)
     await expect(resumeGoal('goal-nope')).rejects.toThrow(NotFoundError)
     expect(goalById('goal-5k').status).toBe('reached')
+  })
+
+  it('reopens a reached goal: active again, no end date, its milestones as they were', async () => {
+    await endGoal('goal-strong', 'reached')
+
+    const reopened = await resumeGoal('goal-strong')
+
+    expect(reopened.status).toBe('active')
+    expect(reopened).not.toHaveProperty('endedAt')
+    expect(store.milestones.find((milestone) => milestone.id === 'ms-strong-2')?.status).toBe('notYet')
   })
 })
 

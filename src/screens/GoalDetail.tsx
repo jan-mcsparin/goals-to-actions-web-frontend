@@ -190,12 +190,17 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
   )
 }
 
+// Both outcomes can be undone: Go again after ending for now, and Reopen
+// after reaching a goal by mistake. Each makes it active as it was.
 function Outcome({ page, onGoAgain }: { page: GoalPage; onGoAgain: () => void }) {
   if (page.kind === 'reached') {
     return (
       <div className="goal-outcome">
         <p className="goal-outcome-line">{page.reachedLine}</p>
         {page.whatsNext && <p className="goal-note">{page.whatsNext}</p>}
+        <button type="button" className="goal-action goal-action-quiet" onClick={onGoAgain}>
+          Reopen
+        </button>
       </div>
     )
   }
@@ -281,7 +286,10 @@ function TimelineItem({ row, onExpand, onCheckIn }: TimelineItemProps) {
     )
   }
 
-  const classes = ['timeline-row', `is-${row.kind}`, `is-${row.status}`, row.next && 'is-next'].filter(Boolean).join(' ')
+  const passed = row.kind === 'milestone' && row.passed
+  const classes = ['timeline-row', `is-${row.kind}`, `is-${row.status}`, row.next && 'is-next', passed && 'is-passed']
+    .filter(Boolean)
+    .join(' ')
   const content = (
     <>
       <span className="timeline-top">

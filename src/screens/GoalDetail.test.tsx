@@ -438,6 +438,20 @@ describe('GoalDetail, pause and end', () => {
     for (const name of ['Pause', 'End goal', 'Check in', '+ Add milestone']) {
       expect(screen.queryByRole('button', { name })).toBeNull()
     }
+    expect(within(screen.getByRole('region', { name: 'Milestones' })).getByText('6 of 6 hit')).toBeDefined()
+  })
+
+  it('reopens a goal reached by mistake, as it was', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    await user.click(await screen.findByRole('button', { name: 'End goal' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'End goal' })).getByRole('button', { name: 'I reached it' }))
+    await user.click(await screen.findByRole('button', { name: 'Reopen' }))
+
+    expect(await screen.findByRole('button', { name: 'Check in' })).toBeDefined()
+    expect(screen.getByRole('region', { name: 'Not yet' })).toBeDefined()
+    expect(within(screen.getByRole('region', { name: 'Milestones' })).getByText('1 of 6 hit')).toBeDefined()
   })
 
   it('ends for now, reading Not yet with what was achieved, and goes again', async () => {

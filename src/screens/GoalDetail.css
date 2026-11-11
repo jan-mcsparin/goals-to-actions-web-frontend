@@ -314,3 +314,15 @@
   flex-wrap: wrap;
   gap: 0 1.5rem;
 }
+
+/* Passed on the way to a reached goal: filled, but softer than a hit. */
+.timeline-row.is-passed::before {
+  border-color: var(--muted);
+  background: var(--muted);
+}
+
+/* Reopen sits quietly under a reached goal. */
+.goal-action-quiet {
+  color: var(--muted);
+  font-size: 0.875rem;
+}

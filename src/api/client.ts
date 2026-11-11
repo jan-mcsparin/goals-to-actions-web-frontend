@@ -191,8 +191,9 @@ export async function pauseGoal(goalId: string): Promise<Goal> {
 }
 
 // Active again. From paused, its set-aside tasks this week go back to the
-// bank; from ended (Go again), the end date goes. Allowed under a retired
-// aspiration: the goal keeps it.
+// bank; from ended (Go again) or reached (Reopen, after reaching it by
+// mistake), the end date goes. Allowed under a retired aspiration: the goal
+// keeps it.
 export async function resumeGoal(goalId: string): Promise<Goal> {
   const goal = findGoal(goalId)
   if (goal.status === 'paused') {
@@ -200,7 +201,7 @@ export async function resumeGoal(goalId: string): Promise<Goal> {
     for (const task of store.tasks) {
       if (task.goalId === goalId && task.weekOf === weekOf && task.status === 'skipped') moveToBank(task)
     }
-  } else if (goal.status === 'ended') {
+  } else if (goal.status === 'ended' || goal.status === 'reached') {
     delete goal.endedAt
   } else {
     throw new Error(`${goalId} is ${goal.status}`)

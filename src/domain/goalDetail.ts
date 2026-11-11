@@ -34,7 +34,9 @@ export type MilestoneRow = {
   week: string // "Wk 9", for fold rows
   status: MilestoneStatus
   result?: string
-  statusLine?: string // "Hit · Bench 150, …", "Not yet", or none while upcoming
+  statusLine?: string // "Hit · Bench 150, …", "Not yet", "Passed on the way", or none while upcoming
+  // On a reached goal, a milestone never checked in: passed on the way.
+  passed: boolean
   next: boolean
   checkable: boolean
 }
@@ -420,6 +422,8 @@ function timeline(detail: GoalDetail): Timeline {
   const start: StartRow = { kind: 'start', when: shortDate(goal.startDate), ...(goal.baseline && { baseline: goal.baseline }) }
   const rows = milestones.map((milestone): MilestoneRow => {
     const isNext = milestone === next
+    const passed = goal.status === 'reached' && milestone.status !== 'hit'
+    const status = rowStatusLine(milestone, passed)
     const week = weekOnly(goal.startDate, milestone.targetDate)
     return {
       kind: 'milestone',
@@ -429,7 +433,8 @@ function timeline(detail: GoalDetail): Timeline {
       week,
       status: milestone.status,
       ...(milestone.result && { result: milestone.result }),
-      ...(milestone.status !== 'upcoming' && { statusLine: statusLine(milestone) }),
+      ...(status && { statusLine: status }),
+      passed,
       next: isNext,
       checkable: current && (oneOff ? milestone.status !== 'hit' : isNext),
     }
@@ -450,6 +455,12 @@ function timeline(detail: GoalDetail): Timeline {
     count: `${reached} of ${total} ${oneOff ? 'done' : 'hit'}`,
     rows: [start, ...rows, end],
   }
+}
+
+// What a milestone row says under its line, if anything.
+function rowStatusLine(milestone: Milestone, passed: boolean): string | undefined {
+  if (passed) return 'Passed on the way'
+  return milestone.status === 'upcoming' ? undefined : statusLine(milestone)
 }
 
 // "Hit · Bench 150, squat 290", "Not yet · Bench 152", or the word alone.

@@ -69,7 +69,7 @@ export type UseGoal = {
   reopen: (milestoneId: string, changes: ReopenChanges) => void
   // These change the goal's status and its tasks, so they wait for the save.
   pause: () => Promise<void>
-  // From paused, or from ended (Go again).
+  // From paused, from ended (Go again), or from reached (Reopen).
   resume: () => Promise<void>
   end: (outcome: 'reached' | 'ended') => Promise<void>
 }

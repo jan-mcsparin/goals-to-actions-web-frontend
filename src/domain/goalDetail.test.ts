@@ -231,11 +231,23 @@ describe('goalPage timeline', () => {
     }
   })
 
-  it('counts the goal itself once it is reached', () => {
+  it('counts a reached goal complete: milestones never checked in were passed on the way', () => {
     const page = goalPage(detail({ goal: goal({ status: 'reached', endedAt: '2026-11-10' }) }), TODAY)
 
-    expect(page.timeline.count).toBe('2 of 4 hit')
+    expect(page.timeline.count).toBe('4 of 4 hit')
     expect(page.timeline.rows.at(-1)).toMatchObject({ kind: 'goal', status: 'hit' })
+    expect(milestoneRows(page).map((row) => [row.status, row.statusLine, row.passed])).toEqual([
+      ['hit', 'Hit · Bench 150, squat 290, deadlift 330', false],
+      ['upcoming', 'Passed on the way', true],
+      ['upcoming', 'Passed on the way', true],
+    ])
+  })
+
+  it('passes nothing on a goal that is still going or ended for now', () => {
+    for (const status of ['active', 'ended'] as const) {
+      const page = goalPage(detail({ goal: goal({ status, endedAt: '2026-11-10' }) }), TODAY)
+      expect(milestoneRows(page).some((row) => row.passed)).toBe(false)
+    }
   })
 })
 

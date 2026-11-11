@@ -178,6 +178,12 @@ describe('goalProgress', () => {
     expect(goalProgress(goal('5k', { status: 'reached' }), overview)).toBe('Milestone 3 of 3')
   })
 
+  it('counts a reached goal complete, even with milestones never checked in', () => {
+    const overview = { milestones: milestones('5k', 'hit', 'upcoming', 'notYet') }
+
+    expect(goalProgress(goal('5k', { status: 'reached' }), overview)).toBe('Milestone 4 of 4')
+  })
+
   it("only counts the goal's own milestones", () => {
     const overview = { milestones: [...milestones('strong', 'hit'), ...milestones('endurance', 'hit', 'hit')] }
 
