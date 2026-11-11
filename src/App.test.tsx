@@ -164,18 +164,107 @@ it('restores an opened aspiration and an opened goal after a remount', async () 
   expect(currentTab()).toBe('Aspirations')
 })
 
-it('shows only the way back for an aspiration or goal that no longer exists', async () => {
+it('lands on Aspirations, quietly, for a remembered aspiration that no longer exists', async () => {
   localStorage.setItem('gta.screen', JSON.stringify({ screen: 'aspiration', aspirationId: 'asp-gone' }))
-  const user = userEvent.setup()
   render(<App />)
 
-  const back = await screen.findByRole('button', { name: 'Back to Aspirations' })
-  await screen.findByRole('main', { busy: false })
-  expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
+  expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
+  expect(JSON.parse(localStorage.getItem('gta.screen')!)).toEqual({ screen: 'aspirations' })
+})
 
-  await user.click(back)
+it('shows a new priority order on the tab after moving an aspiration', async () => {
+  const user = userEvent.setup()
+  render(<App />)
+  await user.click(await screen.findByRole('button', { name: 'Aspirations' }))
+  await user.click(await screen.findByRole('button', { name: 'Be fit' }))
+
+  await user.click(await screen.findByRole('button', { name: 'Move down' }))
+  await user.click(screen.getByRole('button', { name: 'Back to Aspirations' }))
+
+  await screen.findByRole('heading', { level: 1, name: 'Aspirations' })
+  const cards = await screen.findAllByRole('button', { name: /^(Be fit|Keep a calm home)$/ })
+  expect(cards).toEqual([
+    screen.getByRole('button', { name: 'Keep a calm home' }),
+    screen.getByRole('button', { name: 'Be fit' }),
+  ])
+})
+
+it('lands on the tab after retiring, with the aspiration under Retired', async () => {
+  const user = userEvent.setup()
+  render(<App />)
+  await user.click(await screen.findByRole('button', { name: 'Aspirations' }))
+  await user.click(await screen.findByRole('button', { name: 'Be fit' }))
+
+  await user.click(await screen.findByRole('button', { name: 'Retire' }))
+  await user.click(screen.getByRole('button', { name: 'Retire Be fit' }))
 
   expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
+  const retired = screen.getByText('Retired (2)').closest('details')!
+  expect(within(retired).getByRole('button', { name: 'Be fit' })).toBeDefined()
+  expect(screen.queryByRole('region', { name: 'Be fit' })).toBeNull()
+})
+
+it('shows what retiring paused, and brings it back last with its goals still paused', async () => {
+  const user = userEvent.setup()
+  render(<App />)
+  await user.click(await screen.findByRole('button', { name: 'Aspirations' }))
+  await user.click(await screen.findByRole('button', { name: 'Be fit' }))
+  await user.click(await screen.findByRole('button', { name: 'Retire' }))
+  await user.click(screen.getByRole('button', { name: 'Retire Be fit' }))
+
+  const retired = (await screen.findByText('Retired (2)')).closest('details')!
+  await user.click(within(retired).getByText('Retired (2)'))
+  await user.click(within(retired).getByRole('button', { name: 'Be fit' }))
+
+  const paused = await screen.findByRole('region', { name: 'Paused goals' })
+  expect(within(paused).getAllByRole('button')).toHaveLength(3)
+  const recurring = screen.getByRole('region', { name: 'Recurring' })
+  expect(within(recurring).getAllByRole('listitem').map((row) => row.textContent)).toEqual([
+    'StretchPaused',
+    'HockeyPaused',
+  ])
+
+  await user.click(screen.getByRole('button', { name: 'Bring back' }))
+
+  const priority = await screen.findByRole('region', { name: 'Priority' })
+  expect(within(priority).getByText('2nd of 2 aspirations')).toBeDefined()
+  const goals = screen.getByRole('region', { name: 'Goals' })
+  expect(within(goals).getByText('0 active')).toBeDefined()
+  expect(within(goals).getAllByText('Paused')).toHaveLength(3)
+})
+
+it('puts the goals under Other goals after retiring with Keep them going', async () => {
+  const user = userEvent.setup()
+  render(<App />)
+  await user.click(await screen.findByRole('button', { name: 'Aspirations' }))
+  await user.click(await screen.findByRole('button', { name: 'Be fit' }))
+
+  await user.click(await screen.findByRole('button', { name: 'Retire' }))
+  await user.click(screen.getByRole('radio', { name: /^Keep them going/ }))
+  await user.click(screen.getByRole('button', { name: 'Retire Be fit' }))
+
+  const other = await screen.findByRole('region', { name: 'Other goals' })
+  expect(within(other).getByRole('button', { name: /^Be strong/ })).toBeDefined()
+})
+
+it('opens a goal from an aspiration page and comes back to it', async () => {
+  const user = userEvent.setup()
+  render(<App />)
+  await user.click(await screen.findByRole('button', { name: 'Aspirations' }))
+  await user.click(await screen.findByRole('button', { name: 'Be fit' }))
+
+  await user.click(await screen.findByRole('button', { name: /^Have endurance/ }))
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Have endurance' })).toBeDefined()
+  expect(JSON.parse(localStorage.getItem('gta.screen')!)).toEqual({
+    screen: 'goal',
+    goalId: 'goal-endurance',
+    from: { screen: 'aspiration', aspirationId: 'asp-fit' },
+  })
+
+  await user.click(screen.getByRole('button', { name: 'Back to Be fit' }))
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Be fit' })).toBeDefined()
 })
 
 it('opens Keep life running from its row, comes back, and restores it after a remount', async () => {
@@ -199,7 +288,7 @@ it('opens Keep life running from its row, comes back, and restores it after a re
   expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
 })
 
-it('says only "Back" on a goal whose aspiration no longer exists, and still goes there', async () => {
+it('says only "Back" on a goal whose aspiration no longer exists, and lands on Aspirations', async () => {
   localStorage.setItem(
     'gta.screen',
     JSON.stringify({ screen: 'goal', goalId: 'goal-strong', from: { screen: 'aspiration', aspirationId: 'asp-gone' } }),
@@ -212,6 +301,6 @@ it('says only "Back" on a goal whose aspiration no longer exists, and still goes
 
   await user.click(screen.getByRole('button', { name: 'Back' }))
 
-  expect(JSON.parse(localStorage.getItem('gta.screen')!)).toEqual({ screen: 'aspiration', aspirationId: 'asp-gone' })
+  expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
   expect(currentTab()).toBe('Aspirations')
 })

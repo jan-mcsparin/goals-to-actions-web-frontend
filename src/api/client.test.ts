@@ -1,15 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  bringBackAspiration,
   checkOffTask,
+  getAspiration,
   getAspirations,
   getBank,
   getDay,
   getUpkeep,
   getWeek,
+  moveAspiration,
+  NotFoundError,
   pullFromBank,
+  retireAspiration,
   skipTask,
   swapTask,
   uncheckTask,
+  updateAspiration,
 } from './client.ts'
 import { resetStore, store } from './mockStore.ts'
 
@@ -413,6 +419,273 @@ describe('getAspirations', () => {
     const second = await getAspirations()
     expect(second.aspirations[0].name).toBe('Be fit')
     expect(second.goals[0].label).toBe('Be strong')
+  })
+})
+
+describe('getAspiration', () => {
+  it('returns the aspiration with its goals of every status and their milestones in order', async () => {
+    const detail = await getAspiration('asp-fit')
+
+    expect(detail.aspiration).toMatchObject({ id: 'asp-fit', name: 'Be fit', priority: 1 })
+    expect(ids(detail.goals)).toEqual(['goal-5k', 'goal-endurance', 'goal-look-good', 'goal-strong'])
+    expect(detail.milestones.filter((milestone) => milestone.goalId === 'goal-strong').map((milestone) => milestone.id)).toEqual([
+      'ms-strong-1',
+      'ms-strong-2',
+      'ms-strong-3',
+      'ms-strong-4',
+      'ms-strong-5',
+    ])
+    expect(detail.milestones.every((milestone) => ['goal-strong', 'goal-endurance', 'goal-look-good'].includes(milestone.goalId))).toBe(true)
+  })
+
+  it('returns its recurring items, active or not', async () => {
+    store.recurringItems.find((item) => item.id === 'rec-hockey')!.active = false
+
+    const { recurringItems } = await getAspiration('asp-fit')
+
+    expect(ids(recurringItems)).toEqual(['rec-hockey', 'rec-stretch'])
+  })
+
+  it("returns this week's targets and goal tasks for its goals only", async () => {
+    const { weeklyTargets, weekTasks } = await getAspiration('asp-fit')
+
+    expect(ids(weeklyTargets)).toEqual(['wt-endurance', 'wt-strong'])
+    expect(weekTasks.length).toBeGreaterThan(0)
+    expect(
+      weekTasks.every((task) => ['goal-strong', 'goal-endurance', 'goal-look-good', 'goal-5k'].includes(task.goalId!)),
+    ).toBe(true)
+    expect(weekTasks.every((task) => task.weekOf === '2026-11-09')).toBe(true)
+  })
+
+  it('counts the active aspirations', async () => {
+    const { activeCount } = await getAspiration('asp-home')
+
+    expect(activeCount).toBe(2)
+  })
+
+  it('returns a retired aspiration with its reached goal and no priority', async () => {
+    const detail = await getAspiration('asp-spanish')
+
+    expect(detail.aspiration.status).toBe('retired')
+    expect(detail.aspiration.priority).toBeUndefined()
+    expect(ids(detail.goals)).toEqual(['goal-spanish-a2'])
+  })
+
+  it('rejects an unknown id as not found', async () => {
+    await expect(getAspiration('asp-nope')).rejects.toThrow(NotFoundError)
+  })
+
+  it('returns copies, so changing them does not change the store', async () => {
+    const first = await getAspiration('asp-fit')
+    first.aspiration.name = 'changed'
+    first.goals[0].label = 'changed'
+
+    const second = await getAspiration('asp-fit')
+    expect(second.aspiration.name).toBe('Be fit')
+    expect(second.goals.map((goal) => goal.label)).not.toContain('changed')
+  })
+})
+
+describe('updateAspiration', () => {
+  it('changes the name and the why, trimmed', async () => {
+    const saved = await updateAspiration('asp-fit', { name: '  Be fit for life ', why: ' To keep skiing. ' })
+
+    expect(saved).toMatchObject({ name: 'Be fit for life', why: 'To keep skiing.' })
+    expect(store.aspirations.find((aspiration) => aspiration.id === 'asp-fit')?.name).toBe('Be fit for life')
+  })
+
+  it('removes the why when it is cleared, and leaves what is not given alone', async () => {
+    const saved = await updateAspiration('asp-fit', { why: '  ' })
+
+    expect(saved.why).toBeUndefined()
+    expect(saved.name).toBe('Be fit')
+  })
+
+  it('rejects an empty name and changes nothing', async () => {
+    await expect(updateAspiration('asp-fit', { name: '   ', why: 'New why' })).rejects.toThrow('An aspiration needs a name')
+    expect(store.aspirations.find((aspiration) => aspiration.id === 'asp-fit')?.why).toMatch(/^So I can keep skiing/)
+  })
+
+  it('rejects an unknown id', async () => {
+    await expect(updateAspiration('asp-nope', { name: 'X' })).rejects.toThrow('No aspiration with id asp-nope')
+  })
+})
+
+describe('moveAspiration', () => {
+  function addActive(id: string, priority: number) {
+    store.aspirations.push({ id, name: id, priority, status: 'active', createdAt: '2026-11-01T09:00:00Z' })
+  }
+
+  it('moves the first one down, and returns the active ones in order', async () => {
+    const order = await moveAspiration('asp-fit', 'down')
+
+    expect(order.map((aspiration) => [aspiration.id, aspiration.priority])).toEqual([
+      ['asp-home', 1],
+      ['asp-fit', 2],
+    ])
+  })
+
+  it('moves the last one up', async () => {
+    const order = await moveAspiration('asp-home', 'up')
+
+    expect(order.map((aspiration) => aspiration.id)).toEqual(['asp-home', 'asp-fit'])
+  })
+
+  it('moves one in the middle either way, touching only its neighbour', async () => {
+    addActive('asp-build', 3)
+
+    const up = await moveAspiration('asp-home', 'up')
+    expect(up.map((aspiration) => aspiration.id)).toEqual(['asp-home', 'asp-fit', 'asp-build'])
+
+    const down = await moveAspiration('asp-fit', 'down')
+    expect(down.map((aspiration) => [aspiration.id, aspiration.priority])).toEqual([
+      ['asp-home', 1],
+      ['asp-build', 2],
+      ['asp-fit', 3],
+    ])
+  })
+
+  it('rejects moving the first up or the last down', async () => {
+    await expect(moveAspiration('asp-fit', 'up')).rejects.toThrow('asp-fit is already first')
+    await expect(moveAspiration('asp-home', 'down')).rejects.toThrow('asp-home is already last')
+  })
+
+  it('rejects moving a retired aspiration or an unknown id', async () => {
+    await expect(moveAspiration('asp-spanish', 'up')).rejects.toThrow('asp-spanish is retired')
+    await expect(moveAspiration('asp-nope', 'up')).rejects.toThrow('No aspiration with id asp-nope')
+  })
+})
+
+describe('retireAspiration', () => {
+  const goalStatus = (id: string) => store.goals.find((goal) => goal.id === id)?.status
+  const taskStatus = (id: string) => store.tasks.find((task) => task.id === id)?.status
+
+  function addStretchOnThursday() {
+    store.tasks.push({
+      id: 'task-stretch-thu',
+      title: 'Stretch',
+      status: 'planned',
+      weekOf: '2026-11-09',
+      plannedDay: '2026-11-12',
+      recurringItemId: 'rec-stretch',
+      rolloverCount: 0,
+      placedByHand: true,
+    })
+  }
+
+  it('retires it with the time, takes away its priority and moves the ones below up', async () => {
+    const saved = await retireAspiration('asp-fit', 'pause')
+
+    expect(saved).toMatchObject({ status: 'retired', retiredAt: WEDNESDAY.toISOString() })
+    expect(saved.priority).toBeUndefined()
+    expect(store.aspirations.find((aspiration) => aspiration.id === 'asp-home')?.priority).toBe(1)
+  })
+
+  it('with pause, pauses its active goals and turns off its recurring items', async () => {
+    await retireAspiration('asp-fit', 'pause')
+
+    expect(['goal-strong', 'goal-endurance', 'goal-look-good'].map(goalStatus)).toEqual(['paused', 'paused', 'paused'])
+    expect(goalStatus('goal-5k')).toBe('reached')
+    expect(store.goals.filter((goal) => goal.aspirationId === 'asp-fit')).toHaveLength(4)
+    expect(store.recurringItems.filter((item) => item.aspirationId === 'asp-fit').map((item) => item.active)).toEqual([
+      false,
+      false,
+    ])
+  })
+
+  it("with pause, sets aside this week's not-done tasks, hand-placed ones too, keeping their day", async () => {
+    addStretchOnThursday()
+
+    await retireAspiration('asp-fit', 'pause')
+
+    expect(['task-lift-today', 'task-lift-bank', 'task-run-bank', 'task-stretch-thu'].map(taskStatus)).toEqual([
+      'skipped',
+      'skipped',
+      'skipped',
+      'skipped',
+    ])
+    expect(store.tasks.find((task) => task.id === 'task-stretch-thu')?.plannedDay).toBe('2026-11-12')
+    expect(['task-lift-mon', 'task-run-mon'].map(taskStatus)).toEqual(['done', 'done'])
+    expect(['task-laundry', 'task-donate-bikes'].map(taskStatus)).toEqual(['planned', 'planned'])
+  })
+
+  it("with pause, leaves its goals' tasks in other weeks alone", async () => {
+    store.tasks.push({
+      id: 'task-lift-next-week',
+      title: 'Lift: squat day',
+      status: 'inBank',
+      weekOf: '2026-11-16',
+      goalId: 'goal-strong',
+      rolloverCount: 0,
+    })
+
+    await retireAspiration('asp-fit', 'pause')
+
+    expect(taskStatus('task-lift-next-week')).toBe('inBank')
+  })
+
+  it('with pause, leaves its tasks off every day, the bank, Week and Keep life running', async () => {
+    addStretchOnThursday()
+
+    await retireAspiration('asp-fit', 'pause')
+
+    expect(ids((await getDay(WEDNESDAY_DAY)).tasks)).not.toContain('task-lift-today')
+    expect(ids((await getDay('2026-11-12')).tasks)).not.toContain('task-stretch-thu')
+    expect(ids((await getBank()).tasks)).toEqual(['task-dentist', 'task-garage-shelves'])
+    const week = await getWeek()
+    expect(week.weeklyTargets).toEqual([])
+    expect(week.tasks.filter((task) => task.status === 'planned' || task.status === 'inBank').map((task) => task.goalId)).not.toContain(
+      'goal-strong',
+    )
+    expect(ids((await getUpkeep()).tasks)).not.toContain('task-stretch-thu')
+  })
+
+  it('with keep, its goals and recurring items carry on with no aspiration', async () => {
+    store.goals.find((goal) => goal.id === 'goal-look-good')!.status = 'paused'
+
+    await retireAspiration('asp-fit', 'keep')
+
+    const kept = store.goals.filter((goal) => ['goal-strong', 'goal-endurance', 'goal-look-good'].includes(goal.id))
+    expect(kept.map((goal) => [goal.status, goal.aspirationId])).toEqual([
+      ['active', undefined],
+      ['active', undefined],
+      ['paused', undefined],
+    ])
+    expect(store.goals.find((goal) => goal.id === 'goal-5k')?.aspirationId).toBe('asp-fit')
+    const items = store.recurringItems.filter((item) => ['rec-stretch', 'rec-hockey'].includes(item.id))
+    expect(items.map((item) => [item.active, item.aspirationId])).toEqual([
+      [true, undefined],
+      [true, undefined],
+    ])
+    expect(taskStatus('task-lift-today')).toBe('planned')
+  })
+
+  it('rejects retiring a retired aspiration or an unknown id, changing nothing', async () => {
+    await expect(retireAspiration('asp-spanish', 'pause')).rejects.toThrow('asp-spanish is retired')
+    await expect(retireAspiration('asp-nope', 'pause')).rejects.toThrow('No aspiration with id asp-nope')
+    expect(store.aspirations.find((aspiration) => aspiration.id === 'asp-spanish')?.retiredAt).toBe('2026-09-15T09:00:00Z')
+  })
+})
+
+describe('bringBackAspiration', () => {
+  it('makes a retired aspiration active again, last in priority', async () => {
+    const saved = await bringBackAspiration('asp-spanish')
+
+    expect(saved).toMatchObject({ status: 'active', priority: 3 })
+    expect(saved.retiredAt).toBeUndefined()
+  })
+
+  it('leaves its paused goals paused', async () => {
+    store.goals.find((goal) => goal.id === 'goal-spanish-a2')!.status = 'paused'
+
+    await bringBackAspiration('asp-spanish')
+
+    expect(store.goals.find((goal) => goal.id === 'goal-spanish-a2')?.status).toBe('paused')
+  })
+
+  it('rejects an active aspiration or an unknown id', async () => {
+    await expect(bringBackAspiration('asp-fit')).rejects.toThrow('asp-fit is not retired')
+    await expect(bringBackAspiration('asp-nope')).rejects.toThrow('No aspiration with id asp-nope')
   })
 })
 

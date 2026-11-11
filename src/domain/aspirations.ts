@@ -57,7 +57,7 @@ export function aspirationsView(overview: AspirationsOverview): AspirationsView 
 export function aspirationCards(overview: AspirationsOverview): AspirationCard[] {
   return overview.aspirations
     .filter((aspiration) => aspiration.status === 'active')
-    .sort((a, b) => a.priority - b.priority)
+    .sort((a, b) => (a.priority ?? Infinity) - (b.priority ?? Infinity))
     .map((aspiration) => cardFor(aspiration, overview))
 }
 
@@ -69,17 +69,28 @@ export function progressLabel(type: GoalType, hit: number, total: number): strin
 // "Milestone 1 of 6", "Step 3 of 6 · by Dec 15", or "Paused".
 export function goalProgress(goal: Goal, overview: Pick<AspirationsOverview, 'milestones'>): string {
   if (goal.status === 'paused') return 'Paused'
+  const { reached, total } = milestoneCount(goal, overview)
+  const label = progressLabel(goal.type, reached, total)
+  return goal.type === 'oneOff' && goal.deadline ? `${label} · by ${shortDate(goal.deadline)}` : label
+}
+
+// Milestones hit, plus the goal itself (the last milestone) once reached.
+export function milestoneCount(
+  goal: Goal,
+  overview: Pick<AspirationsOverview, 'milestones'>,
+): { reached: number; total: number } {
   const milestones = overview.milestones.filter((milestone) => milestone.goalId === goal.id)
   const hit = milestones.filter((milestone) => milestone.status === 'hit').length
-  const reached = goal.status === 'reached' ? 1 : 0
-  const label = progressLabel(goal.type, hit + reached, milestones.length + 1)
-  return goal.type === 'oneOff' && goal.deadline ? `${label} · by ${shortDate(goal.deadline)}` : label
+  return { reached: hit + (goal.status === 'reached' ? 1 : 0), total: milestones.length + 1 }
 }
 
 // Sessions done against the week's targets, across the aspiration's active
 // building goals. Each goal counts up to its own target, so one goal done
 // twice over can't hide another. No unit: the goals count different things.
-export function weekCount(aspirationId: string, overview: AspirationsOverview): WeekCount | undefined {
+export function weekCount(
+  aspirationId: string,
+  overview: Pick<AspirationsOverview, 'goals' | 'weeklyTargets' | 'weekTasks'>,
+): WeekCount | undefined {
   const counted = overview.goals.flatMap((goal) => {
     if (goal.aspirationId !== aspirationId || goal.status !== 'active' || goal.type !== 'building') return []
     const target = overview.weeklyTargets.find((candidate) => candidate.goalId === goal.id)

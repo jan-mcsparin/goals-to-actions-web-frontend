@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { toLocalDay } from './api/dates.ts'
 import { TabBar } from './components/TabBar.tsx'
 import { useNavigation } from './hooks/useNavigation.ts'
@@ -14,6 +14,8 @@ import './App.css'
 function App() {
   const [today] = useState(() => toLocalDay(new Date()))
   const { current, goTo } = useNavigation()
+  // Stable, so the Aspiration page's not-found effect runs once.
+  const backToAspirations = useCallback(() => goTo({ screen: 'aspirations' }), [goTo])
 
   return (
     <div className="app">
@@ -36,7 +38,12 @@ function App() {
         <Aspiration
           key={current.aspirationId}
           aspirationId={current.aspirationId}
-          onBack={() => goTo({ screen: 'aspirations' })}
+          today={today}
+          onBack={backToAspirations}
+          onRetired={backToAspirations}
+          onOpenGoal={(goalId) =>
+            goTo({ screen: 'goal', goalId, from: { screen: 'aspiration', aspirationId: current.aspirationId } })
+          }
         />
       )}
       {current.screen === 'goal' && (

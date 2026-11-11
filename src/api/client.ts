@@ -2,10 +2,29 @@
 // now; later they call the real API and keep the same signatures.
 import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
 import { store } from './mockStore.ts'
-import type { AspirationsOverview, Bank, DayPlan, Task, Upkeep, WeekPlan, WeeklyTarget } from './types.ts'
+import type {
+  Aspiration,
+  AspirationDetail,
+  AspirationsOverview,
+  Bank,
+  DayPlan,
+  Goal,
+  RecurringItem,
+  Task,
+  Upkeep,
+  WeekPlan,
+  WeeklyTarget,
+} from './types.ts'
 
+// A record that isn't there (the API's 404), so a screen can tell it apart
+// from a failed request.
+export class NotFoundError extends Error {
+  name = 'NotFoundError'
+}
+
+// Set-aside (skipped) tasks keep their day but don't show on it.
 export async function getDay(date: string): Promise<DayPlan> {
-  const tasks = store.tasks.filter((task) => task.plannedDay === date)
+  const tasks = store.tasks.filter((task) => task.plannedDay === date && task.status !== 'skipped')
   return structuredClone({ date, tasks, ...recordsReferencedBy(tasks) })
 }
 
@@ -45,6 +64,84 @@ export async function getAspirations(): Promise<AspirationsOverview> {
     weeklyTargets: targetsInForce(weekOf),
     weekTasks: store.tasks.filter((task) => task.weekOf === weekOf && task.goalId !== undefined),
   })
+}
+
+export async function getAspiration(aspirationId: string): Promise<AspirationDetail> {
+  const aspiration = findAspiration(aspirationId)
+  const weekOf = thisWeek()
+  const goals = store.goals.filter((goal) => goal.aspirationId === aspirationId)
+  const goalIds = new Set(goals.map((goal) => goal.id))
+  return structuredClone({
+    aspiration,
+    goals,
+    milestones: store.milestones.filter((milestone) => goalIds.has(milestone.goalId)),
+    recurringItems: store.recurringItems.filter((item) => item.aspirationId === aspirationId),
+    weeklyTargets: targetsInForce(weekOf).filter((target) => goalIds.has(target.goalId)),
+    weekTasks: store.tasks.filter((task) => task.weekOf === weekOf && task.goalId !== undefined && goalIds.has(task.goalId)),
+    activeCount: activeAspirations().length,
+  })
+}
+
+// A blank why is removed; anything not given stays as it was.
+export async function updateAspiration(
+  aspirationId: string,
+  changes: { name?: string; why?: string },
+): Promise<Aspiration> {
+  const aspiration = findAspiration(aspirationId)
+  const name = changes.name?.trim()
+  if (name === '') throw new Error('An aspiration needs a name')
+
+  if (name !== undefined) aspiration.name = name
+  if (changes.why !== undefined) {
+    const why = changes.why.trim()
+    if (why) aspiration.why = why
+    else delete aspiration.why
+  }
+  return structuredClone(aspiration)
+}
+
+// Swaps priority with the active aspiration just above or below.
+export async function moveAspiration(aspirationId: string, direction: 'up' | 'down'): Promise<Aspiration[]> {
+  const aspiration = findActiveAspiration(aspirationId)
+  const order = activeAspirations()
+  const index = order.indexOf(aspiration)
+  const neighbour = order[direction === 'up' ? index - 1 : index + 1]
+  if (!neighbour) throw new Error(`${aspirationId} is already ${direction === 'up' ? 'first' : 'last'}`)
+
+  const priority = aspiration.priority
+  aspiration.priority = neighbour.priority
+  neighbour.priority = priority
+  return structuredClone(activeAspirations())
+}
+
+// 'pause': its active goals pause, its recurring items turn off, and their
+// not-done tasks this week are set aside (skipped), keeping their day.
+// 'keep': its active and paused goals and its recurring items carry on with
+// no aspiration. Either way its reached and ended goals stay with it.
+export async function retireAspiration(aspirationId: string, itsWork: 'pause' | 'keep'): Promise<Aspiration> {
+  const aspiration = findActiveAspiration(aspirationId)
+  const goals = store.goals.filter((goal) => goal.aspirationId === aspirationId && isCurrentGoal(goal))
+  const items = store.recurringItems.filter((item) => item.aspirationId === aspirationId)
+
+  if (itsWork === 'pause') pauseWork(goals, items)
+  else for (const record of [...goals, ...items]) delete record.aspirationId
+
+  aspiration.status = 'retired'
+  aspiration.retiredAt = new Date().toISOString()
+  delete aspiration.priority
+  activeAspirations().forEach((active, index) => (active.priority = index + 1))
+  return structuredClone(aspiration)
+}
+
+// Active again, last in priority. Goals and recurring items it paused stay paused.
+export async function bringBackAspiration(aspirationId: string): Promise<Aspiration> {
+  const aspiration = findAspiration(aspirationId)
+  if (aspiration.status !== 'retired') throw new Error(`${aspirationId} is not retired`)
+
+  aspiration.priority = activeAspirations().length + 1
+  aspiration.status = 'active'
+  delete aspiration.retiredAt
+  return structuredClone(aspiration)
 }
 
 export async function getUpkeep(): Promise<Upkeep> {
@@ -136,6 +233,43 @@ function currentTarget(goalId: string, onOrBefore: string): WeeklyTarget | undef
   return store.weeklyTargets
     .filter((target) => target.goalId === goalId && target.effectiveFrom <= onOrBefore)
     .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0]
+}
+
+function findAspiration(aspirationId: string): Aspiration {
+  const aspiration = store.aspirations.find((candidate) => candidate.id === aspirationId)
+  if (!aspiration) throw new NotFoundError(`No aspiration with id ${aspirationId}`)
+  return aspiration
+}
+
+function pauseWork(goals: Goal[], items: RecurringItem[]) {
+  const pausing = goals.filter((goal) => goal.status === 'active')
+  const goalIds = new Set(pausing.map((goal) => goal.id))
+  const itemIds = new Set(items.map((item) => item.id))
+  for (const goal of pausing) goal.status = 'paused'
+  for (const item of items) item.active = false
+
+  const weekOf = thisWeek()
+  for (const task of store.tasks) {
+    const belongs = goalIds.has(task.goalId ?? '') || itemIds.has(task.recurringItemId ?? '')
+    if (belongs && task.weekOf === weekOf && isWaiting(task)) task.status = 'skipped'
+  }
+}
+
+function isCurrentGoal(goal: Goal): boolean {
+  return goal.status === 'active' || goal.status === 'paused'
+}
+
+function findActiveAspiration(aspirationId: string): Aspiration {
+  const aspiration = findAspiration(aspirationId)
+  if (aspiration.status !== 'active') throw new Error(`${aspirationId} is retired`)
+  return aspiration
+}
+
+// In priority order. Only active aspirations have a priority.
+function activeAspirations(): Aspiration[] {
+  return store.aspirations
+    .filter((aspiration) => aspiration.status === 'active')
+    .sort((a, b) => a.priority! - b.priority!)
 }
 
 function findTask(taskId: string): Task {

@@ -141,3 +141,5 @@ export function weekLabel(startDate: string, targetDate: string | undefined): st
 2. **A new target takes effect this week**, so "1 of 3" can become "1 of 4" on Wednesday. The alternative is from next Monday.
 3. **End goal asks "reached or not"** rather than working it out, since nothing can tell whether "bench 175" was crossed.
 4. This is the largest of the five. The plan will likely split it into two PRs: the read-only screen with the target edit, then check-in and the actions.
+5. **Resuming a goal whose aspiration is retired** (from spec 013). Allow it, with the goal under Other goals on the tab until the aspiration is brought back, or offer Bring back instead?
+6. **Does a goal need Review?** The aspiration's Review was dropped in #13: its choices repeated actions already on the page, and nothing showed the last-reviewed date. Here, Keep as is, Adjust the target, Pause and End goal also sit on the page, and `lastReviewedAt` isn't shown anywhere.

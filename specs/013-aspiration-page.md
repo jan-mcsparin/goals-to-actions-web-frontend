@@ -1,14 +1,14 @@
 # Spec: Aspiration page (#13)
 
-Status: draft 2026-11-10, awaiting approval. Issue: [#13](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/13). Module `aspiration-page` in the [map](README.md). Depends on #4.
+Status: approved 2026-11-10 and built. Issue: [#13](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/13). Module `aspiration-page` in the [map](README.md). Depends on #4.
 
 ## Objective
 
-One aspiration in full: its why, how its week is going, its goals, its recurring items and its past goals. It's also where an aspiration is managed, only when the person chooses: edit the name and why, move it up or down in priority, review it, retire it, bring it back.
+One aspiration in full: its why, how its week is going, its goals, its recurring items and its past goals. It's also where an aspiration is managed, only when the person chooses: edit the name and why, move it up or down in priority, retire it, bring it back.
 
 Everything works against the mock, and the Aspirations tab, Week and Today reflect it.
 
-References: [Flow 1, "Managing aspirations afterwards"](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 7](../../docs/flows.md#flow-7-rollovers-and-light-reviews), [`aspirations.png`](../../docs/screens/aspirations.png) (middle and right phones), [screens README](../../docs/screens/README.md#aspirations-aspiration-goal-detail-add-settings), [tone rules](../../docs/product-rules.md#tone-and-prompts).
+References: [Flow 1, "Managing aspirations afterwards"](../../docs/flows.md#flow-1-name-an-aspiration), [`aspirations.png`](../../docs/screens/aspirations.png) (middle and right phones), [screens README](../../docs/screens/README.md#aspirations-aspiration-goal-detail-add-settings), [tone rules](../../docs/product-rules.md#tone-and-prompts).
 
 ### What the person sees
 
@@ -23,8 +23,8 @@ References: [Flow 1, "Managing aspirations afterwards"](../../docs/flows.md#flow
 - **+ Add a goal for Be fit:** arrives with #6 (Add sheet, Goal tab, this aspiration selected).
 - **Recurring:** its active recurring items (on a retired aspiration's page, the ones it paused, marked "Paused"), name on the left and repeat rule on the right. **+ Add recurring** arrives with #6.
 - **Past goals (1):** closed to start; reached and ended goals with "Reached" or "Ended", each opening the goal.
-- **Priority:** "1st of 3 aspirations", "Comes first when goals compete for time", and two buttons, move up and move down. The one that can't apply is disabled.
-- **Actions:** Edit name and why · Review · Retire.
+- **Priority:** "1st of 3 aspirations", "Comes first when goals compete for time" ("Higher ones come first when goals compete for time" below first), and two buttons, move up and move down. The one that can't apply is disabled.
+- **Actions:** Edit name and why · Retire.
 
 **An aspiration that isn't there** (a remembered id after the mock data reset): go back to Aspirations, quietly.
 
@@ -36,15 +36,11 @@ A sheet with the name (required) and the why (optional, "What would this give yo
 
 Move up and move down swap this aspiration with its neighbour among the active ones, at once. The new order shows on the Aspirations tab, in Week's progress rows and in Today's By goal view, which already sort by priority.
 
-### Review
-
-A sheet, only when tapped: the name, "Still the right aspiration?" and "Still in the right place?" with "1st of 3". Four choices: **Keep as is**, **Edit name and why** (opens that sheet), **Move it** (closes the sheet at the Priority section), **Retire** (opens the Retire sheet). Each records today as the last review. Nothing ever asks the person to review.
-
 ### Retire
 
 A sheet titled "Retire Be fit?":
 
-- It leads with the aspiration's history: "Since March: 1 goal reached, 3 goals active, 2 recurring items." (the month it was created; parts with a zero are left out).
+- It leads with the aspiration's history: "Since March: 1 goal reached, 3 goals active, 2 recurring items." (the month it was created, with the year when it isn't this year; parts with a zero are left out).
 - "What should happen to its goals and recurring items?" One choice:
   - **Pause them** (selected to start): "They leave your days. Resume any of them later." Its active goals become paused and its recurring items inactive. Their tasks from this week that aren't done leave the days and the bank; done tasks stay as they are.
   - **Keep them going:** "They carry on without an aspiration, under Other goals." Its active and paused goals and its recurring items lose their aspiration; nothing else about them changes.
@@ -55,9 +51,9 @@ Afterwards the app returns to the Aspirations tab, where Be fit is under Retired
 
 ### A retired aspiration's page
 
-The same page, quieter: the name, the why, "Retired Nov 10", its past goals, any goals paused by retiring (each still opens, and can be resumed there), and one action: **Bring back**. No This week, no Priority, no Edit, Review or Retire.
+The same page, quieter: the name, the why, "Retired Nov 10", its past goals, any goals paused by retiring (each still opens, and can be resumed there), and one action: **Bring back**. No This week, no Priority, no Edit or Retire.
 
-**Bring back** makes it active again, last in priority. Goals it paused stay paused until resumed one by one. Recurring items it paused stay off too; there's no way to turn one back on until recurring items get controls of their own. Goals that were kept going stay under Other goals.
+**Bring back** makes it active again, last in priority. Goals it paused stay paused until resumed one by one, so Goals reads "0 active" until one is. Recurring items it paused stay off too; there's no way to turn one back on until recurring items get controls of their own. Goals that were kept going stay under Other goals.
 
 ## Scope
 
@@ -65,8 +61,8 @@ The same page, quieter: the name, the why, "Retired Nov 10", its past goals, any
 - `api/`: `getAspiration` and the mutations below.
 - `domain/aspiration.ts`: goal cards and their week lines, the priority line ("1st of 3"), the history line, what a retired page shows.
 - `hooks/useAspiration.ts`: load, optimistic updates, rollback with a message on failure.
-- `screens/Aspiration.tsx` (replacing #4's placeholder) and the sheets: edit, review, retire.
-- Docs: none expected; flows.md and the screens README already describe this. Add the detail on what "leave your days" does to tasks.
+- `screens/Aspiration.tsx` (replacing #4's placeholder) and the sheets: edit, retire.
+- Docs: what "leave your days" does to tasks, priority for active aspirations only, and dropping Review (`flows.md`, `data-model.md`, `product-rules.md`, screens README).
 
 **Out (later):**
 - The two "+ Add" links (#6).
@@ -87,12 +83,12 @@ updateAspiration(aspirationId: string, changes: { name?: string; why?: string })
 moveAspiration(aspirationId: string, direction: 'up' | 'down'): Promise<Aspiration[]>
 // Swaps priority with the neighbouring active aspiration; returns the active ones in order.
 
-reviewAspiration(aspirationId: string): Promise<Aspiration>   // sets lastReviewedAt
 retireAspiration(aspirationId: string, itsWork: 'pause' | 'keep'): Promise<Aspiration>
 // status 'retired', retiredAt today. 'pause': active goals -> paused, recurring items -> inactive,
 // their not-done tasks this week -> 'skipped'. 'keep': goals and recurring items lose aspirationId.
 bringBackAspiration(aspirationId: string): Promise<Aspiration>
 // status 'active', retiredAt cleared, priority last.
+// Retiring removes priority and renumbers the active ones 1..n; only active aspirations have one.
 ```
 
 All keep #1's rules: async, return copies, reject unknown IDs, an empty name, retiring a retired aspiration and moving one. Tasks set aside by retiring use the existing `skipped` status; no new fields.
@@ -113,7 +109,7 @@ export function priorityLine(position: number, activeCount: number): string {
 - **`domain/aspiration.test.ts`:** goal cards (active, then paused) and their week lines, including "No weekly target yet" and none for one-off; the priority line for first, second, third and one of one; which move buttons apply; the history line with zeros left out; what a retired page shows.
 - **`api/client.test.ts`:** `getAspiration` contents and unknown id; `updateAspiration`; `moveAspiration` at each end and in the middle, skipping retired ones; `retireAspiration` with `pause` (goals, recurring items, this week's tasks, done tasks untouched) and with `keep`; `bringBackAspiration` (last in priority, paused goals still paused); rejections; `getWeek` leaves out a retired aspiration's paused goals.
 - **`hooks/useAspiration.test.tsx`:** optimistic update and rollback for one mutation; unknown aspiration reports not found.
-- **`screens/Aspiration.test.tsx`:** renders the mock aspiration; a goal card opens the goal; edit the name and why; move down then up, with the end buttons disabled; Review records the date and each choice leads where described; Retire leads with the history, "Pause them" is selected at first, and each choice does what it says; a retired page shows only Bring back; no dialog is open on first render.
+- **`screens/Aspiration.test.tsx`:** renders the mock aspiration; a goal card opens the goal; edit the name and why; move down then up, with the end buttons disabled; Retire leads with the history, "Pause them" is selected at first, and each choice does what it says; a retired page shows only Bring back; no dialog is open on first render.
 - **`App.test.tsx`:** after retiring, the tab shows it under Retired; a remembered aspiration that doesn't exist lands on Aspirations; reordering changes the card order on the tab.
 - **Manual:** 375 and 390 px, light and dark; a long why; the Retire sheet fits without scrolling at 375 px.
 
@@ -125,21 +121,25 @@ export function priorityLine(position: number, activeCount: number): string {
 
 ## Success criteria
 
-- [ ] The page shows the name, why, this week, goal cards, recurring items, past goals and priority as in `aspirations.png`.
-- [ ] Name and why can be edited; the aspiration can be moved up and down, and the tab, Week and Today's By goal view follow.
-- [ ] Review works and is never prompted.
-- [ ] Retire works with both choices; the aspiration moves to Retired with its history.
-- [ ] Bring back makes it active, last in priority, with its paused goals still paused.
-- [ ] A missing aspiration returns to Aspirations.
-- [ ] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
-- [ ] Works at 375 and 390 px, light and dark.
+- [x] The page shows the name, why, this week, goal cards, recurring items, past goals and priority as in `aspirations.png`.
+- [x] Name and why can be edited; the aspiration can be moved up and down, and the tab, Week and Today's By goal view follow.
+- [x] ~~Review works and is never prompted.~~ Dropped (decision 4).
+- [x] Retire works with both choices; the aspiration moves to Retired with its history.
+- [x] Bring back makes it active, last in priority, with its paused goals still paused.
+- [x] A missing aspiration returns to Aspirations.
+- [x] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
+- [x] Works at 375 and 390 px, light and dark.
 
 ## Decisions
 
 1. **"They leave your days" is literal** (Jan, Nov 10). With "Pause them", not-done tasks from this week for those goals and recurring items come off the days and out of the bank, including ones placed by hand. Pausing a single goal (spec 005) does the same.
 2. **Paused goals are listed** after the active ones, so they can be reached and resumed.
 3. **Recurring items paused by retiring stay off** after Bring back, for now.
+4. **No Review on an aspiration** (Jan, Nov 10, after building it). Three of its four choices repeated Edit name and why, the Priority arrows and Retire, which are on the page anyway, and nothing showed the last-reviewed date it recorded. `reviewAspiration` and the aspiration's `lastReviewedAt` were removed. Goal detail's Review is the same question, noted on #5.
+5. **Only active aspirations have a priority** (Jan, Nov 10). Active ones are numbered 1, 2, 3 with no gaps; retiring removes it and renumbers the rest, and bringing back puts it last.
+6. **The history line adds the year** only when the aspiration was created in another year ("Since October 2025").
+7. **Set-aside tasks keep their planned day**, as status `skipped`; no day shows them. Retire and Bring back wait for the save; edit and move show at once and roll back with a message if the save fails.
 
 ## Open questions
 
-1. **Resuming a goal whose aspiration is retired.** Allowed; the goal then shows under Other goals on the tab until the aspiration is brought back. The alternative is to offer Bring back instead.
+None. Resuming a goal whose aspiration is retired moved to #5 (spec 005).

@@ -33,20 +33,29 @@ export type PickableDay = { date: string; label: string }
 // Never a warning: behind is only ever "N more to plan".
 export function pacingLine({ done, plannedAhead, target, daysLeft }: Pacing): string {
   if (done >= target) return 'Done for the week'
-  const days = `${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} left`
+  const days = daysLeftLabel(daysLeft)
   const toPlan = target - done - plannedAhead
   return toPlan <= 0 ? `${days} · on pace` : `${days} · ${toPlan} more to plan`
 }
 
+// Today through Sunday.
+export function daysLeft(weekOf: string, today: string): number {
+  return daysOf(weekOf).filter((day) => day >= today).length
+}
+
+export function daysLeftLabel(count: number): string {
+  return `${count} ${count === 1 ? 'day' : 'days'} left`
+}
+
 export function weekProgress(plan: WeekPlan, today: string): ProgressRow[] {
-  const daysLeft = daysOf(plan.weekOf).filter((day) => day >= today).length
+  const left = daysLeft(plan.weekOf, today)
   return goalsByPriority(plan).flatMap((goal) => {
     const target = plan.weeklyTargets.find((candidate) => candidate.goalId === goal.id)
     if (!target || goal.type !== 'building') return []
     const goalTasks = plan.tasks.filter((task) => task.goalId === goal.id)
     const done = goalTasks.filter((task) => task.status === 'done').length
     const plannedAhead = goalTasks.filter((task) => isPlannedOnOrAfter(task, today)).length
-    return [progressRow(goal, plan, { done, plannedAhead, target: target.amount, daysLeft })]
+    return [progressRow(goal, plan, { done, plannedAhead, target: target.amount, daysLeft: left })]
   })
 }
 

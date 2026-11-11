@@ -10,18 +10,18 @@ One spec per issue, numbered like the issue. This file is the index and the map 
 | [002 Today screen](002-today-screen.md) | #2 |
 | [003 Week screen](003-week-screen.md) | #3 |
 | [004 Aspirations tab](004-aspirations-tab.md) | #4 |
+| [013 Aspiration page](013-aspiration-page.md) | #13 |
 
 ## Remaining (drafted 2026-11-10)
 
 | Module id | Spec | Issue | Responsibility | Depends on |
 |---|---|---|---|---|
-| `aspiration-page` | [013](013-aspiration-page.md) | #13 | One aspiration: its goals, recurring items and past goals; edit, reorder, review, retire, bring back | `aspirations-tab` |
 | `goal-detail` | [005](005-goal-detail.md) | #5 | One goal in full: milestones, weekly target, check-in, Review / Pause / End | `aspirations-tab`, `aspiration-page` |
 | `add-sheet` | [006](006-add-sheet.md) | #6 | Add a task, goal, aspiration or recurring item; the + in the tab bar | `aspirations-tab`, `aspiration-page`, `goal-detail` |
 | `settings-screen` | [007](007-settings-screen.md) | #7 | Intensity and the few preferences; the gear | `aspirations-tab` |
 | `install-instant-open` | [008](008-install-instant-open.md) | #8 | Installs on iPhone, opens offline, comes back where it was | all of the above |
 
-Build order: `aspirations-tab` → `aspiration-page` → `goal-detail` → `add-sheet` → `settings-screen` → `install-instant-open`.
+Build order: `aspirations-tab` → `aspiration-page` (done) → `goal-detail` → `add-sheet` → `settings-screen` → `install-instant-open`.
 
 The order follows the model: tab → aspiration → goal. `settings-screen` only needs the tab, so it can move earlier if wanted. `install-instant-open` goes last because it checks that every screen is remembered and works offline.
 
@@ -34,7 +34,7 @@ Settled with Jan on 2026-11-10:
 1. **The app is aspirations first:** Aspirations tab → an aspiration → a goal → its milestones. The tab replaces the Goals screen of the Nov 2 sketch. See `../../docs/screens/README.md` and `aspirations.png`.
 2. **Tab bar:** Today | Week | + | Aspirations. The + opens the Add sheet over whatever screen is open; it isn't a screen.
 3. **Settings is a gear** in the Aspirations header. Settings counts as Aspirations in the tab bar and goes back there.
-4. **Aspirations are managed in the click-through:** add, edit the name and why, move up and down, review, retire and bring back. A new one goes last in priority.
+4. **Aspirations are managed in the click-through:** add, edit the name and why, move up and down, retire and bring back. A new one goes last in priority. (Review was dropped while building #13.)
 5. **A one-off goal's steps are its milestones**, and they're called steps everywhere ("Step 3 of 6", never "Stage"). Checking off a task never moves the step; the person marks a step reached on the goal's page. No new entity.
 6. **The final milestone is the goal itself.** The timeline's last row is the goal's measurable line, and it counts in "1 of 6". Reaching it is reaching the goal. It isn't a separate milestone record. A goal with no milestones of its own reads "0 of 1".
 7. **Goal detail works fully, mocked:** Pause, End, Review and milestone check-in all change data.

@@ -8,10 +8,10 @@ export type Aspiration = {
   id: string
   name: string
   why?: string
-  priority: number
+  // Active aspirations only, numbered 1, 2, … with no gaps: it's the position.
+  priority?: number
   status: AspirationStatus
   createdAt: string
-  lastReviewedAt?: string
   retiredAt?: string
 }
 
@@ -133,6 +133,17 @@ export type AspirationsOverview = {
   recurringItems: RecurringItem[] // active ones
   weeklyTargets: WeeklyTarget[] // the target in force this week, per active goal
   weekTasks: Task[] // this week's tasks that belong to a goal
+}
+
+// One aspiration's page, as records. Laid out by domain/aspiration.ts.
+export type AspirationDetail = {
+  aspiration: Aspiration
+  goals: Goal[] // its goals, every status
+  milestones: Milestone[] // for those goals, in each goal's order
+  recurringItems: RecurringItem[] // its items, active or not
+  weeklyTargets: WeeklyTarget[] // the target in force this week, per active goal
+  weekTasks: Task[] // this week's tasks for its goals
+  activeCount: number // active aspirations, for "1st of 3"
 }
 
 // Keep life running: what has to happen but rolls up to no goal or aspiration.
