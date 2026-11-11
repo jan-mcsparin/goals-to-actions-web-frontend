@@ -50,6 +50,7 @@ export type RetiredPage = {
   name: string
   why?: string
   retiredLine: string
+  activeGoals: GoalCard[] // resumed on their own after it was retired
   pausedGoals: GoalCard[]
   recurring: RecurringRow[]
   pastGoals: PastGoalRow[]
@@ -73,6 +74,7 @@ export function aspirationPage(detail: AspirationDetail, today: string): Aspirat
       kind: 'retired',
       ...heading,
       retiredLine: `Retired ${dayLabel(aspiration.retiredAt, today)}`,
+      activeGoals: detail.goals.filter((goal) => goal.status === 'active').map((goal) => goalCard(goal, detail)),
       pausedGoals: paused.map((goal) => goalCard(goal, detail)),
       recurring: detail.recurringItems.filter((item) => !item.active).map((item) => recurringRow(item, true)),
       pastGoals,

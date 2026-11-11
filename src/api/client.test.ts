@@ -4,6 +4,7 @@ import {
   bringBackAspiration,
   checkInMilestone,
   checkOffTask,
+  endGoal,
   getAspiration,
   getAspirations,
   getBank,
@@ -13,8 +14,10 @@ import {
   getWeek,
   moveAspiration,
   NotFoundError,
+  pauseGoal,
   pullFromBank,
   reopenMilestone,
+  resumeGoal,
   retireAspiration,
   setWeeklyTarget,
   skipTask,
@@ -742,6 +745,93 @@ describe('reopenMilestone', () => {
 
     store.goals.find((goal) => goal.id === 'goal-strong')!.status = 'ended'
     await expect(reopenMilestone('ms-strong-2')).rejects.toThrow()
+  })
+})
+
+describe('pauseGoal and resumeGoal', () => {
+  const task = (id: string) => store.tasks.find((candidate) => candidate.id === id)!
+  const goalById = (id: string) => store.goals.find((goal) => goal.id === id)!
+
+  it('pausing sets this week’s waiting tasks aside, keeping their day, and leaves done ones', async () => {
+    const paused = await pauseGoal('goal-strong')
+
+    expect(paused.status).toBe('paused')
+    expect(task('task-lift-today')).toMatchObject({ status: 'skipped', plannedDay: WEDNESDAY_DAY })
+    expect(task('task-lift-bank').status).toBe('skipped')
+    expect(task('task-lift-mon').status).toBe('done')
+    expect(ids((await getDay(WEDNESDAY_DAY)).tasks)).not.toContain('task-lift-today')
+    expect(ids((await getBank()).tasks)).not.toContain('task-lift-bank')
+    expect((await getWeek()).weeklyTargets.map((target) => target.goalId)).not.toContain('goal-strong')
+  })
+
+  it('resuming puts those tasks back in this week’s bank, with no day', async () => {
+    await pauseGoal('goal-strong')
+    await pauseGoal('goal-endurance')
+
+    const resumed = await resumeGoal('goal-strong')
+
+    expect(resumed.status).toBe('active')
+    for (const id of ['task-lift-today', 'task-lift-bank']) {
+      expect(task(id).status).toBe('inBank')
+      expect(task(id)).not.toHaveProperty('plannedDay')
+      expect(task(id)).not.toHaveProperty('placedByHand')
+    }
+    expect(ids((await getBank()).tasks)).toEqual(expect.arrayContaining(['task-lift-bank', 'task-lift-today']))
+    expect(task('task-run-bank').status).toBe('skipped')
+    expect(task('task-lift-mon').status).toBe('done')
+  })
+
+  it('resumes a goal whose aspiration is retired, keeping the aspiration', async () => {
+    await retireAspiration('asp-fit', 'pause')
+
+    const resumed = await resumeGoal('goal-strong')
+
+    expect(resumed).toMatchObject({ status: 'active', aspirationId: 'asp-fit' })
+    expect(ids((await getBank()).tasks)).toContain('task-lift-bank')
+  })
+
+  it('rejects pausing a goal that isn’t active, resuming an active or reached one, and unknown ids', async () => {
+    await expect(pauseGoal('goal-cook')).rejects.toThrow()
+    await expect(pauseGoal('goal-5k')).rejects.toThrow()
+    await expect(resumeGoal('goal-strong')).rejects.toThrow()
+    await expect(resumeGoal('goal-5k')).rejects.toThrow()
+    await expect(pauseGoal('goal-nope')).rejects.toThrow(NotFoundError)
+    await expect(resumeGoal('goal-nope')).rejects.toThrow(NotFoundError)
+    expect(goalById('goal-5k').status).toBe('reached')
+  })
+})
+
+describe('endGoal', () => {
+  const task = (id: string) => store.tasks.find((candidate) => candidate.id === id)!
+
+  it('marks it reached today, and moves no tasks', async () => {
+    const ended = await endGoal('goal-strong', 'reached')
+
+    expect(ended).toMatchObject({ status: 'reached', endedAt: WEDNESDAY_DAY })
+    expect(task('task-lift-today').status).toBe('planned')
+    expect(task('task-lift-bank').status).toBe('inBank')
+  })
+
+  it('ends it for now, from active or paused', async () => {
+    await expect(endGoal('goal-strong', 'ended')).resolves.toMatchObject({ status: 'ended', endedAt: WEDNESDAY_DAY })
+    await expect(endGoal('goal-cook', 'ended')).resolves.toMatchObject({ status: 'ended' })
+  })
+
+  it('goes again: resuming an ended goal makes it active and clears the end date', async () => {
+    await endGoal('goal-strong', 'ended')
+
+    const again = await resumeGoal('goal-strong')
+
+    expect(again.status).toBe('active')
+    expect(again).not.toHaveProperty('endedAt')
+    expect(task('task-lift-today').status).toBe('planned')
+  })
+
+  it('rejects ending a reached or ended goal, and an unknown one', async () => {
+    await expect(endGoal('goal-5k', 'ended')).rejects.toThrow()
+    await endGoal('goal-strong', 'ended')
+    await expect(endGoal('goal-strong', 'reached')).rejects.toThrow()
+    await expect(endGoal('goal-nope', 'reached')).rejects.toThrow(NotFoundError)
   })
 })
 

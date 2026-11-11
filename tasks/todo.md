@@ -173,12 +173,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Pause: active → paused, its waiting tasks this week → skipped (day kept). Resume: from paused, those skipped tasks → bank; from ended, clears `endedAt`. End: `reached` or `ended`, sets `endedAt`, tasks untouched. `otherGoals` takes in current goals whose aspiration is retired; the retired aspiration's page shows such a goal as active.
 
 **Acceptance criteria:**
-- [ ] Pause Be strong: its tasks leave `getDay`, `getBank` and Week's progress; done ones stay. Resume: they're in `getBank` with no day, and other goals' skipped tasks are untouched.
-- [ ] End as reached and as ended set status and `endedAt` and move no tasks; Go again on an ended goal makes it active. Pausing a paused, reached or ended goal rejects, as does resuming an active one.
-- [ ] After retiring Be fit with "Pause them" and resuming Be strong: it's under Other goals on the tab, active on Be fit's retired page, and Today and Week still render it.
+- [x] Pause Be strong: its tasks leave `getDay`, `getBank` and Week's progress; done ones stay. Resume: they're in `getBank` with no day, and other goals' skipped tasks are untouched.
+- [x] End as reached and as ended set status and `endedAt` and move no tasks; Go again on an ended goal makes it active. Pausing a paused, reached or ended goal rejects, as does resuming an active one.
+- [x] After retiring Be fit with "Pause them" and resuming Be strong: it's under Other goals on the tab, active on Be fit's retired page, and Today and Week still render it.
 
 **Verification:**
-- [ ] `npm test`: `client.test.ts`, `domain/aspirations.test.ts`, `domain/aspiration.test.ts`, `domain/today.test.ts` if sorting needs a case
+- [x] `npm test`: `client.test.ts`, `domain/aspirations.test.ts`, `domain/aspiration.test.ts`, `domain/today.test.ts` if sorting needs a case
 
 **Dependencies:** Task 7
 
@@ -187,8 +187,8 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M
 
 ## Checkpoint C
-- [ ] Tests, lint and build pass
-- [ ] Today, Week, the tab, the aspiration page and Keep life running behave as before with the mock unchanged
+- [x] Tests, lint and build pass
+- [x] Today, Week, the tab, the aspiration page and Keep life running behave as before with the mock unchanged
 
 ## Phase 4: The screen
 

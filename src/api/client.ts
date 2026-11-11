@@ -181,6 +181,42 @@ export async function reopenMilestone(
   return structuredClone(milestonesOf(goal.id))
 }
 
+// Its not-done tasks this week are set aside (skipped), keeping their day,
+// as when an aspiration is retired with "Pause them".
+export async function pauseGoal(goalId: string): Promise<Goal> {
+  const goal = findGoal(goalId)
+  if (goal.status !== 'active') throw new Error(`${goalId} is ${goal.status}`)
+  pauseWork([goal], [])
+  return structuredClone(goal)
+}
+
+// Active again. From paused, its set-aside tasks this week go back to the
+// bank; from ended (Go again), the end date goes. Allowed under a retired
+// aspiration: the goal keeps it.
+export async function resumeGoal(goalId: string): Promise<Goal> {
+  const goal = findGoal(goalId)
+  if (goal.status === 'paused') {
+    const weekOf = thisWeek()
+    for (const task of store.tasks) {
+      if (task.goalId === goalId && task.weekOf === weekOf && task.status === 'skipped') moveToBank(task)
+    }
+  } else if (goal.status === 'ended') {
+    delete goal.endedAt
+  } else {
+    throw new Error(`${goalId} is ${goal.status}`)
+  }
+  goal.status = 'active'
+  return structuredClone(goal)
+}
+
+// Reached or ended today. Its tasks stay as they are.
+export async function endGoal(goalId: string, outcome: 'reached' | 'ended'): Promise<Goal> {
+  const goal = findCurrentGoal(goalId)
+  goal.status = outcome
+  goal.endedAt = toLocalDay(new Date())
+  return structuredClone(goal)
+}
+
 // A blank why is removed; anything not given stays as it was.
 export async function updateAspiration(
   aspirationId: string,

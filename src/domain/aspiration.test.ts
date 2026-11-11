@@ -263,6 +263,16 @@ describe('aspirationPage, retired', () => {
     expect(page.recurring).toEqual([{ itemId: 'rec-Stretch', name: 'Stretch', repeatRule: 'Once a week', paused: true }])
   })
 
+  it('shows a goal resumed on its own as active, apart from the paused ones', () => {
+    const page = retiredPage({
+      goals: [goal('strong'), goal('endurance', { status: 'paused' })],
+      milestones: milestones('strong', 'hit', 'upcoming'),
+    })
+
+    expect(page.activeGoals.map((card) => [card.goalId, card.progress])).toEqual([['strong', 'Milestone 1 of 3']])
+    expect(page.pausedGoals.map((card) => card.goalId)).toEqual(['endurance'])
+  })
+
   it('has no week, priority or history', () => {
     const page = retiredPage({ goals: [goal('strong', { status: 'paused' })], weeklyTargets: [target('strong', 3)] })
 

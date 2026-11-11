@@ -106,8 +106,16 @@ export function weekCount(
 }
 
 // Goals with no aspiration; their reached and ended goals are kept apart.
+// An active goal whose aspiration is retired (resumed on its own) shows here
+// too, until the aspiration is brought back.
 export function otherGoals(overview: AspirationsOverview): OtherGoals | undefined {
-  const loose = overview.goals.filter((goal) => goal.aspirationId === undefined)
+  const retiredIds = new Set(
+    overview.aspirations.filter((aspiration) => aspiration.status === 'retired').map((aspiration) => aspiration.id),
+  )
+  const loose = overview.goals.filter(
+    (goal) =>
+      goal.aspirationId === undefined || (goal.status === 'active' && retiredIds.has(goal.aspirationId)),
+  )
   if (loose.length === 0) return undefined
   return {
     goals: loose.filter(isCurrent).map((goal) => rowFor(goal, overview)),
