@@ -100,12 +100,6 @@ export async function updateAspiration(
   return structuredClone(aspiration)
 }
 
-export async function reviewAspiration(aspirationId: string): Promise<Aspiration> {
-  const aspiration = findAspiration(aspirationId)
-  aspiration.lastReviewedAt = new Date().toISOString()
-  return structuredClone(aspiration)
-}
-
 // Swaps priority with the active aspiration just above or below.
 export async function moveAspiration(aspirationId: string, direction: 'up' | 'down'): Promise<Aspiration[]> {
   const aspiration = findActiveAspiration(aspirationId)

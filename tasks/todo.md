@@ -165,7 +165,9 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Scope:** M
 
-### Task 9: Review
+### Task 9: Review (built, then dropped)
+
+**Dropped after Checkpoint C review:** its choices repeated Edit, the Priority arrows and Retire, and nothing showed the last-reviewed date. The sheet, `reviewAspiration` and `lastReviewedAt` on aspirations were removed.
 
 **Description:** `ReviewSheet`: the name, "Still the right aspiration?", "Still in the right place?" with "1st of 2", and Keep as is, Edit name and why, Move it, Retire. Each records the review, then: closes; opens Edit; closes and focuses the Priority heading; opens Retire.
 
@@ -215,6 +217,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 - [ ] `specs/013-aspiration-page.md` is marked approved, with priority for active ones only, the history line's year and the open question moved to #5.
 - [ ] `specs/README.md` moves 013 to Done (after Jan's review), and spec 005 notes the resume question.
 - [ ] `../docs/data-model.md` says priority is for active aspirations only; it and `../docs/flows.md` say set-aside tasks include ones placed by hand and keep their day. Own branch and PR in the parent repo.
+- [ ] Review is dropped from the aspiration: spec 013, `../docs/flows.md` (Flow 1, Flow 7's light reviews), `../docs/product-rules.md` ("No review prompts") and `../docs/data-model.md` (no "last reviewed" on aspirations). Note on #5 that Goal detail's Review raises the same question.
 
 **Verification:**
 - [ ] Read-through against the build

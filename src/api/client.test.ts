@@ -12,7 +12,6 @@ import {
   NotFoundError,
   pullFromBank,
   retireAspiration,
-  reviewAspiration,
   skipTask,
   swapTask,
   uncheckTask,
@@ -509,21 +508,6 @@ describe('updateAspiration', () => {
 
   it('rejects an unknown id', async () => {
     await expect(updateAspiration('asp-nope', { name: 'X' })).rejects.toThrow('No aspiration with id asp-nope')
-  })
-})
-
-describe('reviewAspiration', () => {
-  it('records now as the last review', async () => {
-    const saved = await reviewAspiration('asp-home')
-
-    expect(saved.lastReviewedAt).toBe(WEDNESDAY.toISOString())
-    expect(store.aspirations.find((aspiration) => aspiration.id === 'asp-home')?.lastReviewedAt).toBe(
-      WEDNESDAY.toISOString(),
-    )
-  })
-
-  it('rejects an unknown id', async () => {
-    await expect(reviewAspiration('asp-nope')).rejects.toThrow('No aspiration with id asp-nope')
   })
 })
 

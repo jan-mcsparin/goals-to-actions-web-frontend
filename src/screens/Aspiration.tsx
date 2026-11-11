@@ -1,10 +1,9 @@
 // One aspiration: its week, goals, recurring items, past goals and place in
 // priority. A retired one shows what it has seen and offers Bring back.
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useEffect, useState } from 'react'
 import { AspirationEditSheet } from '../components/AspirationEditSheet.tsx'
 import { BackLink } from '../components/BackLink.tsx'
 import { RetireSheet } from '../components/RetireSheet.tsx'
-import { ReviewSheet, type ReviewChoice } from '../components/ReviewSheet.tsx'
 import '../components/progressBar.css'
 import type { ActivePage, GoalCard, PastGoalRow, RecurringRow, RetiredPage } from '../domain/aspiration.ts'
 import { useAspiration } from '../hooks/useAspiration.ts'
@@ -19,47 +18,21 @@ type AspirationProps = {
 }
 
 // One sheet at a time, and only from a tap.
-type OpenSheet = 'edit' | 'review' | 'retire'
-
-// Where each Review choice leads, after the review is recorded.
-const AFTER_REVIEW: Record<ReviewChoice, OpenSheet | undefined> = {
-  keep: undefined,
-  edit: 'edit',
-  move: undefined,
-  retire: 'retire',
-}
+type OpenSheet = 'edit' | 'retire'
 
 export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired }: AspirationProps) {
-  const { page, editing, message, notFound, edit, review, retire, bringBack, move } = useAspiration(
+  const { page, editing, message, notFound, edit, retire, bringBack, move } = useAspiration(
     aspirationId,
     today,
   )
   const [sheet, setSheet] = useState<OpenSheet>()
-  const goToPriority = useRef(false)
-  const priorityHeading = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
     if (notFound) onBack()
   }, [notFound, onBack])
 
-  // Runs after the sheet's own effect has closed it, so the browser has
-  // already handed focus back to the Review button and this takes it on.
-  useEffect(() => {
-    if (!goToPriority.current || sheet) return
-    goToPriority.current = false
-    priorityHeading.current?.scrollIntoView?.({ block: 'center' })
-    priorityHeading.current?.focus()
-  }, [sheet])
-
-  // A sheet closing as another opens fires 'close' too; only the open one may clear.
-  function closeSheet(which: OpenSheet) {
-    setSheet((current) => (current === which ? undefined : current))
-  }
-
-  function chooseAfterReview(choice: ReviewChoice) {
-    review()
-    setSheet(AFTER_REVIEW[choice])
-    goToPriority.current = choice === 'move'
+  function closeSheet() {
+    setSheet(undefined)
   }
 
   return (
@@ -84,13 +57,7 @@ export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired 
       )}
 
       {page?.kind === 'active' && (
-        <Active
-          page={page}
-          priorityHeading={priorityHeading}
-          onOpenGoal={onOpenGoal}
-          onMove={move}
-          onOpenSheet={setSheet}
-        />
+        <Active page={page} onOpenGoal={onOpenGoal} onMove={move} onOpenSheet={setSheet} />
       )}
       {page?.kind === 'retired' && <Retired page={page} onOpenGoal={onOpenGoal} onBringBack={bringBack} />}
 
@@ -99,30 +66,21 @@ export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired 
         initial={editing}
         onSave={(changes) => {
           edit(changes)
-          closeSheet('edit')
+          closeSheet()
         }}
-        onClose={() => closeSheet('edit')}
+        onClose={() => closeSheet()}
       />
       {page?.kind === 'active' && (
-        <>
-          <ReviewSheet
-            open={sheet === 'review'}
-            name={page.name}
-            priorityLine={page.priority.line}
-            onChoose={chooseAfterReview}
-            onClose={() => closeSheet('review')}
-          />
-          <RetireSheet
-            open={sheet === 'retire'}
-            name={page.name}
-            historyLine={page.historyLine}
-            onRetire={async (itsWork) => {
-              closeSheet('retire')
-              if (await retire(itsWork)) onRetired()
-            }}
-            onClose={() => closeSheet('retire')}
-          />
-        </>
+        <RetireSheet
+          open={sheet === 'retire'}
+          name={page.name}
+          historyLine={page.historyLine}
+          onRetire={async (itsWork) => {
+            closeSheet()
+            if (await retire(itsWork)) onRetired()
+          }}
+          onClose={() => closeSheet()}
+        />
       )}
     </main>
   )
@@ -130,13 +88,12 @@ export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired 
 
 type ActiveProps = {
   page: ActivePage
-  priorityHeading: RefObject<HTMLHeadingElement | null>
   onOpenGoal: (goalId: string) => void
   onMove: (direction: 'up' | 'down') => void
   onOpenSheet: (sheet: OpenSheet) => void
 }
 
-function Active({ page, priorityHeading, onOpenGoal, onMove, onOpenSheet }: ActiveProps) {
+function Active({ page, onOpenGoal, onMove, onOpenSheet }: ActiveProps) {
   return (
     <>
       {page.week && (
@@ -170,9 +127,7 @@ function Active({ page, priorityHeading, onOpenGoal, onMove, onOpenSheet }: Acti
       <PastGoals rows={page.pastGoals} onOpenGoal={onOpenGoal} />
 
       <section className="aspiration-section" aria-labelledby="aspiration-priority">
-        <h2 id="aspiration-priority" ref={priorityHeading} tabIndex={-1}>
-          Priority
-        </h2>
+        <h2 id="aspiration-priority">Priority</h2>
         <div className="aspiration-priority">
           <div>
             <p className="aspiration-priority-line">{page.priority.line}</p>
@@ -204,9 +159,6 @@ function Active({ page, priorityHeading, onOpenGoal, onMove, onOpenSheet }: Acti
       <div className="aspiration-actions">
         <button type="button" className="aspiration-action" onClick={() => onOpenSheet('edit')}>
           Edit name and why
-        </button>
-        <button type="button" className="aspiration-action" onClick={() => onOpenSheet('review')}>
-          Review
         </button>
         <button type="button" className="aspiration-action" onClick={() => onOpenSheet('retire')}>
           Retire

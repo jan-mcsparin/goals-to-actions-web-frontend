@@ -201,8 +201,7 @@
 .aspiration-row-button:focus-visible,
 .aspiration-more summary:focus-visible,
 .aspiration-move:focus-visible,
-.aspiration-action:focus-visible,
-.aspiration-section h2:focus-visible {
+.aspiration-action:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 0.25rem;

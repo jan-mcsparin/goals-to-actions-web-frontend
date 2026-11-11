@@ -12,7 +12,6 @@ export type Aspiration = {
   priority?: number
   status: AspirationStatus
   createdAt: string
-  lastReviewedAt?: string
   retiredAt?: string
 }
 

@@ -5,7 +5,6 @@ import {
   getAspiration,
   moveAspiration,
   retireAspiration,
-  reviewAspiration,
   updateAspiration,
 } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
@@ -20,7 +19,6 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     moveAspiration: vi.fn(actual.moveAspiration),
     updateAspiration: vi.fn(actual.updateAspiration),
     retireAspiration: vi.fn(actual.retireAspiration),
-    reviewAspiration: vi.fn(actual.reviewAspiration),
     bringBackAspiration: vi.fn(actual.bringBackAspiration),
   }
 })
@@ -43,7 +41,6 @@ afterEach(() => {
   vi.mocked(moveAspiration).mockClear()
   vi.mocked(updateAspiration).mockClear()
   vi.mocked(retireAspiration).mockClear()
-  vi.mocked(reviewAspiration).mockClear()
   vi.mocked(bringBackAspiration).mockClear()
 })
 
@@ -68,28 +65,6 @@ describe('useAspiration, editing', () => {
 
     await waitFor(() => expect(result.current.message).toBe("Couldn't save that. Try again."))
     expect(result.current.page).toMatchObject({ name: 'Be fit', why: expect.stringMatching(/^So I can keep skiing/) })
-  })
-})
-
-describe('useAspiration, reviewing', () => {
-  it('records the review without waiting', async () => {
-    const { result } = renderHook(() => useAspiration('asp-fit', TODAY))
-    await waitFor(() => expect(result.current.page).toBeDefined())
-
-    act(() => result.current.review())
-
-    expect(reviewAspiration).toHaveBeenCalledWith('asp-fit')
-    expect(result.current.message).toBeUndefined()
-  })
-
-  it('shows a message when the review fails to save', async () => {
-    vi.mocked(reviewAspiration).mockRejectedValueOnce(new Error('offline'))
-    const { result } = renderHook(() => useAspiration('asp-fit', TODAY))
-    await waitFor(() => expect(result.current.page).toBeDefined())
-
-    act(() => result.current.review())
-
-    await waitFor(() => expect(result.current.message).toBe("Couldn't save that. Try again."))
   })
 })
 

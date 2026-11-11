@@ -9,7 +9,6 @@ import {
   moveAspiration,
   NotFoundError,
   retireAspiration,
-  reviewAspiration,
   updateAspiration,
 } from '../api/client.ts'
 import type { AspirationDetail } from '../api/types.ts'
@@ -32,7 +31,6 @@ export type UseAspiration = {
   message?: string
   notFound: boolean
   edit: (changes: NameAndWhy) => void
-  review: () => void
   retire: (itsWork: ItsWork) => Promise<boolean>
   bringBack: () => Promise<void>
   move: (direction: 'up' | 'down') => void
@@ -79,13 +77,6 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
     saveOptimistically(
       (before) => ({ ...before, aspiration: withNameAndWhy(before.aspiration, changes) }),
       () => updateAspiration(aspirationId, changes),
-    )
-  }
-
-  function review() {
-    saveOptimistically(
-      (before) => ({ ...before, aspiration: { ...before.aspiration, lastReviewedAt: new Date().toISOString() } }),
-      () => reviewAspiration(aspirationId),
     )
   }
 
@@ -137,7 +128,6 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
     message,
     notFound,
     edit,
-    review,
     retire,
     bringBack,
     move,
