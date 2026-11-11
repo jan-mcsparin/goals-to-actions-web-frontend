@@ -172,6 +172,7 @@ export function progressLabel(type: GoalType, hit: number, total: number): strin
 - **Where a recurring item belongs is the person's call** (Jan, Nov 10), so the mock shows both: Trash and Laundry under "Keep a calm home", Pay rent under Keep life running.
 - **A to-do row on today reads "Today"**, not the weekday, as the day picker does. Rows are ordered by day, then the bank, then later weeks.
 - **The Keep life running row reads "No recurring items"** when it has none, rather than "0 recurring".
+- **Amount targets aren't told apart from counts yet.** `WeeklyTarget` has only a free-text `unit`, so the week count (and Week's progress) counts every target. The mock has none, so nothing shows wrong. Settle it in the API's data model, then update both (Jan, Nov 10).
 - **With nothing set up**, the footer hint and Retired are left out; the Keep life running row stays.
 - **"Past goals (n)" and "Retired (n)" are native `<details>`**; whether they're open isn't remembered.
 - **The mock has one reached goal with no aspiration** ("File my taxes"), so Past goals under Other goals has something to show.

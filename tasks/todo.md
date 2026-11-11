@@ -97,7 +97,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `weekCount` per aspiration, plus Other goals (with their past goals), the Keep life running count and the retired list.
 
 **Acceptance criteria:**
-- [x] Two goals' targets are summed (3 + 2 = 5); each goal's done tasks are capped at its own target; paused goals and amount-less goals are left out; no targets gives no count.
+- [x] Two goals' targets are summed (3 + 2 = 5); each goal's done tasks are capped at its own target; paused goals and goals that aren't building goals are left out; no targets gives no count. (Amount targets aren't told apart from counts: deferred to the API's data model.)
 - [x] Other goals holds active and paused goals with no aspiration, and their reached and ended goals separately; both empty means no section.
 - [x] The upkeep count is the active recurring items with no aspiration; retired aspirations are listed by name.
 
