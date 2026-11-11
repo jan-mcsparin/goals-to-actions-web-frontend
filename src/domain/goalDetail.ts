@@ -3,7 +3,7 @@
 // the next check-in and, while a milestone is not yet, the card that leads
 // with progress. Also the push-out rule for moving a milestone's date.
 // Nothing here paces or warns: a passed date reads like any other.
-import { addDays, fromLocalDay, mondayOf, toLocalDay } from '../api/dates.ts'
+import { addDays, fromLocalDay, mondayOfDay, toLocalDay } from '../api/dates.ts'
 import type { Aspiration, Goal, GoalDetail, GoalType, Milestone, MilestoneStatus } from '../api/types.ts'
 import { milestoneCount } from './aspirations.ts'
 
@@ -195,7 +195,7 @@ export function parsedTarget(draft: TargetDraft): { amount: number; unit: string
 
 // The goal with its new target, from this week's Monday, as the API saves it.
 export function withTarget(detail: GoalDetail, target: { amount: number; unit: string }, today: string): GoalDetail {
-  const effectiveFrom = mondayDay(today)
+  const effectiveFrom = mondayOfDay(today)
   const existing = detail.weeklyTarget?.effectiveFrom === effectiveFrom ? detail.weeklyTarget : undefined
   return {
     ...detail,
@@ -512,13 +512,10 @@ function notYetCard({ goal, milestones }: GoalDetail): NotYetCard | undefined {
 }
 
 function weekNumber(startDate: string, day: string): number {
-  const weeks = daysBetween(mondayDay(startDate), mondayDay(day)) / 7
+  const weeks = daysBetween(mondayOfDay(startDate), mondayOfDay(day)) / 7
   return weeks + 1
 }
 
-function mondayDay(day: string): string {
-  return toLocalDay(mondayOf(fromLocalDay(day)))
-}
 
 // Whole days from a to b. Rounded, so a daylight-saving change doesn't matter.
 function daysBetween(a: string, b: string): number {

@@ -2,7 +2,7 @@
 // Loads through the API client; rules come from domain/week.ts.
 import { useEffect, useState } from 'react'
 import { getWeek, pullFromBank } from '../api/client.ts'
-import { fromLocalDay, mondayOf, toLocalDay } from '../api/dates.ts'
+import { mondayOfDay } from '../api/dates.ts'
 import type { Task, WeekPlan } from '../api/types.ts'
 import {
   daySummaries,
@@ -67,7 +67,8 @@ export function useWeek(today: string): UseWeek {
     setPlan((previous) => previous && withTaskReplaced(previous, next.id, next))
   }
 
-  return { range: weekRange(toLocalDay(mondayOf(fromLocalDay(today)))), week: plan && viewOf(plan, today), message, place }
+  const range = weekRange(mondayOfDay(today))
+  return { range, week: plan && viewOf(plan, today), message, place }
 }
 
 function viewOf(plan: WeekPlan, today: string): WeekView {
