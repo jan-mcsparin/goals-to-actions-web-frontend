@@ -252,13 +252,14 @@ describe('GoalDetail, add milestone sheet', () => {
     expect(screen.getByText('Bench 172, squat 345, deadlift 395')).toBeDefined()
   })
 
-  it('says step on a one-off goal, with dates no later than the deadline', async () => {
+  it('says step on a one-off goal, with dates from the start to the deadline', async () => {
     const user = userEvent.setup()
     renderGoal('goal-garage', { screen: 'aspirations' })
 
     await user.click(await screen.findByRole('button', { name: '+ Add step' }))
-    const sheet = screen.getByRole('dialog', { name: 'Add step' })
-    expect(within(sheet).getByLabelText('Date (optional)')).toHaveProperty('max', '2026-12-04')
+    const date = within(screen.getByRole('dialog', { name: 'Add step' })).getByLabelText('Date (optional)')
+    expect(date).toHaveProperty('min', '2026-11-02')
+    expect(date).toHaveProperty('max', '2026-12-04')
   })
 
   it('offers no adding on a reached goal', async () => {

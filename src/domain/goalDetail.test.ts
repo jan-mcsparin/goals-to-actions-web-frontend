@@ -10,6 +10,7 @@ import {
   parsedTarget,
   pushedDates,
   showAllLabel,
+  shownRowKey,
   targetDraft,
   weekLabel,
   withMilestone,
@@ -198,8 +199,8 @@ describe('goalPage timeline', () => {
     const { timeline } = current(detail({ goal: goal({ deadline: '2027-03-01' }) }))
 
     expect(timeline.rows.at(-1)).toMatchObject({ detail: 'Goal · Wk 22 · Mar 1' })
-    expect(current(detail({ goal: goal({ deadline: '2027-03-01' }) })).deadline).toBe('2027-03-01')
-    expect(current(detail())).not.toHaveProperty('deadline')
+    expect(current(detail({ goal: goal({ deadline: '2027-03-01' }) })).dateRange).toEqual({ min: '2026-10-05', max: '2027-03-01' })
+    expect(current(detail()).dateRange).toEqual({ min: '2026-10-05' })
   })
 
   it('calls them Steps on a one-off goal, and every step not done can be checked in', () => {
@@ -299,7 +300,7 @@ describe('goalPage reached and ended', () => {
     const page = goalPage(detail({ goal: goal({ status: 'reached', endedAt: '2026-11-10' }) }), TODAY)
 
     expect(page).toMatchObject({ kind: 'reached', reachedLine: 'Reached Nov 10', whatsNext: 'What’s next for Be fit?' })
-    const lastYear = goalPage(detail({ goal: goal({ status: 'reached', endedAt: '2025-09-15T12:00:00Z' }), aspiration: undefined }), TODAY)
+    const lastYear = goalPage(detail({ goal: goal({ status: 'reached', endedAt: '2025-09-15' }), aspiration: undefined }), TODAY)
     expect(lastYear).toMatchObject({ reachedLine: 'Reached Sep 15, 2025' })
     expect(lastYear).not.toHaveProperty('whatsNext')
   })
@@ -385,6 +386,16 @@ describe('pushedDates', () => {
       undefined,
       '2026-12-28',
     ])
+  })
+
+  it('leaves a later milestone that is already hit where it is', () => {
+    const withLaterHit = [
+      milestone('m1', 'notYet', { targetDate: '2026-11-08' }),
+      milestone('m2', 'hit', { targetDate: '2026-11-15' }),
+      milestone('m3', 'upcoming', { targetDate: '2026-11-30' }),
+    ]
+
+    expect(datesOf(pushedDates(goal(), withLaterHit, 'm1', '2026-11-22'))).toEqual(['2026-11-22', '2026-11-15', '2026-12-14'])
   })
 
   it('returns copies and leaves the input alone', () => {
@@ -481,6 +492,32 @@ describe('condenseTimeline', () => {
 
     expect(folds.map((fold) => fold.hidden)).toEqual([3, 2])
   })
+
+  it('gives each fold its own key, even when two read the same', () => {
+    const input = detail({
+      goal: goal({ type: 'oneOff' }),
+      milestones: [
+        milestone('s1', 'upcoming'),
+        milestone('s2', 'upcoming'),
+        milestone('s3', 'upcoming'),
+        milestone('s4', 'notYet'),
+        milestone('s5', 'upcoming'),
+        milestone('s6', 'upcoming'),
+      ],
+    })
+    const folds = condenseTimeline(goalPage(input, TODAY).timeline).filter((row) => row.kind === 'fold')
+
+    expect(folds.map((fold) => fold.label)).toEqual(['2 more: No date, No date', '2 more: No date, No date'])
+    expect(folds.map((fold) => fold.key)).toEqual(['fold-s2', 'fold-s5'])
+  })
+})
+
+describe('shownRowKey', () => {
+  it('keys a row by what it stands for', () => {
+    const rows = condenseTimeline(goalPage(detail(), TODAY).timeline)
+
+    expect(rows.map(shownRowKey)).toEqual(['start', 'm1', 'm2', 'm3', 'goal'])
+  })
 })
 
 describe('backLabel', () => {
@@ -534,6 +571,14 @@ describe('the add milestone form', () => {
     })
     expect(parsedMilestone({ measurableLine: '  ', targetDate: '' }, goal())).toBeUndefined()
     expect(parsedMilestone({ measurableLine: 'Paint', targetDate: '2027-01-05' }, goal({ deadline: '2027-01-04' }))).toBeUndefined()
+  })
+
+  it('takes no date before the goal started', () => {
+    expect(parsedMilestone({ measurableLine: 'Bench 140', targetDate: '2026-09-01' }, goal())).toBeUndefined()
+    expect(parsedMilestone({ measurableLine: 'Bench 150', targetDate: '2026-10-05' }, goal())).toEqual({
+      measurableLine: 'Bench 150',
+      targetDate: '2026-10-05',
+    })
   })
 
   it('adds the milestone last, at once', () => {

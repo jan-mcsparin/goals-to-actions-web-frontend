@@ -628,10 +628,12 @@ describe('addMilestone', () => {
     expect((await getGoal('goal-cook')).milestones.map((row) => row.id)).toEqual([milestone.id])
   })
 
-  it('rejects a blank line, a date past the deadline, a reached goal and an unknown one', async () => {
+  it('rejects a blank line, a date before the start or past the deadline, a reached goal and an unknown one', async () => {
     const deadline = store.goals.find((goal) => goal.id === 'goal-garage')!.deadline!
 
     await expect(addMilestone('goal-strong', { measurableLine: '  ' })).rejects.toThrow()
+    await expect(addMilestone('goal-strong', { measurableLine: 'Bench 140', targetDate: '2026-10-04' })).rejects.toThrow()
+    await expect(addMilestone('goal-strong', { measurableLine: 'Bench 146', targetDate: '2026-10-05' })).resolves.toBeDefined()
     await expect(addMilestone('goal-garage', { measurableLine: 'Paint', targetDate: '2027-06-01' })).rejects.toThrow()
     await expect(addMilestone('goal-garage', { measurableLine: 'Paint', targetDate: deadline })).resolves.toBeDefined()
     await expect(addMilestone('goal-5k', { measurableLine: 'Run 6k' })).rejects.toThrow()

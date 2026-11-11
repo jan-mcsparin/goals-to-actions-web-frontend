@@ -95,13 +95,14 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
       })
   }
 
+  // What's shown already matches what's saved, so nothing settles afterwards:
+  // a slow first save can't flash over a quick second one.
   function setTarget(draft: TargetDraft) {
     const target = parsedTarget(draft)
     if (!target) return
     saveOptimistically(
       (before) => withTarget(before, target, today),
       () => setWeeklyTarget(goalId, target.amount, target.unit),
-      (shown, saved) => ({ ...shown, weeklyTarget: saved }),
     )
   }
 
@@ -119,7 +120,7 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
   const page = detail && goalPage(detail, today)
   return {
     page,
-    backTo: detail ? backLabel(from, detail.aspiration) : from.screen === 'aspirations' ? 'Aspirations' : undefined,
+    backTo: backLabel(from, detail?.aspiration),
     timeline: page && shownTimeline(page, expanded),
     targetDraft: detail && targetDraft(detail),
     message,

@@ -19,7 +19,7 @@ References: [Flow 2](../../docs/flows.md#flow-2-set-a-goal-and-its-milestones), 
   - when: "Wk 9 · Nov 30", or "No date". Weeks count from the goal's start, and the week it starts in is Wk 1 (Be strong starts Oct 5, so Nov 30 is Wk 9);
   - its status: "Hit" with the result, "Not yet", or nothing for upcoming.
   - **Next** marks the first milestone that isn't hit, whether upcoming or not yet. A check-in never skips past a milestone: one marked not yet stays Next until it's hit. When every milestone is hit, the Goal row is Next.
-  - "+ Add milestone" ("+ Add step") at the end: a measurable line and an optional date (no later than the deadline).
+  - "+ Add milestone" ("+ Add step") at the end: a measurable line and an optional date, from the goal's start to its deadline.
 - **Steps in any order:** a one-off goal's steps don't depend on each other, so every step that isn't done opens the check-in sheet when tapped. Next still marks the first one that isn't done.
 - **Condensed timeline:** with more than four milestones, the timeline folds so the weekly target and Check in stay near the top of the screen. Design: [`goal-detail-timeline.png`](../../docs/screens/goal-detail-timeline.png) (option D, Nov 10).
   - Always shown: the latest hit milestone, any milestone marked "Not yet", Next, and the Goal row. For a building or quitting goal, a not-yet milestone is Next, so they're one row.
@@ -100,7 +100,7 @@ reopenMilestone(milestoneId: string, changes?: { measurableLine?: string; target
 
 pauseGoal(goalId: string): Promise<Goal>    // its not-done tasks this week -> 'skipped'
 resumeGoal(goalId: string): Promise<Goal>   // from paused or ended; clears endedAt; this week's skipped tasks -> 'inBank'
-endGoal(goalId: string, outcome: 'reached' | 'ended'): Promise<Goal>   // sets endedAt
+endGoal(goalId: string, outcome: 'reached' | 'ended'): Promise<Goal>   // sets endedAt to today (a day, not an instant)
 ```
 
 All keep #1's rules: async, return copies, reject unknown IDs and wrong states (checking in a milestone that's already hit, pausing an ended goal, an amount below 1, an empty line). No changes to the entity types.

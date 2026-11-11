@@ -1,6 +1,7 @@
 // The functions screens and hooks call. They read the in-memory mock store for
 // now; later they call the real API and keep the same signatures.
 import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
+import { isWithinGoal } from '../domain/goalDetail.ts'
 import { store } from './mockStore.ts'
 import type {
   Aspiration,
@@ -123,7 +124,7 @@ export async function addMilestone(
   const measurableLine = milestone.measurableLine.trim()
   if (!measurableLine) throw new Error('A milestone needs a measurable line')
   const { targetDate } = milestone
-  if (targetDate && goal.deadline && targetDate > goal.deadline) throw new Error("A milestone can't come after the deadline")
+  if (targetDate && !isWithinGoal(targetDate, goal)) throw new Error("A milestone's date must fall between the goal's start and its deadline")
 
   const added: Milestone = { id: newId('ms'), goalId, measurableLine, status: 'upcoming' }
   if (targetDate) added.targetDate = targetDate

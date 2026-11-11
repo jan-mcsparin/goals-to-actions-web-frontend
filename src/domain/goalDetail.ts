@@ -80,9 +80,12 @@ type PageBase = {
   timeline: Timeline
 }
 
+// The dates a milestone can have: from the goal's start to its deadline.
+export type DateRange = { min: string; max?: string }
+
 export type CurrentPage = PageBase & {
   kind: 'current'
-  deadline?: string // the latest a milestone's date can be
+  dateRange: DateRange
   target?: TargetSection
   nextCheckIn: NextCheckIn
   notYet?: NotYetCard
@@ -122,7 +125,7 @@ export function goalPage(detail: GoalDetail, today: string): GoalPage {
   return {
     kind: 'current',
     ...base,
-    ...(goal.deadline && { deadline: goal.deadline }),
+    dateRange: { min: goal.startDate, ...(goal.deadline && { max: goal.deadline }) },
     ...(target && { target }),
     nextCheckIn: nextCheckIn(detail),
     ...(notYet && { notYet }),
@@ -132,7 +135,12 @@ export function goalPage(detail: GoalDetail, today: string): GoalPage {
 // "Wk 9 · Nov 30": Monday-start weeks, the goal's first week is Wk 1.
 export function weekLabel(startDate: string, targetDate: string | undefined): string {
   if (!targetDate) return 'No date'
-  return `Wk ${weekNumber(startDate, targetDate)} · ${shortDate(targetDate)}`
+  return `${weekOnly(startDate, targetDate)} · ${shortDate(targetDate)}`
+}
+
+// "Wk 9", or "No date".
+function weekOnly(startDate: string, targetDate: string | undefined): string {
+  return targetDate ? `Wk ${weekNumber(startDate, targetDate)}` : 'No date'
 }
 
 // "2 of 6 milestones hit", "2 of 6 steps done". The goal counts as the last.
@@ -188,16 +196,22 @@ export function withTarget(detail: GoalDetail, target: { amount: number; unit: s
   }
 }
 
-// A line and an optional date no later than the deadline, or nothing to save.
+// A line and an optional date from the goal's start to its deadline, or
+// nothing to save.
 export function parsedMilestone(
   draft: MilestoneDraft,
-  goal: Pick<Goal, 'deadline'>,
+  goal: Pick<Goal, 'startDate' | 'deadline'>,
 ): { measurableLine: string; targetDate?: string } | undefined {
   const measurableLine = draft.measurableLine.trim()
   const targetDate = draft.targetDate || undefined
   if (!measurableLine) return undefined
-  if (targetDate && goal.deadline && targetDate > goal.deadline) return undefined
+  if (targetDate && !isWithinGoal(targetDate, goal)) return undefined
   return { measurableLine, ...(targetDate && { targetDate }) }
+}
+
+// A milestone's date can't come before the goal started or after its deadline.
+export function isWithinGoal(day: string, goal: Pick<Goal, 'startDate' | 'deadline'>): boolean {
+  return day >= goal.startDate && (!goal.deadline || day <= goal.deadline)
 }
 
 export function withMilestone(detail: GoalDetail, milestone: Milestone): GoalDetail {
@@ -219,14 +233,23 @@ export function showAllLabel(timeline: Timeline): string {
   return `Show all ${timeline.rows.filter((row) => row.kind !== 'start').length}`
 }
 
-// A run of timeline rows folded into one tappable row.
+// A run of timeline rows folded into one tappable row. Two folds can read the
+// same, so each is keyed by the first row it hides.
 export type FoldRow = {
   kind: 'fold'
+  key: string
   label: string
   hidden: number
 }
 
 export type ShownRow = TimelineRow | FoldRow
+
+// A stable key per shown row: a milestone's id, 'start', 'goal', or the fold's.
+export function shownRowKey(row: ShownRow): string {
+  if (row.kind === 'milestone') return row.milestoneId
+  if (row.kind === 'fold') return row.key
+  return row.kind
+}
 
 const MOST_SHOWN_IN_FULL = 4
 
@@ -249,7 +272,9 @@ export function condenseTimeline(timeline: Timeline): ShownRow[] {
   let run: TimelineRow[] = []
   const closeRun = () => {
     if (run.length === 1) shown.push(run[0])
-    else if (run.length > 1) shown.push({ kind: 'fold', label: foldLabel(run, steps), hidden: run.length })
+    else if (run.length > 1) {
+      shown.push({ kind: 'fold', key: `fold-${shownRowKey(run[0])}`, label: foldLabel(run, steps), hidden: run.length })
+    }
     run = []
   }
   for (const row of rows) {
@@ -320,12 +345,13 @@ function timeline(detail: GoalDetail): Timeline {
   const start: StartRow = { kind: 'start', when: shortDate(goal.startDate), ...(goal.baseline && { baseline: goal.baseline }) }
   const rows = milestones.map((milestone): MilestoneRow => {
     const isNext = milestone === next
+    const week = weekOnly(goal.startDate, milestone.targetDate)
     return {
       kind: 'milestone',
       milestoneId: milestone.id,
       measurableLine: milestone.measurableLine,
-      when: weekLabel(goal.startDate, milestone.targetDate),
-      week: milestone.targetDate ? `Wk ${weekNumber(goal.startDate, milestone.targetDate)}` : 'No date',
+      when: milestone.targetDate ? `${week} · ${shortDate(milestone.targetDate)}` : week,
+      week,
       status: milestone.status,
       ...(milestone.result && { result: milestone.result }),
       ...(milestone.status !== 'upcoming' && { statusLine: statusLine(milestone) }),
@@ -421,9 +447,9 @@ function shortDate(day: string): string {
   return fromLocalDay(day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-// "Nov 10", or "Sep 15, 2025" in another year. Takes a day or an instant.
-function dayLabel(value: string, today: string): string {
-  const date = value.length === 10 ? fromLocalDay(value) : new Date(value)
+// "Nov 10", or "Sep 15, 2025" in another year.
+function dayLabel(day: string, today: string): string {
+  const date = fromLocalDay(day)
   const sameYear = date.getFullYear() === fromLocalDay(today).getFullYear()
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(!sameYear && { year: 'numeric' }) })
 }

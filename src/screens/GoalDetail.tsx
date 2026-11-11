@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { AddMilestoneSheet } from '../components/AddMilestoneSheet.tsx'
 import { BackLink } from '../components/BackLink.tsx'
 import { TargetSheet } from '../components/TargetSheet.tsx'
-import type { CurrentPage, GoalPage, ShownRow } from '../domain/goalDetail.ts'
+import { shownRowKey, type CurrentPage, type GoalPage, type ShownRow } from '../domain/goalDetail.ts'
 import { useGoal, type ShownTimeline } from '../hooks/useGoal.ts'
 import type { GoalOrigin } from '../hooks/useNavigation.ts'
 import './GoalDetail.css'
@@ -97,7 +97,7 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
       <AddMilestoneSheet
         open={sheet === 'milestone'}
         noun={page?.timeline.heading === 'Steps' ? 'step' : 'milestone'}
-        deadline={page?.kind === 'current' ? page.deadline : undefined}
+        dateRange={page?.kind === 'current' ? page.dateRange : undefined}
         onSave={(draft) => {
           addMilestone(draft)
           closeSheet()
@@ -146,7 +146,7 @@ function TimelineSection({ page, timeline, onExpand, onCollapse, onAdd }: Timeli
       </div>
       <ol className="timeline">
         {timeline.rows.map((row) => (
-          <TimelineItem key={rowKey(row)} row={row} onExpand={onExpand} />
+          <TimelineItem key={shownRowKey(row)} row={row} onExpand={onExpand} />
         ))}
       </ol>
       {(canAdd || timeline.condensable) && (
@@ -200,12 +200,6 @@ function TimelineItem({ row, onExpand }: { row: ShownRow; onExpand: () => void }
       {row.statusLine && <span className="timeline-status">{row.statusLine}</span>}
     </li>
   )
-}
-
-function rowKey(row: ShownRow): string {
-  if (row.kind === 'milestone') return row.milestoneId
-  if (row.kind === 'fold') return `fold-${row.label}`
-  return row.kind
 }
 
 function CurrentSections({ page, onEditTarget }: { page: CurrentPage; onEditTarget: () => void }) {

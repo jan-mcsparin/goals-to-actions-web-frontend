@@ -28,7 +28,7 @@ export type Goal = {
   startDate: string
   deadline?: string
   lastReviewedAt?: string
-  endedAt?: string
+  endedAt?: string // a day, set when reached or ended
   aspirationId?: string
 }
 
