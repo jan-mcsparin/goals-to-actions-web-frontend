@@ -47,7 +47,6 @@ export function buildMockData(today: Date): MockData {
       id: 'asp-spanish',
       name: 'Speak Spanish',
       why: 'So I can talk with the family in Valencia.',
-      priority: 3,
       status: 'retired',
       createdAt: '2026-03-02T09:00:00Z',
       retiredAt: '2026-09-15T09:00:00Z',

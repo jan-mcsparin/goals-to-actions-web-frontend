@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   checkOffTask,
+  getAspiration,
   getAspirations,
   getBank,
   getDay,
@@ -413,6 +414,70 @@ describe('getAspirations', () => {
     const second = await getAspirations()
     expect(second.aspirations[0].name).toBe('Be fit')
     expect(second.goals[0].label).toBe('Be strong')
+  })
+})
+
+describe('getAspiration', () => {
+  it('returns the aspiration with its goals of every status and their milestones in order', async () => {
+    const detail = await getAspiration('asp-fit')
+
+    expect(detail.aspiration).toMatchObject({ id: 'asp-fit', name: 'Be fit', priority: 1 })
+    expect(ids(detail.goals)).toEqual(['goal-5k', 'goal-endurance', 'goal-look-good', 'goal-strong'])
+    expect(detail.milestones.filter((milestone) => milestone.goalId === 'goal-strong').map((milestone) => milestone.id)).toEqual([
+      'ms-strong-1',
+      'ms-strong-2',
+      'ms-strong-3',
+      'ms-strong-4',
+      'ms-strong-5',
+    ])
+    expect(detail.milestones.every((milestone) => ['goal-strong', 'goal-endurance', 'goal-look-good'].includes(milestone.goalId))).toBe(true)
+  })
+
+  it('returns its recurring items, active or not', async () => {
+    store.recurringItems.find((item) => item.id === 'rec-hockey')!.active = false
+
+    const { recurringItems } = await getAspiration('asp-fit')
+
+    expect(ids(recurringItems)).toEqual(['rec-hockey', 'rec-stretch'])
+  })
+
+  it("returns this week's targets and goal tasks for its goals only", async () => {
+    const { weeklyTargets, weekTasks } = await getAspiration('asp-fit')
+
+    expect(ids(weeklyTargets)).toEqual(['wt-endurance', 'wt-strong'])
+    expect(weekTasks.length).toBeGreaterThan(0)
+    expect(
+      weekTasks.every((task) => ['goal-strong', 'goal-endurance', 'goal-look-good', 'goal-5k'].includes(task.goalId!)),
+    ).toBe(true)
+    expect(weekTasks.every((task) => task.weekOf === '2026-11-09')).toBe(true)
+  })
+
+  it('counts the active aspirations', async () => {
+    const { activeCount } = await getAspiration('asp-home')
+
+    expect(activeCount).toBe(2)
+  })
+
+  it('returns a retired aspiration with its reached goal and no priority', async () => {
+    const detail = await getAspiration('asp-spanish')
+
+    expect(detail.aspiration.status).toBe('retired')
+    expect(detail.aspiration.priority).toBeUndefined()
+    expect(ids(detail.goals)).toEqual(['goal-spanish-a2'])
+  })
+
+  it('rejects an unknown id', async () => {
+    await expect(getAspiration('asp-nope')).rejects.toThrow('No aspiration with id asp-nope')
+  })
+
+  it('returns copies, so changing them does not change the store', async () => {
+    const first = await getAspiration('asp-fit')
+    first.aspiration.name = 'changed'
+    first.goals[0].label = 'changed'
+
+    const second = await getAspiration('asp-fit')
+    expect(second.aspiration.name).toBe('Be fit')
+    expect(second.goals.map((goal) => goal.label)).not.toContain('changed')
   })
 })
 

@@ -2,7 +2,7 @@
 // now; later they call the real API and keep the same signatures.
 import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
 import { store } from './mockStore.ts'
-import type { AspirationsOverview, Bank, DayPlan, Task, Upkeep, WeekPlan, WeeklyTarget } from './types.ts'
+import type { Aspiration, AspirationDetail, AspirationsOverview, Bank, DayPlan, Task, Upkeep, WeekPlan, WeeklyTarget } from './types.ts'
 
 export async function getDay(date: string): Promise<DayPlan> {
   const tasks = store.tasks.filter((task) => task.plannedDay === date)
@@ -44,6 +44,22 @@ export async function getAspirations(): Promise<AspirationsOverview> {
     recurringItems: store.recurringItems.filter((item) => item.active),
     weeklyTargets: targetsInForce(weekOf),
     weekTasks: store.tasks.filter((task) => task.weekOf === weekOf && task.goalId !== undefined),
+  })
+}
+
+export async function getAspiration(aspirationId: string): Promise<AspirationDetail> {
+  const aspiration = findAspiration(aspirationId)
+  const weekOf = thisWeek()
+  const goals = store.goals.filter((goal) => goal.aspirationId === aspirationId)
+  const goalIds = new Set(goals.map((goal) => goal.id))
+  return structuredClone({
+    aspiration,
+    goals,
+    milestones: store.milestones.filter((milestone) => goalIds.has(milestone.goalId)),
+    recurringItems: store.recurringItems.filter((item) => item.aspirationId === aspirationId),
+    weeklyTargets: targetsInForce(weekOf).filter((target) => goalIds.has(target.goalId)),
+    weekTasks: store.tasks.filter((task) => task.weekOf === weekOf && task.goalId !== undefined && goalIds.has(task.goalId)),
+    activeCount: store.aspirations.filter((candidate) => candidate.status === 'active').length,
   })
 }
 
@@ -136,6 +152,12 @@ function currentTarget(goalId: string, onOrBefore: string): WeeklyTarget | undef
   return store.weeklyTargets
     .filter((target) => target.goalId === goalId && target.effectiveFrom <= onOrBefore)
     .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0]
+}
+
+function findAspiration(aspirationId: string): Aspiration {
+  const aspiration = store.aspirations.find((candidate) => candidate.id === aspirationId)
+  if (!aspiration) throw new Error(`No aspiration with id ${aspirationId}`)
+  return aspiration
 }
 
 function findTask(taskId: string): Task {

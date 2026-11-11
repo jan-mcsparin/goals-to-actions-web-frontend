@@ -11,12 +11,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Make `Aspiration.priority` optional (active only) and drop Speak Spanish's. Add `AspirationDetail` and `getAspiration(aspirationId)`: the aspiration, its goals of every status, their milestones in order, its recurring items (active and inactive), this week's targets and goal tasks for its goals, and `activeCount`.
 
 **Acceptance criteria:**
-- [ ] Every active aspiration has a priority, numbered 1…n with no gaps; retired ones have none (mock consistency test). The tab and Today sort as before.
-- [ ] Be fit returns its four goals (three active, one reached), Stretch and Hockey, targets for Be strong and Have endurance, priority 1 and `activeCount` 2. Speak Spanish returns its reached goal and no priority.
-- [ ] An unknown id rejects; the result is a copy.
+- [x] Every active aspiration has a priority, numbered 1…n with no gaps; retired ones have none (mock consistency test). The tab and Today sort as before.
+- [x] Be fit returns its four goals (three active, one reached), Stretch and Hockey, targets for Be strong and Have endurance, priority 1 and `activeCount` 2. Speak Spanish returns its reached goal and no priority.
+- [x] An unknown id rejects; the result is a copy.
 
 **Verification:**
-- [ ] `npm test`: `mockData.test.ts`, `client.test.ts` (a `getAspiration` block), existing domain tests
+- [x] `npm test`: `mockData.test.ts`, `client.test.ts` (a `getAspiration` block), existing domain tests
 
 **Dependencies:** None
 

@@ -77,6 +77,13 @@ describe('mock data contents', () => {
     }
   })
 
+  it('numbers active aspirations 1, 2, … in priority order and gives retired ones no priority', () => {
+    const active = data.aspirations.filter((aspiration) => aspiration.status === 'active')
+    const retired = data.aspirations.filter((aspiration) => aspiration.status === 'retired')
+    expect(active.map((aspiration) => aspiration.priority).sort()).toEqual([1, 2])
+    expect(retired.every((aspiration) => aspiration.priority === undefined)).toBe(true)
+  })
+
   it('gives Be strong a baseline, a weekly target and five milestones', () => {
     const strong = data.goals.find((goal) => goal.label === 'Be strong')
     expect(strong?.baseline).toBeDefined()

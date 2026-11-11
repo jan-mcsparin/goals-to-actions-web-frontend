@@ -57,7 +57,7 @@ export function aspirationsView(overview: AspirationsOverview): AspirationsView 
 export function aspirationCards(overview: AspirationsOverview): AspirationCard[] {
   return overview.aspirations
     .filter((aspiration) => aspiration.status === 'active')
-    .sort((a, b) => a.priority - b.priority)
+    .sort((a, b) => (a.priority ?? Infinity) - (b.priority ?? Infinity))
     .map((aspiration) => cardFor(aspiration, overview))
 }
 
