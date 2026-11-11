@@ -65,12 +65,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `goalPage(detail, today)` returns `current | reached | ended` with: header (type label, "Paused", aspiration link), started/latest lines, timeline rows (Start, milestones, Goal) with status, `weekLabel` and Next, the "1 of 6 hit" count, the target section (by type), and next check-in. Also `pushedDates(milestones, movedId, newDate, deadline?)` for PR 2, since it's pure and belongs here.
 
 **Acceptance criteria:**
-- [ ] Next is the first milestone that isn't hit, so Be strong's not-yet milestone 2 is Next. With all hit, or none, the Goal row is Next and "0 of 1 hit" for no milestones. One-off goals say "Steps" and every not-done step is checkable.
-- [ ] Week labels count the start week as Wk 1; "No date"; Latest is the last hit or not-yet result with its date, and is left out when there's none; no baseline leaves the section out; target section: amount and unit, "No weekly target yet", "Deadline: …" for one-off, "Since Oct 5" for quitting.
-- [ ] `pushedDates`: later dated milestones move by the same days, capped at the deadline; earlier and undated ones don't move; moving earlier pulls nothing in; one-off goals move only the step itself.
+- [x] Next is the first milestone that isn't hit, so Be strong's not-yet milestone 2 is Next. With all hit, or none, the Goal row is Next and "0 of 1 hit" for no milestones. One-off goals say "Steps" ("1 of 5 done") and every not-done step is checkable.
+- [x] Week labels count the start week as Wk 1; "No date"; Latest is the last hit or not-yet result with its date, and is left out when there's none; no baseline leaves the section out; target section: amount and unit, "No weekly target yet", "Deadline: …" for one-off, "Since Oct 5" for quitting.
+- [x] `pushedDates`: later dated milestones move by the same days, capped at the deadline; earlier and undated ones don't move; moving earlier pulls nothing in; one-off goals move only the step itself.
 
 **Verification:**
-- [ ] `npm test`: new `domain/goalDetail.test.ts`; existing domain tests still pass
+- [x] `npm test`: new `domain/goalDetail.test.ts`; existing domain tests still pass
 
 **Dependencies:** Task 1
 
