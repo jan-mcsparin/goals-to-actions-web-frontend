@@ -233,11 +233,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Parent repo (own branch and PR): Flow 6 (check-in, not yet stays next, push-out capped at the deadline, steps in any order), Flow 7 (Pause / Resume / End, Go again, no goal Review), `data-model.md` if it mentions goal review, and the screen inventory. Front end: spec 005 marked built, `specs/README.md` moves 005 to Done.
 
 **Acceptance criteria:**
-- [ ] No doc still describes goal Review, or a not-yet milestone being passed over.
-- [ ] Every rule in plan decisions 5–9 appears in `docs/`.
+- [x] No doc still describes goal Review, or a not-yet milestone being passed over.
+- [x] Every rule in plan decisions 5–9 appears in `docs/`.
 
 **Verification:**
-- [ ] `npm test && npm run lint && npm run build`; read-through of the parent diff
+- [x] `npm test && npm run lint && npm run build`; read-through of the parent diff
 
 **Dependencies:** Task 10
 
@@ -246,6 +246,6 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** S
 
 ## Checkpoint D (PR 2)
-- [ ] Tests, lint and build pass
+- [x] Tests, lint and build pass
 - [ ] On the phone, 375 and 390 px, light and dark: check-in sheet, not-yet card with a date picker, End sheet; nothing opens unprompted
 - [ ] PR 2 opened, closing #5; the parent-repo docs PR linked

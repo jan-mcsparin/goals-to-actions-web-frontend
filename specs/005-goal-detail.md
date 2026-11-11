@@ -1,6 +1,6 @@
 # Spec: Goal detail screen (#5)
 
-Status: approved 2026-11-10; PR 1 built (the screen, condensed timeline, target and Add milestone), PR 2 next; plan in [`../tasks/plan.md`](../tasks/plan.md). Issue: [#5](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/5). Module `goal-detail` in the [map](README.md). Depends on #4 and the [aspiration page](013-aspiration-page.md).
+Status: built 2026-11-11 in two PRs (#20: the screen, condensed timeline, target and Add milestone; PR 2: check-in, not yet, pause and end), Review dropped; plan in [`../tasks/plan.md`](../tasks/plan.md). Issue: [#5](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/5). Module `goal-detail` in the [map](README.md). Depends on #4 and the [aspiration page](013-aspiration-page.md).
 
 ## Objective
 

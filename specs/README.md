@@ -11,17 +11,17 @@ One spec per issue, numbered like the issue. This file is the index and the map 
 | [003 Week screen](003-week-screen.md) | #3 |
 | [004 Aspirations tab](004-aspirations-tab.md) | #4 |
 | [013 Aspiration page](013-aspiration-page.md) | #13 |
+| [005 Goal detail](005-goal-detail.md) | #5 |
 
 ## Remaining (drafted 2026-11-10)
 
 | Module id | Spec | Issue | Responsibility | Depends on |
 |---|---|---|---|---|
-| `goal-detail` | [005](005-goal-detail.md) | #5 | One goal in full: milestones, weekly target, check-in, Pause / End | `aspirations-tab`, `aspiration-page` |
 | `add-sheet` | [006](006-add-sheet.md) | #6 | Add a task, goal, aspiration or recurring item; the + in the tab bar | `aspirations-tab`, `aspiration-page`, `goal-detail` |
 | `settings-screen` | [007](007-settings-screen.md) | #7 | Intensity and the few preferences; the gear | `aspirations-tab` |
 | `install-instant-open` | [008](008-install-instant-open.md) | #8 | Installs on iPhone, opens offline, comes back where it was | all of the above |
 
-Build order: `aspirations-tab` → `aspiration-page` (done) → `goal-detail` → `add-sheet` → `settings-screen` → `install-instant-open`.
+Build order: `aspirations-tab` → `aspiration-page` → `goal-detail` (done) → `add-sheet` → `settings-screen` → `install-instant-open`.
 
 The order follows the model: tab → aspiration → goal. `settings-screen` only needs the tab, so it can move earlier if wanted. `install-instant-open` goes last because it checks that every screen is remembered and works offline.
 
