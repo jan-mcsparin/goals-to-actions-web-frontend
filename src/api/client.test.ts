@@ -592,6 +592,23 @@ describe('setWeeklyTarget', () => {
     expect(week.weeklyTargets.find((row) => row.goalId === 'goal-strong')?.amount).toBe(4)
   })
 
+  // Browsers only offer crypto.randomUUID on secure pages, and the dev server
+  // reached from a phone is plain http.
+  it('works where crypto.randomUUID is missing, and gives each new row its own id', async () => {
+    vi.stubGlobal('crypto', {})
+    try {
+      const first = await setWeeklyTarget('goal-strong', 4, 'lifting sessions')
+      const second = await setWeeklyTarget('goal-endurance', 3, 'runs')
+      const milestone = await addMilestone('goal-strong', { measurableLine: 'Bench 172' })
+
+      expect(new Set([first.id, second.id, milestone.id]).size).toBe(3)
+      expect(first.id).toMatch(/^wt-/)
+      expect(milestone.id).toMatch(/^ms-/)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('rejects an amount below 1 or not whole, and a blank unit', async () => {
     await expect(setWeeklyTarget('goal-strong', 0, 'lifting sessions')).rejects.toThrow()
     await expect(setWeeklyTarget('goal-strong', 2.5, 'lifting sessions')).rejects.toThrow()

@@ -308,9 +308,13 @@ function findCurrentGoal(goalId: string): Goal {
   return goal
 }
 
-// The real API assigns ids; the mock makes its own.
+// The real API assigns ids; the mock makes its own. A counter, not
+// crypto.randomUUID, which browsers leave out on plain-http pages such as the
+// dev server opened from a phone. The store resets on reload, and so does this.
+let lastId = 0
+
 function newId(prefix: string): string {
-  return `${prefix}-${crypto.randomUUID()}`
+  return `${prefix}-new-${++lastId}`
 }
 
 function pauseWork(goals: Goal[], items: RecurringItem[]) {
