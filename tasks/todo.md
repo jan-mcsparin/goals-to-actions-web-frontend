@@ -235,4 +235,4 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** S
 
 ## Checkpoint E
-- [ ] Web-frontend PR open from `aspirations-tab`, referencing #4; a parent-repo PR only if its docs changed
+- [x] Web-frontend PR open from `aspirations-tab`, referencing #4 (#15); no parent-repo PR, its docs already matched
