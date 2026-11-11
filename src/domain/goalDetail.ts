@@ -531,7 +531,7 @@ function shortDate(day: string): string {
 }
 
 // "Nov 10", or "Sep 15, 2025" in another year.
-function dayLabel(day: string, today: string): string {
+export function dayLabel(day: string, today: string): string {
   const date = fromLocalDay(day)
   const sameYear = date.getFullYear() === fromLocalDay(today).getFullYear()
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(!sameYear && { year: 'numeric' }) })
