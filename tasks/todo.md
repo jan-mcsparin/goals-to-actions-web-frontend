@@ -151,12 +151,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `RetireSheet`, titled "Retire Be fit?": the history line, "What should happen to its goals and recurring items?", Pause them (selected) and Keep them going with their lines, the note, "Retire Be fit" and Cancel. Retiring waits for the save, then App goes to Aspirations.
 
 **Acceptance criteria:**
-- [ ] The sheet leads with "Since October: 1 goal reached, 3 goals active, 2 recurring items." and Pause them is selected.
-- [ ] Each choice does what it says; afterwards the tab shows Be fit under Retired, and with Keep them going its goals under Other goals (App tests).
-- [ ] A failed retire stays on the page with the message.
+- [x] The sheet leads with "Since October: 1 goal reached, 3 goals active, 2 recurring items." and Pause them is selected.
+- [x] Each choice does what it says; afterwards the tab shows Be fit under Retired, and with Keep them going its goals under Other goals (App tests).
+- [x] A failed retire stays on the page with the message.
 
 **Verification:**
-- [ ] `npm test`: `Aspiration.test.tsx`, `App.test.tsx`
+- [x] `npm test`: `Aspiration.test.tsx`, `App.test.tsx`
 - [ ] Manual: fits without scrolling at 375 px
 
 **Dependencies:** Tasks 3, 5

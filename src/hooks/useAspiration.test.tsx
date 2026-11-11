@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getAspiration, moveAspiration, updateAspiration } from '../api/client.ts'
+import { getAspiration, moveAspiration, retireAspiration, updateAspiration } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { ActivePage } from '../domain/aspiration.ts'
 import { useAspiration } from './useAspiration.ts'
@@ -12,6 +12,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     getAspiration: vi.fn(actual.getAspiration),
     moveAspiration: vi.fn(actual.moveAspiration),
     updateAspiration: vi.fn(actual.updateAspiration),
+    retireAspiration: vi.fn(actual.retireAspiration),
   }
 })
 
@@ -32,6 +33,7 @@ afterEach(() => {
   vi.mocked(getAspiration).mockClear()
   vi.mocked(moveAspiration).mockClear()
   vi.mocked(updateAspiration).mockClear()
+  vi.mocked(retireAspiration).mockClear()
 })
 
 describe('useAspiration, editing', () => {
@@ -55,6 +57,36 @@ describe('useAspiration, editing', () => {
 
     await waitFor(() => expect(result.current.message).toBe("Couldn't save that. Try again."))
     expect(result.current.page).toMatchObject({ name: 'Be fit', why: expect.stringMatching(/^So I can keep skiing/) })
+  })
+})
+
+describe('useAspiration, retiring', () => {
+  it('waits for the save, then reports it worked', async () => {
+    const { result } = renderHook(() => useAspiration('asp-fit', TODAY))
+    await waitFor(() => expect(result.current.page).toBeDefined())
+
+    let worked: boolean | undefined
+    await act(async () => {
+      worked = await result.current.retire('pause')
+    })
+
+    expect(worked).toBe(true)
+    expect(retireAspiration).toHaveBeenCalledWith('asp-fit', 'pause')
+  })
+
+  it('stays as it was, with a message, when the save fails', async () => {
+    vi.mocked(retireAspiration).mockRejectedValueOnce(new Error('offline'))
+    const { result } = renderHook(() => useAspiration('asp-fit', TODAY))
+    await waitFor(() => expect(result.current.page).toBeDefined())
+
+    let worked: boolean | undefined
+    await act(async () => {
+      worked = await result.current.retire('keep')
+    })
+
+    expect(worked).toBe(false)
+    expect(result.current.message).toBe("Couldn't save that. Try again.")
+    expect(result.current.page?.kind).toBe('active')
   })
 })
 

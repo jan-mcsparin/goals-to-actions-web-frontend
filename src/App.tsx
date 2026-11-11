@@ -40,6 +40,7 @@ function App() {
           aspirationId={current.aspirationId}
           today={today}
           onBack={backToAspirations}
+          onRetired={backToAspirations}
           onOpenGoal={(goalId) =>
             goTo({ screen: 'goal', goalId, from: { screen: 'aspiration', aspirationId: current.aspirationId } })
           }

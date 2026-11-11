@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { resetStore } from '../api/mockStore.ts'
+import { resetStore, store } from '../api/mockStore.ts'
 import { Aspiration } from './Aspiration.tsx'
 
 const TODAY = '2026-11-11'
@@ -20,8 +20,17 @@ afterEach(() => {
 function renderPage(aspirationId = 'asp-fit') {
   const onBack = vi.fn()
   const onOpenGoal = vi.fn()
-  render(<Aspiration aspirationId={aspirationId} today={TODAY} onBack={onBack} onOpenGoal={onOpenGoal} />)
-  return { onBack, onOpenGoal }
+  const onRetired = vi.fn()
+  render(
+    <Aspiration
+      aspirationId={aspirationId}
+      today={TODAY}
+      onBack={onBack}
+      onOpenGoal={onOpenGoal}
+      onRetired={onRetired}
+    />,
+  )
+  return { onBack, onOpenGoal, onRetired }
 }
 
 describe('Aspiration, active', () => {
@@ -199,6 +208,60 @@ describe('Aspiration, active', () => {
     await user.click(screen.getByRole('button', { name: 'Edit name and why' }))
     sheet = screen.getByRole('dialog', { name: 'Edit name and why' })
     expect(within(sheet).getByRole('textbox', { name: 'Name' })).toHaveProperty('value', 'Be fit')
+  })
+
+  it('leads the Retire sheet with its history, with Pause them chosen', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Retire' }))
+
+    const sheet = screen.getByRole('dialog', { name: 'Retire Be fit?' })
+    expect(within(sheet).getByText('Since October: 1 goal reached, 3 goals active, 2 recurring items.')).toBeDefined()
+    const choices = within(sheet).getByRole('group', { name: 'What should happen to its goals and recurring items?' })
+    expect(within(choices).getByRole('radio', { name: /^Pause them/ })).toHaveProperty('checked', true)
+    expect(within(choices).getByRole('radio', { name: /^Keep them going/ })).toHaveProperty('checked', false)
+    expect(within(sheet).getByText('They leave your days. Resume any of them later.')).toBeDefined()
+    expect(within(sheet).getByText('They carry on without an aspiration, under Other goals.')).toBeDefined()
+    expect(within(sheet).getByText('Be fit moves to Retired, with its history. You can bring it back anytime.')).toBeDefined()
+  })
+
+  it('retires with Pause them, pausing its goals, then hands off', async () => {
+    const user = userEvent.setup()
+    const { onRetired } = renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Retire' }))
+    await user.click(screen.getByRole('button', { name: 'Retire Be fit' }))
+
+    await vi.waitFor(() => expect(onRetired).toHaveBeenCalled())
+    expect(store.goals.find((goal) => goal.id === 'goal-strong')?.status).toBe('paused')
+    expect(store.aspirations.find((aspiration) => aspiration.id === 'asp-fit')?.status).toBe('retired')
+  })
+
+  it('retires with Keep them going, leaving its goals active with no aspiration', async () => {
+    const user = userEvent.setup()
+    const { onRetired } = renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Retire' }))
+    await user.click(screen.getByRole('radio', { name: /^Keep them going/ }))
+    await user.click(screen.getByRole('button', { name: 'Retire Be fit' }))
+
+    await vi.waitFor(() => expect(onRetired).toHaveBeenCalled())
+    const strong = store.goals.find((goal) => goal.id === 'goal-strong')
+    expect(strong?.status).toBe('active')
+    expect(strong?.aspirationId).toBeUndefined()
+  })
+
+  it('changes nothing on Cancel', async () => {
+    const user = userEvent.setup()
+    const { onRetired } = renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Retire' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(onRetired).not.toHaveBeenCalled()
+    expect(store.aspirations.find((aspiration) => aspiration.id === 'asp-fit')?.status).toBe('active')
   })
 
   it('offers Edit name and why, Review and Retire, with no dialog open', async () => {

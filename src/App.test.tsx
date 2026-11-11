@@ -189,6 +189,35 @@ it('shows a new priority order on the tab after moving an aspiration', async () 
   ])
 })
 
+it('lands on the tab after retiring, with the aspiration under Retired', async () => {
+  const user = userEvent.setup()
+  render(<App />)
+  await user.click(await screen.findByRole('button', { name: 'Aspirations' }))
+  await user.click(await screen.findByRole('button', { name: 'Be fit' }))
+
+  await user.click(await screen.findByRole('button', { name: 'Retire' }))
+  await user.click(screen.getByRole('button', { name: 'Retire Be fit' }))
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
+  const retired = screen.getByText('Retired (2)').closest('details')!
+  expect(within(retired).getByRole('button', { name: 'Be fit' })).toBeDefined()
+  expect(screen.queryByRole('region', { name: 'Be fit' })).toBeNull()
+})
+
+it('puts the goals under Other goals after retiring with Keep them going', async () => {
+  const user = userEvent.setup()
+  render(<App />)
+  await user.click(await screen.findByRole('button', { name: 'Aspirations' }))
+  await user.click(await screen.findByRole('button', { name: 'Be fit' }))
+
+  await user.click(await screen.findByRole('button', { name: 'Retire' }))
+  await user.click(screen.getByRole('radio', { name: /^Keep them going/ }))
+  await user.click(screen.getByRole('button', { name: 'Retire Be fit' }))
+
+  const other = await screen.findByRole('region', { name: 'Other goals' })
+  expect(within(other).getByRole('button', { name: /^Be strong/ })).toBeDefined()
+})
+
 it('opens a goal from an aspiration page and comes back to it', async () => {
   const user = userEvent.setup()
   render(<App />)

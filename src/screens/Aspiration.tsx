@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { AspirationEditSheet } from '../components/AspirationEditSheet.tsx'
 import { BackLink } from '../components/BackLink.tsx'
+import { RetireSheet } from '../components/RetireSheet.tsx'
 import '../components/progressBar.css'
 import type { ActivePage, GoalCard, PastGoalRow, RecurringRow, RetiredPage } from '../domain/aspiration.ts'
 import { useAspiration } from '../hooks/useAspiration.ts'
@@ -13,13 +14,14 @@ type AspirationProps = {
   today: string
   onBack: () => void
   onOpenGoal: (goalId: string) => void
+  onRetired: () => void
 }
 
 // One sheet at a time, and only from a tap.
-type OpenSheet = 'edit'
+type OpenSheet = 'edit' | 'retire'
 
-export function Aspiration({ aspirationId, today, onBack, onOpenGoal }: AspirationProps) {
-  const { page, editing, message, notFound, edit, move } = useAspiration(aspirationId, today)
+export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired }: AspirationProps) {
+  const { page, editing, message, notFound, edit, retire, move } = useAspiration(aspirationId, today)
   const [sheet, setSheet] = useState<OpenSheet>()
 
   useEffect(() => {
@@ -61,6 +63,18 @@ export function Aspiration({ aspirationId, today, onBack, onOpenGoal }: Aspirati
         }}
         onClose={() => setSheet(undefined)}
       />
+      {page?.kind === 'active' && (
+        <RetireSheet
+          open={sheet === 'retire'}
+          name={page.name}
+          historyLine={page.historyLine}
+          onRetire={async (itsWork) => {
+            setSheet(undefined)
+            if (await retire(itsWork)) onRetired()
+          }}
+          onClose={() => setSheet(undefined)}
+        />
+      )}
     </main>
   )
 }
@@ -144,7 +158,7 @@ function Active({ page, onOpenGoal, onMove, onOpenSheet }: ActiveProps) {
         <button type="button" className="aspiration-action">
           Review
         </button>
-        <button type="button" className="aspiration-action">
+        <button type="button" className="aspiration-action" onClick={() => onOpenSheet('retire')}>
           Retire
         </button>
       </div>

@@ -3,7 +3,13 @@
 // aspiration that isn't there is reported as not found, so the screen can go
 // back quietly. Changes show at once and roll back if the save fails.
 import { useEffect, useRef, useState } from 'react'
-import { getAspiration, moveAspiration, NotFoundError, updateAspiration } from '../api/client.ts'
+import {
+  getAspiration,
+  moveAspiration,
+  NotFoundError,
+  retireAspiration,
+  updateAspiration,
+} from '../api/client.ts'
 import type { AspirationDetail } from '../api/types.ts'
 import { aspirationPage, canSaveName, withNameAndWhy, type AspirationPage } from '../domain/aspiration.ts'
 
@@ -12,6 +18,9 @@ const SAVE_FAILED = "Couldn't save that. Try again."
 
 export type NameAndWhy = { name: string; why: string }
 
+// What retiring does with the aspiration's goals and recurring items.
+export type ItsWork = 'pause' | 'keep'
+
 export type UseAspiration = {
   page?: AspirationPage
   // What the edit sheet starts from.
@@ -19,6 +28,7 @@ export type UseAspiration = {
   message?: string
   notFound: boolean
   edit: (changes: NameAndWhy) => void
+  retire: (itsWork: ItsWork) => Promise<boolean>
   move: (direction: 'up' | 'down') => void
 }
 
@@ -65,6 +75,19 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
     )
   }
 
+  // Rare, and the page is left afterwards, so this waits for the save.
+  // Resolves true once it's saved; on failure, the page stays with a message.
+  async function retire(itsWork: ItsWork): Promise<boolean> {
+    setMessage(undefined)
+    try {
+      await retireAspiration(aspirationId, itsWork)
+      return true
+    } catch {
+      setMessage(SAVE_FAILED)
+      return false
+    }
+  }
+
   function move(direction: 'up' | 'down') {
     const position = detail?.aspiration.priority
     if (!detail || position === undefined) return
@@ -83,6 +106,7 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
     message,
     notFound,
     edit,
+    retire,
     move,
   }
 }
