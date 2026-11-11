@@ -180,6 +180,16 @@ describe('Week', () => {
     expect(screen.queryByRole('status')).toBeNull()
   })
 
+  it("still shows the heading and range when it can't load", async () => {
+    vi.mocked(getWeek).mockRejectedValueOnce(new Error('offline'))
+    render(<Week today={WEDNESDAY_DAY} onOpenDay={() => {}} />)
+
+    await screen.findByRole('status')
+    const heading = screen.getByRole('heading', { level: 1, name: 'This week' })
+    expect(heading.closest('.screen-top')).not.toBeNull()
+    expect(screen.getByText('Nov 9–15')).toBeDefined()
+  })
+
   it('says so when the bank is empty', async () => {
     const actual = await vi.importActual<typeof import('../api/client.ts')>('../api/client.ts')
     const week = await actual.getWeek()

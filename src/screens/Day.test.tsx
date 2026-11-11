@@ -131,6 +131,25 @@ describe('Day', () => {
     expect(screen.queryByRole('status')).toBeNull()
   })
 
+  it("still shows the day's heading when it can't load", async () => {
+    vi.mocked(getDay).mockRejectedValueOnce(new Error('offline'))
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+
+    await screen.findByRole('status')
+    const heading = screen.getByRole('heading', { level: 1, name: 'Today · Wednesday' })
+    expect(heading.closest('.screen-top')).not.toBeNull()
+    expect(screen.queryByRole('progressbar')).toBeNull()
+  })
+
+  it('still shows an opened day with its way back when it can\'t load', async () => {
+    vi.mocked(getDay).mockRejectedValueOnce(new Error('offline'))
+    render(<Day date="2026-11-12" today={WEDNESDAY_DAY} onBack={() => {}} />)
+
+    await screen.findByRole('status')
+    expect(screen.getByRole('heading', { level: 1, name: 'Thursday · Nov 12' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Back to Week' })).toBeDefined()
+  })
+
   it('switches to goal cards and remembers the choice', async () => {
     const user = userEvent.setup()
     const { unmount } = render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)

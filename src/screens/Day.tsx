@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { BankSheet } from '../components/BankSheet.tsx'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import { TaskRow } from '../components/TaskRow.tsx'
@@ -17,6 +17,7 @@ type DayProps = {
 
 export function Day({ date, today, onBack }: DayProps) {
   const {
+    heading,
     day,
     message,
     view,
@@ -62,12 +63,13 @@ export function Day({ date, today, onBack }: DayProps) {
   if (!day) {
     return (
       <main className="today" aria-busy={!message}>
+        {message && <DayTop heading={heading} onBack={onBack} />}
         <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
       </main>
     )
   }
 
-  const { heading, isToday, canPlace, progress, sections } = day
+  const { isToday, canPlace, progress, sections } = day
   const isEmpty = progress.total === 0
   const emptyLine = isToday ? 'Nothing planned today. The day is yours.' : 'Nothing planned. The day is yours.'
   const swapTask = canPlace
@@ -76,16 +78,11 @@ export function Day({ date, today, onBack }: DayProps) {
 
   return (
     <main className="today" data-view={view}>
-      <div className="screen-top today-top">
-        {onBack && (
-          <button type="button" className="today-back" aria-label="Back to Week" onClick={onBack}>
-            ‹ Week
-          </button>
-        )}
-        <header className="today-header">
-          <h1>{heading}</h1>
-          {!isEmpty && <p className="today-count">{`${progress.done} of ${progress.total} done`}</p>}
-        </header>
+      <DayTop
+        heading={heading}
+        onBack={onBack}
+        count={isEmpty ? undefined : `${progress.done} of ${progress.total} done`}
+      >
         {!isEmpty && (
           <progress
             className="today-progress"
@@ -94,7 +91,7 @@ export function Day({ date, today, onBack }: DayProps) {
             aria-label={isToday ? 'Done today' : 'Done this day'}
           />
         )}
-      </div>
+      </DayTop>
 
       {!isEmpty && <ViewToggle view={view} onChange={setView} />}
 
@@ -135,6 +132,31 @@ export function Day({ date, today, onBack }: DayProps) {
 
       <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
     </main>
+  )
+}
+
+type DayTopProps = {
+  heading: string
+  onBack?: () => void
+  count?: string
+  children?: ReactNode
+}
+
+// The pinned top: the way back, the heading, and (once loaded) the count and bar.
+function DayTop({ heading, onBack, count, children }: DayTopProps) {
+  return (
+    <div className="screen-top today-top">
+      {onBack && (
+        <button type="button" className="today-back" aria-label="Back to Week" onClick={onBack}>
+          ‹ Week
+        </button>
+      )}
+      <header className="today-header">
+        <h1>{heading}</h1>
+        {count && <p className="today-count">{count}</p>}
+      </header>
+      {children}
+    </div>
   )
 }
 

@@ -58,6 +58,22 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 
 **Scope:** M
 
+### Task 3a: Today and Week keep their heading when they can't load
+
+**Description:** Found at the phone check: with a load failure, Today and Week showed only the message on a blank page, while the Aspirations tab kept its title. `useDay` and `useWeek` now give the heading and range without loading, and the screens show the pinned top on a load failure (an opened day keeps "‹ Week").
+
+**Acceptance criteria:**
+- [x] Today, an opened day and Week show their heading (and Week its range) when they can't load; no count or bar.
+
+**Verification:**
+- [x] `npm test`: `Day.test.tsx`, `Week.test.tsx`
+
+**Dependencies:** Task 3
+
+**Files:** `src/hooks/useDay.ts`, `src/hooks/useWeek.ts`, `src/screens/Day.tsx`, `src/screens/Week.tsx`, tests
+
+**Scope:** S
+
 ## Checkpoint 0 (PR 0)
 - [ ] Tests, lint and build pass
 - [ ] On the phone, 375 and 390 px, light and dark: the message is seen when scrolled to the bottom of Week and Goal detail, clears the home indicator, and doesn't cover the last row; with a sheet open and the keyboard up, nothing overlaps

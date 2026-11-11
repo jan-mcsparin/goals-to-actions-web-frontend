@@ -2,6 +2,7 @@
 // Loads through the API client; rules come from domain/week.ts.
 import { useEffect, useState } from 'react'
 import { getWeek, pullFromBank } from '../api/client.ts'
+import { fromLocalDay, mondayOf, toLocalDay } from '../api/dates.ts'
 import type { Task, WeekPlan } from '../api/types.ts'
 import {
   daySummaries,
@@ -18,7 +19,6 @@ const LOAD_FAILED = "Couldn't load this week. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
 
 export type WeekView = {
-  range: string
   progress: ProgressRow[]
   days: DaySummary[]
   bank: Task[]
@@ -26,6 +26,8 @@ export type WeekView = {
 }
 
 export type UseWeek = {
+  // Known without loading, so it shows even when the week can't load.
+  range: string
   week?: WeekView
   message?: string
   place: (bankTaskId: string, date: string) => void
@@ -65,12 +67,11 @@ export function useWeek(today: string): UseWeek {
     setPlan((previous) => previous && withTaskReplaced(previous, next.id, next))
   }
 
-  return { week: plan && viewOf(plan, today), message, place }
+  return { range: weekRange(toLocalDay(mondayOf(fromLocalDay(today)))), week: plan && viewOf(plan, today), message, place }
 }
 
 function viewOf(plan: WeekPlan, today: string): WeekView {
   return {
-    range: weekRange(plan.weekOf),
     progress: weekProgress(plan, today),
     days: daySummaries(plan, today),
     bank: plan.tasks.filter((task) => task.status === 'inBank'),
