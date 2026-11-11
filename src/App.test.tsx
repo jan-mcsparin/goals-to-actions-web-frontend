@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resumeGoal, retireAspiration } from './api/client.ts'
 import { resetStore } from './api/mockStore.ts'
 import App from './App.tsx'
@@ -87,11 +87,12 @@ it('switches to Aspirations and remembers it', async () => {
   expect(currentTab()).toBe('Aspirations')
 })
 
-it('lists the tabs as Today, Week, Aspirations', async () => {
+it('lists the tab bar as Today, Week, + (Add), Aspirations', async () => {
   render(<App />)
 
   const tabs = within(await screen.findByRole('navigation', { name: 'Screens' })).getAllByRole('button')
-  expect(tabs.map((tab) => tab.textContent)).toEqual(['Today', 'Week', 'Aspirations'])
+  expect(tabs.map((tab) => tab.textContent)).toEqual(['Today', 'Week', '+', 'Aspirations'])
+  expect(tabs[2].getAttribute('aria-label')).toBe('Add')
 })
 
 it('opens an aspiration from its card and comes back', async () => {
@@ -385,4 +386,85 @@ it("pausing a goal takes it out of Week and reads Paused on the tab; resuming pu
   await screen.findByRole('button', { name: 'Pause' })
   await user.click(screen.getByRole('button', { name: 'Week' }))
   expect(within(await screen.findByRole('region', { name: 'Progress' })).getByText('Be strong · Be fit')).toBeDefined()
+})
+
+describe('the Add sheet', () => {
+  function placementShown() {
+    const sheet = screen.getByRole('dialog', { name: 'Add' })
+    return within(sheet)
+      .getAllByRole('radio')
+      .find((radio) => (radio as HTMLInputElement).checked)
+      ?.closest('label')?.textContent
+  }
+
+  it.each([
+    [{ screen: 'today' }, 'Today · Wednesday'],
+    [{ screen: 'week' }, 'This week'],
+    [{ screen: 'day', date: '2026-11-12' }, 'Thursday · Nov 12'],
+    [{ screen: 'aspirations' }, 'Aspirations'],
+    [{ screen: 'aspiration', aspirationId: 'asp-fit' }, 'Be fit'],
+    [{ screen: 'upkeep' }, 'Keep life running'],
+    [{ screen: 'goal', goalId: 'goal-strong', from: { screen: 'aspirations' } }, 'Be strong'],
+  ])('opens from the + over %j, which stays the current screen', async (opened, heading) => {
+    localStorage.setItem('gta.screen', JSON.stringify(opened))
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { level: 1, name: heading })
+    const tabBefore = currentTab()
+
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+
+    expect(screen.getByRole('dialog', { name: 'Add' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Add' }).getAttribute('aria-current')).toBeNull()
+    expect(currentTab()).toBe(tabBefore)
+    expect(placementShown()).toBe(opened.screen === 'today' ? 'On today' : 'In the bank')
+  })
+
+  it("adds a task onto Today from Today, and says so", async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { level: 1, name: 'Today · Wednesday' })
+
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.type(screen.getByRole('textbox', { name: 'Title' }), 'Call the vet')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(await screen.findByText('Call the vet')).toBeDefined()
+    expect(screen.getByRole('status').textContent).toBe('Added to today.')
+  })
+
+  it("adds a task to the bank from Week, and Week's bank shows it", async () => {
+    localStorage.setItem('gta.screen', JSON.stringify({ screen: 'week' }))
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { level: 1, name: 'This week' })
+
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.type(screen.getByRole('textbox', { name: 'Title' }), 'Fill out my ballot')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    const bank = screen.getByRole('region', { name: /^Bank/ })
+    expect(await within(bank).findByText('Fill out my ballot')).toBeDefined()
+    expect(screen.getByRole('status').textContent).toBe("Added to this week's bank.")
+  })
+
+  it('shows the same confirmation again for a second add', async () => {
+    localStorage.setItem('gta.screen', JSON.stringify({ screen: 'week' }))
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { level: 1, name: 'This week' })
+    async function addTask(title: string) {
+      await user.click(screen.getByRole('button', { name: 'Add' }))
+      await user.type(screen.getByRole('textbox', { name: 'Title' }), title)
+      await user.click(screen.getByRole('button', { name: 'Save' }))
+    }
+
+    await addTask('Fill out my ballot')
+    await user.click(screen.getByRole('status').querySelector('button')!)
+    expect(screen.queryByRole('status')).toBeNull()
+    await addTask('Water the plants')
+
+    expect(screen.getByRole('status').textContent).toBe("Added to this week's bank.")
+  })
 })

@@ -139,12 +139,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `TabBar` becomes Today | Week | + | Aspirations; the + is labelled "Add" and is never current. `AddSheet` (titled "Add", tabs Task / Goal / Aspiration / Recurring, the last three empty for now) on `useModalDialog`. `TaskForm`: title, goal picker (active goals), due date, time of day ("by" / "at" and a time), and "In the bank" / "On today". `useAdd(origin)` holds the drafts, loads the pickers when the sheet opens, and saves. On save `App` closes the sheet, bumps the revision and shows the confirmation in its own `ScreenMessage`.
 
 **Acceptance criteria:**
-- [ ] The + opens the sheet on every screen with the Task title focused; Save is disabled until there's a title; a title alone saves to this week's bank.
-- [ ] From Today, "On today" is selected and the saved task appears in Today's list. From Week, an opened day or the Aspirations tab, "In the bank" is selected, and a task added while on Week appears in its bank.
-- [ ] Typed text survives switching tabs and is cleared on close.
+- [x] The + opens the sheet on every screen with the Task title focused; Save is disabled until there's a title; a title alone saves to this week's bank.
+- [x] From Today, "On today" is selected and the saved task appears in Today's list. From Week, an opened day or the Aspirations tab, "In the bank" is selected, and a task added while on Week appears in its bank.
+- [x] Typed text survives switching tabs and is cleared on close.
 
 **Verification:**
-- [ ] `npm test`: new `components/AddSheet.test.tsx`, new `hooks/useAdd.test.tsx`, `App.test.tsx`
+- [x] `npm test`: new `components/AddSheet.test.tsx`, new `hooks/useAdd.test.tsx`, `App.test.tsx`
 
 **Dependencies:** Tasks 5, 6
 
