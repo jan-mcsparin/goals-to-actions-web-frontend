@@ -138,7 +138,8 @@ export function useAdd(origin: AddOrigin, today: string, { onSaved, onChanged }:
   }
 
   // A new aspiration is saved first. Once it is, it becomes the selection, so
-  // trying again after the goal fails doesn't make a second one.
+  // trying again after the goal fails doesn't make a second one, and the
+  // screen behind reloads, so it's seen even if the sheet is then closed.
   async function saveGoal() {
     let { aspirationId } = goal
     if (aspirationId === NEW_ASPIRATION) {
@@ -146,6 +147,7 @@ export function useAdd(origin: AddOrigin, today: string, { onSaved, onChanged }:
       aspirationId = added.id
       setAspirations((previous) => [...previous, { id: added.id, label: added.name }])
       setGoal((previous) => ({ ...previous, aspirationId: added.id, newAspirationName: '' }))
+      onChanged()
     }
     return addGoal(goalInput({ ...goal, type: goal.type!, aspirationId }, today))
   }
@@ -164,12 +166,18 @@ export function useAdd(origin: AddOrigin, today: string, { onSaved, onChanged }:
     if (!savedAspiration) return
     setGoal((previous) => ({ ...previous, aspirationId: savedAspiration.id, newAspirationName: '' }))
     setSavedAspiration(undefined)
-    setTab('goal')
+    changeTab('goal')
+  }
+
+  // A failed save's message belongs to the form it was saved from.
+  function changeTab(next: AddTab) {
+    setMessage(undefined)
+    setTab(next)
   }
 
   return {
     tab,
-    setTab,
+    setTab: changeTab,
     task,
     editTask: (changes) => setTask((previous) => ({ ...previous, ...changes })),
     goal,

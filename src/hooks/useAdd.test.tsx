@@ -265,6 +265,29 @@ describe('useAdd on the Goal tab', () => {
     expect(onSaved).toHaveBeenCalledTimes(1)
   })
 
+  it('lets the screen behind reload once the new aspiration saves, even if the goal then fails', async () => {
+    vi.mocked(addGoal).mockRejectedValueOnce(new Error('offline'))
+    const { result, onChanged } = onGoalTab()
+    act(() => result.current.editGoal({ ...BE_STRONG, aspirationId: NEW_ASPIRATION, newAspirationName: 'Be generous' }))
+
+    await act(async () => result.current.save())
+
+    expect(result.current.message).toBe("Couldn't save that. Try again.")
+    expect(onChanged).toHaveBeenCalledTimes(1)
+  })
+
+  it("leaves a failed save's message behind on its own tab", async () => {
+    vi.mocked(addGoal).mockRejectedValueOnce(new Error('offline'))
+    const { result } = onGoalTab()
+    act(() => result.current.editGoal(BE_STRONG))
+    await act(async () => result.current.save())
+    expect(result.current.message).toBe("Couldn't save that. Try again.")
+
+    act(() => result.current.setTab('aspiration'))
+
+    expect(result.current.message).toBeUndefined()
+  })
+
   it("adds a building goal's weekly target and its bank tasks", async () => {
     const { result } = onGoalTab()
     act(() => result.current.editGoal({ ...BE_STRONG, target: { amount: '3', unit: 'lifting sessions' } }))
