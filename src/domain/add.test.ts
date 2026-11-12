@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import type { Goal } from '../api/types.ts'
+import type { Aspiration, Goal } from '../api/types.ts'
 import {
+  aspirationChoices,
   aspirationReady,
   emptyGoalDraft,
   emptyTaskDraft,
   goalChoices,
+  goalConfirmation,
+  goalInput,
   goalParts,
   goalReady,
   NEW_ASPIRATION,
@@ -264,5 +267,85 @@ describe('aspirationReady', () => {
 
   it('is not ready with a blank name', () => {
     expect(aspirationReady({ name: '   ', why: 'So I can keep skiing' })).toBe(false)
+  })
+})
+
+describe('aspirationChoices', () => {
+  it('offers the active aspirations only, in priority order', () => {
+    const aspiration = (id: string, name: string, priority?: number): Aspiration => ({
+      id,
+      name,
+      priority,
+      status: priority ? 'active' : 'retired',
+      createdAt: '2026-10-01T09:00:00Z',
+    })
+    const aspirations = [aspiration('a2', 'Keep a calm home', 2), aspiration('a3', 'Speak Spanish'), aspiration('a1', 'Be fit', 1)]
+
+    expect(aspirationChoices(aspirations)).toEqual([
+      { id: 'a1', label: 'Be fit' },
+      { id: 'a2', label: 'Keep a calm home' },
+    ])
+  })
+})
+
+describe('goalInput', () => {
+  const TODAY = '2026-11-11'
+  const building = { ...emptyGoalDraft(), type: 'building' as const, sentence: ' Be strong :  bench 175 ' }
+
+  it('sends the label, line and type only when nothing else is set', () => {
+    expect(goalInput(building, TODAY)).toEqual({ label: 'Be strong', measurableLine: 'bench 175', type: 'building' })
+  })
+
+  it('sends the line from the second field when the sentence has no colon', () => {
+    const draft = { ...building, sentence: 'Be strong', measurableLine: 'bench 175' }
+
+    expect(goalInput(draft, TODAY)).toMatchObject({ label: 'Be strong', measurableLine: 'bench 175' })
+  })
+
+  it('sends the aspiration, baseline, deadline and weekly target when set', () => {
+    const draft = {
+      ...building,
+      aspirationId: 'asp-fit',
+      baseline: ' bench 155 ',
+      deadline: '2027-06-01',
+      target: { amount: ' 3 ', unit: ' lifting sessions ' },
+    }
+
+    expect(goalInput(draft, TODAY)).toEqual({
+      label: 'Be strong',
+      measurableLine: 'bench 175',
+      type: 'building',
+      aspirationId: 'asp-fit',
+      baseline: 'bench 155',
+      deadline: '2027-06-01',
+      weeklyTarget: { amount: 3, unit: 'lifting sessions' },
+    })
+  })
+
+  it('leaves out a new aspiration, which is saved first', () => {
+    expect(goalInput({ ...building, aspirationId: NEW_ASPIRATION, newAspirationName: 'Be fit' }, TODAY).aspirationId).toBeUndefined()
+  })
+
+  it("leaves out a target and start date a goal's type doesn't show", () => {
+    const draft = { ...building, type: 'oneOff' as const, target: { amount: '3', unit: 'sessions' }, startDate: '2026-11-20' }
+
+    expect(goalInput(draft, TODAY)).toEqual({ label: 'Be strong', measurableLine: 'bench 175', type: 'oneOff' })
+  })
+
+  it("sends a quitting goal's start date, today unless changed", () => {
+    const quitting = { ...building, type: 'quitting' as const }
+
+    expect(goalInput(quitting, TODAY).startDate).toBe(TODAY)
+    expect(goalInput({ ...quitting, startDate: '2026-11-20' }, TODAY).startDate).toBe('2026-11-20')
+  })
+})
+
+describe('goalConfirmation', () => {
+  it.each([
+    ['building', "Saved. Add milestones when you're ready."],
+    ['quitting', "Saved. Add milestones when you're ready."],
+    ['oneOff', "Saved. Add steps when you're ready."],
+  ] as const)('confirms a %s goal', (type, line) => {
+    expect(goalConfirmation(type)).toBe(line)
   })
 })

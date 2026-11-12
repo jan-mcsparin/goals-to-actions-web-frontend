@@ -1,7 +1,7 @@
 // Rules for the Add sheet: where a new task goes, the line confirming it, how
 // a goal's sentence splits, and when a form is ready to save.
 import { mondayOfDay } from '../api/dates.ts'
-import type { Goal, GoalType, NewTask, Task } from '../api/types.ts'
+import type { Aspiration, Goal, GoalType, NewGoal, NewTask, Task } from '../api/types.ts'
 import { dayLabel, isWithinGoal, parsedTarget, type TargetDraft } from './goalDetail.ts'
 
 // This week's Monday, or the Monday of the due date's week when that's later.
@@ -47,10 +47,10 @@ export function taskInput(draft: TaskDraft): NewTask {
   return input
 }
 
-export type GoalChoice = { id: string; label: string }
+export type Choice = { id: string; label: string }
 
 // What the goal picker offers: active goals, by label.
-export function goalChoices(goals: Goal[]): GoalChoice[] {
+export function goalChoices(goals: Goal[]): Choice[] {
   return goals
     .filter((goal) => goal.status === 'active')
     .map(({ id, label }) => ({ id, label }))
@@ -62,6 +62,14 @@ export function goalChoices(goals: Goal[]): GoalChoice[] {
 export function splitGoalSentence(sentence: string): { label: string; measurableLine: string } {
   const [label, ...rest] = sentence.split(':')
   return { label: label.trim(), measurableLine: rest.join(':').trim() }
+}
+
+// What the aspiration picker offers: active aspirations, in priority order.
+export function aspirationChoices(aspirations: Aspiration[]): Choice[] {
+  return aspirations
+    .filter((aspiration) => aspiration.status === 'active')
+    .sort((a, b) => a.priority! - b.priority!)
+    .map(({ id, name }) => ({ id, label: name }))
 }
 
 // The picker's choice for creating an aspiration along with the goal.
@@ -117,6 +125,24 @@ export function goalReady(draft: GoalDraft, today: string): boolean {
   if (draft.type === 'building' && !targetBlankOrWhole(draft.target)) return false
   const startDate = (draft.type === 'quitting' && draft.startDate) || today
   return !draft.deadline || isWithinGoal(draft.deadline, { startDate })
+}
+
+// What the Add sheet sends to addGoal: only what the goal's type shows. A new
+// aspiration is left out; useAdd saves it first and sends its id.
+export function goalInput(draft: GoalDraft & { type: GoalType }, today: string): NewGoal {
+  const input: NewGoal = { ...goalParts(draft), type: draft.type }
+  if (draft.aspirationId && draft.aspirationId !== NEW_ASPIRATION) input.aspirationId = draft.aspirationId
+  if (draft.baseline.trim()) input.baseline = draft.baseline.trim()
+  if (draft.type === 'quitting') input.startDate = draft.startDate || today
+  if (draft.deadline) input.deadline = draft.deadline
+  const target = draft.type === 'building' ? parsedTarget(draft.target) : undefined
+  if (target) input.weeklyTarget = target
+  return input
+}
+
+// Shown over the new goal's page, where milestones (steps, for one-off) are added.
+export function goalConfirmation(type: GoalType): string {
+  return `Saved. Add ${type === 'oneOff' ? 'steps' : 'milestones'} when you're ready.`
 }
 
 function targetBlankOrWhole(target: TargetDraft): boolean {
