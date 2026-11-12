@@ -2,12 +2,11 @@
 // through the API client; the layout comes from domain/aspiration.ts. An
 // aspiration that isn't there is reported as not found, so the screen can go
 // back quietly. Changes show at once and roll back if the save fails.
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useRef } from 'react'
 import {
   bringBackAspiration,
   getAspiration,
   moveAspiration,
-  NotFoundError,
   retireAspiration,
   updateAspiration,
 } from '../api/client.ts'
@@ -20,6 +19,7 @@ import {
   type ItsWork,
   type NameAndWhy,
 } from '../domain/aspiration.ts'
+import { useLoaded } from './useLoaded.ts'
 
 const LOAD_FAILED = "Couldn't load this aspiration. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
@@ -37,25 +37,12 @@ export type UseAspiration = {
 }
 
 export function useAspiration(aspirationId: string, today: string): UseAspiration {
-  const [detail, setDetail] = useState<AspirationDetail>()
-  const [message, setMessage] = useState<string>()
-  const [notFound, setNotFound] = useState(false)
+  const { data: detail, setData: setDetail, message, setMessage, notFound } = useLoaded(
+    useCallback(() => getAspiration(aspirationId), [aspirationId]),
+    LOAD_FAILED,
+  )
   const latestSave = useRef(0)
   const bringingBack = useRef(false)
-
-  useEffect(() => {
-    let current = true
-    getAspiration(aspirationId)
-      .then((loaded) => current && setDetail(loaded))
-      .catch((error: unknown) => {
-        if (!current) return
-        if (error instanceof NotFoundError) setNotFound(true)
-        else setMessage(LOAD_FAILED)
-      })
-    return () => {
-      current = false
-    }
-  }, [aspirationId])
 
   // Shows the change, saves it, and puts back what was there if the save
   // fails. Only the newest save may roll back, so quick taps settle on the last.

@@ -2,6 +2,7 @@ import { useId } from 'react'
 import type { Started } from '../domain/goalDetail.ts'
 import './editForm.css'
 import './sheet.css'
+import { useBackdropClose } from './useBackdropClose.ts'
 import { useModalDialog } from './useModalDialog.ts'
 
 type EndGoalSheetProps = {
@@ -17,10 +18,11 @@ type EndGoalSheetProps = {
 // tell whether the goal was crossed.
 export function EndGoalSheet({ open, started, achievement, onEnd, onClose }: EndGoalSheetProps) {
   const dialog = useModalDialog(open)
+  const backdropClose = useBackdropClose(onClose)
   const titleId = useId()
 
   return (
-    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose}>
+    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose} {...backdropClose}>
       <header className="sheet-header">
         <h2 id={titleId}>End goal</h2>
       </header>

@@ -2,13 +2,12 @@
 // the ways to change the goal. Loads through the API client; the layout comes
 // from domain/goalDetail.ts. A goal that isn't there is reported as not
 // found, so the screen can go back quietly.
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import {
   addMilestone as saveMilestone,
   checkInMilestone,
   endGoal,
   getGoal,
-  NotFoundError,
   pauseGoal,
   reopenMilestone,
   resumeGoal,
@@ -38,6 +37,7 @@ import {
 } from '../domain/goalDetail.ts'
 import { readTimelineExpanded, saveTimelineExpanded } from '../storage/timelinePreference.ts'
 import type { GoalOrigin } from './useNavigation.ts'
+import { useLoaded } from './useLoaded.ts'
 
 const LOAD_FAILED = "Couldn't load this goal. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
@@ -75,27 +75,14 @@ export type UseGoal = {
 }
 
 export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoal {
-  const [detail, setDetail] = useState<GoalDetail>()
-  const [message, setMessage] = useState<string>()
-  const [notFound, setNotFound] = useState(false)
+  const { data: detail, setData: setDetail, message, setMessage, notFound } = useLoaded(
+    useCallback(() => getGoal(goalId), [goalId]),
+    LOAD_FAILED,
+  )
   const [expanded, setExpanded] = useState(() => readTimelineExpanded(goalId))
   const [justHit, setJustHit] = useState<string>()
   const pendingCount = useRef(0)
   const waiting = useRef(false)
-
-  useEffect(() => {
-    let current = true
-    getGoal(goalId)
-      .then((loaded) => current && setDetail(loaded))
-      .catch((error: unknown) => {
-        if (!current) return
-        if (error instanceof NotFoundError) setNotFound(true)
-        else setMessage(LOAD_FAILED)
-      })
-    return () => {
-      current = false
-    }
-  }, [goalId])
 
   function showAll(next: boolean) {
     setExpanded(next)

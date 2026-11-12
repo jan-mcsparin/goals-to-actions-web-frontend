@@ -1,6 +1,7 @@
 // The functions screens and hooks call. They read the in-memory mock store for
 // now; later they call the real API and keep the same signatures.
 import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
+import { taskWeek } from '../domain/add.ts'
 import { isWithinGoal, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
 import { store } from './mockStore.ts'
 import type {
@@ -12,6 +13,7 @@ import type {
   Goal,
   GoalDetail,
   Milestone,
+  NewTask,
   RecurringItem,
   Task,
   Upkeep,
@@ -294,6 +296,26 @@ export async function getBank(): Promise<Bank> {
   return structuredClone({ weekOf, tasks, ...recordsReferencedBy(tasks) })
 }
 
+// In the bank of this week, or of its due week when that's later. With
+// onToday it goes on today's plan, placed by hand, whatever its due date.
+export async function addTask(task: NewTask): Promise<Task> {
+  const title = task.title.trim()
+  if (!title) throw new Error('A task needs a title')
+  if (task.goalId) findActiveGoal(task.goalId)
+
+  const today = toLocalDay(new Date())
+  const added: Task = { id: newId('task'), title, status: 'inBank', weekOf: taskWeek(task.dueDate, today), rolloverCount: 0 }
+  if (task.goalId) added.goalId = task.goalId
+  if (task.dueDate) added.dueDate = task.dueDate
+  if (task.timeOfDay) added.timeOfDay = { ...task.timeOfDay }
+  if (task.onToday) {
+    added.weekOf = thisWeek()
+    placeOn(added, today)
+  }
+  store.tasks.push(added)
+  return structuredClone(added)
+}
+
 // Skipping sends a task back to the bank. It isn't a rollover, so the count stays.
 export async function skipTask(taskId: string): Promise<Task> {
   const task = findPlannedTask(taskId)
@@ -391,6 +413,13 @@ function findMilestone(milestoneId: string): Milestone {
   const milestone = store.milestones.find((candidate) => candidate.id === milestoneId)
   if (!milestone) throw new NotFoundError(`No milestone with id ${milestoneId}`)
   return milestone
+}
+
+// New work can only go to an active goal, as the Add sheet's picker offers.
+function findActiveGoal(goalId: string): Goal {
+  const goal = findGoal(goalId)
+  if (goal.status !== 'active') throw new Error(`${goalId} is ${goal.status}`)
+  return goal
 }
 
 // In the goal's order.

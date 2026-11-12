@@ -1,9 +1,8 @@
 // The Keep life running page, ready to render. Loads through the API client;
 // the rows come from domain/upkeep.ts.
-import { useEffect, useState } from 'react'
 import { getUpkeep } from '../api/client.ts'
-import type { Upkeep } from '../api/types.ts'
 import { upkeepView, type UpkeepView } from '../domain/upkeep.ts'
+import { useLoaded } from './useLoaded.ts'
 
 const LOAD_FAILED = "Couldn't load this page. Try again in a moment."
 
@@ -13,18 +12,7 @@ export type UseUpkeep = {
 }
 
 export function useUpkeep(today: string): UseUpkeep {
-  const [upkeep, setUpkeep] = useState<Upkeep>()
-  const [message, setMessage] = useState<string>()
-
-  useEffect(() => {
-    let current = true
-    getUpkeep()
-      .then((loaded) => current && setUpkeep(loaded))
-      .catch(() => current && setMessage(LOAD_FAILED))
-    return () => {
-      current = false
-    }
-  }, [])
+  const { data: upkeep, message } = useLoaded(getUpkeep, LOAD_FAILED)
 
   return { view: upkeep && upkeepView(upkeep, today), message }
 }

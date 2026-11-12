@@ -1,6 +1,7 @@
 /* Bottom sheet on a native <dialog>, shared by every sheet. It sits on the
    on-screen keyboard when one is up (--keyboard-inset, set by useModalDialog)
-   and gets shorter to fit what's left. */
+   and gets shorter to fit what's left. Every sheet also closes on a tap off it:
+   spread useBackdropClose(onClose) onto the <dialog>. */
 .sheet {
   width: 100%;
   max-width: 40rem;

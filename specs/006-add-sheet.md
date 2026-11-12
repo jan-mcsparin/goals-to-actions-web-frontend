@@ -1,6 +1,6 @@
 # Spec: Add sheet (#6)
 
-Status: draft 2026-11-10, awaiting approval. Issue: [#6](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/6). Module `add-sheet` in the [map](README.md). Depends on #4, the [aspiration page](013-aspiration-page.md) and #5.
+Status: approved 2026-11-11. Issue: [#6](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/6). Module `add-sheet` in the [map](README.md). Depends on #4, the [aspiration page](013-aspiration-page.md) and #5.
 
 ## Objective
 
@@ -12,17 +12,17 @@ References: [Flow 1](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 2](..
 
 **Tab bar:** Today | Week | **+** | Aspirations. The + is a button labelled "Add" for screen readers; it's never marked as the current tab.
 
-**The sheet:** titled "Add", with four tabs: Task (open first), Goal, Aspiration, Recurring. Each tab keeps what was typed while the sheet is open; closing the sheet clears it. Save is disabled until the required field is filled. After saving, the sheet closes and a short line confirms where the thing went.
+**The sheet:** titled "Add", with four tabs: Task (open first), Goal, Aspiration, Recurring. Each tab keeps what was typed while the sheet is open; closing the sheet (Close, or a tap off it) clears it. Save is disabled until the required field is filled. After saving, the sheet closes and a short line confirms where the thing went. The line is the shared screen message (#19), pinned above the tab bar; it clears itself after 5 s or when tapped.
 
 **Task**
 - **Title** (required): "Fill out my ballot".
 - **Goal:** None, or one of the active goals.
 - **Due date:** optional.
 - **Time of day:** optional: "by" or "at", and a time.
-- **Put it:** "In the bank" or "On today". "On today" is selected to start when the sheet was opened from the Today tab; from anywhere else, "In the bank" is.
+- **Put it:** "In the bank" or "On today". "On today" is selected to start when the sheet was opened from the Today screen; from anywhere else, "In the bank" is, including a day opened from Week, even when that day is today.
 - Where it goes (Flow 3):
   - in the bank, with no due date or due this week or earlier: this week's bank. "Added to this week's bank."
-  - in the bank, due in a later week: it waits, and joins the bank of the week it's due. "Saved for the week of Nov 23."
+  - in the bank, due in a later week: it waits, and joins the bank of the week it's due. "Saved for the week of Nov 23." (with the year when it's in another year: "Saved for the week of Jan 4, 2027.", as Goal detail shows dates)
   - on today: it's on today's plan at once, marked placed by hand, whatever its due date. "Added to today."
 - It only lands on a day when the person chose "On today".
 
@@ -35,9 +35,9 @@ References: [Flow 1](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 2](..
    - Building: **Weekly target**, a number and a unit ("3", "lifting sessions"). Optional.
    - Quitting: **Start date**, today unless changed.
    - One-off: nothing extra; its steps are added on its page.
-6. **Deadline:** optional, for any type. Not before the start date.
+6. **Deadline:** optional, for every type (Flow 2 step 6). Not before the start date.
 
-Saving opens the new goal's page, where milestones or steps are added: "Saved. Add milestones when you're ready." ("steps" for one-off).
+Saving opens the new goal's page, where milestones or steps are added: "Saved. Add milestones when you're ready." ("steps" for one-off). Back from that page goes to its aspiration's page when it has one, otherwise to the Aspirations tab, whichever screen the sheet was opened over.
 
 A building goal saved with a weekly target also gets that many tasks in this week's bank, each titled with the goal's label ("Be strong" three times for a target of 3). This is the mock standing in for the planner, so the goal can be followed from Week to Today.
 
@@ -52,6 +52,8 @@ A building goal saved with a weekly target also gets that many tasks in this wee
 - **Fixed day** or **Flexible**.
   - Fixed: "Every week on" a weekday, or "Every month on the" 1st–28th.
   - Flexible: "Once a week", "2 times a week" up to "6 times a week", "Every two weeks" or "Once a month".
+  - The saved rule reads as in the mock: "Every Tuesday", "Monthly on the 1st", "Once a week", "3 times a week", "Every two weeks", "Once a month".
+  - Yearly, "every N weeks" and a time of day ("Thursdays at 8 p.m." in the design) are left out for now.
 - **Under an aspiration:** optional. With none, it belongs to Keep life running.
 - "Added. It will show up in the plan when it's next due." It appears on its aspiration's card, or on the Keep life running page.
 
@@ -64,7 +66,7 @@ A building goal saved with a weekly target also gets that many tasks in this wee
 - `components/AddSheet.tsx` with one form component per tab; the + in `TabBar`; a short confirmation line.
 - On an active aspiration's page: "+ Add a goal for Be fit" (Goal tab) and "+ Add recurring" (Recurring tab), each with that aspiration selected. Not on a retired one, to match the pickers. On the Aspirations tab: the footer hint's "Add one with +."
 - Reuse what Goal detail built: `useModalDialog` (keeps the sheet above the keyboard), `sheet.css` and `editForm.css`. Focus on open: the Task tab's title field (keyboard up, since it's the one required field); the Goal tab's type choice, with no keyboard until a type is picked.
-- The confirmation lines use the shared save/load message from [#19](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/19), so they're seen without scrolling and clear themselves. Build #19 first, or with this.
+- The confirmation lines use the shared save/load message from [#19](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/19), so they're seen without scrolling and clear themselves. #19 is built (PR #23). `App` shows them, since the sheet has closed.
 - Docs: mostly there already (the + in the tab bar, where a new task goes). Add what the build settles about the four forms.
 
 **Out (later):**
@@ -80,6 +82,7 @@ A building goal saved with a weekly target also gets that many tasks in this wee
 addTask(task: { title: string; goalId?: string; dueDate?: string; timeOfDay?: TimeOfDay; onToday?: boolean }): Promise<Task>
 // status 'inBank'; weekOf is this week's Monday, or the Monday of the due date's week when that is later.
 // With onToday: status 'planned', plannedDay today, weekOf this week, placedByHand.
+// Rejects a goalId that isn't an active goal (the picker offers active goals only).
 
 addGoal(goal: {
   label: string
@@ -148,9 +151,3 @@ export function splitGoalSentence(sentence: string): { label: string; measurable
 - [ ] A recurring item saves as fixed or flexible with a readable repeat rule.
 - [ ] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
 - [ ] Works at 375 and 390 px, light and dark.
-
-## Open questions
-
-1. **Repeat choices** are the ones listed. Yearly, "every N weeks" and a time of day on a recurring item ("Thursdays at 8 p.m." in the design) are left out for now.
-2. **Deadline is offered for every goal type**, optional, as Flow 2 step 6 says, though the short form could drop it for building and quitting goals.
-3. **Back from a new goal's page.** Goal detail goes back to the Aspirations tab or to an aspiration's page. Suggested: its aspiration's page when it has one, otherwise the Aspirations tab, whichever screen the sheet was opened over.

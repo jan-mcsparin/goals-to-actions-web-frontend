@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   addMilestone,
+  addTask,
   bringBackAspiration,
   checkInMilestone,
   checkOffTask,
@@ -1106,5 +1107,104 @@ describe('getUpkeep', () => {
     const second = await getUpkeep()
     expect(second.tasks[0].title).not.toBe('changed')
     expect(second.recurringItems[0].name).toBe('Pay rent')
+  })
+})
+
+describe('addTask', () => {
+  // The dataset checks from mockData.test.ts that hold for added records.
+  function expectConsistentStore() {
+    const all = [...store.aspirations, ...store.goals, ...store.milestones, ...store.weeklyTargets, ...store.recurringItems, ...store.tasks]
+    expect(new Set(all.map((record) => record.id)).size).toBe(all.length)
+    const goalIds = new Set(store.goals.map((goal) => goal.id))
+    for (const task of store.tasks) {
+      if (task.goalId) expect(goalIds).toContain(task.goalId)
+      if (task.status === 'inBank') expect(task.plannedDay).toBeUndefined()
+      if (task.status === 'planned') expect(task.plannedDay).toBeDefined()
+    }
+  }
+
+  it("stores a task with only a title in this week's bank", async () => {
+    const task = await addTask({ title: '  Fill out my ballot  ' })
+
+    expect(task).toMatchObject({ title: 'Fill out my ballot', status: 'inBank', weekOf: '2026-11-09', rolloverCount: 0 })
+    expect(task.plannedDay).toBeUndefined()
+    expect(task.placedByHand).toBeUndefined()
+    expect(ids((await getBank()).tasks)).toContain(task.id)
+    expectConsistentStore()
+  })
+
+  it('keeps the goal, due date and time of day', async () => {
+    const task = await addTask({
+      title: 'Book a gym class',
+      goalId: 'goal-strong',
+      dueDate: '2026-11-13',
+      timeOfDay: { kind: 'by', time: '18:00' },
+    })
+
+    expect(task).toMatchObject({ goalId: 'goal-strong', dueDate: '2026-11-13', timeOfDay: { kind: 'by', time: '18:00' } })
+    expect(ids((await getBank()).goals)).toContain('goal-strong')
+  })
+
+  it("leaves a task due next week out of this week's bank and week", async () => {
+    const task = await addTask({ title: 'Renew passport', dueDate: '2026-11-18' })
+
+    expect(task).toMatchObject({ status: 'inBank', weekOf: '2026-11-16' })
+    expect(ids((await getBank()).tasks)).not.toContain(task.id)
+    expect(ids((await getWeek()).tasks)).not.toContain(task.id)
+    expectConsistentStore()
+  })
+
+  it('puts a task due across the year end in that week', async () => {
+    const task = await addTask({ title: 'File taxes', dueDate: '2027-01-02' })
+
+    expect(task.weekOf).toBe('2026-12-28')
+    expect(ids((await getBank()).tasks)).not.toContain(task.id)
+  })
+
+  it('puts a task on today, placed by hand, whatever its due date', async () => {
+    const task = await addTask({ title: 'Call the vet', dueDate: '2026-11-25', onToday: true })
+
+    expect(task).toMatchObject({ status: 'planned', plannedDay: WEDNESDAY_DAY, weekOf: '2026-11-09', placedByHand: true })
+    const today = (await getDay(WEDNESDAY_DAY)).tasks.find((row) => row.id === task.id)
+    expect(today?.placedByHand).toBe(true)
+    expect(ids((await getBank()).tasks)).not.toContain(task.id)
+    expectConsistentStore()
+  })
+
+  it('gives each new task its own id', async () => {
+    const first = await addTask({ title: 'One' })
+    const second = await addTask({ title: 'Two' })
+
+    expect(first.id).not.toBe(second.id)
+    expectConsistentStore()
+  })
+
+  it('returns a copy, so changing it does not change the store', async () => {
+    const task = await addTask({ title: 'Water the plants' })
+    task.title = 'changed'
+
+    expect((await getBank()).tasks.find((row) => row.id === task.id)?.title).toBe('Water the plants')
+  })
+
+  it('rejects a blank title and stores nothing', async () => {
+    const before = store.tasks.length
+
+    await expect(addTask({ title: '   ' })).rejects.toThrow()
+    expect(store.tasks).toHaveLength(before)
+  })
+
+  it('rejects an unknown goal and stores nothing', async () => {
+    const before = store.tasks.length
+
+    await expect(addTask({ title: 'Lift', goalId: 'goal-nope' })).rejects.toBeInstanceOf(NotFoundError)
+    expect(store.tasks).toHaveLength(before)
+  })
+
+  it.each(['paused', 'reached', 'ended'] as const)('rejects a %s goal and stores nothing', async (status) => {
+    store.goals.find((goal) => goal.id === 'goal-strong')!.status = status
+    const before = store.tasks.length
+
+    await expect(addTask({ title: 'Lift', goalId: 'goal-strong' })).rejects.toThrow()
+    expect(store.tasks).toHaveLength(before)
   })
 })

@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { parsedTarget, type TargetDraft } from '../domain/goalDetail.ts'
 import './editForm.css'
 import './sheet.css'
+import { useBackdropClose } from './useBackdropClose.ts'
 import { useModalDialog } from './useModalDialog.ts'
 
 type TargetSheetProps = {
@@ -15,10 +16,11 @@ type TargetSheetProps = {
 // from the target in force.
 export function TargetSheet({ open, initial, onSave, onClose }: TargetSheetProps) {
   const dialog = useModalDialog(open)
+  const backdropClose = useBackdropClose(onClose)
   const titleId = useId()
 
   return (
-    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose}>
+    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose} {...backdropClose}>
       <header className="sheet-header">
         <h2 id={titleId}>Weekly target</h2>
       </header>

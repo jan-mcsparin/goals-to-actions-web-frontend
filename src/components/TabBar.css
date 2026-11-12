@@ -29,3 +29,10 @@
   outline: 2px solid var(--accent);
   outline-offset: -4px;
 }
+
+.tab-bar .tab-bar-add {
+  color: var(--accent);
+  font-size: 1.75rem;
+  font-weight: 400;
+  line-height: 1;
+}

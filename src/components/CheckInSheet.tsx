@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import './editForm.css'
 import './sheet.css'
+import { useBackdropClose } from './useBackdropClose.ts'
 import { useModalDialog } from './useModalDialog.ts'
 
 type CheckInSheetProps = {
@@ -18,6 +19,7 @@ type CheckInSheetProps = {
 // rather than the field: on iOS the keyboard waits for a tap on it.
 export function CheckInSheet({ open, title, doneLabel, onCheckIn, onClose }: CheckInSheetProps) {
   const dialog = useModalDialog(open)
+  const backdropClose = useBackdropClose(onClose)
   const titleId = useId()
   const heading = useRef<HTMLHeadingElement>(null)
 
@@ -26,7 +28,7 @@ export function CheckInSheet({ open, title, doneLabel, onCheckIn, onClose }: Che
   }, [open])
 
   return (
-    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose}>
+    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose} {...backdropClose}>
       <header className="sheet-header">
         <h2 id={titleId} ref={heading} tabIndex={-1}>
           {title}

@@ -86,11 +86,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Bring the spec in line with plan decisions 1–4 and the architecture decisions that change it: close the open questions, note that the confirmations use `ScreenMessage`, that only the Today screen preselects "On today", and how back works from a new goal. Mark it approved.
 
 **Acceptance criteria:**
-- [ ] No open questions left; each decision is in the section it changes.
-- [ ] The repeat-rule texts in the spec match the mock's.
+- [x] No open questions left; each decision is in the section it changes.
+- [x] The repeat-rule texts in the spec match the mock's.
 
 **Verification:**
-- [ ] Read through against `plan.md`; `npm test && npm run lint && npm run build` still pass
+- [x] Read through against `plan.md`; `npm test && npm run lint && npm run build` still pass
 
 **Dependencies:** Checkpoint 0
 
@@ -103,12 +103,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `domain/add.ts`: `taskWeek(dueDate, today)`, `taskConfirmation(...)` and `taskReady(draft)`. `addTask` stores an `inBank` task in this week, or in its due week when that's later, or a `planned`, `placedByHand` task on today when `onToday` is set.
 
 **Acceptance criteria:**
-- [ ] `taskWeek`: no date, this week and a past date give this Monday; next week and a date across the year end give that week's Monday. The confirmations are "Added to this week's bank.", "Saved for the week of Nov 23." and "Added to today."
-- [ ] A task due next week is absent from `getBank` and `getWeek`; one added on today is in `getDay(today)` with `placedByHand`; a plain one is in `getBank`.
-- [ ] A blank title or an unknown `goalId` rejects; new records pass the dataset checks.
+- [x] `taskWeek`: no date, this week and a past date give this Monday; next week and a date across the year end give that week's Monday. The confirmations are "Added to this week's bank.", "Saved for the week of Nov 23." and "Added to today."
+- [x] A task due next week is absent from `getBank` and `getWeek`; one added on today is in `getDay(today)` with `placedByHand`; a plain one is in `getBank`.
+- [x] A blank title or an unknown or not-active `goalId` rejects; new records pass the dataset checks.
 
 **Verification:**
-- [ ] `npm test`: new `domain/add.test.ts`, `client.test.ts` (an `addTask` block)
+- [x] `npm test`: new `domain/add.test.ts`, `client.test.ts` (an `addTask` block)
 
 **Dependencies:** Task 4
 
@@ -121,12 +121,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `hooks/dataRevision.ts`: a context with a number (0 without a provider) and a way for `App` to bump it. The six load hooks list it in their load effect and keep showing what they have while they reload.
 
 **Acceptance criteria:**
-- [ ] Bumping the revision makes `useDay` and `useWeek` fetch again with no blank state in between.
-- [ ] Two quick bumps settle on the second load's data.
-- [ ] Existing hook and screen tests pass unchanged.
+- [x] Bumping the revision makes `useDay` and `useWeek` fetch again with no blank state in between.
+- [x] Two quick bumps settle on the second load's data.
+- [x] Existing hook and screen tests pass unchanged.
 
 **Verification:**
-- [ ] `npm test`: `useDay.test.tsx`, new `hooks/dataRevision.test.tsx` (`useWeek`, and one of the aspiration hooks)
+- [x] `npm test`: `useDay.test.tsx`, new `hooks/dataRevision.test.tsx` (`useWeek`, and one of the aspiration hooks)
 
 **Dependencies:** Task 4
 
@@ -139,12 +139,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `TabBar` becomes Today | Week | + | Aspirations; the + is labelled "Add" and is never current. `AddSheet` (titled "Add", tabs Task / Goal / Aspiration / Recurring, the last three empty for now) on `useModalDialog`. `TaskForm`: title, goal picker (active goals), due date, time of day ("by" / "at" and a time), and "In the bank" / "On today". `useAdd(origin)` holds the drafts, loads the pickers when the sheet opens, and saves. On save `App` closes the sheet, bumps the revision and shows the confirmation in its own `ScreenMessage`.
 
 **Acceptance criteria:**
-- [ ] The + opens the sheet on every screen with the Task title focused; Save is disabled until there's a title; a title alone saves to this week's bank.
-- [ ] From Today, "On today" is selected and the saved task appears in Today's list. From Week, an opened day or the Aspirations tab, "In the bank" is selected, and a task added while on Week appears in its bank.
-- [ ] Typed text survives switching tabs and is cleared on close.
+- [x] The + opens the sheet on every screen with the Task title focused; Save is disabled until there's a title; a title alone saves to this week's bank.
+- [x] From Today, "On today" is selected and the saved task appears in Today's list. From Week, an opened day or the Aspirations tab, "In the bank" is selected, and a task added while on Week appears in its bank.
+- [x] Typed text survives switching tabs and is cleared on close.
 
 **Verification:**
-- [ ] `npm test`: new `components/AddSheet.test.tsx`, new `hooks/useAdd.test.tsx`, `App.test.tsx`
+- [x] `npm test`: new `components/AddSheet.test.tsx`, new `hooks/useAdd.test.tsx`, `App.test.tsx`
 
 **Dependencies:** Tasks 5, 6
 
@@ -153,9 +153,9 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M (at the top end; TaskForm can be its own commit)
 
 ## Checkpoint 1 (PR 1)
-- [ ] Tests, lint and build pass
-- [ ] On the phone, 375 and 390 px, light and dark: the + in the tab bar, the keyboard up on open without covering Save, iOS date and time inputs, the confirmation seen after close
-- [ ] PR opened as "Part of #6"
+- [x] Tests, lint and build pass
+- [x] On the phone, 375 and 390 px, light and dark: the + in the tab bar, the keyboard up on open without covering Save, iOS date and time inputs, the confirmation seen after close; added from the check: a tap off any sheet closes it
+- [x] PR opened as "Part of #6"
 
 # PR 2: `add-sheet-goal` (Part of #6)
 

@@ -3,6 +3,7 @@ import type { TaskRow } from '../domain/today.ts'
 import './sheet.css'
 import './BankSheet.css'
 import './taskText.css'
+import { useBackdropClose } from './useBackdropClose.ts'
 import { useModalDialog } from './useModalDialog.ts'
 
 type BankSheetProps = {
@@ -16,10 +17,11 @@ type BankSheetProps = {
 
 export function BankSheet({ open, title, rows, message, onPick, onClose }: BankSheetProps) {
   const dialog = useModalDialog(open)
+  const backdropClose = useBackdropClose(onClose)
   const titleId = useId()
 
   return (
-    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose}>
+    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose} {...backdropClose}>
       <header className="sheet-header">
         <h2 id={titleId}>{title}</h2>
         <button type="button" className="sheet-close" onClick={onClose}>
