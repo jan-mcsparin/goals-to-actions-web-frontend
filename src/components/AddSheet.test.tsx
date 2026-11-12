@@ -25,11 +25,13 @@ afterEach(() => {
 })
 
 // Opens and closes the sheet the way App does.
-function Harness({ placement, onSaved }: { placement: AddOrigin['placement']; onSaved: OnSaved }) {
+type HarnessProps = { opening: AddOrigin; onSaved: OnSaved; onChanged: () => void }
+
+function Harness({ opening, onSaved, onChanged }: HarnessProps) {
   const [origin, setOrigin] = useState<AddOrigin>()
   return (
     <>
-      <button type="button" onClick={() => setOrigin({ placement })}>
+      <button type="button" onClick={() => setOrigin(opening)}>
         Open
       </button>
       <AddSheet
@@ -39,18 +41,20 @@ function Harness({ placement, onSaved }: { placement: AddOrigin['placement']; on
           setOrigin(undefined)
           onSaved(...saved)
         }}
+        onChanged={onChanged}
         onClose={() => setOrigin(undefined)}
       />
     </>
   )
 }
 
-async function openSheet(placement: AddOrigin['placement'] = 'inBank') {
+async function openSheet(placement: AddOrigin['placement'] = 'inBank', opening: Partial<AddOrigin> = {}) {
   const user = userEvent.setup()
   const onSaved = vi.fn()
-  render(<Harness placement={placement} onSaved={onSaved} />)
+  const onChanged = vi.fn()
+  render(<Harness opening={{ placement, ...opening }} onSaved={onSaved} onChanged={onChanged} />)
   await user.click(screen.getByRole('button', { name: 'Open' }))
-  return { user, onSaved }
+  return { user, onSaved, onChanged }
 }
 
 describe('AddSheet', () => {
@@ -258,5 +262,65 @@ describe('AddSheet on the Goal tab', () => {
 
     expect(screen.getByRole('button', { name: 'Building' }).getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByRole('textbox', { name: 'Goal' })).toHaveProperty('value', 'Be strong 2: bench 185')
+  })
+})
+
+describe('AddSheet opened for an aspiration', () => {
+  it('opens on the Goal tab with it selected', async () => {
+    const { user } = await openSheet('inBank', { tab: 'goal', aspirationId: 'asp-fit' })
+
+    expect(screen.getByRole('button', { name: 'Goal' }).getAttribute('aria-pressed')).toBe('true')
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Building' }))
+    await user.click(screen.getByRole('button', { name: 'Building' }))
+    await screen.findByRole('option', { name: 'Be fit' })
+    expect(screen.getByRole('combobox', { name: "What's this for?" })).toHaveProperty('value', 'asp-fit')
+  })
+})
+
+describe('AddSheet on the Aspiration tab', () => {
+  async function openAspirationTab() {
+    const opened = await openSheet()
+    await opened.user.click(screen.getByRole('button', { name: 'Aspiration' }))
+    return opened
+  }
+
+  it('asks for a name and a why, with focus on the name and Save off until it has one', async () => {
+    const { user } = await openAspirationTab()
+
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Name' }))
+    expect(screen.getByRole('textbox', { name: 'What would this give you? (optional)' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true)
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Be generous')
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', false)
+  })
+
+  it('saves without a why and stays open on "Saved.", then Done closes it', async () => {
+    const { user, onSaved, onChanged } = await openAspirationTab()
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Be generous')
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(store.aspirations.find((row) => row.name === 'Be generous')?.why).toBeUndefined()
+    expect(onChanged).toHaveBeenCalledTimes(1)
+    expect(onSaved).not.toHaveBeenCalled()
+    expect(screen.getByText('Saved.')).toBeDefined()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Add a goal for this' }))
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('opens the Goal tab with the new aspiration selected from "Add a goal for this"', async () => {
+    const { user } = await openAspirationTab()
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Be generous')
+    await user.type(screen.getByRole('textbox', { name: 'What would this give you? (optional)' }), 'So the people I love feel it')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await user.click(screen.getByRole('button', { name: 'Add a goal for this' }))
+    await user.click(screen.getByRole('button', { name: 'Building' }))
+
+    const aspiration = store.aspirations.find((row) => row.name === 'Be generous')!
+    expect(aspiration.why).toBe('So the people I love feel it')
+    expect(screen.getByRole('button', { name: 'Goal' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('combobox', { name: "What's this for?" })).toHaveProperty('value', aspiration.id)
   })
 })

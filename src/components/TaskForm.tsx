@@ -1,4 +1,4 @@
-import { useId, type Ref } from 'react'
+import { useId } from 'react'
 import type { Choice, Placement, TaskDraft } from '../domain/add.ts'
 import './AddSheet.css'
 import './editForm.css'
@@ -14,13 +14,12 @@ type TaskFormProps = {
   goalsMessage?: string
   canSave: boolean
   message?: string
-  titleRef?: Ref<HTMLInputElement>
   onChange: (changes: Partial<TaskDraft>) => void
   onSave: () => void
 }
 
 // The Add sheet's Task tab. Only the title is required.
-export function TaskForm({ draft, goals, goalsMessage, canSave, message, titleRef, onChange, onSave }: TaskFormProps) {
+export function TaskForm({ draft, goals, goalsMessage, canSave, message, onChange, onSave }: TaskFormProps) {
   const titleId = useId()
   const goalId = useId()
   const goalsNoteId = useId()
@@ -39,7 +38,7 @@ export function TaskForm({ draft, goals, goalsMessage, canSave, message, titleRe
       <label htmlFor={titleId}>Title</label>
       <input
         id={titleId}
-        ref={titleRef}
+        data-autofocus
         value={draft.title}
         autoComplete="off"
         required

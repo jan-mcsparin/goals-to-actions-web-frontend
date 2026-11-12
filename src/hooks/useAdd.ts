@@ -1,13 +1,16 @@
 // The Add sheet's state while it's open: which tab shows, what's typed on each
 // (kept across tab switches; the sheet starts over each time it opens), the
-// pickers' choices, and saving. A save that works hands the confirmation line,
-// and for a goal the screen to open, to onSaved; one that fails keeps the
-// sheet open with a calm message. Rules come from domain/add.ts.
+// pickers' choices, and saving. A task or goal that saves hands the
+// confirmation line, and for a goal the screen to open, to onSaved, and the
+// sheet closes. An aspiration that saves keeps the sheet open on "Saved." and
+// tells onChanged, so the screen behind can reload. A save that fails keeps
+// the sheet open with a calm message. Rules come from domain/add.ts.
 import { useEffect, useRef, useState } from 'react'
 import { addAspiration, addGoal, addTask, getAspirations } from '../api/client.ts'
 import type { Goal } from '../api/types.ts'
 import {
   aspirationChoices,
+  aspirationReady,
   emptyGoalDraft,
   emptyTaskDraft,
   goalChoices,
@@ -18,6 +21,7 @@ import {
   taskConfirmation,
   taskInput,
   taskReady,
+  type AspirationDraft,
   type Choice,
   type GoalDraft,
   type Placement,
@@ -25,14 +29,16 @@ import {
 } from '../domain/add.ts'
 import type { Screen } from './useNavigation.ts'
 
+const EMPTY_ASPIRATION: AspirationDraft = { name: '', why: '' }
 const SAVE_FAILED = "Couldn't save that. Try again."
 const GOALS_FAILED = "Couldn't load your goals. Try again in a moment."
 const ASPIRATIONS_FAILED = "Couldn't load your aspirations. Try again in a moment."
 
 export type AddTab = 'task' | 'goal' | 'aspiration' | 'recurring'
 
-// What the screen the sheet was opened over decides.
-export type AddOrigin = { placement: Placement }
+// What the screen the sheet was opened over decides, and, from an
+// aspiration's page, the tab to open on with that aspiration selected.
+export type AddOrigin = { placement: Placement; tab?: AddTab; aspirationId?: string }
 
 // Only the Today screen starts a task on today; an opened day doesn't, even
 // when it's today.
@@ -50,6 +56,8 @@ export function newGoalScreen(goal: Goal): Screen {
 
 export type OnSaved = (confirmation: string, open?: Screen) => void
 
+export type AddCallbacks = { onSaved: OnSaved; onChanged: () => void }
+
 export type UseAdd = {
   tab: AddTab
   setTab: (tab: AddTab) => void
@@ -57,6 +65,11 @@ export type UseAdd = {
   editTask: (changes: Partial<TaskDraft>) => void
   goal: GoalDraft
   editGoal: (changes: Partial<GoalDraft>) => void
+  aspiration: AspirationDraft
+  editAspiration: (changes: Partial<AspirationDraft>) => void
+  // Set once an aspiration saves, while the sheet shows "Saved.".
+  savedAspiration?: Choice
+  addGoalForSaved: () => void
   goals: Choice[]
   aspirations: Choice[]
   // Shown under a picker when its choices can't load.
@@ -67,10 +80,12 @@ export type UseAdd = {
   save: () => Promise<void>
 }
 
-export function useAdd(origin: AddOrigin, today: string, onSaved: OnSaved): UseAdd {
-  const [tab, setTab] = useState<AddTab>('task')
+export function useAdd(origin: AddOrigin, today: string, { onSaved, onChanged }: AddCallbacks): UseAdd {
+  const [tab, setTab] = useState<AddTab>(origin.tab ?? 'task')
   const [task, setTask] = useState(() => emptyTaskDraft(origin.placement))
-  const [goal, setGoal] = useState(emptyGoalDraft)
+  const [goal, setGoal] = useState(() => ({ ...emptyGoalDraft(), aspirationId: origin.aspirationId ?? '' }))
+  const [aspiration, setAspiration] = useState<AspirationDraft>(EMPTY_ASPIRATION)
+  const [savedAspiration, setSavedAspiration] = useState<Choice>()
   const [goals, setGoals] = useState<Choice[]>([])
   const [aspirations, setAspirations] = useState<Choice[]>([])
   const [choicesFailed, setChoicesFailed] = useState(false)
@@ -94,7 +109,10 @@ export function useAdd(origin: AddOrigin, today: string, onSaved: OnSaved): UseA
     }
   }, [])
 
-  const ready = (tab === 'task' && taskReady(task)) || (tab === 'goal' && goalReady(goal, today))
+  const ready =
+    (tab === 'task' && taskReady(task)) ||
+    (tab === 'goal' && goalReady(goal, today)) ||
+    (tab === 'aspiration' && aspirationReady(aspiration))
 
   async function save() {
     if (!ready || savingNow.current) return
@@ -105,9 +123,11 @@ export function useAdd(origin: AddOrigin, today: string, onSaved: OnSaved): UseA
       if (tab === 'task') {
         const saved = await addTask(taskInput(task))
         onSaved(taskConfirmation(saved, today))
-      } else {
+      } else if (tab === 'goal') {
         const saved = await saveGoal()
         onSaved(goalConfirmation(saved.type), newGoalScreen(saved))
+      } else {
+        await saveAspiration()
       }
     } catch {
       setMessage(SAVE_FAILED)
@@ -130,6 +150,23 @@ export function useAdd(origin: AddOrigin, today: string, onSaved: OnSaved): UseA
     return addGoal(goalInput({ ...goal, type: goal.type!, aspirationId }, today))
   }
 
+  async function saveAspiration() {
+    const added = await addAspiration(aspiration)
+    const choice = { id: added.id, label: added.name }
+    setAspirations((previous) => [...previous, choice])
+    setAspiration(EMPTY_ASPIRATION)
+    setSavedAspiration(choice)
+    onChanged()
+  }
+
+  // "Add a goal for this", after an aspiration saves.
+  function addGoalForSaved() {
+    if (!savedAspiration) return
+    setGoal((previous) => ({ ...previous, aspirationId: savedAspiration.id, newAspirationName: '' }))
+    setSavedAspiration(undefined)
+    setTab('goal')
+  }
+
   return {
     tab,
     setTab,
@@ -137,6 +174,10 @@ export function useAdd(origin: AddOrigin, today: string, onSaved: OnSaved): UseA
     editTask: (changes) => setTask((previous) => ({ ...previous, ...changes })),
     goal,
     editGoal: (changes) => setGoal((previous) => ({ ...previous, ...changes })),
+    aspiration,
+    editAspiration: (changes) => setAspiration((previous) => ({ ...previous, ...changes })),
+    savedAspiration,
+    addGoalForSaved,
     goals,
     aspirations,
     goalsMessage: choicesFailed ? GOALS_FAILED : undefined,

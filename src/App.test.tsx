@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resumeGoal, retireAspiration } from './api/client.ts'
@@ -16,6 +16,14 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers()
 })
+
+// The Aspirations tab's cards, in order.
+function aspirationCardNames() {
+  return screen
+    .queryAllByRole('region')
+    .filter((region) => region.classList.contains('aspiration-card'))
+    .map((card) => document.getElementById(card.getAttribute('aria-labelledby')!)?.textContent)
+}
 
 function currentTab() {
   return screen
@@ -521,5 +529,34 @@ describe('the Add sheet', () => {
       const bank = await screen.findByRole('region', { name: /^Bank/ })
       expect(await within(bank).findAllByText('Be strong 2')).toHaveLength(3)
     })
+  })
+
+  it("opens the Goal tab with Be fit selected from Be fit's page", async () => {
+    localStorage.setItem('gta.screen', JSON.stringify({ screen: 'aspiration', aspirationId: 'asp-fit' }))
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: '+ Add a goal for Be fit' }))
+    await user.click(screen.getByRole('button', { name: 'Building' }))
+
+    expect(screen.getByRole('button', { name: 'Goal' }).getAttribute('aria-pressed')).toBe('true')
+    await screen.findByRole('option', { name: 'Be fit' })
+    expect(screen.getByRole('combobox', { name: "What's this for?" })).toHaveProperty('value', 'asp-fit')
+  })
+
+  it('shows a new aspiration last on the Aspirations tab after Done', async () => {
+    localStorage.setItem('gta.screen', JSON.stringify({ screen: 'aspirations' }))
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { level: 1, name: 'Aspirations' })
+
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.click(screen.getByRole('button', { name: 'Aspiration' }))
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Be generous')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+
+    await waitFor(() => expect(aspirationCardNames().at(-1)).toBe('Be generous'))
+    expect(aspirationCardNames()).toEqual(['Be fit', 'Keep a calm home', 'Be generous'])
   })
 })

@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef, type RefObject } from 'react'
+import { useEffect, useId } from 'react'
 import { useAdd, type AddOrigin, type AddTab, type OnSaved } from '../hooks/useAdd.ts'
 import './AddSheet.css'
 import './sheet.css'
+import { AspirationForm, AspirationSaved } from './AspirationForm.tsx'
 import { GoalForm } from './GoalForm.tsx'
 import { TaskForm } from './TaskForm.tsx'
 import { useBackdropClose } from './useBackdropClose.ts'
@@ -19,23 +20,26 @@ type AddSheetProps = {
   origin?: AddOrigin
   today: string
   onSaved: OnSaved
+  // An aspiration saved and the sheet stayed open.
+  onChanged: () => void
   onClose: () => void
 }
 
 // Opened by the + in the tab bar. What's inside lives only while it's open,
-// so each opening starts blank. The title field takes focus, so the keyboard
-// is up for the one required field. Close, Escape or a tap off the sheet closes it.
-export function AddSheet({ origin, today, onSaved, onClose }: AddSheetProps) {
+// so each opening starts blank. The tab it opens on marks the field that takes
+// focus (data-autofocus): the Task tab's title, so the keyboard is up for the
+// one required field, or the Goal tab's types, with no keyboard yet. Close,
+// Escape or a tap off the sheet closes it.
+export function AddSheet({ origin, today, onSaved, onChanged, onClose }: AddSheetProps) {
   const open = origin !== undefined
   const dialog = useModalDialog(open)
   const headingId = useId()
-  const titleField = useRef<HTMLInputElement>(null)
   const backdropClose = useBackdropClose(onClose)
 
   // After useModalDialog's effect, so the dialog is open and can take focus.
   useEffect(() => {
-    if (open) titleField.current?.focus()
-  }, [open])
+    if (open) dialog.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus()
+  }, [open, dialog])
 
   return (
     <dialog ref={dialog} className="sheet" aria-labelledby={headingId} onClose={onClose} {...backdropClose}>
@@ -45,7 +49,15 @@ export function AddSheet({ origin, today, onSaved, onClose }: AddSheetProps) {
           Close
         </button>
       </header>
-      {origin && <AddSheetBody origin={origin} today={today} titleField={titleField} onSaved={onSaved} />}
+      {origin && (
+        <AddSheetBody
+          origin={origin}
+          today={today}
+          onSaved={onSaved}
+          onChanged={onChanged}
+          onClose={onClose}
+        />
+      )}
     </dialog>
   )
 }
@@ -53,12 +65,13 @@ export function AddSheet({ origin, today, onSaved, onClose }: AddSheetProps) {
 type AddSheetBodyProps = {
   origin: AddOrigin
   today: string
-  titleField: RefObject<HTMLInputElement | null>
   onSaved: OnSaved
+  onChanged: () => void
+  onClose: () => void
 }
 
-function AddSheetBody({ origin, today, titleField, onSaved }: AddSheetBodyProps) {
-  const add = useAdd(origin, today, onSaved)
+function AddSheetBody({ origin, today, onSaved, onChanged, onClose }: AddSheetBodyProps) {
+  const add = useAdd(origin, today, { onSaved, onChanged })
 
   return (
     <>
@@ -76,7 +89,6 @@ function AddSheetBody({ origin, today, titleField, onSaved }: AddSheetBodyProps)
           goalsMessage={add.goalsMessage}
           canSave={add.canSave}
           message={add.message}
-          titleRef={titleField}
           onChange={add.editTask}
           onSave={() => void add.save()}
         />
@@ -93,7 +105,19 @@ function AddSheetBody({ origin, today, titleField, onSaved }: AddSheetBodyProps)
           onSave={() => void add.save()}
         />
       )}
-      {(add.tab === 'aspiration' || add.tab === 'recurring') && <p className="sheet-note">Coming soon.</p>}
+      {add.tab === 'aspiration' &&
+        (add.savedAspiration ? (
+          <AspirationSaved onAddGoal={add.addGoalForSaved} onDone={onClose} />
+        ) : (
+          <AspirationForm
+            draft={add.aspiration}
+            canSave={add.canSave}
+            message={add.message}
+            onChange={add.editAspiration}
+            onSave={() => void add.save()}
+          />
+        ))}
+      {add.tab === 'recurring' && <p className="sheet-note">Coming soon.</p>}
     </>
   )
 }

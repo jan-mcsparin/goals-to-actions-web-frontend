@@ -29,9 +29,9 @@ function App() {
   const shownConfirmation = useFleetingMessage(confirmation)
 
   // Cleared on open, so the same line after the next save shows again.
-  function openAdd() {
+  function openAdd(opening: Partial<AddOrigin> = {}) {
     setConfirmation(undefined)
-    setAdding(addOriginFor(current))
+    setAdding({ ...addOriginFor(current), ...opening })
   }
 
   // A new goal opens on its own page, where milestones are added.
@@ -67,6 +67,7 @@ function App() {
             today={today}
             onBack={backToAspirations}
             onRetired={backToAspirations}
+            onAddGoal={() => openAdd({ tab: 'goal', aspirationId: current.aspirationId })}
             onOpenGoal={(goalId) =>
               goTo({ screen: 'goal', goalId, from: { screen: 'aspiration', aspirationId: current.aspirationId } })
             }
@@ -84,8 +85,14 @@ function App() {
           />
         )}
         <ScreenMessage message={shownConfirmation.shown} onDismiss={shownConfirmation.dismiss} />
-        <TabBar current={tabOf(current)} onSelect={(tab) => goTo({ screen: tab })} onAdd={openAdd} />
-        <AddSheet origin={adding} today={today} onSaved={saved} onClose={() => setAdding(undefined)} />
+        <TabBar current={tabOf(current)} onSelect={(tab) => goTo({ screen: tab })} onAdd={() => openAdd()} />
+        <AddSheet
+          origin={adding}
+          today={today}
+          onSaved={saved}
+          onChanged={bump}
+          onClose={() => setAdding(undefined)}
+        />
       </div>
     </DataRevision>
   )

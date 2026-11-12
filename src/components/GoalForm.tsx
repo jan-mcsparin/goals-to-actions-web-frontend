@@ -29,6 +29,8 @@ export function GoalForm({ draft, today, aspirations, aspirationsMessage, canSav
   const typed = draft.type !== undefined
 
   // The types first, with no keyboard; once one is picked, the sentence.
+  // When the sheet opens on this tab, AddSheet focuses the first type instead
+  // (data-autofocus), since the dialog isn't open yet when this runs.
   useEffect(() => {
     if (typed) sentenceField.current?.focus()
     else firstType.current?.focus()
@@ -47,6 +49,7 @@ export function GoalForm({ draft, today, aspirations, aspirationsMessage, canSav
           <button
             key={type}
             ref={index === 0 ? firstType : undefined}
+            data-autofocus={index === 0 || undefined}
             type="button"
             aria-pressed={draft.type === type}
             onClick={() => onChange({ type })}

@@ -200,12 +200,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `AspirationForm`: name and "What would this give you?". After saving, the sheet stays open on "Saved." with **Add a goal for this** (Goal tab, that aspiration selected) and **Done**. On an active aspiration's page, "+ Add a goal for Be fit" opens the Goal tab with it selected; not on a retired one.
 
 **Acceptance criteria:**
-- [ ] An aspiration saves with or without a why and shows last on the tab after Done.
-- [ ] "Add a goal for this" opens the Goal tab with the new aspiration selected.
-- [ ] The link is on Be fit's page and opens the Goal tab with Be fit selected; a retired aspiration's page has no link.
+- [x] An aspiration saves with or without a why and shows last on the tab after Done.
+- [x] "Add a goal for this" opens the Goal tab with the new aspiration selected.
+- [x] The link is on Be fit's page and opens the Goal tab with Be fit selected; a retired aspiration's page has no link.
 
 **Verification:**
-- [ ] `npm test`: `AddSheet.test.tsx`, `Aspiration.test.tsx`, `App.test.tsx`
+- [x] `npm test`: `AddSheet.test.tsx`, `Aspiration.test.tsx`, `App.test.tsx`
 
 **Dependencies:** Task 9
 

@@ -4,7 +4,7 @@ import { addAspiration, addGoal, addTask, getAspirations, getBank, getDay, getGo
 import { resetStore, store } from '../api/mockStore.ts'
 import type { Task } from '../api/types.ts'
 import { NEW_ASPIRATION } from '../domain/add.ts'
-import { addOriginFor, useAdd } from './useAdd.ts'
+import { addOriginFor, useAdd, type AddOrigin } from './useAdd.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
@@ -32,10 +32,11 @@ afterEach(() => {
   vi.mocked(addAspiration).mockClear()
 })
 
-function renderAdd(placement: 'inBank' | 'onToday' = 'inBank') {
+function renderAdd(placement: 'inBank' | 'onToday' = 'inBank', opening: Partial<AddOrigin> = {}) {
   const onSaved = vi.fn()
-  const hook = renderHook(() => useAdd({ placement }, TODAY, onSaved))
-  return { ...hook, onSaved }
+  const onChanged = vi.fn()
+  const hook = renderHook(() => useAdd({ placement, ...opening }, TODAY, { onSaved, onChanged }))
+  return { ...hook, onSaved, onChanged }
 }
 
 describe('addOriginFor', () => {
@@ -281,5 +282,75 @@ describe('useAdd on the Goal tab', () => {
     act(() => result.current.setTab('goal'))
 
     expect(result.current.goal).toMatchObject(BE_STRONG)
+  })
+})
+
+describe('useAdd opened for an aspiration', () => {
+  it('starts on the Goal tab with that aspiration selected', () => {
+    const { result } = renderAdd('inBank', { tab: 'goal', aspirationId: 'asp-fit' })
+
+    expect(result.current.tab).toBe('goal')
+    expect(result.current.goal.aspirationId).toBe('asp-fit')
+  })
+})
+
+describe('useAdd on the Aspiration tab', () => {
+  function onAspirationTab() {
+    const added = renderAdd()
+    act(() => added.result.current.setTab('aspiration'))
+    return added
+  }
+
+  it('can save once there is a name', () => {
+    const { result } = onAspirationTab()
+    expect(result.current.canSave).toBe(false)
+
+    act(() => result.current.editAspiration({ why: 'So the people I love feel it' }))
+    expect(result.current.canSave).toBe(false)
+    act(() => result.current.editAspiration({ name: 'Be generous' }))
+
+    expect(result.current.canSave).toBe(true)
+  })
+
+  it('saves without a why, stays open on it, and lets the screen behind reload', async () => {
+    const { result, onSaved, onChanged } = onAspirationTab()
+    await waitFor(() => expect(result.current.aspirations.length).toBeGreaterThan(0))
+    act(() => result.current.editAspiration({ name: 'Be generous' }))
+
+    await act(async () => result.current.save())
+
+    const aspiration = store.aspirations.find((row) => row.name === 'Be generous')!
+    expect(aspiration.why).toBeUndefined()
+    expect(onSaved).not.toHaveBeenCalled()
+    expect(onChanged).toHaveBeenCalledTimes(1)
+    expect(result.current.savedAspiration).toEqual({ id: aspiration.id, label: 'Be generous' })
+    expect(result.current.aspirations).toContainEqual({ id: aspiration.id, label: 'Be generous' })
+    expect(result.current.aspiration).toEqual({ name: '', why: '' })
+  })
+
+  it('opens the Goal tab with the new aspiration selected', async () => {
+    const { result } = onAspirationTab()
+    act(() => result.current.editAspiration({ name: 'Be generous', why: 'So the people I love feel it' }))
+    await act(async () => result.current.save())
+
+    act(() => result.current.addGoalForSaved())
+
+    const aspiration = store.aspirations.find((row) => row.name === 'Be generous')!
+    expect(result.current.tab).toBe('goal')
+    expect(result.current.goal.aspirationId).toBe(aspiration.id)
+    expect(result.current.savedAspiration).toBeUndefined()
+  })
+
+  it('keeps the sheet on the form with a calm message when the save fails', async () => {
+    vi.mocked(addAspiration).mockRejectedValueOnce(new Error('offline'))
+    const { result, onChanged } = onAspirationTab()
+    act(() => result.current.editAspiration({ name: 'Be generous' }))
+
+    await act(async () => result.current.save())
+
+    expect(onChanged).not.toHaveBeenCalled()
+    expect(result.current.savedAspiration).toBeUndefined()
+    expect(result.current.message).toBe("Couldn't save that. Try again.")
+    expect(result.current.aspiration.name).toBe('Be generous')
   })
 })
