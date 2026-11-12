@@ -36,7 +36,8 @@
 }
 
 /* Styled like the List / By goal toggle, in three columns. The radio itself is
-   hidden; its label is the target. */
+   hidden inside its label, which is the target; anchored there, so iOS scrolls
+   to the right place when it takes focus. */
 .intensity-choice {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -46,6 +47,7 @@
 }
 
 .intensity-choice label {
+  position: relative;
   display: grid;
   place-items: center;
   min-height: 2.75rem;
