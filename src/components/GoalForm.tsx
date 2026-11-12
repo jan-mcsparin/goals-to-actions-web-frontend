@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type Ref } from 'react'
+import { useId } from 'react'
 import type { GoalType } from '../api/types.ts'
 import { goalParts, needsLineField, NEW_ASPIRATION, type Choice, type GoalDraft } from '../domain/add.ts'
 import './AddSheet.css'
@@ -23,18 +23,10 @@ type GoalFormProps = {
 
 // The Add sheet's Goal tab. The type comes first and nothing else shows until
 // it's picked; the person picks it, it's never guessed from the sentence.
+// Focus stays where the person tapped, so no keyboard comes up until they tap
+// a field. Opened on this tab, the sheet focuses the first type (AddSheet).
 export function GoalForm({ draft, today, aspirations, aspirationsMessage, canSave, message, onChange, onSave }: GoalFormProps) {
-  const firstType = useRef<HTMLButtonElement>(null)
-  const sentenceField = useRef<HTMLInputElement>(null)
   const typed = draft.type !== undefined
-
-  // The types first, with no keyboard; once one is picked, the sentence.
-  // When the sheet opens on this tab, AddSheet focuses the first type instead
-  // (data-autofocus), since the dialog isn't open yet when this runs.
-  useEffect(() => {
-    if (typed) sentenceField.current?.focus()
-    else firstType.current?.focus()
-  }, [typed])
 
   return (
     <form
@@ -48,7 +40,6 @@ export function GoalForm({ draft, today, aspirations, aspirationsMessage, canSav
         {TYPES.map(({ type, label }, index) => (
           <button
             key={type}
-            ref={index === 0 ? firstType : undefined}
             data-autofocus={index === 0 || undefined}
             type="button"
             aria-pressed={draft.type === type}
@@ -65,7 +56,6 @@ export function GoalForm({ draft, today, aspirations, aspirationsMessage, canSav
           today={today}
           aspirations={aspirations}
           aspirationsMessage={aspirationsMessage}
-          sentenceRef={sentenceField}
           onChange={onChange}
         />
       )}
@@ -87,11 +77,9 @@ export function GoalForm({ draft, today, aspirations, aspirationsMessage, canSav
   )
 }
 
-type GoalFieldsProps = Pick<GoalFormProps, 'draft' | 'today' | 'aspirations' | 'aspirationsMessage' | 'onChange'> & {
-  sentenceRef: Ref<HTMLInputElement>
-}
+type GoalFieldsProps = Pick<GoalFormProps, 'draft' | 'today' | 'aspirations' | 'aspirationsMessage' | 'onChange'>
 
-function GoalFields({ draft, today, aspirations, aspirationsMessage, sentenceRef, onChange }: GoalFieldsProps) {
+function GoalFields({ draft, today, aspirations, aspirationsMessage, onChange }: GoalFieldsProps) {
   const sentenceId = useId()
   const partsId = useId()
   const lineId = useId()
@@ -111,7 +99,6 @@ function GoalFields({ draft, today, aspirations, aspirationsMessage, sentenceRef
       <label htmlFor={sentenceId}>Goal</label>
       <input
         id={sentenceId}
-        ref={sentenceRef}
         value={draft.sentence}
         placeholder="Be strong: bench 175, squat 350"
         autoComplete="off"

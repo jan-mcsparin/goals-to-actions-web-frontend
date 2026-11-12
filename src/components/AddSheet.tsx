@@ -27,9 +27,9 @@ type AddSheetProps = {
 
 // Opened by the + in the tab bar. What's inside lives only while it's open,
 // so each opening starts blank. The tab it opens on marks the field that takes
-// focus (data-autofocus): the Task tab's title, so the keyboard is up for the
-// one required field, or the Goal tab's types, with no keyboard yet. Close,
-// Escape or a tap off the sheet closes it.
+// focus (data-autofocus): the Task tab's title, or the Goal tab's first type.
+// iOS doesn't raise the keyboard for it; it comes up when a field is tapped.
+// Close, Escape or a tap off the sheet closes it.
 export function AddSheet({ origin, today, onSaved, onChanged, onClose }: AddSheetProps) {
   const open = origin !== undefined
   const dialog = useModalDialog(open)

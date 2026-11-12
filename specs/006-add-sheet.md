@@ -65,7 +65,7 @@ A building goal saved with a weekly target also gets that many tasks in this wee
 - `hooks/useAdd.ts`: saving, errors, and telling the open screen to reload.
 - `components/AddSheet.tsx` with one form component per tab; the + in `TabBar`; a short confirmation line.
 - On an active aspiration's page: "+ Add a goal for Be fit" (Goal tab) and "+ Add recurring" (Recurring tab), each with that aspiration selected. Not on a retired one, to match the pickers. On the Aspirations tab: the footer hint's "Add one with +."
-- Reuse what Goal detail built: `useModalDialog` (keeps the sheet above the keyboard), `sheet.css` and `editForm.css`. Focus on open: the Task tab's title field (keyboard up, since it's the one required field); the Goal tab's type choice, with no keyboard until a type is picked.
+- Reuse what Goal detail built: `useModalDialog` (keeps the sheet above the keyboard), `sheet.css` and `editForm.css`. Focus on open: the Task tab's title field, or the Goal tab's first type when opened from an aspiration's page. Switching tabs or picking a goal type leaves focus where it was tapped, so the keyboard only comes up when the person taps a field. (iOS doesn't raise the keyboard for the focus on open either, which is the feel wanted.)
 - The confirmation lines use the shared save/load message from [#19](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/19), so they're seen without scrolling and clear themselves. #19 is built (PR #23). `App` shows them, since the sheet has closed.
 - Docs: mostly there already (the + in the tab bar, where a new task goes). Add what the build settles about the four forms.
 

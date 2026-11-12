@@ -11,16 +11,11 @@ type AspirationFormProps = {
 }
 
 // The Add sheet's Aspiration tab. Only the name is required; it saves without
-// a why, and nothing asks for one later.
+// a why, and nothing asks for one later. Focus stays on the tab, so no
+// keyboard comes up until the person taps a field.
 export function AspirationForm({ draft, canSave, message, onChange, onSave }: AspirationFormProps) {
   const nameId = useId()
   const whyId = useId()
-  const nameField = useRef<HTMLInputElement>(null)
-
-  // Keyboard up for the one required field, on switching to this tab.
-  useEffect(() => {
-    nameField.current?.focus()
-  }, [])
 
   return (
     <form
@@ -33,8 +28,6 @@ export function AspirationForm({ draft, canSave, message, onChange, onSave }: As
       <label htmlFor={nameId}>Name</label>
       <input
         id={nameId}
-        ref={nameField}
-        data-autofocus
         value={draft.name}
         placeholder="Be fit"
         autoComplete="off"

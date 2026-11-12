@@ -170,14 +170,22 @@ describe('AddSheet on the Goal tab', () => {
     return opened
   }
 
-  it('shows only the three types until one is picked, with focus on the first', async () => {
+  it('shows only the three types until one is picked, leaving focus on the tab', async () => {
     await openGoalTab()
 
     const types = screen.getByRole('group', { name: 'Type' })
     expect(Array.from(types.querySelectorAll('button')).map((button) => button.textContent)).toEqual(['Building', 'Quitting', 'One-off'])
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Building' }))
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Goal' }))
     expect(screen.queryByRole('textbox')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+  })
+
+  it("doesn't move focus into the sentence when a type is picked, so no keyboard comes up", async () => {
+    const { user } = await openGoalTab()
+
+    await user.click(screen.getByRole('button', { name: 'Building' }))
+
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Building' }))
   })
 
   it('shows the label and line back as the sentence is typed', async () => {
@@ -291,10 +299,10 @@ describe('AddSheet on the Aspiration tab', () => {
     return opened
   }
 
-  it('asks for a name and a why, with focus on the name and Save off until it has one', async () => {
+  it('asks for a name and a why, leaving focus on the tab, with Save off until it has a name', async () => {
     const { user } = await openAspirationTab()
 
-    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Name' }))
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Aspiration' }))
     expect(screen.getByRole('textbox', { name: 'What would this give you? (optional)' })).toBeDefined()
     expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true)
     await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Be generous')
