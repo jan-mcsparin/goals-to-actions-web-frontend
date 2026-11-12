@@ -1261,6 +1261,12 @@ describe('addGoal', () => {
     expect(store.tasks).toHaveLength(before)
   })
 
+  it('starts a quitting goal today when no start date is given', async () => {
+    const goal = await addGoal({ label: 'Quit sugar', measurableLine: '30 days', type: 'quitting' })
+
+    expect(goal.startDate).toBe(WEDNESDAY_DAY)
+  })
+
   it('keeps a start date and deadline', async () => {
     const goal = await addGoal({ label: 'Quit sugar', measurableLine: '30 days', type: 'quitting', startDate: '2026-11-16', deadline: '2026-12-16' })
 
