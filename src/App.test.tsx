@@ -616,3 +616,16 @@ it('opens Settings from the gear under the Aspirations tab, remembers it, and go
   await user.click(screen.getByRole('button', { name: 'Back to Aspirations' }))
   expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
 })
+
+it('keeps a new intensity after leaving Settings and coming back', async () => {
+  const user = userEvent.setup()
+  render(<App />)
+  await user.click(await screen.findByRole('button', { name: 'Aspirations' }))
+  await user.click(await screen.findByRole('button', { name: 'Settings' }))
+
+  await user.click(await screen.findByRole('radio', { name: 'Going hard' }))
+  await user.click(screen.getByRole('button', { name: 'Back to Aspirations' }))
+  await user.click(await screen.findByRole('button', { name: 'Settings' }))
+
+  expect(((await screen.findByRole('radio', { name: 'Going hard' })) as HTMLInputElement).checked).toBe(true)
+})

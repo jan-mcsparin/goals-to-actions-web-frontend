@@ -64,12 +64,12 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 **Description:** `hooks/useSettings.ts` loads settings through `useLoaded` and gives the screen `intensity`, `setIntensity` (optimistic, rolled back with "Couldn't save that. Try again." on failure, newest save wins), `exportData` (sets "Coming later.") and the message. Settings shows the intensity radiogroup once loaded, with "Sets how full days are and how much is free." under it, and an Export my data row. The screen's message shows through `ScreenMessage`; a load failure is sticky.
 
 **Acceptance criteria:**
-- [ ] Normal is selected at first; tapping Going hard selects it and calls `setIntensity`; leaving and coming back shows Going hard.
-- [ ] A failed save goes back to the earlier choice with the message; with two quick changes where the first fails, the second stays. Arrow keys move the choice.
-- [ ] Export my data shows "Coming later."; a failed load shows "Couldn't load settings. Try again in a moment." until tapped, with the header and constant rows still there.
+- [x] Normal is selected at first; tapping Going hard selects it and calls `setIntensity`; leaving and coming back shows Going hard.
+- [x] A failed save goes back to the earlier choice with the message; with two quick changes where the first fails, the second stays. Arrow keys move the choice.
+- [x] Export my data shows "Coming later."; a failed load shows "Couldn't load settings. Try again in a moment." until tapped, with the header and constant rows still there.
 
 **Verification:**
-- [ ] `npm test`: new `hooks/useSettings.test.tsx`, `Settings.test.tsx`, `App.test.tsx`
+- [x] `npm test`: new `hooks/useSettings.test.tsx`, `Settings.test.tsx`, `App.test.tsx`
 
 **Dependencies:** Tasks 2, 3
 
