@@ -13,6 +13,7 @@ export type Screen =
   | { screen: 'aspiration'; aspirationId: string }
   | { screen: 'upkeep' }
   | { screen: 'goal'; goalId: string; from: GoalOrigin }
+  | { screen: 'settings' }
 
 export type Tab = 'today' | 'week' | 'aspirations'
 
@@ -36,8 +37,8 @@ export function saveScreen(screen: Screen): void {
   }
 }
 
-// An opened day counts as Week; an opened aspiration, goal or Keep life
-// running counts as Aspirations.
+// An opened day counts as Week; an opened aspiration, goal, Keep life running
+// or Settings counts as Aspirations.
 export function tabOf(screen: Screen): Tab {
   if (screen.screen === 'today') return 'today'
   if (screen.screen === 'week' || screen.screen === 'day') return 'week'
@@ -47,7 +48,7 @@ export function tabOf(screen: Screen): Tab {
 function parseScreen(value: unknown): Screen | undefined {
   if (!isRecord(value)) return undefined
   const { screen, date, aspirationId, goalId } = value
-  if (screen === 'today' || screen === 'week' || screen === 'aspirations' || screen === 'upkeep') return { screen }
+  if (screen === 'today' || screen === 'week' || screen === 'aspirations' || screen === 'upkeep' || screen === 'settings') return { screen }
   if (screen === 'day' && typeof date === 'string' && LOCAL_DAY.test(date)) return { screen, date }
   if (screen === 'aspiration' && isId(aspirationId)) return { screen, aspirationId }
   if (screen === 'goal' && isId(goalId)) {

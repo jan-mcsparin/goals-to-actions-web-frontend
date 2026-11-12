@@ -11,6 +11,7 @@ import { Aspiration } from './screens/Aspiration.tsx'
 import { Aspirations } from './screens/Aspirations.tsx'
 import { Day } from './screens/Day.tsx'
 import { GoalDetail } from './screens/GoalDetail.tsx'
+import { Settings } from './screens/Settings.tsx'
 import { Upkeep } from './screens/Upkeep.tsx'
 import { Week } from './screens/Week.tsx'
 import { tabOf } from './storage/navigation.ts'
@@ -57,8 +58,10 @@ function App() {
             onOpenAspiration={(aspirationId) => goTo({ screen: 'aspiration', aspirationId })}
             onOpenGoal={(goalId) => goTo({ screen: 'goal', goalId, from: { screen: 'aspirations' } })}
             onOpenUpkeep={() => goTo({ screen: 'upkeep' })}
+            onOpenSettings={() => goTo({ screen: 'settings' })}
           />
         )}
+        {current.screen === 'settings' && <Settings onBack={backToAspirations} />}
         {current.screen === 'upkeep' && <Upkeep today={today} onBack={() => goTo({ screen: 'aspirations' })} />}
         {current.screen === 'aspiration' && (
           <Aspiration

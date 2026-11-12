@@ -599,3 +599,20 @@ describe('the Add sheet', () => {
     expect(aspirationCardNames()).toEqual(['Be fit', 'Keep a calm home', 'Be generous'])
   })
 })
+
+it('opens Settings from the gear under the Aspirations tab, remembers it, and goes back', async () => {
+  const user = userEvent.setup()
+  const first = render(<App />)
+  await user.click(await screen.findByRole('button', { name: 'Aspirations' }))
+  await user.click(await screen.findByRole('button', { name: 'Settings' }))
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeDefined()
+  expect(currentTab()).toBe('Aspirations')
+  first.unmount()
+
+  render(<App />)
+  expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeDefined()
+
+  await user.click(screen.getByRole('button', { name: 'Back to Aspirations' }))
+  expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
+})

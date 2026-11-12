@@ -46,12 +46,12 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 **Description:** `settings` joins the `Screen` union and `parseScreen`. The Aspirations header gets a gear button labelled "Settings" at the top right. `screens/Settings.tsx` shows the pinned header ("‹ Aspirations", "Settings") and the two constant rows: Week starts: Monday, and Notifications: Off. `App` renders it, with back going to the tab.
 
 **Acceptance criteria:**
-- [ ] The gear opens Settings; Aspirations stays current in the tab bar; "‹ Aspirations" returns.
-- [ ] Settings is still open after a remount; `settings` round-trips in storage, and junk still falls back to Today.
-- [ ] Week starts reads Monday and Notifications reads Off, and neither is a button or input.
+- [x] The gear opens Settings; Aspirations stays current in the tab bar; "‹ Aspirations" returns.
+- [x] Settings is still open after a remount; `settings` round-trips in storage, and junk still falls back to Today.
+- [x] Week starts reads Monday and Notifications reads Off, and neither is a button or input.
 
 **Verification:**
-- [ ] `npm test`: `navigation.test.ts`, `Aspirations.test.tsx`, new `screens/Settings.test.tsx`, `App.test.tsx`
+- [x] `npm test`: `navigation.test.ts`, `Aspirations.test.tsx`, new `screens/Settings.test.tsx`, `App.test.tsx`
 
 **Dependencies:** Task 1
 
