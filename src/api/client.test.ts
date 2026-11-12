@@ -14,6 +14,7 @@ import {
   getBank,
   getDay,
   getGoal,
+  getSettings,
   getUpkeep,
   getWeek,
   moveAspiration,
@@ -23,6 +24,7 @@ import {
   reopenMilestone,
   resumeGoal,
   retireAspiration,
+  setIntensity,
   setWeeklyTarget,
   skipTask,
   swapTask,
@@ -1379,5 +1381,39 @@ describe('addRecurringItem', () => {
 
     await expect(addRecurringItem(item)).rejects.toThrow()
     expect(store.recurringItems).toHaveLength(before)
+  })
+})
+
+describe('getSettings', () => {
+  it('starts at Normal, set on Oct 1, with weeks starting Monday', async () => {
+    expect(await getSettings()).toEqual({ intensity: 'normal', intensitySetOn: '2026-10-01', weekStartsOn: 'monday' })
+  })
+
+  it('returns a copy', async () => {
+    const settings = await getSettings()
+    settings.intensity = 'goingHard'
+
+    expect(store.settings.intensity).toBe('normal')
+  })
+})
+
+describe('setIntensity', () => {
+  it('sets the intensity, set today, and the next getSettings agrees', async () => {
+    const settings = await setIntensity('goingHard')
+
+    expect(settings).toEqual({ intensity: 'goingHard', intensitySetOn: WEDNESDAY_DAY, weekStartsOn: 'monday' })
+    expect(await getSettings()).toEqual(settings)
+  })
+
+  it('returns a copy', async () => {
+    const settings = await setIntensity('easingOff')
+    settings.intensity = 'normal'
+
+    expect(store.settings.intensity).toBe('easingOff')
+  })
+
+  it('rejects an unknown intensity and changes nothing', async () => {
+    await expect(setIntensity('flatOut' as never)).rejects.toThrow()
+    expect(store.settings).toEqual({ intensity: 'normal', intensitySetOn: '2026-10-01', weekStartsOn: 'monday' })
   })
 })

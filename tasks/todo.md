@@ -28,12 +28,12 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 **Description:** `domain/settings.ts` exports `INTENSITIES` (the three in order, with labels) as in the spec. `getSettings()` returns a copy of the store's settings. `setIntensity(intensity)` sets the intensity and `intensitySetOn` to today, and returns a copy.
 
 **Acceptance criteria:**
-- [ ] `getSettings` returns Normal, set on 2026-10-01, weeks starting Monday; changing the returned object doesn't change the store.
-- [ ] `setIntensity('goingHard')` returns Going hard set today, and the next `getSettings` agrees; an unknown value rejects.
-- [ ] `INTENSITIES` lists Easing off, Normal, Going hard, in that order.
+- [x] `getSettings` returns Normal, set on 2026-10-01, weeks starting Monday; changing the returned object doesn't change the store.
+- [x] `setIntensity('goingHard')` returns Going hard set today, and the next `getSettings` agrees; an unknown value rejects.
+- [x] `INTENSITIES` lists Easing off, Normal, Going hard, in that order.
 
 **Verification:**
-- [ ] `npm test`: `client.test.ts` (a settings block), new `domain/settings.test.ts`
+- [x] `npm test`: `client.test.ts` (a settings block), new `domain/settings.test.ts`
 
 **Dependencies:** Task 1
 

@@ -3,6 +3,7 @@
 import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
 import { taskWeek } from '../domain/add.ts'
 import { isWithinGoal, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
+import { isIntensity } from '../domain/settings.ts'
 import { store } from './mockStore.ts'
 import type {
   Aspiration,
@@ -12,12 +13,14 @@ import type {
   DayPlan,
   Goal,
   GoalDetail,
+  Intensity,
   Milestone,
   NewAspiration,
   NewGoal,
   NewRecurringItem,
   NewTask,
   RecurringItem,
+  Settings,
   Task,
   Upkeep,
   WeekPlan,
@@ -291,6 +294,18 @@ export async function getUpkeep(): Promise<Upkeep> {
     recurringItems: store.recurringItems.filter((item) => item.active && item.aspirationId === undefined),
     tasks: store.tasks.filter((task) => isLoose(task) && isWaiting(task) && task.weekOf >= weekOf),
   })
+}
+
+export async function getSettings(): Promise<Settings> {
+  return structuredClone(store.settings)
+}
+
+// Set today, even when it's the intensity already set: the person chose it again.
+export async function setIntensity(intensity: Intensity): Promise<Settings> {
+  if (!isIntensity(intensity)) throw new Error(`Unknown intensity ${intensity}`)
+  store.settings.intensity = intensity
+  store.settings.intensitySetOn = toLocalDay(new Date())
+  return structuredClone(store.settings)
 }
 
 export async function getBank(): Promise<Bank> {
