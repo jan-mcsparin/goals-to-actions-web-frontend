@@ -214,9 +214,9 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M
 
 ## Checkpoint 2 (PR 2)
-- [ ] Tests, lint and build pass
-- [ ] On the phone, 375 and 390 px, light and dark: the Goal form with every field showing scrolls inside the sheet, and the keyboard never hides the field in use or Save
-- [ ] PR opened as "Part of #6"
+- [x] Tests, lint and build pass
+- [x] On the phone, 375 and 390 px, light and dark: the Goal form with every field showing scrolls inside the sheet, and the keyboard never hides the field in use or Save; added from the check: switching tabs or picking a type leaves focus where it was tapped (no keyboard until a field is tapped)
+- [x] PR opened as "Part of #6"
 
 # PR 3: `add-sheet-recurring` (closes #6)
 
