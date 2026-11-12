@@ -17,14 +17,23 @@ type AspirationProps = {
   onBack: () => void
   onOpenGoal: (goalId: string) => void
   onRetired: () => void
-  // The Add sheet's Goal tab, with this aspiration selected.
+  // The Add sheet's Goal or Recurring tab, with this aspiration selected.
   onAddGoal: () => void
+  onAddRecurring: () => void
 }
 
 // One sheet at a time, and only from a tap.
 type OpenSheet = 'edit' | 'retire'
 
-export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired, onAddGoal }: AspirationProps) {
+export function Aspiration({
+  aspirationId,
+  today,
+  onBack,
+  onOpenGoal,
+  onRetired,
+  onAddGoal,
+  onAddRecurring,
+}: AspirationProps) {
   const { page, editing, message, notFound, edit, retire, bringBack, move } = useAspiration(
     aspirationId,
     today,
@@ -57,7 +66,14 @@ export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired,
       </header>
 
       {page?.kind === 'active' && (
-        <Active page={page} onOpenGoal={onOpenGoal} onAddGoal={onAddGoal} onMove={move} onOpenSheet={setSheet} />
+        <Active
+          page={page}
+          onOpenGoal={onOpenGoal}
+          onAddGoal={onAddGoal}
+          onAddRecurring={onAddRecurring}
+          onMove={move}
+          onOpenSheet={setSheet}
+        />
       )}
       {page?.kind === 'retired' && <Retired page={page} onOpenGoal={onOpenGoal} onBringBack={bringBack} />}
 
@@ -92,11 +108,12 @@ type ActiveProps = {
   page: ActivePage
   onOpenGoal: (goalId: string) => void
   onAddGoal: () => void
+  onAddRecurring: () => void
   onMove: (direction: 'up' | 'down') => void
   onOpenSheet: (sheet: OpenSheet) => void
 }
 
-function Active({ page, onOpenGoal, onAddGoal, onMove, onOpenSheet }: ActiveProps) {
+function Active({ page, onOpenGoal, onAddGoal, onAddRecurring, onMove, onOpenSheet }: ActiveProps) {
   return (
     <>
       {page.week && (
@@ -130,6 +147,9 @@ function Active({ page, onOpenGoal, onAddGoal, onMove, onOpenSheet }: ActiveProp
       </button>
 
       <RecurringSection rows={page.recurring} />
+      <button type="button" className="aspiration-action aspiration-add" onClick={onAddRecurring}>
+        + Add recurring
+      </button>
       <PastGoals rows={page.pastGoals} onOpenGoal={onOpenGoal} />
 
       <section className="aspiration-section" aria-labelledby="aspiration-priority">

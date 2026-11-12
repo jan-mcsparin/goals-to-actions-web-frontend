@@ -243,11 +243,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `RecurringForm`: name, Fixed day (weekday or 1st–28th) or Flexible (the listed choices), and an optional aspiration. It confirms with "Added. It will show up in the plan when it's next due." An active aspiration's page gets "+ Add recurring". The Aspirations tab's footer hint ends with "Add one with +."
 
 **Acceptance criteria:**
-- [ ] Each choice saves the right rule. With no aspiration the item appears on Keep life running; under Be fit it appears on Be fit's card and page.
-- [ ] "+ Add recurring" opens the Recurring tab with Be fit selected; not on a retired aspiration.
+- [x] Each choice saves the right rule. With no aspiration the item appears on Keep life running; under Be fit it appears on Be fit's card and page.
+- [x] "+ Add recurring" opens the Recurring tab with Be fit selected; not on a retired aspiration.
 
 **Verification:**
-- [ ] `npm test`: `AddSheet.test.tsx`, `Aspiration.test.tsx`, `Aspirations.test.tsx`, `App.test.tsx`
+- [x] `npm test`: `AddSheet.test.tsx`, `Aspiration.test.tsx`, `Aspirations.test.tsx`, `App.test.tsx`
 
 **Dependencies:** Task 11
 

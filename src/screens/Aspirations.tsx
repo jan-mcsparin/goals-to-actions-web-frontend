@@ -12,7 +12,7 @@ type AspirationsProps = {
 }
 
 const EMPTY = 'Nothing here yet. Start with one sentence: a goal, or who you want to be.'
-const PRIORITY_HINT = 'In order of priority. The first comes first when goals compete for time.'
+const PRIORITY_HINT = 'In order of priority. The first comes first when goals compete for time. Add one with +.'
 
 export function Aspirations({ onOpenAspiration, onOpenGoal, onOpenUpkeep }: AspirationsProps) {
   const { view, message } = useAspirations()

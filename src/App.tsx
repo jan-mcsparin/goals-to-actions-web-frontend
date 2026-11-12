@@ -68,6 +68,7 @@ function App() {
             onBack={backToAspirations}
             onRetired={backToAspirations}
             onAddGoal={() => openAdd({ tab: 'goal', aspirationId: current.aspirationId })}
+            onAddRecurring={() => openAdd({ tab: 'recurring', aspirationId: current.aspirationId })}
             onOpenGoal={(goalId) =>
               goTo({ screen: 'goal', goalId, from: { screen: 'aspiration', aspirationId: current.aspirationId } })
             }

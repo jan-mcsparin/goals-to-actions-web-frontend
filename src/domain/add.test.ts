@@ -4,6 +4,8 @@ import {
   aspirationChoices,
   aspirationReady,
   emptyGoalDraft,
+  emptyRecurringDraft,
+  FLEXIBLE_OPTIONS,
   emptyTaskDraft,
   goalChoices,
   goalConfirmation,
@@ -11,16 +13,20 @@ import {
   goalParts,
   goalReady,
   isFixedDay,
+  MONTH_DAY_OPTIONS,
   NEW_ASPIRATION,
   needsLineField,
   nextDue,
+  recurringInput,
   recurringReady,
+  repeatChoice,
   repeatRuleText,
   splitGoalSentence,
   taskConfirmation,
   taskInput,
   taskReady,
   taskWeek,
+  WEEKDAY_OPTIONS,
   type GoalDraft,
   type RepeatChoice,
 } from './add.ts'
@@ -425,5 +431,66 @@ describe('recurringReady', () => {
     expect(recurringReady({ name: '' })).toBe(false)
     expect(recurringReady({ name: '   ' })).toBe(false)
     expect(recurringReady({ name: 'Take out the trash' })).toBe(true)
+  })
+})
+
+describe('repeat options', () => {
+  it('lists the weekdays from Monday, the 1st to the 28th, and the flexible choices', () => {
+    expect(WEEKDAY_OPTIONS.map((option) => option.label)).toEqual([
+      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+    ])
+    expect(MONTH_DAY_OPTIONS).toHaveLength(28)
+    expect(MONTH_DAY_OPTIONS[0].label).toBe('1st')
+    expect(MONTH_DAY_OPTIONS[27].label).toBe('28th')
+    expect(FLEXIBLE_OPTIONS.map((option) => option.label)).toEqual([
+      'Once a week', '2 times a week', '3 times a week', '4 times a week', '5 times a week', '6 times a week',
+      'Every two weeks', 'Once a month',
+    ])
+  })
+
+  it('reads each option back as its choice', () => {
+    for (const option of [...WEEKDAY_OPTIONS, ...MONTH_DAY_OPTIONS, ...FLEXIBLE_OPTIONS]) {
+      const choice = repeatChoice(option.value)
+      expect(repeatRuleText(choice)).toBe(option.rule)
+    }
+    expect(repeatChoice(WEEKDAY_OPTIONS[1].value)).toEqual({ kind: 'weekday', weekday: 2 })
+    expect(repeatChoice(MONTH_DAY_OPTIONS[0].value)).toEqual({ kind: 'monthDay', day: 1 })
+    expect(repeatChoice(FLEXIBLE_OPTIONS[2].value)).toEqual({ kind: 'timesAWeek', times: 3 })
+  })
+})
+
+describe('recurringInput', () => {
+  it('starts fixed on Monday, flexible once a week, under the aspiration it was opened for', () => {
+    const draft = emptyRecurringDraft('asp-fit')
+    expect(draft).toMatchObject({ name: '', fixedDay: true, aspirationId: 'asp-fit' })
+    expect(repeatChoice(draft.fixed)).toEqual({ kind: 'weekday', weekday: 1 })
+    expect(repeatChoice(draft.flexible)).toEqual({ kind: 'timesAWeek', times: 1 })
+    expect(emptyRecurringDraft().aspirationId).toBe('')
+  })
+
+  it('saves a fixed day with its rule and next due date', () => {
+    const draft = { ...emptyRecurringDraft(), name: 'Take out the trash', fixed: WEEKDAY_OPTIONS[1].value }
+    expect(recurringInput(draft, WEDNESDAY)).toEqual({
+      name: 'Take out the trash',
+      repeatRule: 'Every Tuesday',
+      fixedDay: true,
+      nextDue: '2026-11-17',
+    })
+  })
+
+  it('saves a flexible choice as due today, under its aspiration', () => {
+    const draft = {
+      ...emptyRecurringDraft('asp-fit'),
+      name: 'Stretch',
+      fixedDay: false,
+      flexible: FLEXIBLE_OPTIONS[2].value,
+    }
+    expect(recurringInput(draft, WEDNESDAY)).toEqual({
+      name: 'Stretch',
+      repeatRule: '3 times a week',
+      fixedDay: false,
+      nextDue: WEDNESDAY,
+      aspirationId: 'asp-fit',
+    })
   })
 })
