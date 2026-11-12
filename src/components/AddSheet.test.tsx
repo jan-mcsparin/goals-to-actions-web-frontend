@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -157,6 +157,12 @@ describe('AddSheet', () => {
   })
 })
 
+// Finds the one element that reads exactly this, however its text is split
+// across tags ("Label:" is bold, the label isn't).
+function readsAs(text: string) {
+  return (_: string, element: Element | null) => element?.textContent === text
+}
+
 describe('AddSheet on the Goal tab', () => {
   async function openGoalTab() {
     const opened = await openSheet()
@@ -181,7 +187,8 @@ describe('AddSheet on the Goal tab', () => {
     await user.type(screen.getByRole('textbox', { name: 'Goal' }), 'Be strong 2: bench 185')
 
     const parts = document.getElementById(screen.getByRole('textbox', { name: 'Goal' }).getAttribute('aria-describedby')!)!
-    expect(parts.textContent).toBe('Label: Be strong 2Line: bench 185')
+    expect(within(parts).getByText(readsAs('Label: Be strong 2'))).toBeDefined()
+    expect(within(parts).getByText(readsAs('Line: bench 185'))).toBeDefined()
     expect(screen.queryByRole('textbox', { name: "How will you know you've got there?" })).toBeNull()
   })
 
