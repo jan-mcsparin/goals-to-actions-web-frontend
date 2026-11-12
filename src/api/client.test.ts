@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  addAspiration,
+  addGoal,
   addMilestone,
   addTask,
   bringBackAspiration,
@@ -1110,19 +1112,24 @@ describe('getUpkeep', () => {
   })
 })
 
-describe('addTask', () => {
-  // The dataset checks from mockData.test.ts that hold for added records.
-  function expectConsistentStore() {
-    const all = [...store.aspirations, ...store.goals, ...store.milestones, ...store.weeklyTargets, ...store.recurringItems, ...store.tasks]
-    expect(new Set(all.map((record) => record.id)).size).toBe(all.length)
-    const goalIds = new Set(store.goals.map((goal) => goal.id))
-    for (const task of store.tasks) {
-      if (task.goalId) expect(goalIds).toContain(task.goalId)
-      if (task.status === 'inBank') expect(task.plannedDay).toBeUndefined()
-      if (task.status === 'planned') expect(task.plannedDay).toBeDefined()
-    }
+// The dataset checks from mockData.test.ts that hold for added records.
+function expectConsistentStore() {
+  const all = [...store.aspirations, ...store.goals, ...store.milestones, ...store.weeklyTargets, ...store.recurringItems, ...store.tasks]
+  expect(new Set(all.map((record) => record.id)).size).toBe(all.length)
+  const goalIds = new Set(store.goals.map((goal) => goal.id))
+  const aspirationIds = new Set(store.aspirations.map((aspiration) => aspiration.id))
+  for (const task of store.tasks) {
+    if (task.goalId) expect(goalIds).toContain(task.goalId)
+    if (task.status === 'inBank') expect(task.plannedDay).toBeUndefined()
+    if (task.status === 'planned') expect(task.plannedDay).toBeDefined()
   }
+  for (const goal of store.goals) if (goal.aspirationId) expect(aspirationIds).toContain(goal.aspirationId)
+  for (const target of store.weeklyTargets) expect(goalIds).toContain(target.goalId)
+  const priorities = store.aspirations.filter((a) => a.status === 'active').map((a) => a.priority).sort()
+  expect(priorities).toEqual(priorities.map((_, index) => index + 1))
+}
 
+describe('addTask', () => {
   it("stores a task with only a title in this week's bank", async () => {
     const task = await addTask({ title: '  Fill out my ballot  ' })
 
@@ -1206,5 +1213,123 @@ describe('addTask', () => {
 
     await expect(addTask({ title: 'Lift', goalId: 'goal-strong' })).rejects.toThrow()
     expect(store.tasks).toHaveLength(before)
+  })
+})
+
+describe('addGoal', () => {
+  const BE_STRONG_2 = { label: 'Be strong 2', measurableLine: 'bench 185', type: 'building' as const, aspirationId: 'asp-fit' }
+
+  it('stores an active goal starting today, with what was given', async () => {
+    const goal = await addGoal({ ...BE_STRONG_2, label: '  Be strong 2 ', measurableLine: ' bench 185 ', baseline: ' bench 165 ' })
+
+    expect(goal).toMatchObject({
+      label: 'Be strong 2',
+      measurableLine: 'bench 185',
+      type: 'building',
+      status: 'active',
+      startDate: WEDNESDAY_DAY,
+      aspirationId: 'asp-fit',
+      baseline: 'bench 165',
+    })
+    expect(goal.deadline).toBeUndefined()
+    expect((await getGoal(goal.id)).goal).toEqual(goal)
+    expectConsistentStore()
+  })
+
+  it("shows a weekly target in this week's targets, with that many bank tasks titled with the label", async () => {
+    const goal = await addGoal({ ...BE_STRONG_2, weeklyTarget: { amount: 3, unit: ' lifting sessions ' } })
+
+    const week = await getWeek()
+    expect(week.weeklyTargets.find((target) => target.goalId === goal.id)).toMatchObject({
+      amount: 3,
+      unit: 'lifting sessions',
+      effectiveFrom: '2026-11-09',
+    })
+    const tasks = week.tasks.filter((task) => task.goalId === goal.id)
+    expect(tasks).toHaveLength(3)
+    expect(tasks.every((task) => task.title === 'Be strong 2' && task.status === 'inBank' && task.rolloverCount === 0)).toBe(true)
+    expect(new Set(tasks.map((task) => task.id)).size).toBe(3)
+    expect(ids((await getBank()).tasks)).toEqual(expect.arrayContaining(ids(tasks)))
+    expectConsistentStore()
+  })
+
+  it('adds no target or tasks without a weekly target', async () => {
+    const before = store.tasks.length
+    const goal = await addGoal(BE_STRONG_2)
+
+    expect(store.weeklyTargets.some((target) => target.goalId === goal.id)).toBe(false)
+    expect(store.tasks).toHaveLength(before)
+  })
+
+  it('keeps a start date and deadline', async () => {
+    const goal = await addGoal({ label: 'Quit sugar', measurableLine: '30 days', type: 'quitting', startDate: '2026-11-16', deadline: '2026-12-16' })
+
+    expect(goal).toMatchObject({ startDate: '2026-11-16', deadline: '2026-12-16' })
+    expect(goal.aspirationId).toBeUndefined()
+  })
+
+  it('accepts a deadline on the start date', async () => {
+    await expect(addGoal({ ...BE_STRONG_2, deadline: WEDNESDAY_DAY })).resolves.toMatchObject({ deadline: WEDNESDAY_DAY })
+  })
+
+  it('returns a copy, so changing it does not change the store', async () => {
+    const goal = await addGoal(BE_STRONG_2)
+    goal.label = 'changed'
+
+    expect((await getGoal(goal.id)).goal.label).toBe('Be strong 2')
+  })
+
+  it.each([
+    ['a blank label', { label: '  ' }, Error],
+    ['a blank measurable line', { measurableLine: '  ' }, Error],
+    ['a deadline before the start', { deadline: '2026-11-10' }, Error],
+    ['a quitting deadline before its start date', { type: 'quitting' as const, startDate: '2026-11-20', deadline: '2026-11-19' }, Error],
+    ['a target of zero', { weeklyTarget: { amount: 0, unit: 'sessions' } }, Error],
+    ['a fractional target', { weeklyTarget: { amount: 2.5, unit: 'sessions' } }, Error],
+    ['a target without a unit', { weeklyTarget: { amount: 3, unit: '  ' } }, Error],
+    ['a target on a one-off goal', { type: 'oneOff' as const, weeklyTarget: { amount: 3, unit: 'sessions' } }, Error],
+    ['a target on a quitting goal', { type: 'quitting' as const, weeklyTarget: { amount: 3, unit: 'sessions' } }, Error],
+    ['an unknown aspiration', { aspirationId: 'asp-nope', weeklyTarget: { amount: 3, unit: 'sessions' } }, NotFoundError],
+    ['a retired aspiration', { aspirationId: 'asp-spanish', weeklyTarget: { amount: 3, unit: 'sessions' } }, Error],
+  ])('rejects %s and stores nothing', async (_, changes, error) => {
+    const before = structuredClone({ goals: store.goals, tasks: store.tasks, weeklyTargets: store.weeklyTargets })
+
+    await expect(addGoal({ ...BE_STRONG_2, ...changes })).rejects.toBeInstanceOf(error)
+    expect({ goals: store.goals, tasks: store.tasks, weeklyTargets: store.weeklyTargets }).toEqual(before)
+  })
+})
+
+describe('addAspiration', () => {
+  it('stores an active aspiration last of the active ones', async () => {
+    const aspiration = await addAspiration({ name: '  Be generous ', why: ' So the people I love feel it ' })
+
+    expect(aspiration).toMatchObject({ name: 'Be generous', why: 'So the people I love feel it', status: 'active', priority: 3 })
+    expect(Number.isNaN(Date.parse(aspiration.createdAt))).toBe(false)
+    const { aspirations } = await getAspirations()
+    expect(aspirations.find((row) => row.id === aspiration.id)).toEqual(aspiration)
+    expectConsistentStore()
+  })
+
+  it('stores one without a why', async () => {
+    const aspiration = await addAspiration({ name: 'Be generous', why: '   ' })
+
+    expect(aspiration.why).toBeUndefined()
+    expect((await addAspiration({ name: 'Read more' })).priority).toBe(4)
+    expectConsistentStore()
+  })
+
+  it('can take a goal straight away', async () => {
+    const aspiration = await addAspiration({ name: 'Be generous' })
+
+    await expect(addGoal({ label: 'Give', measurableLine: '1% a month', type: 'building', aspirationId: aspiration.id })).resolves.toMatchObject({
+      aspirationId: aspiration.id,
+    })
+  })
+
+  it('rejects a blank name and stores nothing', async () => {
+    const before = store.aspirations.length
+
+    await expect(addAspiration({ name: '   ' })).rejects.toThrow()
+    expect(store.aspirations).toHaveLength(before)
   })
 })

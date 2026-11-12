@@ -13,6 +13,8 @@ import type {
   Goal,
   GoalDetail,
   Milestone,
+  NewAspiration,
+  NewGoal,
   NewTask,
   RecurringItem,
   Task,
@@ -316,6 +318,49 @@ export async function addTask(task: NewTask): Promise<Task> {
   return structuredClone(added)
 }
 
+// Everything is checked before anything is stored. A weekly target's tasks
+// stand in for the planner, so the new goal can be followed into the week.
+export async function addGoal(goal: NewGoal): Promise<Goal> {
+  const label = goal.label.trim()
+  const measurableLine = goal.measurableLine.trim()
+  if (!label || !measurableLine) throw new Error('A goal needs a label and a measurable line')
+  if (goal.aspirationId) findActiveAspiration(goal.aspirationId)
+  const startDate = goal.startDate ?? toLocalDay(new Date())
+  if (goal.deadline && !isWithinGoal(goal.deadline, { startDate })) throw new Error("A goal's deadline can't come before its start")
+  const target = goal.weeklyTarget && checkedTarget(goal.type, goal.weeklyTarget)
+
+  const added: Goal = { id: newId('goal'), label, measurableLine, type: goal.type, status: 'active', startDate }
+  if (goal.aspirationId) added.aspirationId = goal.aspirationId
+  if (goal.baseline?.trim()) added.baseline = goal.baseline.trim()
+  if (goal.deadline) added.deadline = goal.deadline
+  store.goals.push(added)
+  if (target) {
+    const weekOf = thisWeek()
+    store.weeklyTargets.push({ id: newId('wt'), goalId: added.id, ...target, effectiveFrom: weekOf })
+    for (let count = 0; count < target.amount; count++) {
+      store.tasks.push({ id: newId('task'), title: label, goalId: added.id, status: 'inBank', weekOf, rolloverCount: 0 })
+    }
+  }
+  return structuredClone(added)
+}
+
+// Last in priority; it can be moved up on its page.
+export async function addAspiration(aspiration: NewAspiration): Promise<Aspiration> {
+  const name = aspiration.name.trim()
+  if (!name) throw new Error('An aspiration needs a name')
+
+  const added: Aspiration = {
+    id: newId('asp'),
+    name,
+    priority: activeAspirations().length + 1,
+    status: 'active',
+    createdAt: new Date().toISOString(),
+  }
+  if (aspiration.why?.trim()) added.why = aspiration.why.trim()
+  store.aspirations.push(added)
+  return structuredClone(added)
+}
+
 // Skipping sends a task back to the bank. It isn't a rollover, so the count stays.
 export async function skipTask(taskId: string): Promise<Task> {
   const task = findPlannedTask(taskId)
@@ -425,6 +470,15 @@ function findActiveGoal(goalId: string): Goal {
 // In the goal's order.
 function milestonesOf(goalId: string): Milestone[] {
   return store.milestones.filter((milestone) => milestone.goalId === goalId)
+}
+
+// The rule setWeeklyTarget enforces, for a new goal.
+function checkedTarget(type: Goal['type'], target: { amount: number; unit: string }): { amount: number; unit: string } {
+  if (type !== 'building') throw new Error('Only a building goal has a weekly target')
+  const unit = target.unit.trim()
+  if (!Number.isInteger(target.amount) || target.amount < 1) throw new Error('A weekly target is a whole number, at least 1')
+  if (!unit) throw new Error('A weekly target needs a unit')
+  return { amount: target.amount, unit }
 }
 
 // Active or paused: a reached or ended goal can't be changed.

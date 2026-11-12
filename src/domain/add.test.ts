@@ -1,6 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import type { Goal } from '../api/types.ts'
-import { emptyTaskDraft, goalChoices, taskConfirmation, taskInput, taskReady, taskWeek } from './add.ts'
+import {
+  aspirationReady,
+  emptyGoalDraft,
+  emptyTaskDraft,
+  goalChoices,
+  goalParts,
+  goalReady,
+  NEW_ASPIRATION,
+  needsLineField,
+  splitGoalSentence,
+  taskConfirmation,
+  taskInput,
+  taskReady,
+  taskWeek,
+  type GoalDraft,
+} from './add.ts'
 
 const WEDNESDAY = '2026-11-11'
 const THIS_MONDAY = '2026-11-09'
@@ -113,5 +128,141 @@ describe('goalChoices', () => {
       { id: 'g1', label: 'Be strong' },
       { id: 'g3', label: 'Clear the garage' },
     ])
+  })
+})
+
+describe('splitGoalSentence', () => {
+  it('splits at the colon into the label and the measurable line', () => {
+    expect(splitGoalSentence('Be strong: bench 175, squat 350, deadlift 400')).toEqual({
+      label: 'Be strong',
+      measurableLine: 'bench 175, squat 350, deadlift 400',
+    })
+  })
+
+  it('splits at the first colon only', () => {
+    expect(splitGoalSentence('Run: a 10k in 0:55')).toEqual({ label: 'Run', measurableLine: 'a 10k in 0:55' })
+  })
+
+  it('makes the whole sentence the label when there is no colon', () => {
+    expect(splitGoalSentence('Quit sugar')).toEqual({ label: 'Quit sugar', measurableLine: '' })
+  })
+
+  it('trims extra spaces', () => {
+    expect(splitGoalSentence('   Be strong   :   bench 175   ')).toEqual({ label: 'Be strong', measurableLine: 'bench 175' })
+  })
+})
+
+describe('needsLineField', () => {
+  it('asks for the line on its own when the sentence has no colon', () => {
+    expect(needsLineField('Quit sugar')).toBe(true)
+    expect(needsLineField('')).toBe(true)
+  })
+
+  it("doesn't once there's a colon, even before the line is typed", () => {
+    expect(needsLineField('Be strong:')).toBe(false)
+  })
+})
+
+describe('goalParts', () => {
+  it('takes the line from the sentence when it has a colon', () => {
+    const draft = { ...emptyGoalDraft(), sentence: 'Be strong: bench 175', measurableLine: 'ignored' }
+
+    expect(goalParts(draft)).toEqual({ label: 'Be strong', measurableLine: 'bench 175' })
+  })
+
+  it('takes the line from the second field when the sentence has no colon', () => {
+    const draft = { ...emptyGoalDraft(), sentence: 'Quit sugar', measurableLine: '  no sweets for 30 days ' }
+
+    expect(goalParts(draft)).toEqual({ label: 'Quit sugar', measurableLine: 'no sweets for 30 days' })
+  })
+})
+
+describe('emptyGoalDraft', () => {
+  it('starts with no type picked and nothing typed', () => {
+    expect(emptyGoalDraft()).toEqual({
+      type: undefined,
+      sentence: '',
+      measurableLine: '',
+      aspirationId: '',
+      newAspirationName: '',
+      baseline: '',
+      target: { amount: '', unit: '' },
+      startDate: '',
+      deadline: '',
+    })
+  })
+})
+
+describe('goalReady', () => {
+  const TODAY = '2026-11-11'
+  const ready: GoalDraft = { ...emptyGoalDraft(), type: 'building', sentence: 'Be strong: bench 175' }
+  const draftWith = (changes: Partial<GoalDraft>): GoalDraft => ({ ...ready, ...changes })
+
+  it('is ready with a type, a label and a line', () => {
+    expect(goalReady(ready, TODAY)).toBe(true)
+  })
+
+  it('is ready with the line in the second field', () => {
+    expect(goalReady(draftWith({ sentence: 'Quit sugar', measurableLine: 'no sweets for 30 days' }), TODAY)).toBe(true)
+  })
+
+  it('is not ready before a type is picked', () => {
+    expect(goalReady(draftWith({ type: undefined }), TODAY)).toBe(false)
+  })
+
+  it.each([
+    ['a blank sentence', { sentence: '   ' }],
+    ['a blank label', { sentence: ' : bench 175' }],
+    ['a blank line after the colon', { sentence: 'Be strong:  ' }],
+    ['no colon and a blank second field', { sentence: 'Be strong', measurableLine: '  ' }],
+  ])('is not ready with %s', (_, changes) => {
+    expect(goalReady(draftWith(changes), TODAY)).toBe(false)
+  })
+
+  it('is ready with a whole weekly target and a unit', () => {
+    expect(goalReady(draftWith({ target: { amount: '3', unit: 'lifting sessions' } }), TODAY)).toBe(true)
+  })
+
+  it.each([
+    ['a number without a unit', { amount: '3', unit: '' }],
+    ['a unit without a number', { amount: '', unit: 'lifting sessions' }],
+    ['zero', { amount: '0', unit: 'lifting sessions' }],
+    ['a fraction', { amount: '2.5', unit: 'lifting sessions' }],
+  ])('is not ready with a weekly target of %s', (_, target) => {
+    expect(goalReady(draftWith({ target }), TODAY)).toBe(false)
+  })
+
+  it("ignores a half-typed target on a goal that isn't building, since it isn't shown", () => {
+    expect(goalReady(draftWith({ type: 'oneOff', target: { amount: '3', unit: '' } }), TODAY)).toBe(true)
+  })
+
+  it('is ready with a deadline on or after today', () => {
+    expect(goalReady(draftWith({ deadline: TODAY }), TODAY)).toBe(true)
+  })
+
+  it('is not ready with a deadline before today', () => {
+    expect(goalReady(draftWith({ deadline: '2026-11-10' }), TODAY)).toBe(false)
+  })
+
+  it("measures a quitting goal's deadline from its start date", () => {
+    const quitting = draftWith({ type: 'quitting', startDate: '2026-11-20' })
+
+    expect(goalReady({ ...quitting, deadline: '2026-11-19' }, TODAY)).toBe(false)
+    expect(goalReady({ ...quitting, deadline: '2026-11-20' }, TODAY)).toBe(true)
+  })
+
+  it('needs a name for a new aspiration', () => {
+    expect(goalReady(draftWith({ aspirationId: NEW_ASPIRATION, newAspirationName: '  ' }), TODAY)).toBe(false)
+    expect(goalReady(draftWith({ aspirationId: NEW_ASPIRATION, newAspirationName: 'Be fit' }), TODAY)).toBe(true)
+  })
+})
+
+describe('aspirationReady', () => {
+  it('is ready with a name, with or without a why', () => {
+    expect(aspirationReady({ name: 'Be fit', why: '' })).toBe(true)
+  })
+
+  it('is not ready with a blank name', () => {
+    expect(aspirationReady({ name: '   ', why: 'So I can keep skiing' })).toBe(false)
   })
 })

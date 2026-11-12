@@ -164,12 +164,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `splitGoalSentence`, `goalReady(draft)` (type, label, line, a valid target via `parsedTarget`, deadline not before start via `isWithinGoal`) and `aspirationReady`. `addGoal` stores an active goal, its target from this Monday, and that many `inBank` tasks titled with the label. `addAspiration` puts it last in priority.
 
 **Acceptance criteria:**
-- [ ] The split handles one colon, several and none, and trims extra spaces.
-- [ ] Be strong 2 with a target of 3 shows in `getWeek`'s targets with three bank tasks; a quitting goal defaults its start to today; a deadline before the start, a bad target, a target on a non-building goal, a blank label or line, or an unknown or retired aspiration rejects.
-- [ ] A new aspiration is last of the active ones, with or without a why; a blank name rejects.
+- [x] The split handles one colon, several and none, and trims extra spaces.
+- [x] Be strong 2 with a target of 3 shows in `getWeek`'s targets with three bank tasks; a quitting goal defaults its start to today; a deadline before the start, a bad target, a target on a non-building goal, a blank label or line, or an unknown or retired aspiration rejects.
+- [x] A new aspiration is last of the active ones, with or without a why; a blank name rejects.
 
 **Verification:**
-- [ ] `npm test`: `add.test.ts`, `client.test.ts`
+- [x] `npm test`: `add.test.ts`, `client.test.ts`
 
 **Dependencies:** Checkpoint 1
 
