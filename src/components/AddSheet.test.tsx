@@ -2,14 +2,19 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addTask, getAspirations, getBank, getDay } from '../api/client.ts'
+import { addRecurringItem, addTask, getAspirations, getBank, getDay } from '../api/client.ts'
 import { resetStore, store } from '../api/mockStore.ts'
 import type { AddOrigin, OnSaved } from '../hooks/useAdd.ts'
 import { AddSheet } from './AddSheet.tsx'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
-  return { ...actual, addTask: vi.fn(actual.addTask), getAspirations: vi.fn(actual.getAspirations) }
+  return {
+    ...actual,
+    addTask: vi.fn(actual.addTask),
+    addRecurringItem: vi.fn(actual.addRecurringItem),
+    getAspirations: vi.fn(actual.getAspirations),
+  }
 })
 
 const TODAY = '2026-11-11'
@@ -420,6 +425,21 @@ describe('AddSheet on the Recurring tab', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Fixed day' }))
     await screen.findByRole('option', { name: 'Be fit' })
     expect(screen.getByRole('combobox', { name: 'Under an aspiration (optional)' })).toHaveProperty('value', 'asp-fit')
+  })
+
+  it('stays open with what was chosen and a calm message when the save fails', async () => {
+    vi.mocked(addRecurringItem).mockRejectedValueOnce(new Error('offline'))
+    const { user, onSaved } = await openRecurringTab()
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Water the plants')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Day' }), '1st')
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(onSaved).not.toHaveBeenCalled()
+    expect(screen.getByRole('status').textContent).toBe("Couldn't save that. Try again.")
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveProperty('value', 'Water the plants')
+    expect(screen.getByRole('combobox', { name: 'Day' })).toHaveProperty('value', 'monthDay:1')
+    expect(savedItem('Water the plants')).toBeUndefined()
   })
 
   it('keeps the choice made when switching between Fixed day and Flexible, and between tabs', async () => {

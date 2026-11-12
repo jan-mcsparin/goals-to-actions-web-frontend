@@ -213,12 +213,12 @@ export function recurringReady(draft: { name: string }): boolean {
   return draft.name.trim() !== ''
 }
 
-// A choice in the Recurring tab's pickers: its value in the select, its label
-// there, and the rule it saves as.
-export type RepeatOption = { value: string; label: string; rule: string }
+// A choice in the Recurring tab's pickers: its value in the select (read back
+// by repeatChoice) and its label there.
+export type RepeatOption = { value: string; label: string }
 
 function repeatOption(choice: RepeatChoice, label: string): RepeatOption {
-  return { value: repeatValue(choice), label, rule: repeatRuleText(choice) }
+  return { value: repeatValue(choice), label }
 }
 
 // "weekday:2", "monthDay:1", "timesAWeek:3", "everyTwoWeeks"; read back by repeatChoice.

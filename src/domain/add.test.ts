@@ -29,6 +29,7 @@ import {
   WEEKDAY_OPTIONS,
   type GoalDraft,
   type RepeatChoice,
+  type RepeatOption,
 } from './add.ts'
 
 const WEDNESDAY = '2026-11-11'
@@ -449,10 +450,10 @@ describe('repeat options', () => {
   })
 
   it('reads each option back as its choice', () => {
-    for (const option of [...WEEKDAY_OPTIONS, ...MONTH_DAY_OPTIONS, ...FLEXIBLE_OPTIONS]) {
-      const choice = repeatChoice(option.value)
-      expect(repeatRuleText(choice)).toBe(option.rule)
-    }
+    const rules = (options: RepeatOption[]) => options.map((option) => repeatRuleText(repeatChoice(option.value)))
+    expect(rules(WEEKDAY_OPTIONS)).toEqual(WEEKDAY_OPTIONS.map((option) => `Every ${option.label}`))
+    expect(rules(MONTH_DAY_OPTIONS)).toEqual(MONTH_DAY_OPTIONS.map((option) => `Monthly on the ${option.label}`))
+    expect(rules(FLEXIBLE_OPTIONS)).toEqual(FLEXIBLE_OPTIONS.map((option) => option.label))
     expect(repeatChoice(WEEKDAY_OPTIONS[1].value)).toEqual({ kind: 'weekday', weekday: 2 })
     expect(repeatChoice(MONTH_DAY_OPTIONS[0].value)).toEqual({ kind: 'monthDay', day: 1 })
     expect(repeatChoice(FLEXIBLE_OPTIONS[2].value)).toEqual({ kind: 'timesAWeek', times: 3 })
