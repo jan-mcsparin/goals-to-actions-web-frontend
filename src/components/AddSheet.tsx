@@ -3,6 +3,7 @@ import { useAdd, type AddOrigin, type AddTab } from '../hooks/useAdd.ts'
 import './AddSheet.css'
 import './sheet.css'
 import { TaskForm } from './TaskForm.tsx'
+import { useBackdropClose } from './useBackdropClose.ts'
 import { useModalDialog } from './useModalDialog.ts'
 
 const TABS: { tab: AddTab; label: string }[] = [
@@ -22,12 +23,13 @@ type AddSheetProps = {
 
 // Opened by the + in the tab bar. What's inside lives only while it's open,
 // so each opening starts blank. The title field takes focus, so the keyboard
-// is up for the one required field.
+// is up for the one required field. Close, Escape or a tap off the sheet closes it.
 export function AddSheet({ origin, today, onSaved, onClose }: AddSheetProps) {
   const open = origin !== undefined
   const dialog = useModalDialog(open)
   const headingId = useId()
   const titleField = useRef<HTMLInputElement>(null)
+  const backdropClose = useBackdropClose(onClose)
 
   // After useModalDialog's effect, so the dialog is open and can take focus.
   useEffect(() => {
@@ -35,7 +37,7 @@ export function AddSheet({ origin, today, onSaved, onClose }: AddSheetProps) {
   }, [open])
 
   return (
-    <dialog ref={dialog} className="sheet" aria-labelledby={headingId} onClose={onClose}>
+    <dialog ref={dialog} className="sheet" aria-labelledby={headingId} onClose={onClose} {...backdropClose}>
       <header className="sheet-header">
         <h2 id={headingId}>Add</h2>
         <button type="button" className="sheet-close" onClick={onClose}>

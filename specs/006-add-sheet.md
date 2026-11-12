@@ -12,7 +12,7 @@ References: [Flow 1](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 2](..
 
 **Tab bar:** Today | Week | **+** | Aspirations. The + is a button labelled "Add" for screen readers; it's never marked as the current tab.
 
-**The sheet:** titled "Add", with four tabs: Task (open first), Goal, Aspiration, Recurring. Each tab keeps what was typed while the sheet is open; closing the sheet clears it. Save is disabled until the required field is filled. After saving, the sheet closes and a short line confirms where the thing went. The line is the shared screen message (#19), pinned above the tab bar; it clears itself after 5 s or when tapped.
+**The sheet:** titled "Add", with four tabs: Task (open first), Goal, Aspiration, Recurring. Each tab keeps what was typed while the sheet is open; closing the sheet (Close, or a tap off it) clears it. Save is disabled until the required field is filled. After saving, the sheet closes and a short line confirms where the thing went. The line is the shared screen message (#19), pinned above the tab bar; it clears itself after 5 s or when tapped.
 
 **Task**
 - **Title** (required): "Fill out my ballot".

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -128,6 +128,48 @@ describe('AddSheet', () => {
     await user.click(screen.getByRole('button', { name: 'Open' }))
 
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveProperty('value', '')
+  })
+
+  describe('tapping off the sheet', () => {
+    // jsdom lays nothing out; give the sheet the bottom half of a phone screen.
+    function placeSheet() {
+      const sheet = screen.getByRole('dialog', { name: 'Add' })
+      sheet.getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: 400, width: 390, height: 444 })
+      return sheet
+    }
+
+    function tap(element: HTMLElement, from: { x: number; y: number }, to = from) {
+      fireEvent.mouseDown(element, { clientX: from.x, clientY: from.y })
+      fireEvent.mouseUp(element, { clientX: to.x, clientY: to.y })
+      fireEvent.click(element, { clientX: to.x, clientY: to.y })
+    }
+
+    it('closes it, and it starts over next time', async () => {
+      const { user } = await openSheet()
+      await user.type(screen.getByRole('textbox', { name: 'Title' }), 'Fill out my ballot')
+
+      tap(placeSheet(), { x: 200, y: 100 })
+
+      expect(screen.queryByRole('dialog')).toBeNull()
+      await user.click(screen.getByRole('button', { name: 'Open' }))
+      expect(screen.getByRole('textbox', { name: 'Title' })).toHaveProperty('value', '')
+    })
+
+    it("doesn't close it for a tap on the sheet's own edge", async () => {
+      await openSheet()
+
+      tap(placeSheet(), { x: 200, y: 410 })
+
+      expect(screen.getByRole('dialog', { name: 'Add' })).toBeDefined()
+    })
+
+    it("doesn't close it when a press inside ends outside, as when dragging out of a field", async () => {
+      await openSheet()
+
+      tap(placeSheet(), { x: 200, y: 500 }, { x: 200, y: 100 })
+
+      expect(screen.getByRole('dialog', { name: 'Add' })).toBeDefined()
+    })
   })
 
   it('stays open with what was typed and a calm message when the save fails', async () => {
