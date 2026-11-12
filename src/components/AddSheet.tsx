@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, type RefObject } from 'react'
-import { useAdd, type AddOrigin, type AddTab } from '../hooks/useAdd.ts'
+import { useAdd, type AddOrigin, type AddTab, type OnSaved } from '../hooks/useAdd.ts'
 import './AddSheet.css'
 import './sheet.css'
+import { GoalForm } from './GoalForm.tsx'
 import { TaskForm } from './TaskForm.tsx'
 import { useBackdropClose } from './useBackdropClose.ts'
 import { useModalDialog } from './useModalDialog.ts'
@@ -17,7 +18,7 @@ type AddSheetProps = {
   // Where it was opened from; undefined while closed.
   origin?: AddOrigin
   today: string
-  onSaved: (confirmation: string) => void
+  onSaved: OnSaved
   onClose: () => void
 }
 
@@ -53,7 +54,7 @@ type AddSheetBodyProps = {
   origin: AddOrigin
   today: string
   titleField: RefObject<HTMLInputElement | null>
-  onSaved: (confirmation: string) => void
+  onSaved: OnSaved
 }
 
 function AddSheetBody({ origin, today, titleField, onSaved }: AddSheetBodyProps) {
@@ -68,7 +69,7 @@ function AddSheetBody({ origin, today, titleField, onSaved }: AddSheetBodyProps)
           </button>
         ))}
       </div>
-      {add.tab === 'task' ? (
+      {add.tab === 'task' && (
         <TaskForm
           draft={add.task}
           goals={add.goals}
@@ -79,9 +80,20 @@ function AddSheetBody({ origin, today, titleField, onSaved }: AddSheetBodyProps)
           onChange={add.editTask}
           onSave={() => void add.save()}
         />
-      ) : (
-        <p className="sheet-note">Coming soon.</p>
       )}
+      {add.tab === 'goal' && (
+        <GoalForm
+          draft={add.goal}
+          today={today}
+          aspirations={add.aspirations}
+          aspirationsMessage={add.aspirationsMessage}
+          canSave={add.canSave}
+          message={add.message}
+          onChange={add.editGoal}
+          onSave={() => void add.save()}
+        />
+      )}
+      {(add.tab === 'aspiration' || add.tab === 'recurring') && <p className="sheet-note">Coming soon.</p>}
     </>
   )
 }

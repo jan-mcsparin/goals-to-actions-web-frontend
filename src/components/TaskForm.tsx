@@ -1,5 +1,5 @@
 import { useId, type Ref } from 'react'
-import type { GoalChoice, Placement, TaskDraft } from '../domain/add.ts'
+import type { Choice, Placement, TaskDraft } from '../domain/add.ts'
 import './AddSheet.css'
 import './editForm.css'
 
@@ -10,7 +10,7 @@ const PLACEMENTS: { value: Placement; label: string }[] = [
 
 type TaskFormProps = {
   draft: TaskDraft
-  goals: GoalChoice[]
+  goals: Choice[]
   goalsMessage?: string
   canSave: boolean
   message?: string
@@ -70,7 +70,7 @@ export function TaskForm({ draft, goals, goalsMessage, canSave, message, titleRe
       <input id={dueId} type="date" value={draft.dueDate} onChange={(event) => onChange({ dueDate: event.target.value })} />
 
       <label htmlFor={timeKindId}>Time of day (optional)</label>
-      <div className="task-form-time">
+      <div className="add-form-row">
         <select
           id={timeKindId}
           value={draft.timeKind}

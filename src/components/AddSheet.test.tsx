@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { addTask, getAspirations, getBank, getDay } from '../api/client.ts'
-import { resetStore } from '../api/mockStore.ts'
-import type { AddOrigin } from '../hooks/useAdd.ts'
+import { resetStore, store } from '../api/mockStore.ts'
+import type { AddOrigin, OnSaved } from '../hooks/useAdd.ts'
 import { AddSheet } from './AddSheet.tsx'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
@@ -25,7 +25,7 @@ afterEach(() => {
 })
 
 // Opens and closes the sheet the way App does.
-function Harness({ placement, onSaved }: { placement: AddOrigin['placement']; onSaved: (line: string) => void }) {
+function Harness({ placement, onSaved }: { placement: AddOrigin['placement']; onSaved: OnSaved }) {
   const [origin, setOrigin] = useState<AddOrigin>()
   return (
     <>
@@ -35,9 +35,9 @@ function Harness({ placement, onSaved }: { placement: AddOrigin['placement']; on
       <AddSheet
         origin={origin}
         today={TODAY}
-        onSaved={(line) => {
+        onSaved={(...saved) => {
           setOrigin(undefined)
-          onSaved(line)
+          onSaved(...saved)
         }}
         onClose={() => setOrigin(undefined)}
       />
@@ -150,5 +150,113 @@ describe('AddSheet', () => {
     expect(onSaved).not.toHaveBeenCalled()
     expect(screen.getByRole('status').textContent).toBe("Couldn't save that. Try again.")
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveProperty('value', 'Fill out my ballot')
+  })
+})
+
+describe('AddSheet on the Goal tab', () => {
+  async function openGoalTab() {
+    const opened = await openSheet()
+    await opened.user.click(screen.getByRole('button', { name: 'Goal' }))
+    return opened
+  }
+
+  it('shows only the three types until one is picked, with focus on the first', async () => {
+    await openGoalTab()
+
+    const types = screen.getByRole('group', { name: 'Type' })
+    expect(Array.from(types.querySelectorAll('button')).map((button) => button.textContent)).toEqual(['Building', 'Quitting', 'One-off'])
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Building' }))
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+  })
+
+  it('shows the label and line back as the sentence is typed', async () => {
+    const { user } = await openGoalTab()
+    await user.click(screen.getByRole('button', { name: 'Building' }))
+
+    await user.type(screen.getByRole('textbox', { name: 'Goal' }), 'Be strong 2: bench 185')
+
+    const parts = document.getElementById(screen.getByRole('textbox', { name: 'Goal' }).getAttribute('aria-describedby')!)!
+    expect(parts.textContent).toBe('Label: Be strong 2Line: bench 185')
+    expect(screen.queryByRole('textbox', { name: "How will you know you've got there?" })).toBeNull()
+  })
+
+  it('asks for the line in a second field when there is no colon, and needs both', async () => {
+    const { user } = await openGoalTab()
+    await user.click(screen.getByRole('button', { name: 'Quitting' }))
+
+    await user.type(screen.getByRole('textbox', { name: 'Goal' }), 'Quit sugar')
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true)
+    await user.type(screen.getByRole('textbox', { name: "How will you know you've got there?" }), '30 days without')
+
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', false)
+  })
+
+  it("shows each type's own fields, and the type can be changed", async () => {
+    const { user } = await openGoalTab()
+
+    await user.click(screen.getByRole('button', { name: 'Building' }))
+    expect(screen.getByRole('textbox', { name: 'Weekly target (optional)' })).toBeDefined()
+    expect(screen.queryByLabelText('Start date')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Quitting' }))
+    expect(screen.getByRole('button', { name: 'Quitting' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.queryByRole('textbox', { name: 'Weekly target (optional)' })).toBeNull()
+    expect(screen.getByLabelText('Start date')).toHaveProperty('value', TODAY)
+
+    await user.click(screen.getByRole('button', { name: 'One-off' }))
+    expect(screen.queryByLabelText('Start date')).toBeNull()
+    expect(screen.getByLabelText('Deadline (optional)')).toBeDefined()
+  })
+
+  it('saves a building goal with its aspiration, baseline, target and deadline, and opens it', async () => {
+    const { user, onSaved } = await openGoalTab()
+    await user.click(screen.getByRole('button', { name: 'Building' }))
+    await user.type(screen.getByRole('textbox', { name: 'Goal' }), 'Be strong 2: bench 185')
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Be fit' })).toBeDefined())
+
+    await user.selectOptions(screen.getByRole('combobox', { name: "What's this for?" }), 'Be fit')
+    await user.type(screen.getByRole('textbox', { name: 'Where are you now? (optional)' }), 'bench 165')
+    await user.type(screen.getByRole('textbox', { name: 'Weekly target (optional)' }), '3')
+    await user.type(screen.getByRole('textbox', { name: 'Unit' }), 'lifting sessions')
+    await user.type(screen.getByLabelText('Deadline (optional)'), '2027-06-01')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    const goal = store.goals.find((row) => row.label === 'Be strong 2')!
+    expect(goal).toMatchObject({ measurableLine: 'bench 185', aspirationId: 'asp-fit', baseline: 'bench 165', deadline: '2027-06-01' })
+    expect(store.weeklyTargets.find((target) => target.goalId === goal.id)).toMatchObject({ amount: 3, unit: 'lifting sessions' })
+    expect(onSaved).toHaveBeenCalledWith("Saved. Add milestones when you're ready.", {
+      screen: 'goal',
+      goalId: goal.id,
+      from: { screen: 'aspiration', aspirationId: 'asp-fit' },
+    })
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('creates a new aspiration with the goal', async () => {
+    const { user, onSaved } = await openGoalTab()
+    await user.click(screen.getByRole('button', { name: 'One-off' }))
+    await user.type(screen.getByRole('textbox', { name: 'Goal' }), 'Host Thanksgiving: 12 people fed')
+
+    await user.selectOptions(screen.getByRole('combobox', { name: "What's this for?" }), 'New aspiration')
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true)
+    await user.type(screen.getByRole('textbox', { name: 'Aspiration name' }), 'Be generous')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    const aspiration = store.aspirations.find((row) => row.name === 'Be generous')!
+    expect(store.goals.find((row) => row.label === 'Host Thanksgiving')?.aspirationId).toBe(aspiration.id)
+    expect(onSaved).toHaveBeenCalledWith("Saved. Add steps when you're ready.", expect.objectContaining({ screen: 'goal' }))
+  })
+
+  it('keeps the goal typed when switching tabs', async () => {
+    const { user } = await openGoalTab()
+    await user.click(screen.getByRole('button', { name: 'Building' }))
+    await user.type(screen.getByRole('textbox', { name: 'Goal' }), 'Be strong 2: bench 185')
+
+    await user.click(screen.getByRole('button', { name: 'Task' }))
+    await user.click(screen.getByRole('button', { name: 'Goal' }))
+
+    expect(screen.getByRole('button', { name: 'Building' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('textbox', { name: 'Goal' })).toHaveProperty('value', 'Be strong 2: bench 185')
   })
 })

@@ -182,12 +182,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `GoalForm`. Type first (three buttons, nothing else until one is picked, changeable), then the sentence with the label and line shown back below it, a second field when there's no colon, "What's this for?" (None, an active aspiration, or "New aspiration" with a name), baseline, weekly target (building), start date (quitting), and deadline. On save `App` opens the goal (back per plan decision 3) and shows "Saved. Add milestones when you're ready." ("steps" for one-off).
 
 **Acceptance criteria:**
-- [ ] On open, only the three types show and they have focus. Without a colon the second field appears, and both are required.
-- [ ] Saving under Be fit opens the goal's page, and back goes to Be fit; with no aspiration, back goes to the tab. "New aspiration" creates both, and a failed goal save after that doesn't make a second aspiration on retry.
-- [ ] A building goal with target 3 shows "3 lifting sessions" on its page and three new tasks in Week's bank.
+- [x] On open, only the three types show and they have focus. Without a colon the second field appears, and both are required.
+- [x] Saving under Be fit opens the goal's page, and back goes to Be fit; with no aspiration, back goes to the tab. "New aspiration" creates both, and a failed goal save after that doesn't make a second aspiration on retry.
+- [x] A building goal with target 3 shows "3 lifting sessions" on its page and three new tasks in Week's bank.
 
 **Verification:**
-- [ ] `npm test`: `AddSheet.test.tsx`, `useAdd.test.tsx`, `App.test.tsx`
+- [x] `npm test`: `AddSheet.test.tsx`, `useAdd.test.tsx`, `App.test.tsx`
 
 **Dependencies:** Task 8
 

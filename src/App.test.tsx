@@ -467,4 +467,59 @@ describe('the Add sheet', () => {
 
     expect(screen.getByRole('status').textContent).toBe("Added to this week's bank.")
   })
+
+  describe('saving a goal', () => {
+    async function addGoal(fill: (user: ReturnType<typeof userEvent.setup>) => Promise<void>) {
+      const user = userEvent.setup()
+      render(<App />)
+      await screen.findByRole('heading', { level: 1, name: 'Today · Wednesday' })
+      await user.click(screen.getByRole('button', { name: 'Add' }))
+      await user.click(screen.getByRole('button', { name: 'Goal' }))
+      await fill(user)
+      await user.click(screen.getByRole('button', { name: 'Save' }))
+      return user
+    }
+
+    it("opens the goal's page, and back goes to its aspiration", async () => {
+      const user = await addGoal(async (user) => {
+        await user.click(screen.getByRole('button', { name: 'Building' }))
+        await user.type(screen.getByRole('textbox', { name: 'Goal' }), 'Be strong 2: bench 185')
+        await screen.findByRole('option', { name: 'Be fit' })
+        await user.selectOptions(screen.getByRole('combobox', { name: "What's this for?" }), 'Be fit')
+      })
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Be strong 2' })).toBeDefined()
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(screen.getByRole('status').textContent).toBe("Saved. Add milestones when you're ready.")
+      await user.click(screen.getByRole('button', { name: 'Back to Be fit' }))
+      expect(await screen.findByRole('heading', { level: 1, name: 'Be fit' })).toBeDefined()
+    })
+
+    it('goes back to the Aspirations tab from a goal with no aspiration', async () => {
+      const user = await addGoal(async (user) => {
+        await user.click(screen.getByRole('button', { name: 'One-off' }))
+        await user.type(screen.getByRole('textbox', { name: 'Goal' }), 'Paint the fence: both sides')
+      })
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Paint the fence' })).toBeDefined()
+      expect(screen.getByRole('status').textContent).toBe("Saved. Add steps when you're ready.")
+      await user.click(screen.getByRole('button', { name: 'Back to Aspirations' }))
+      expect(await screen.findByRole('heading', { level: 1, name: 'Aspirations' })).toBeDefined()
+    })
+
+    it("shows a building goal's weekly target on its page, and its tasks in Week's bank", async () => {
+      const user = await addGoal(async (user) => {
+        await user.click(screen.getByRole('button', { name: 'Building' }))
+        await user.type(screen.getByRole('textbox', { name: 'Goal' }), 'Be strong 2: bench 185')
+        await user.type(screen.getByRole('textbox', { name: 'Weekly target (optional)' }), '3')
+        await user.type(screen.getByRole('textbox', { name: 'Unit' }), 'lifting sessions')
+      })
+
+      const target = await screen.findByRole('region', { name: 'Weekly target' })
+      expect(target.textContent).toContain('3 lifting sessions')
+      await user.click(screen.getByRole('button', { name: 'Week' }))
+      const bank = await screen.findByRole('region', { name: /^Bank/ })
+      expect(await within(bank).findAllByText('Be strong 2')).toHaveLength(3)
+    })
+  })
 })

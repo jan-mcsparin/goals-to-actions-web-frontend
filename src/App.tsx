@@ -6,7 +6,7 @@ import { TabBar } from './components/TabBar.tsx'
 import { addOriginFor, type AddOrigin } from './hooks/useAdd.ts'
 import { DataRevision, useRevisionCounter } from './hooks/dataRevision.ts'
 import { useFleetingMessage } from './hooks/useFleetingMessage.ts'
-import { useNavigation } from './hooks/useNavigation.ts'
+import { useNavigation, type Screen } from './hooks/useNavigation.ts'
 import { Aspiration } from './screens/Aspiration.tsx'
 import { Aspirations } from './screens/Aspirations.tsx'
 import { Day } from './screens/Day.tsx'
@@ -34,9 +34,11 @@ function App() {
     setAdding(addOriginFor(current))
   }
 
-  function saved(line: string) {
+  // A new goal opens on its own page, where milestones are added.
+  function saved(line: string, open?: Screen) {
     setAdding(undefined)
     bump()
+    if (open) goTo(open)
     setConfirmation(line)
   }
 
