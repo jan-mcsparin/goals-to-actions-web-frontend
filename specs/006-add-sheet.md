@@ -141,7 +141,7 @@ export function splitGoalSentence(sentence: string): { label: string; measurable
 
 ## Success criteria
 
-- [ ] Every acceptance criterion on #6 is met.
+- [x] Every acceptance criterion on #6 is met.
 - [x] Tab bar is Today | Week | + | Aspirations, and the + opens the sheet from every screen.
 - [x] "+ Add a goal for Be fit" and "+ Add recurring" on an aspiration's page open the right tab with that aspiration selected.
 - [x] A task saves with only a title and goes to this week's bank, waits for its week when due later, or goes onto today when asked.
@@ -150,4 +150,4 @@ export function splitGoalSentence(sentence: string): { label: string; measurable
 - [x] An aspiration saves with or without a why and offers "Add a goal for this".
 - [x] A recurring item saves as fixed or flexible with a readable repeat rule.
 - [x] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
-- [ ] Works at 375 and 390 px, light and dark.
+- [x] Works at 375 and 390 px, light and dark.

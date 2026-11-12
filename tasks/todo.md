@@ -273,7 +273,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** S
 
 ## Checkpoint 3 (PR 3)
-- [ ] Tests, lint and build pass
-- [ ] On the phone, 375 and 390 px, light and dark: the Recurring form, and both links on Be fit's page
-- [ ] Every success criterion in spec 006 met
-- [ ] PR opened, closing #6, with the parent-repo docs PR linked
+- [x] Tests, lint and build pass
+- [x] On the phone, 375 and 390 px, light and dark: the Recurring form, and both links on Be fit's page
+- [x] Every success criterion in spec 006 met
+- [x] PR opened, closing #6, with the parent-repo docs PR linked
