@@ -1,6 +1,6 @@
 # Spec: Add sheet (#6)
 
-Status: approved 2026-11-11. Issue: [#6](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/6). Module `add-sheet` in the [map](README.md). Depends on #4, the [aspiration page](013-aspiration-page.md) and #5.
+Status: built 2026-11-11 in three PRs after the shared screen message (#23, for #19): #24 the + and the Task tab; #25 the Goal and Aspiration tabs; PR 3 the Recurring tab, "+ Add recurring" and the docs. Plan in [`../tasks/plan.md`](../tasks/plan.md). Issue: [#6](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/6). Module `add-sheet` in the [map](README.md). Depends on #4, the [aspiration page](013-aspiration-page.md) and #5.
 
 ## Objective
 
@@ -142,12 +142,12 @@ export function splitGoalSentence(sentence: string): { label: string; measurable
 ## Success criteria
 
 - [ ] Every acceptance criterion on #6 is met.
-- [ ] Tab bar is Today | Week | + | Aspirations, and the + opens the sheet from every screen.
-- [ ] "+ Add a goal for Be fit" and "+ Add recurring" on an aspiration's page open the right tab with that aspiration selected.
-- [ ] A task saves with only a title and goes to this week's bank, waits for its week when due later, or goes onto today when asked.
-- [ ] A new building goal with a target has that many tasks in this week's bank.
-- [ ] A goal's type is picked first; the sentence splits into label and measurable line; saving opens the goal's page.
-- [ ] An aspiration saves with or without a why and offers "Add a goal for this".
-- [ ] A recurring item saves as fixed or flexible with a readable repeat rule.
-- [ ] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
+- [x] Tab bar is Today | Week | + | Aspirations, and the + opens the sheet from every screen.
+- [x] "+ Add a goal for Be fit" and "+ Add recurring" on an aspiration's page open the right tab with that aspiration selected.
+- [x] A task saves with only a title and goes to this week's bank, waits for its week when due later, or goes onto today when asked.
+- [x] A new building goal with a target has that many tasks in this week's bank.
+- [x] A goal's type is picked first; the sentence splits into label and measurable line; saving opens the goal's page.
+- [x] An aspiration saves with or without a why and offers "Add a goal for this".
+- [x] A recurring item saves as fixed or flexible with a readable repeat rule.
+- [x] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
 - [ ] Works at 375 and 390 px, light and dark.

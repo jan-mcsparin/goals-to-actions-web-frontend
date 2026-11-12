@@ -260,11 +260,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Parent repo (own branch and PR): Flows 1–3 for what the four forms settled (the type picked first, the sentence split, where a task goes, the repeat choices, back from a new goal), and the screen inventory. Front end: spec 006 marked built, and `specs/README.md` moves 006 to Done.
 
 **Acceptance criteria:**
-- [ ] Every rule in plan decisions 2–4 appears in `docs/`.
-- [ ] No doc says a new task goes onto a day other than today.
+- [x] Every rule in plan decisions 2–4 appears in `docs/`.
+- [x] No doc says a new task goes onto a day other than today.
 
 **Verification:**
-- [ ] `npm test && npm run lint && npm run build`; read-through of the parent diff
+- [x] `npm test && npm run lint && npm run build`; read-through of the parent diff
 
 **Dependencies:** Task 12
 
