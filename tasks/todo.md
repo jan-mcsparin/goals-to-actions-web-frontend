@@ -153,9 +153,9 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M (at the top end; TaskForm can be its own commit)
 
 ## Checkpoint 1 (PR 1)
-- [ ] Tests, lint and build pass
-- [ ] On the phone, 375 and 390 px, light and dark: the + in the tab bar, the keyboard up on open without covering Save, iOS date and time inputs, the confirmation seen after close
-- [ ] PR opened as "Part of #6"
+- [x] Tests, lint and build pass
+- [x] On the phone, 375 and 390 px, light and dark: the + in the tab bar, the keyboard up on open without covering Save, iOS date and time inputs, the confirmation seen after close; added from the check: a tap off any sheet closes it
+- [x] PR opened as "Part of #6"
 
 # PR 2: `add-sheet-goal` (Part of #6)
 
