@@ -86,4 +86,14 @@ describe('useSettings', () => {
     await waitFor(() => expect(result.current.message).toBe("Couldn't load settings. Try again in a moment."))
     expect(result.current.intensity).toBeUndefined()
   })
+
+  it('leaves a load failure in place if export is asked for anyway', async () => {
+    vi.mocked(getSettings).mockRejectedValueOnce(new Error('offline'))
+    const { result } = renderHook(() => useSettings())
+    await waitFor(() => expect(result.current.message).toBeDefined())
+
+    await act(async () => result.current.exportData())
+
+    expect(result.current.message).toBe("Couldn't load settings. Try again in a moment.")
+  })
 })

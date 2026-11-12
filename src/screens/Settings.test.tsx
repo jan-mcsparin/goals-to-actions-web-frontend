@@ -117,7 +117,7 @@ describe('Settings, export', () => {
     fakeTimeouts()
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<Settings onBack={() => {}} />)
-    const exportRow = screen.getByRole('button', { name: 'Export my data' })
+    const exportRow = await screen.findByRole('button', { name: 'Export my data' })
 
     await user.click(exportRow)
     expect((await screen.findByRole('status')).textContent).toBe('Coming later.')
@@ -131,7 +131,7 @@ describe('Settings, export', () => {
 })
 
 describe('Settings, when it can’t load', () => {
-  it('keeps the message until tapped, with the header and rows still there', async () => {
+  it('keeps the message until tapped, with the header and fixed rows still there', async () => {
     fakeTimeouts()
     vi.mocked(getSettings).mockRejectedValueOnce(new Error('offline'))
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
@@ -142,6 +142,7 @@ describe('Settings, when it can’t load', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeDefined()
     expect(rowValue('Week starts')?.textContent).toBe('Monday')
     expect(screen.queryByRole('radiogroup')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Export my data' })).toBeNull()
 
     act(() => vi.advanceTimersByTime(60_000))
     expect(screen.getByRole('status')).toBe(message)

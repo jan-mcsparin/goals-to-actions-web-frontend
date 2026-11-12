@@ -23,7 +23,7 @@ References: [Flow 8](../../docs/flows.md#flow-8-set-intensity), [product rules: 
 - **Notifications:** Off. Shown, not editable. The app asks for no permission.
 - **Export my data:** a row that, when tapped, shows "Coming later." as the screen's message above the tab bar, which clears itself like any other.
 
-Week starts and Notifications show at once; intensity shows once settings have loaded. If they can't load, "Couldn't load settings. Try again in a moment." stays until tapped, with the header and those two rows still there.
+Week starts and Notifications show at once; intensity and Export show once settings have loaded. If they can't load, "Couldn't load settings. Try again in a moment." stays until tapped, with the header and those two rows still there.
 
 In the click-through nothing reads the intensity yet; the planner will, from its next draft. Like every other mock change, a new intensity lasts until the page reloads; the API will keep it.
 

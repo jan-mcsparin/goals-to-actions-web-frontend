@@ -1,7 +1,8 @@
 // Settings, ready to render, and the one change it allows: intensity. Loads
 // through the API client. A new intensity shows at once and goes back if the
 // save fails; only the newest save may go back, so quick changes settle on the
-// last. Export isn't built yet and says so.
+// last. Export isn't built yet and says so, once settings have loaded, so
+// it never takes the place of a load failure.
 import { useRef } from 'react'
 import { getSettings, setIntensity } from '../api/client.ts'
 import type { Intensity } from '../api/types.ts'
@@ -38,6 +39,7 @@ export function useSettings(): UseSettings {
   // Cleared first and set a moment later, so a second tap after the line has
   // gone counts as a new message and shows again.
   function exportData() {
+    if (!settings) return
     setMessage(undefined)
     queueMicrotask(() => setMessage(EXPORT_LATER))
   }

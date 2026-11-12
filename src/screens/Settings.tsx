@@ -63,9 +63,11 @@ export function Settings({ onBack }: SettingsProps) {
         </div>
       </dl>
 
-      <button type="button" className="settings-row settings-export" onClick={exportData}>
-        Export my data
-      </button>
+      {intensity && (
+        <button type="button" className="settings-row settings-export" onClick={exportData}>
+          Export my data
+        </button>
+      )}
 
       <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
     </main>
