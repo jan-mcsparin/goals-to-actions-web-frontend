@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { canSaveName, type NameAndWhy } from '../domain/aspiration.ts'
 import './sheet.css'
 import './editForm.css'
+import { useBackdropClose } from './useBackdropClose.ts'
 import { useModalDialog } from './useModalDialog.ts'
 
 type AspirationEditSheetProps = {
@@ -15,10 +16,11 @@ type AspirationEditSheetProps = {
 // from the saved name and why.
 export function AspirationEditSheet({ open, initial, onSave, onClose }: AspirationEditSheetProps) {
   const dialog = useModalDialog(open)
+  const backdropClose = useBackdropClose(onClose)
   const titleId = useId()
 
   return (
-    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose}>
+    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose} {...backdropClose}>
       <header className="sheet-header">
         <h2 id={titleId}>Edit name and why</h2>
       </header>

@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { parsedMilestone, type DateRange, type MilestoneDraft } from '../domain/goalDetail.ts'
 import './editForm.css'
 import './sheet.css'
+import { useBackdropClose } from './useBackdropClose.ts'
 import { useModalDialog } from './useModalDialog.ts'
 
 type AddMilestoneSheetProps = {
@@ -17,10 +18,11 @@ type AddMilestoneSheetProps = {
 // The fields live inside only while the sheet is open, so each opening starts empty.
 export function AddMilestoneSheet({ open, noun, dateRange, onSave, onClose }: AddMilestoneSheetProps) {
   const dialog = useModalDialog(open)
+  const backdropClose = useBackdropClose(onClose)
   const titleId = useId()
 
   return (
-    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose}>
+    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose} {...backdropClose}>
       <header className="sheet-header">
         <h2 id={titleId}>{`Add ${noun}`}</h2>
       </header>

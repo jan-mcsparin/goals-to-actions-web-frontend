@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { parsedReopen, type DateRange, type MilestoneDraft, type ReopenChanges } from '../domain/goalDetail.ts'
 import './editForm.css'
 import './sheet.css'
+import { useBackdropClose } from './useBackdropClose.ts'
 import { useModalDialog } from './useModalDialog.ts'
 
 type ReopenSheetProps = {
@@ -19,10 +20,11 @@ type ReopenSheetProps = {
 // from the milestone as it is.
 export function ReopenSheet({ open, mode, noun, initial, dateRange, onSave, onClose }: ReopenSheetProps) {
   const dialog = useModalDialog(open)
+  const backdropClose = useBackdropClose(onClose)
   const titleId = useId()
 
   return (
-    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose}>
+    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose} {...backdropClose}>
       <header className="sheet-header">
         <h2 id={titleId}>{mode === 'move' ? 'Move the date' : `Adjust the ${noun}`}</h2>
       </header>

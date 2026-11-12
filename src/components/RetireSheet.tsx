@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import type { ItsWork } from '../domain/aspiration.ts'
 import './sheet.css'
 import './RetireSheet.css'
+import { useBackdropClose } from './useBackdropClose.ts'
 import { useModalDialog } from './useModalDialog.ts'
 
 type RetireSheetProps = {
@@ -20,10 +21,11 @@ const CHOICES: { value: ItsWork; label: string; line: string }[] = [
 // Leads with what the aspiration has seen, then asks one thing.
 export function RetireSheet({ open, name, historyLine, onRetire, onClose }: RetireSheetProps) {
   const dialog = useModalDialog(open)
+  const backdropClose = useBackdropClose(onClose)
   const titleId = useId()
 
   return (
-    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose}>
+    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose} {...backdropClose}>
       <header className="sheet-header">
         <h2 id={titleId}>{`Retire ${name}?`}</h2>
       </header>

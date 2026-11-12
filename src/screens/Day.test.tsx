@@ -209,6 +209,22 @@ describe('Day', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
+  it('closes the bank on a tap off it, leaving today as it was', async () => {
+    vi.mocked(pullFromBank).mockClear()
+    const user = userEvent.setup()
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+    await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
+
+    // Outside the sheet's box, which jsdom leaves at 0 × 0.
+    fireEvent.mouseDown(sheet, { clientX: 200, clientY: 100 })
+    fireEvent.click(sheet, { clientX: 200, clientY: 100 })
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByText('0 of 4 done')).toBeDefined()
+    expect(pullFromBank).not.toHaveBeenCalled()
+  })
+
   it('sends a task back to the bank from its menu', async () => {
     const user = userEvent.setup()
     render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
