@@ -11,11 +11,11 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 **Description:** Close the open question (intensity resets on reload, plan decision 1). Add the architecture decisions that the spec doesn't already cover: native radios in the radiogroup, Export using the screen message, the load-failure wording, and that the constant rows show before the load. Mark it approved.
 
 **Acceptance criteria:**
-- [ ] No open questions left; each decision is in the section it changes.
-- [ ] Status reads approved, dated 2026-11-12.
+- [x] No open questions left; each decision is in the section it changes.
+- [x] Status reads approved, dated 2026-11-12.
 
 **Verification:**
-- [ ] Read through against `plan.md`; `npm test && npm run lint && npm run build` still pass
+- [x] Read through against `plan.md`; `npm test && npm run lint && npm run build` still pass
 
 **Dependencies:** None
 
