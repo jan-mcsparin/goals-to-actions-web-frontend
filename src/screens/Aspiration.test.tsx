@@ -34,6 +34,7 @@ function renderPage(aspirationId = 'asp-fit') {
   const onBack = vi.fn()
   const onOpenGoal = vi.fn()
   const onRetired = vi.fn()
+  const onAddGoal = vi.fn()
   render(
     <Aspiration
       aspirationId={aspirationId}
@@ -41,9 +42,10 @@ function renderPage(aspirationId = 'asp-fit') {
       onBack={onBack}
       onOpenGoal={onOpenGoal}
       onRetired={onRetired}
+      onAddGoal={onAddGoal}
     />,
   )
-  return { onBack, onOpenGoal, onRetired }
+  return { onBack, onOpenGoal, onRetired, onAddGoal }
 }
 
 describe('Aspiration, active', () => {
@@ -90,6 +92,15 @@ describe('Aspiration, active', () => {
     await user.click(await screen.findByRole('button', { name: /^Have endurance/ }))
 
     expect(onOpenGoal).toHaveBeenCalledWith('goal-endurance')
+  })
+
+  it('offers to add a goal for it', async () => {
+    const user = userEvent.setup()
+    const { onAddGoal } = renderPage()
+
+    await user.click(await screen.findByRole('button', { name: '+ Add a goal for Be fit' }))
+
+    expect(onAddGoal).toHaveBeenCalledTimes(1)
   })
 
   it('lists paused goals after the active ones', async () => {
@@ -332,7 +343,7 @@ describe('Aspiration, retired', () => {
     expect(screen.getByText('Past goals (1)')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Bring back' })).toBeDefined()
     for (const name of ['This week', 'Priority']) expect(screen.queryByRole('region', { name })).toBeNull()
-    for (const name of ['Edit name and why', 'Retire', 'Move up']) {
+    for (const name of ['Edit name and why', 'Retire', 'Move up', '+ Add a goal for Speak Spanish']) {
       expect(screen.queryByRole('button', { name })).toBeNull()
     }
   })

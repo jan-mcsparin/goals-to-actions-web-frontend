@@ -17,12 +17,14 @@ type AspirationProps = {
   onBack: () => void
   onOpenGoal: (goalId: string) => void
   onRetired: () => void
+  // The Add sheet's Goal tab, with this aspiration selected.
+  onAddGoal: () => void
 }
 
 // One sheet at a time, and only from a tap.
 type OpenSheet = 'edit' | 'retire'
 
-export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired }: AspirationProps) {
+export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired, onAddGoal }: AspirationProps) {
   const { page, editing, message, notFound, edit, retire, bringBack, move } = useAspiration(
     aspirationId,
     today,
@@ -55,7 +57,7 @@ export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired 
       </header>
 
       {page?.kind === 'active' && (
-        <Active page={page} onOpenGoal={onOpenGoal} onMove={move} onOpenSheet={setSheet} />
+        <Active page={page} onOpenGoal={onOpenGoal} onAddGoal={onAddGoal} onMove={move} onOpenSheet={setSheet} />
       )}
       {page?.kind === 'retired' && <Retired page={page} onOpenGoal={onOpenGoal} onBringBack={bringBack} />}
 
@@ -89,11 +91,12 @@ export function Aspiration({ aspirationId, today, onBack, onOpenGoal, onRetired 
 type ActiveProps = {
   page: ActivePage
   onOpenGoal: (goalId: string) => void
+  onAddGoal: () => void
   onMove: (direction: 'up' | 'down') => void
   onOpenSheet: (sheet: OpenSheet) => void
 }
 
-function Active({ page, onOpenGoal, onMove, onOpenSheet }: ActiveProps) {
+function Active({ page, onOpenGoal, onAddGoal, onMove, onOpenSheet }: ActiveProps) {
   return (
     <>
       {page.week && (
@@ -122,6 +125,9 @@ function Active({ page, onOpenGoal, onMove, onOpenSheet }: ActiveProps) {
           <p className="aspiration-note">No goals yet.</p>
         )}
       </section>
+      <button type="button" className="aspiration-action aspiration-add" onClick={onAddGoal}>
+        + Add a goal for {page.name}
+      </button>
 
       <RecurringSection rows={page.recurring} />
       <PastGoals rows={page.pastGoals} onOpenGoal={onOpenGoal} />

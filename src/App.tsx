@@ -6,7 +6,7 @@ import { TabBar } from './components/TabBar.tsx'
 import { addOriginFor, type AddOrigin } from './hooks/useAdd.ts'
 import { DataRevision, useRevisionCounter } from './hooks/dataRevision.ts'
 import { useFleetingMessage } from './hooks/useFleetingMessage.ts'
-import { useNavigation } from './hooks/useNavigation.ts'
+import { useNavigation, type Screen } from './hooks/useNavigation.ts'
 import { Aspiration } from './screens/Aspiration.tsx'
 import { Aspirations } from './screens/Aspirations.tsx'
 import { Day } from './screens/Day.tsx'
@@ -29,14 +29,16 @@ function App() {
   const shownConfirmation = useFleetingMessage(confirmation)
 
   // Cleared on open, so the same line after the next save shows again.
-  function openAdd() {
+  function openAdd(opening: Partial<AddOrigin> = {}) {
     setConfirmation(undefined)
-    setAdding(addOriginFor(current))
+    setAdding({ ...addOriginFor(current), ...opening })
   }
 
-  function saved(line: string) {
+  // A new goal opens on its own page, where milestones are added.
+  function saved(line: string, open?: Screen) {
     setAdding(undefined)
     bump()
+    if (open) goTo(open)
     setConfirmation(line)
   }
 
@@ -65,6 +67,7 @@ function App() {
             today={today}
             onBack={backToAspirations}
             onRetired={backToAspirations}
+            onAddGoal={() => openAdd({ tab: 'goal', aspirationId: current.aspirationId })}
             onOpenGoal={(goalId) =>
               goTo({ screen: 'goal', goalId, from: { screen: 'aspiration', aspirationId: current.aspirationId } })
             }
@@ -82,8 +85,14 @@ function App() {
           />
         )}
         <ScreenMessage message={shownConfirmation.shown} onDismiss={shownConfirmation.dismiss} />
-        <TabBar current={tabOf(current)} onSelect={(tab) => goTo({ screen: tab })} onAdd={openAdd} />
-        <AddSheet origin={adding} today={today} onSaved={saved} onClose={() => setAdding(undefined)} />
+        <TabBar current={tabOf(current)} onSelect={(tab) => goTo({ screen: tab })} onAdd={() => openAdd()} />
+        <AddSheet
+          origin={adding}
+          today={today}
+          onSaved={saved}
+          onChanged={bump}
+          onClose={() => setAdding(undefined)}
+        />
       </div>
     </DataRevision>
   )

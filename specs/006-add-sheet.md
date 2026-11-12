@@ -28,7 +28,7 @@ References: [Flow 1](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 2](..
 
 **Goal**
 1. **Type first:** Building, Quitting, One-off. One tap, nothing preselected, and nothing else shows until one is picked. The type can be changed before saving.
-2. **One sentence:** "Be strong: bench 175, squat 350, deadlift 400". The text before the first colon is the label, the rest is the measurable line; both are shown back under the field as it's typed. With no colon, the sentence is the label and a second field appears: "How will you know you've got there?" Both are required.
+2. **One sentence:** "Be strong: bench 175, squat 350, deadlift 400". The text before the first colon is the label, the rest is the measurable line; both are shown back under the field as it's typed. With no colon, the sentence is the label and, once something is typed, a second field appears: "How will you know you've got there?" Both are required.
 3. **What's this for?** None, an existing aspiration, or "New aspiration", which shows a name field and creates it on save.
 4. **Where are you now?** The baseline. Optional.
 5. By type:
@@ -39,7 +39,7 @@ References: [Flow 1](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 2](..
 
 Saving opens the new goal's page, where milestones or steps are added: "Saved. Add milestones when you're ready." ("steps" for one-off). Back from that page goes to its aspiration's page when it has one, otherwise to the Aspirations tab, whichever screen the sheet was opened over.
 
-A building goal saved with a weekly target also gets that many tasks in this week's bank, each titled with the goal's label ("Be strong" three times for a target of 3). This is the mock standing in for the planner, so the goal can be followed from Week to Today.
+A building goal saved with a weekly target also gets that many tasks in this week's bank, up to seven (one a day, so a typo can't flood the bank), each titled with the goal's label ("Be strong" three times for a target of 3). This is the mock standing in for the planner, so the goal can be followed from Week to Today.
 
 **Aspiration**
 - **Name** (required): "Be fit".
@@ -65,7 +65,7 @@ A building goal saved with a weekly target also gets that many tasks in this wee
 - `hooks/useAdd.ts`: saving, errors, and telling the open screen to reload.
 - `components/AddSheet.tsx` with one form component per tab; the + in `TabBar`; a short confirmation line.
 - On an active aspiration's page: "+ Add a goal for Be fit" (Goal tab) and "+ Add recurring" (Recurring tab), each with that aspiration selected. Not on a retired one, to match the pickers. On the Aspirations tab: the footer hint's "Add one with +."
-- Reuse what Goal detail built: `useModalDialog` (keeps the sheet above the keyboard), `sheet.css` and `editForm.css`. Focus on open: the Task tab's title field (keyboard up, since it's the one required field); the Goal tab's type choice, with no keyboard until a type is picked.
+- Reuse what Goal detail built: `useModalDialog` (keeps the sheet above the keyboard), `sheet.css` and `editForm.css`. Focus on open: the Task tab's title field, or the Goal tab's first type when opened from an aspiration's page. Switching tabs or picking a goal type leaves focus where it was tapped, so the keyboard only comes up when the person taps a field. (iOS doesn't raise the keyboard for the focus on open either, which is the feel wanted.)
 - The confirmation lines use the shared save/load message from [#19](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/19), so they're seen without scrolling and clear themselves. #19 is built (PR #23). `App` shows them, since the sheet has closed.
 - Docs: mostly there already (the + in the tab bar, where a new task goes). Add what the build settles about the four forms.
 
@@ -95,7 +95,7 @@ addGoal(goal: {
   weeklyTarget?: { amount: number; unit: string }   // building only
 }): Promise<Goal>
 // status 'active'. A weekly target, when given, is stored effective from this week's Monday, and
-// `amount` inBank tasks titled with the label are added to this week (a stand-in for the planner).
+// `amount` inBank tasks (at most 7) titled with the label are added to this week (a stand-in for the planner).
 
 addAspiration(aspiration: { name: string; why?: string }): Promise<Aspiration>
 // priority = last.

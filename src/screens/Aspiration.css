@@ -197,6 +197,12 @@
   font: inherit;
 }
 
+/* "+ Add a goal for Be fit", under the goals, at the start of the line. */
+.aspiration-add {
+  align-self: flex-start;
+  text-align: left;
+}
+
 .goal-card:focus-visible,
 .aspiration-row-button:focus-visible,
 .aspiration-more summary:focus-visible,

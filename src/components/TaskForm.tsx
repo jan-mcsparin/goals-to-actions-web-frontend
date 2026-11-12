@@ -1,5 +1,5 @@
-import { useId, type Ref } from 'react'
-import type { GoalChoice, Placement, TaskDraft } from '../domain/add.ts'
+import { useId } from 'react'
+import type { Choice, Placement, TaskDraft } from '../domain/add.ts'
 import './AddSheet.css'
 import './editForm.css'
 
@@ -10,17 +10,16 @@ const PLACEMENTS: { value: Placement; label: string }[] = [
 
 type TaskFormProps = {
   draft: TaskDraft
-  goals: GoalChoice[]
+  goals: Choice[]
   goalsMessage?: string
   canSave: boolean
   message?: string
-  titleRef?: Ref<HTMLInputElement>
   onChange: (changes: Partial<TaskDraft>) => void
   onSave: () => void
 }
 
 // The Add sheet's Task tab. Only the title is required.
-export function TaskForm({ draft, goals, goalsMessage, canSave, message, titleRef, onChange, onSave }: TaskFormProps) {
+export function TaskForm({ draft, goals, goalsMessage, canSave, message, onChange, onSave }: TaskFormProps) {
   const titleId = useId()
   const goalId = useId()
   const goalsNoteId = useId()
@@ -39,7 +38,7 @@ export function TaskForm({ draft, goals, goalsMessage, canSave, message, titleRe
       <label htmlFor={titleId}>Title</label>
       <input
         id={titleId}
-        ref={titleRef}
+        data-autofocus
         value={draft.title}
         autoComplete="off"
         required
@@ -70,7 +69,7 @@ export function TaskForm({ draft, goals, goalsMessage, canSave, message, titleRe
       <input id={dueId} type="date" value={draft.dueDate} onChange={(event) => onChange({ dueDate: event.target.value })} />
 
       <label htmlFor={timeKindId}>Time of day (optional)</label>
-      <div className="task-form-time">
+      <div className="add-form-row">
         <select
           id={timeKindId}
           value={draft.timeKind}

@@ -96,6 +96,21 @@ export type NewTask = {
   onToday?: boolean
 }
 
+// What the Add sheet sends to addGoal. Status and ids are the API's.
+export type NewGoal = {
+  label: string
+  measurableLine: string
+  type: GoalType
+  aspirationId?: string
+  baseline?: string
+  startDate?: string // today when left out
+  deadline?: string
+  weeklyTarget?: { amount: number; unit: string } // building only
+}
+
+// What the Add sheet sends to addAspiration. It goes last in priority.
+export type NewAspiration = { name: string; why?: string }
+
 export type Intensity = 'easingOff' | 'normal' | 'goingHard'
 
 // Free time has no setting: it's whatever the intensity's task cap leaves open.

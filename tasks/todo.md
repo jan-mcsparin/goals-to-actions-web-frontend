@@ -164,12 +164,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `splitGoalSentence`, `goalReady(draft)` (type, label, line, a valid target via `parsedTarget`, deadline not before start via `isWithinGoal`) and `aspirationReady`. `addGoal` stores an active goal, its target from this Monday, and that many `inBank` tasks titled with the label. `addAspiration` puts it last in priority.
 
 **Acceptance criteria:**
-- [ ] The split handles one colon, several and none, and trims extra spaces.
-- [ ] Be strong 2 with a target of 3 shows in `getWeek`'s targets with three bank tasks; a quitting goal defaults its start to today; a deadline before the start, a bad target, a target on a non-building goal, a blank label or line, or an unknown or retired aspiration rejects.
-- [ ] A new aspiration is last of the active ones, with or without a why; a blank name rejects.
+- [x] The split handles one colon, several and none, and trims extra spaces.
+- [x] Be strong 2 with a target of 3 shows in `getWeek`'s targets with three bank tasks; a quitting goal defaults its start to today; a deadline before the start, a bad target, a target on a non-building goal, a blank label or line, or an unknown or retired aspiration rejects.
+- [x] A new aspiration is last of the active ones, with or without a why; a blank name rejects.
 
 **Verification:**
-- [ ] `npm test`: `add.test.ts`, `client.test.ts`
+- [x] `npm test`: `add.test.ts`, `client.test.ts`
 
 **Dependencies:** Checkpoint 1
 
@@ -182,12 +182,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `GoalForm`. Type first (three buttons, nothing else until one is picked, changeable), then the sentence with the label and line shown back below it, a second field when there's no colon, "What's this for?" (None, an active aspiration, or "New aspiration" with a name), baseline, weekly target (building), start date (quitting), and deadline. On save `App` opens the goal (back per plan decision 3) and shows "Saved. Add milestones when you're ready." ("steps" for one-off).
 
 **Acceptance criteria:**
-- [ ] On open, only the three types show and they have focus. Without a colon the second field appears, and both are required.
-- [ ] Saving under Be fit opens the goal's page, and back goes to Be fit; with no aspiration, back goes to the tab. "New aspiration" creates both, and a failed goal save after that doesn't make a second aspiration on retry.
-- [ ] A building goal with target 3 shows "3 lifting sessions" on its page and three new tasks in Week's bank.
+- [x] On open, only the three types show and they have focus. Without a colon the second field appears, and both are required.
+- [x] Saving under Be fit opens the goal's page, and back goes to Be fit; with no aspiration, back goes to the tab. "New aspiration" creates both, and a failed goal save after that doesn't make a second aspiration on retry.
+- [x] A building goal with target 3 shows "3 lifting sessions" on its page and three new tasks in Week's bank.
 
 **Verification:**
-- [ ] `npm test`: `AddSheet.test.tsx`, `useAdd.test.tsx`, `App.test.tsx`
+- [x] `npm test`: `AddSheet.test.tsx`, `useAdd.test.tsx`, `App.test.tsx`
 
 **Dependencies:** Task 8
 
@@ -200,12 +200,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `AspirationForm`: name and "What would this give you?". After saving, the sheet stays open on "Saved." with **Add a goal for this** (Goal tab, that aspiration selected) and **Done**. On an active aspiration's page, "+ Add a goal for Be fit" opens the Goal tab with it selected; not on a retired one.
 
 **Acceptance criteria:**
-- [ ] An aspiration saves with or without a why and shows last on the tab after Done.
-- [ ] "Add a goal for this" opens the Goal tab with the new aspiration selected.
-- [ ] The link is on Be fit's page and opens the Goal tab with Be fit selected; a retired aspiration's page has no link.
+- [x] An aspiration saves with or without a why and shows last on the tab after Done.
+- [x] "Add a goal for this" opens the Goal tab with the new aspiration selected.
+- [x] The link is on Be fit's page and opens the Goal tab with Be fit selected; a retired aspiration's page has no link.
 
 **Verification:**
-- [ ] `npm test`: `AddSheet.test.tsx`, `Aspiration.test.tsx`, `App.test.tsx`
+- [x] `npm test`: `AddSheet.test.tsx`, `Aspiration.test.tsx`, `App.test.tsx`
 
 **Dependencies:** Task 9
 
@@ -214,9 +214,9 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** M
 
 ## Checkpoint 2 (PR 2)
-- [ ] Tests, lint and build pass
-- [ ] On the phone, 375 and 390 px, light and dark: the Goal form with every field showing scrolls inside the sheet, and the keyboard never hides the field in use or Save
-- [ ] PR opened as "Part of #6"
+- [x] Tests, lint and build pass
+- [x] On the phone, 375 and 390 px, light and dark: the Goal form with every field showing scrolls inside the sheet, and the keyboard never hides the field in use or Save; added from the check: switching tabs or picking a type leaves focus where it was tapped (no keyboard until a field is tapped)
+- [x] PR opened as "Part of #6"
 
 # PR 3: `add-sheet-recurring` (closes #6)
 
