@@ -4,6 +4,7 @@ import './AddSheet.css'
 import './sheet.css'
 import { AspirationForm, AspirationSaved } from './AspirationForm.tsx'
 import { GoalForm } from './GoalForm.tsx'
+import { RecurringForm } from './RecurringForm.tsx'
 import { TaskForm } from './TaskForm.tsx'
 import { useBackdropClose } from './useBackdropClose.ts'
 import { useModalDialog } from './useModalDialog.ts'
@@ -27,7 +28,8 @@ type AddSheetProps = {
 
 // Opened by the + in the tab bar. What's inside lives only while it's open,
 // so each opening starts blank. The tab it opens on marks the field that takes
-// focus (data-autofocus): the Task tab's title, or the Goal tab's first type.
+// focus (data-autofocus): the Task tab's title, the Goal tab's first type, or
+// the Recurring tab's Fixed day.
 // iOS doesn't raise the keyboard for it; it comes up when a field is tapped.
 // Close, Escape or a tap off the sheet closes it.
 export function AddSheet({ origin, today, onSaved, onChanged, onClose }: AddSheetProps) {
@@ -117,7 +119,17 @@ function AddSheetBody({ origin, today, onSaved, onChanged, onClose }: AddSheetBo
             onSave={() => void add.save()}
           />
         ))}
-      {add.tab === 'recurring' && <p className="sheet-note">Coming soon.</p>}
+      {add.tab === 'recurring' && (
+        <RecurringForm
+          draft={add.recurring}
+          aspirations={add.aspirations}
+          aspirationsMessage={add.aspirationsMessage}
+          canSave={add.canSave}
+          message={add.message}
+          onChange={add.editRecurring}
+          onSave={() => void add.save()}
+        />
+      )}
     </>
   )
 }

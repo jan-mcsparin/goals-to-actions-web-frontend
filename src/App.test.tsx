@@ -544,6 +544,45 @@ describe('the Add sheet', () => {
     expect(screen.getByRole('combobox', { name: "What's this for?" })).toHaveProperty('value', 'asp-fit')
   })
 
+  it("adds a recurring item for Be fit from Be fit's page and shows it there", async () => {
+    localStorage.setItem('gta.screen', JSON.stringify({ screen: 'aspiration', aspirationId: 'asp-fit' }))
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: '+ Add recurring' }))
+    expect(screen.getByRole('button', { name: 'Recurring' }).getAttribute('aria-pressed')).toBe('true')
+    await screen.findByRole('option', { name: 'Be fit' })
+    expect(screen.getByRole('combobox', { name: 'Under an aspiration (optional)' })).toHaveProperty('value', 'asp-fit')
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Foam roll')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Day' }), 'Friday')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText("Added. It will show up in the plan when it's next due.")).toBeDefined()
+    const recurring = await screen.findByRole('region', { name: 'Recurring' })
+    expect(await within(recurring).findByText('Foam roll')).toBeDefined()
+    expect(within(recurring).getByText('Every Friday')).toBeDefined()
+    await user.click(screen.getByRole('button', { name: 'Back to Aspirations' }))
+    expect(await screen.findByText(/recurring: .*Foam roll/)).toBeDefined()
+  })
+
+  it('adds a recurring item with no aspiration to Keep life running', async () => {
+    localStorage.setItem('gta.screen', JSON.stringify({ screen: 'upkeep' }))
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { level: 1, name: 'Keep life running' })
+
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.click(screen.getByRole('button', { name: 'Recurring' }))
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Descale the kettle')
+    await user.click(screen.getByRole('button', { name: 'Flexible' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'How often' }), 'Every two weeks')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    const main = screen.getByRole('main')
+    expect(await within(main).findByText('Descale the kettle')).toBeDefined()
+    expect(within(main).getByText('Every two weeks')).toBeDefined()
+  })
+
   it('shows a new aspiration last on the Aspirations tab after Done', async () => {
     localStorage.setItem('gta.screen', JSON.stringify({ screen: 'aspirations' }))
     const user = userEvent.setup()

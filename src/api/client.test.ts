@@ -3,6 +3,7 @@ import {
   addAspiration,
   addGoal,
   addMilestone,
+  addRecurringItem,
   addTask,
   bringBackAspiration,
   checkInMilestone,
@@ -1344,5 +1345,39 @@ describe('addAspiration', () => {
 
     await expect(addAspiration({ name: '   ' })).rejects.toThrow()
     expect(store.aspirations).toHaveLength(before)
+  })
+})
+
+describe('addRecurringItem', () => {
+  const trash = { name: '  Water the plants ', repeatRule: 'Every Tuesday', fixedDay: true, nextDue: '2026-11-17' }
+
+  it('stores an active item with no aspiration, on Keep life running', async () => {
+    const item = await addRecurringItem(trash)
+
+    expect(item).toEqual({ id: item.id, name: 'Water the plants', repeatRule: 'Every Tuesday', fixedDay: true, active: true, nextDue: '2026-11-17' })
+    const { recurringItems } = await getUpkeep()
+    expect(recurringItems.find((row) => row.id === item.id)).toEqual(item)
+    expectConsistentStore()
+  })
+
+  it('stores one under an aspiration, on its page', async () => {
+    const item = await addRecurringItem({ name: 'Stretch more', repeatRule: '3 times a week', fixedDay: false, nextDue: WEDNESDAY_DAY, aspirationId: 'asp-fit' })
+
+    expect(item).toMatchObject({ aspirationId: 'asp-fit', fixedDay: false, active: true })
+    const { recurringItems } = await getAspiration('asp-fit')
+    expect(recurringItems.find((row) => row.id === item.id)).toEqual(item)
+    expect((await getUpkeep()).recurringItems.map((row) => row.id)).not.toContain(item.id)
+    expectConsistentStore()
+  })
+
+  it.each([
+    ['a blank name', { ...trash, name: '   ' }],
+    ['an unknown aspiration', { ...trash, aspirationId: 'asp-nope' }],
+    ['a retired aspiration', { ...trash, aspirationId: 'asp-spanish' }],
+  ])('rejects %s and stores nothing', async (_case, item) => {
+    const before = store.recurringItems.length
+
+    await expect(addRecurringItem(item)).rejects.toThrow()
+    expect(store.recurringItems).toHaveLength(before)
   })
 })

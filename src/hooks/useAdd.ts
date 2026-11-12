@@ -2,22 +2,26 @@
 // (kept across tab switches; the sheet starts over each time it opens), the
 // pickers' choices, and saving. A task or goal that saves hands the
 // confirmation line, and for a goal the screen to open, to onSaved, and the
-// sheet closes. An aspiration that saves keeps the sheet open on "Saved." and
+// sheet closes; so does a recurring item. An aspiration that saves keeps the sheet open on "Saved." and
 // tells onChanged, so the screen behind can reload. A save that fails keeps
 // the sheet open with a calm message. Rules come from domain/add.ts.
 import { useEffect, useRef, useState } from 'react'
-import { addAspiration, addGoal, addTask, getAspirations } from '../api/client.ts'
+import { addAspiration, addGoal, addRecurringItem, addTask, getAspirations } from '../api/client.ts'
 import type { Goal } from '../api/types.ts'
 import {
   aspirationChoices,
   aspirationReady,
   emptyGoalDraft,
+  emptyRecurringDraft,
   emptyTaskDraft,
   goalChoices,
   goalConfirmation,
   goalInput,
   goalReady,
   NEW_ASPIRATION,
+  RECURRING_CONFIRMATION,
+  recurringInput,
+  recurringReady,
   taskConfirmation,
   taskInput,
   taskReady,
@@ -25,6 +29,7 @@ import {
   type Choice,
   type GoalDraft,
   type Placement,
+  type RecurringDraft,
   type TaskDraft,
 } from '../domain/add.ts'
 import type { Screen } from './useNavigation.ts'
@@ -70,6 +75,8 @@ export type UseAdd = {
   // Set once an aspiration saves, while the sheet shows "Saved.".
   savedAspiration?: Choice
   addGoalForSaved: () => void
+  recurring: RecurringDraft
+  editRecurring: (changes: Partial<RecurringDraft>) => void
   goals: Choice[]
   aspirations: Choice[]
   // Shown under a picker when its choices can't load.
@@ -86,6 +93,7 @@ export function useAdd(origin: AddOrigin, today: string, { onSaved, onChanged }:
   const [goal, setGoal] = useState(() => ({ ...emptyGoalDraft(), aspirationId: origin.aspirationId ?? '' }))
   const [aspiration, setAspiration] = useState<AspirationDraft>(EMPTY_ASPIRATION)
   const [savedAspiration, setSavedAspiration] = useState<Choice>()
+  const [recurring, setRecurring] = useState(() => emptyRecurringDraft(origin.aspirationId))
   const [goals, setGoals] = useState<Choice[]>([])
   const [aspirations, setAspirations] = useState<Choice[]>([])
   const [choicesFailed, setChoicesFailed] = useState(false)
@@ -112,7 +120,8 @@ export function useAdd(origin: AddOrigin, today: string, { onSaved, onChanged }:
   const ready =
     (tab === 'task' && taskReady(task)) ||
     (tab === 'goal' && goalReady(goal, today)) ||
-    (tab === 'aspiration' && aspirationReady(aspiration))
+    (tab === 'aspiration' && aspirationReady(aspiration)) ||
+    (tab === 'recurring' && recurringReady(recurring))
 
   async function save() {
     if (!ready || savingNow.current) return
@@ -126,6 +135,9 @@ export function useAdd(origin: AddOrigin, today: string, { onSaved, onChanged }:
       } else if (tab === 'goal') {
         const saved = await saveGoal()
         onSaved(goalConfirmation(saved.type), newGoalScreen(saved))
+      } else if (tab === 'recurring') {
+        await addRecurringItem(recurringInput(recurring, today))
+        onSaved(RECURRING_CONFIRMATION)
       } else {
         await saveAspiration()
       }
@@ -186,6 +198,8 @@ export function useAdd(origin: AddOrigin, today: string, { onSaved, onChanged }:
     editAspiration: (changes) => setAspiration((previous) => ({ ...previous, ...changes })),
     savedAspiration,
     addGoalForSaved,
+    recurring,
+    editRecurring: (changes) => setRecurring((previous) => ({ ...previous, ...changes })),
     goals,
     aspirations,
     goalsMessage: choicesFailed ? GOALS_FAILED : undefined,

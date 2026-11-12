@@ -219,7 +219,7 @@ describe('Aspirations', () => {
       renderTab()
 
       expect(
-        await screen.findByText('In order of priority. The first comes first when goals compete for time.'),
+        await screen.findByText('In order of priority. The first comes first when goals compete for time. Add one with +.'),
       ).toBeDefined()
     })
 

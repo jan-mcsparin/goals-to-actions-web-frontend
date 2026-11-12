@@ -225,12 +225,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `repeatRuleText(choice)`, `nextDue(choice, today)` and `recurringReady`. `addRecurringItem` stores an active item, with the aspiration or none (Keep life running).
 
 **Acceptance criteria:**
-- [ ] Each choice gives the mock's style of text: "Every Tuesday", "Monthly on the 1st", "Once a week", "3 times a week", "Every two weeks", "Once a month".
-- [ ] Next due: a weekday later this week or next week; a monthly day already past this month gives next month's; flexible choices give today.
-- [ ] Without an aspiration it's in `getUpkeep`; with Be fit, in `getAspiration`; a blank name or unknown aspiration rejects.
+- [x] Each choice gives the mock's style of text: "Every Tuesday", "Monthly on the 1st", "Once a week", "3 times a week", "Every two weeks", "Once a month".
+- [x] Next due: a weekday later this week or next week; a monthly day already past this month gives next month's; flexible choices give today.
+- [x] Without an aspiration it's in `getUpkeep`; with Be fit, in `getAspiration`; a blank name or unknown aspiration rejects.
 
 **Verification:**
-- [ ] `npm test`: `add.test.ts`, `client.test.ts`
+- [x] `npm test`: `add.test.ts`, `client.test.ts`
 
 **Dependencies:** Checkpoint 2
 
@@ -243,11 +243,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `RecurringForm`: name, Fixed day (weekday or 1st–28th) or Flexible (the listed choices), and an optional aspiration. It confirms with "Added. It will show up in the plan when it's next due." An active aspiration's page gets "+ Add recurring". The Aspirations tab's footer hint ends with "Add one with +."
 
 **Acceptance criteria:**
-- [ ] Each choice saves the right rule. With no aspiration the item appears on Keep life running; under Be fit it appears on Be fit's card and page.
-- [ ] "+ Add recurring" opens the Recurring tab with Be fit selected; not on a retired aspiration.
+- [x] Each choice saves the right rule. With no aspiration the item appears on Keep life running; under Be fit it appears on Be fit's card and page.
+- [x] "+ Add recurring" opens the Recurring tab with Be fit selected; not on a retired aspiration.
 
 **Verification:**
-- [ ] `npm test`: `AddSheet.test.tsx`, `Aspiration.test.tsx`, `Aspirations.test.tsx`, `App.test.tsx`
+- [x] `npm test`: `AddSheet.test.tsx`, `Aspiration.test.tsx`, `Aspirations.test.tsx`, `App.test.tsx`
 
 **Dependencies:** Task 11
 
@@ -260,11 +260,11 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** Parent repo (own branch and PR): Flows 1–3 for what the four forms settled (the type picked first, the sentence split, where a task goes, the repeat choices, back from a new goal), and the screen inventory. Front end: spec 006 marked built, and `specs/README.md` moves 006 to Done.
 
 **Acceptance criteria:**
-- [ ] Every rule in plan decisions 2–4 appears in `docs/`.
-- [ ] No doc says a new task goes onto a day other than today.
+- [x] Every rule in plan decisions 2–4 appears in `docs/`.
+- [x] No doc says a new task goes onto a day other than today.
 
 **Verification:**
-- [ ] `npm test && npm run lint && npm run build`; read-through of the parent diff
+- [x] `npm test && npm run lint && npm run build`; read-through of the parent diff
 
 **Dependencies:** Task 12
 
@@ -273,7 +273,7 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Scope:** S
 
 ## Checkpoint 3 (PR 3)
-- [ ] Tests, lint and build pass
-- [ ] On the phone, 375 and 390 px, light and dark: the Recurring form, and both links on Be fit's page
-- [ ] Every success criterion in spec 006 met
-- [ ] PR opened, closing #6, with the parent-repo docs PR linked
+- [x] Tests, lint and build pass
+- [x] On the phone, 375 and 390 px, light and dark: the Recurring form, and both links on Be fit's page
+- [x] Every success criterion in spec 006 met
+- [x] PR opened, closing #6, with the parent-repo docs PR linked
