@@ -72,6 +72,7 @@ function AddSheetBody({ origin, today, titleField, onSaved }: AddSheetBodyProps)
         <TaskForm
           draft={add.task}
           goals={add.goals}
+          goalsMessage={add.goalsMessage}
           canSave={add.canSave}
           message={add.message}
           titleRef={titleField}

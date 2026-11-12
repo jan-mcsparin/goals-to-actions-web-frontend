@@ -18,6 +18,7 @@ import {
 import type { Screen } from './useNavigation.ts'
 
 const SAVE_FAILED = "Couldn't save that. Try again."
+const GOALS_FAILED = "Couldn't load your goals. Try again in a moment."
 
 export type AddTab = 'task' | 'goal' | 'aspiration' | 'recurring'
 
@@ -36,6 +37,8 @@ export type UseAdd = {
   task: TaskDraft
   editTask: (changes: Partial<TaskDraft>) => void
   goals: GoalChoice[]
+  // Shown under the goal picker when the goals can't load.
+  goalsMessage?: string
   canSave: boolean
   message?: string
   save: () => Promise<void>
@@ -45,16 +48,18 @@ export function useAdd(origin: AddOrigin, today: string, onSaved: (confirmation:
   const [tab, setTab] = useState<AddTab>('task')
   const [task, setTask] = useState(() => emptyTaskDraft(origin.placement))
   const [goals, setGoals] = useState<GoalChoice[]>([])
+  const [goalsFailed, setGoalsFailed] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string>()
   const savingNow = useRef(false)
 
-  // Without the goals, the picker offers only None; the task can still be saved.
+  // Without the goals, the picker offers only None and says why; the task can
+  // still be saved. Opening the sheet again tries again.
   useEffect(() => {
     let current = true
     getAspirations()
       .then((overview) => current && setGoals(goalChoices(overview.goals)))
-      .catch(() => {})
+      .catch(() => current && setGoalsFailed(true))
     return () => {
       current = false
     }
@@ -82,6 +87,7 @@ export function useAdd(origin: AddOrigin, today: string, onSaved: (confirmation:
     task,
     editTask: (changes) => setTask((previous) => ({ ...previous, ...changes })),
     goals,
+    goalsMessage: goalsFailed ? GOALS_FAILED : undefined,
     canSave: tab === 'task' && taskReady(task) && !saving,
     message,
     save,

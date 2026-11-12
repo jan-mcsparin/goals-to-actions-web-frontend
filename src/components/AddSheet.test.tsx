@@ -2,14 +2,14 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addTask, getBank, getDay } from '../api/client.ts'
+import { addTask, getAspirations, getBank, getDay } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { AddOrigin } from '../hooks/useAdd.ts'
 import { AddSheet } from './AddSheet.tsx'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
-  return { ...actual, addTask: vi.fn(actual.addTask) }
+  return { ...actual, addTask: vi.fn(actual.addTask), getAspirations: vi.fn(actual.getAspirations) }
 })
 
 const TODAY = '2026-11-11'
@@ -128,6 +128,16 @@ describe('AddSheet', () => {
     await user.click(screen.getByRole('button', { name: 'Open' }))
 
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveProperty('value', '')
+  })
+
+  it("says so under the goal picker when the goals can't load", async () => {
+    vi.mocked(getAspirations).mockRejectedValueOnce(new Error('offline'))
+    await openSheet()
+
+    expect(await screen.findByText("Couldn't load your goals. Try again in a moment.")).toBeDefined()
+    expect(screen.getByRole('combobox', { name: 'Goal' }).getAttribute('aria-describedby')).toBe(
+      screen.getByText("Couldn't load your goals. Try again in a moment.").id,
+    )
   })
 
   it('stays open with what was typed and a calm message when the save fails', async () => {

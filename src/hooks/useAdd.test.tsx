@@ -67,13 +67,24 @@ describe('useAdd', () => {
     expect(result.current.goals.map((goal) => goal.id)).not.toContain('goal-cook')
   })
 
-  it('offers no goals, quietly, when they cannot load', async () => {
+  it("says so under the picker when the goals can't load, and still saves", async () => {
     vi.mocked(getAspirations).mockRejectedValueOnce(new Error('offline'))
-    const { result } = renderAdd()
+    const { result, onSaved } = renderAdd()
 
-    await waitFor(() => expect(getAspirations).toHaveBeenCalled())
+    await waitFor(() => expect(result.current.goalsMessage).toBe("Couldn't load your goals. Try again in a moment."))
     expect(result.current.goals).toEqual([])
     expect(result.current.message).toBeUndefined()
+
+    act(() => result.current.editTask({ title: 'Fill out my ballot' }))
+    await act(async () => result.current.save())
+    expect(onSaved).toHaveBeenCalledWith("Added to this week's bank.")
+  })
+
+  it('has no goals message once the goals load', async () => {
+    const { result } = renderAdd()
+
+    await waitFor(() => expect(result.current.goals.length).toBeGreaterThan(0))
+    expect(result.current.goalsMessage).toBeUndefined()
   })
 
   it("saves a title alone to this week's bank and says so", async () => {

@@ -11,6 +11,7 @@ const PLACEMENTS: { value: Placement; label: string }[] = [
 type TaskFormProps = {
   draft: TaskDraft
   goals: GoalChoice[]
+  goalsMessage?: string
   canSave: boolean
   message?: string
   titleRef?: Ref<HTMLInputElement>
@@ -19,9 +20,10 @@ type TaskFormProps = {
 }
 
 // The Add sheet's Task tab. Only the title is required.
-export function TaskForm({ draft, goals, canSave, message, titleRef, onChange, onSave }: TaskFormProps) {
+export function TaskForm({ draft, goals, goalsMessage, canSave, message, titleRef, onChange, onSave }: TaskFormProps) {
   const titleId = useId()
   const goalId = useId()
+  const goalsNoteId = useId()
   const dueId = useId()
   const timeKindId = useId()
   const placementName = useId()
@@ -45,7 +47,12 @@ export function TaskForm({ draft, goals, canSave, message, titleRef, onChange, o
       />
 
       <label htmlFor={goalId}>Goal</label>
-      <select id={goalId} value={draft.goalId} onChange={(event) => onChange({ goalId: event.target.value })}>
+      <select
+        id={goalId}
+        value={draft.goalId}
+        aria-describedby={goalsMessage ? goalsNoteId : undefined}
+        onChange={(event) => onChange({ goalId: event.target.value })}
+      >
         <option value="">None</option>
         {goals.map((goal) => (
           <option key={goal.id} value={goal.id}>
@@ -53,6 +60,11 @@ export function TaskForm({ draft, goals, canSave, message, titleRef, onChange, o
           </option>
         ))}
       </select>
+      {goalsMessage && (
+        <p id={goalsNoteId} className="edit-form-note">
+          {goalsMessage}
+        </p>
+      )}
 
       <label htmlFor={dueId}>Due date (optional)</label>
       <input id={dueId} type="date" value={draft.dueDate} onChange={(event) => onChange({ dueDate: event.target.value })} />
