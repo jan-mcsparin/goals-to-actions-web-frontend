@@ -15,6 +15,7 @@ import type {
   Milestone,
   NewAspiration,
   NewGoal,
+  NewRecurringItem,
   NewTask,
   RecurringItem,
   Task,
@@ -362,6 +363,26 @@ export async function addAspiration(aspiration: NewAspiration): Promise<Aspirati
   }
   if (aspiration.why?.trim()) added.why = aspiration.why.trim()
   store.aspirations.push(added)
+  return structuredClone(added)
+}
+
+// Active from now. Without an aspiration it belongs to Keep life running.
+// Its tasks are the planner's, so none are added here.
+export async function addRecurringItem(item: NewRecurringItem): Promise<RecurringItem> {
+  const name = item.name.trim()
+  if (!name) throw new Error('A recurring item needs a name')
+  if (item.aspirationId) findActiveAspiration(item.aspirationId)
+
+  const added: RecurringItem = {
+    id: newId('rec'),
+    name,
+    repeatRule: item.repeatRule,
+    fixedDay: item.fixedDay,
+    active: true,
+    nextDue: item.nextDue,
+  }
+  if (item.aspirationId) added.aspirationId = item.aspirationId
+  store.recurringItems.push(added)
   return structuredClone(added)
 }
 

@@ -225,12 +225,12 @@ Every task: write tests first, then `npm test && npm run lint && npm run build`,
 **Description:** `repeatRuleText(choice)`, `nextDue(choice, today)` and `recurringReady`. `addRecurringItem` stores an active item, with the aspiration or none (Keep life running).
 
 **Acceptance criteria:**
-- [ ] Each choice gives the mock's style of text: "Every Tuesday", "Monthly on the 1st", "Once a week", "3 times a week", "Every two weeks", "Once a month".
-- [ ] Next due: a weekday later this week or next week; a monthly day already past this month gives next month's; flexible choices give today.
-- [ ] Without an aspiration it's in `getUpkeep`; with Be fit, in `getAspiration`; a blank name or unknown aspiration rejects.
+- [x] Each choice gives the mock's style of text: "Every Tuesday", "Monthly on the 1st", "Once a week", "3 times a week", "Every two weeks", "Once a month".
+- [x] Next due: a weekday later this week or next week; a monthly day already past this month gives next month's; flexible choices give today.
+- [x] Without an aspiration it's in `getUpkeep`; with Be fit, in `getAspiration`; a blank name or unknown aspiration rejects.
 
 **Verification:**
-- [ ] `npm test`: `add.test.ts`, `client.test.ts`
+- [x] `npm test`: `add.test.ts`, `client.test.ts`
 
 **Dependencies:** Checkpoint 2
 

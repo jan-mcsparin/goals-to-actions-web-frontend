@@ -111,6 +111,16 @@ export type NewGoal = {
 // What the Add sheet sends to addAspiration. It goes last in priority.
 export type NewAspiration = { name: string; why?: string }
 
+// What the Add sheet sends to addRecurringItem. Without an aspiration it
+// belongs to Keep life running.
+export type NewRecurringItem = {
+  name: string
+  repeatRule: string
+  fixedDay: boolean
+  nextDue: string
+  aspirationId?: string
+}
+
 export type Intensity = 'easingOff' | 'normal' | 'goingHard'
 
 // Free time has no setting: it's whatever the intensity's task cap leaves open.

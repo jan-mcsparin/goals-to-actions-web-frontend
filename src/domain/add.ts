@@ -1,6 +1,7 @@
 // Rules for the Add sheet: where a new task goes, the line confirming it, how
-// a goal's sentence splits, and when a form is ready to save.
-import { mondayOfDay } from '../api/dates.ts'
+// a goal's sentence splits, how a repeat reads and when it's next due, and
+// when a form is ready to save.
+import { addDays, fromLocalDay, mondayOfDay, toLocalDay } from '../api/dates.ts'
 import type { Aspiration, Goal, GoalType, NewGoal, NewTask, Task } from '../api/types.ts'
 import { dayLabel, isWithinGoal, parsedTarget, type TargetDraft } from './goalDetail.ts'
 
@@ -153,5 +154,61 @@ function targetBlankOrWhole(target: TargetDraft): boolean {
 export type AspirationDraft = { name: string; why: string }
 
 export function aspirationReady(draft: AspirationDraft): boolean {
+  return draft.name.trim() !== ''
+}
+
+// How often a recurring item comes round. Fixed: a weekday (0 is Sunday, as
+// Date.getDay) or a day of the month, 1–28 so every month has it. Flexible:
+// 1–6 times a week, every two weeks, or once a month.
+export type RepeatChoice =
+  | { kind: 'weekday'; weekday: number }
+  | { kind: 'monthDay'; day: number }
+  | { kind: 'timesAWeek'; times: number }
+  | { kind: 'everyTwoWeeks' }
+  | { kind: 'onceAMonth' }
+
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+// As the mock reads: "Every Tuesday", "Monthly on the 1st", "3 times a week".
+export function repeatRuleText(choice: RepeatChoice): string {
+  switch (choice.kind) {
+    case 'weekday':
+      return `Every ${WEEKDAY_NAMES[choice.weekday]}`
+    case 'monthDay':
+      return `Monthly on the ${ordinal(choice.day)}`
+    case 'timesAWeek':
+      return choice.times === 1 ? 'Once a week' : `${choice.times} times a week`
+    case 'everyTwoWeeks':
+      return 'Every two weeks'
+    case 'onceAMonth':
+      return 'Once a month'
+  }
+}
+
+export function isFixedDay(choice: RepeatChoice): boolean {
+  return choice.kind === 'weekday' || choice.kind === 'monthDay'
+}
+
+// The first day on or after today that the item falls on. A flexible item
+// can be done any day, so it's due today.
+export function nextDue(choice: RepeatChoice, today: string): string {
+  const date = fromLocalDay(today)
+  if (choice.kind === 'weekday') {
+    return toLocalDay(addDays(date, (choice.weekday - date.getDay() + 7) % 7))
+  }
+  if (choice.kind === 'monthDay') {
+    const monthsAhead = choice.day < date.getDate() ? 1 : 0
+    return toLocalDay(new Date(date.getFullYear(), date.getMonth() + monthsAhead, choice.day))
+  }
+  return today
+}
+
+function ordinal(day: number): string {
+  const teens = day % 100 >= 11 && day % 100 <= 13
+  const suffix = teens ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[day % 10] ?? 'th')
+  return `${day}${suffix}`
+}
+
+export function recurringReady(draft: { name: string }): boolean {
   return draft.name.trim() !== ''
 }
