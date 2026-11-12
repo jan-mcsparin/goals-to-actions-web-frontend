@@ -28,7 +28,7 @@ References: [Flow 1](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 2](..
 
 **Goal**
 1. **Type first:** Building, Quitting, One-off. One tap, nothing preselected, and nothing else shows until one is picked. The type can be changed before saving.
-2. **One sentence:** "Be strong: bench 175, squat 350, deadlift 400". The text before the first colon is the label, the rest is the measurable line; both are shown back under the field as it's typed. With no colon, the sentence is the label and a second field appears: "How will you know you've got there?" Both are required.
+2. **One sentence:** "Be strong: bench 175, squat 350, deadlift 400". The text before the first colon is the label, the rest is the measurable line; both are shown back under the field as it's typed. With no colon, the sentence is the label and, once something is typed, a second field appears: "How will you know you've got there?" Both are required.
 3. **What's this for?** None, an existing aspiration, or "New aspiration", which shows a name field and creates it on save.
 4. **Where are you now?** The baseline. Optional.
 5. By type:
@@ -39,7 +39,7 @@ References: [Flow 1](../../docs/flows.md#flow-1-name-an-aspiration), [Flow 2](..
 
 Saving opens the new goal's page, where milestones or steps are added: "Saved. Add milestones when you're ready." ("steps" for one-off). Back from that page goes to its aspiration's page when it has one, otherwise to the Aspirations tab, whichever screen the sheet was opened over.
 
-A building goal saved with a weekly target also gets that many tasks in this week's bank, each titled with the goal's label ("Be strong" three times for a target of 3). This is the mock standing in for the planner, so the goal can be followed from Week to Today.
+A building goal saved with a weekly target also gets that many tasks in this week's bank, up to seven (one a day, so a typo can't flood the bank), each titled with the goal's label ("Be strong" three times for a target of 3). This is the mock standing in for the planner, so the goal can be followed from Week to Today.
 
 **Aspiration**
 - **Name** (required): "Be fit".
@@ -95,7 +95,7 @@ addGoal(goal: {
   weeklyTarget?: { amount: number; unit: string }   // building only
 }): Promise<Goal>
 // status 'active'. A weekly target, when given, is stored effective from this week's Monday, and
-// `amount` inBank tasks titled with the label are added to this week (a stand-in for the planner).
+// `amount` inBank tasks (at most 7) titled with the label are added to this week (a stand-in for the planner).
 
 addAspiration(aspiration: { name: string; why?: string }): Promise<Aspiration>
 // priority = last.

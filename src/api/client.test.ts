@@ -1253,6 +1253,13 @@ describe('addGoal', () => {
     expectConsistentStore()
   })
 
+  it('keeps a large target as typed, but adds at most seven tasks, one a day', async () => {
+    const goal = await addGoal({ ...BE_STRONG_2, weeklyTarget: { amount: 30, unit: 'pushups sets' } })
+
+    expect(store.weeklyTargets.find((target) => target.goalId === goal.id)?.amount).toBe(30)
+    expect(store.tasks.filter((task) => task.goalId === goal.id)).toHaveLength(7)
+  })
+
   it('adds no target or tasks without a weekly target', async () => {
     const before = store.tasks.length
     const goal = await addGoal(BE_STRONG_2)

@@ -318,6 +318,10 @@ export async function addTask(task: NewTask): Promise<Task> {
   return structuredClone(added)
 }
 
+// The planner's stand-in adds no more than one task a day, so a typo in a
+// weekly target can't flood the bank.
+const MOST_STAND_IN_TASKS = 7
+
 // Everything is checked before anything is stored. A weekly target's tasks
 // stand in for the planner, so the new goal can be followed into the week.
 export async function addGoal(goal: NewGoal): Promise<Goal> {
@@ -337,7 +341,7 @@ export async function addGoal(goal: NewGoal): Promise<Goal> {
   if (target) {
     const weekOf = thisWeek()
     store.weeklyTargets.push({ id: newId('wt'), goalId: added.id, ...target, effectiveFrom: weekOf })
-    for (let count = 0; count < target.amount; count++) {
+    for (let count = 0; count < Math.min(target.amount, MOST_STAND_IN_TASKS); count++) {
       store.tasks.push({ id: newId('task'), title: label, goalId: added.id, status: 'inBank', weekOf, rolloverCount: 0 })
     }
   }
