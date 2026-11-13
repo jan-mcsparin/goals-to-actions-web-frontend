@@ -15,6 +15,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
+  vi.restoreAllMocks()
 })
 
 // The Aspirations tab's cards, in order.
@@ -179,17 +180,16 @@ it('shows a calm message in place of a screen that fails to draw, and the tabs s
   const calmHome = store.aspirations.find((aspiration) => aspiration.name === 'Keep a calm home')!
   delete calmHome.priority
   localStorage.setItem('gta.screen', JSON.stringify({ screen: 'aspiration', aspirationId: calmHome.id }))
-  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+  vi.spyOn(console, 'error').mockImplementation(() => {})
   const user = userEvent.setup()
   render(<App />)
 
-  expect(await screen.findByText('Something went wrong showing this.')).toBeDefined()
+  expect(await screen.findByRole('heading', { level: 1, name: 'Something went wrong showing this.' })).toBeDefined()
   expect(currentTab()).toBe('Aspirations')
 
   await user.click(screen.getByRole('button', { name: 'Week' }))
   expect(await screen.findByRole('heading', { level: 1, name: 'This week' })).toBeDefined()
   expect(screen.queryByText('Something went wrong showing this.')).toBeNull()
-  consoleError.mockRestore()
 })
 
 it('lands on Aspirations, quietly, for a remembered aspiration that no longer exists', async () => {
