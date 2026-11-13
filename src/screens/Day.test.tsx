@@ -162,12 +162,22 @@ describe('Day', () => {
     expect(within(card).queryByText('Be strong · Be fit', { selector: '.task-subline' })).toBeNull()
     expect(screen.getByRole('region', { name: 'Keep life running' })).toBeDefined()
     expect(screen.queryByRole('region', { name: 'Move forward' })).toBeNull()
+    expect(within(card).getByRole('progressbar', { name: 'Be strong · Be fit done today' })).toBeDefined()
+    const upkeep = screen.getByRole('region', { name: 'Keep life running' })
+    expect(within(upkeep).getByRole('progressbar', { name: 'Keep life running done today' })).toBeDefined()
 
     unmount()
     render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
     expect((await screen.findByRole('button', { name: 'By goal' })).getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByRole('button', { name: 'List' }).getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('shows only the day bar in List', async () => {
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+
+    await screen.findByRole('region', { name: 'Move forward' })
+    expect(screen.getAllByRole('progressbar').map((bar) => bar.getAttribute('aria-label'))).toEqual(['Done today'])
   })
 
   it('pulls a task from the bank onto today', async () => {

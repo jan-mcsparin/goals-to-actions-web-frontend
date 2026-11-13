@@ -162,6 +162,28 @@ describe('groupByGoal', () => {
 
     expect(sections.map((section) => section.title)).toEqual(['Keep life running'])
   })
+
+  it('gives each card its own count for the day, ignoring skipped', () => {
+    const sections = groupByGoal(
+      plan([
+        task('Lift', { goalId: 'goal-strong', status: 'done' }),
+        task('Run', { goalId: 'goal-strong' }),
+        task('Stretch', { goalId: 'goal-strong', status: 'skipped' }),
+        task('Trash', { recurringItemId: 'rec-trash', status: 'done' }),
+      ]),
+    )
+
+    expect(sections.map((section) => [section.title, section.progress])).toEqual([
+      ['Keep life running', { done: 1, total: 1 }],
+      ['Be strong · Be fit', { done: 1, total: 2 }],
+    ])
+  })
+
+  it('leaves the count off List sections', () => {
+    const sections = groupForList(plan([task('Lift', { goalId: 'goal-strong' })]))
+
+    expect(sections[0].progress).toBeUndefined()
+  })
 })
 
 describe('progress', () => {

@@ -3,6 +3,7 @@ import { BankSheet } from '../components/BankSheet.tsx'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import { TaskRow } from '../components/TaskRow.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
+import '../components/progressBar.css'
 import type { Task } from '../api/types.ts'
 import type { Section } from '../domain/today.ts'
 import { useDay } from '../hooks/useDay.ts'
@@ -94,6 +95,7 @@ export function Day({ date, today, onBack }: DayProps) {
             <TaskGroup
               key={section.id}
               section={section}
+              doneLabel={isToday ? 'done today' : 'done this day'}
               onToggle={toggleDone}
               onSendToBank={sendToBank}
               onSwap={swapTask}
@@ -157,16 +159,26 @@ type Sheet = { kind: 'pull' } | { kind: 'swap'; taskId: string; taskTitle: strin
 
 type TaskGroupProps = {
   section: Section
+  // Ends the card bar's label: "Be strong · Be fit done today".
+  doneLabel: string
   onToggle: (taskId: string) => void
   onSendToBank: (taskId: string) => void
   onSwap?: (task: Task) => void
 }
 
-function TaskGroup({ section, onToggle, onSendToBank, onSwap }: TaskGroupProps) {
+function TaskGroup({ section, doneLabel, onToggle, onSendToBank, onSwap }: TaskGroupProps) {
   const headingId = `group-${section.id}`
   return (
     <section className="today-group" aria-labelledby={headingId}>
       <h2 id={headingId}>{section.title}</h2>
+      {section.progress && (
+        <progress
+          className="progress-bar today-group-progress"
+          value={section.progress.done}
+          max={section.progress.total}
+          aria-label={`${section.title} ${doneLabel}`}
+        />
+      )}
       <ul className="task-list">
         {section.rows.map((row) => (
           <TaskRow
