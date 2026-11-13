@@ -78,20 +78,20 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 **Scope:** M
 
 ## Checkpoint 1
-- [ ] Tests, lint and build pass
-- [ ] On the phone, 375 and 390 px, light and dark: the gear is easy to tap and doesn't crowd the title; the three intensity labels fit on one row at 375 px; the selected choice is clear in both themes; "Coming later." sits above the tab bar
-- [ ] Copy read against the spec's Never: nothing ranks the choices or hints at a change
+- [x] Tests, lint and build pass
+- [x] On the phone, 375 and 390 px, light and dark: the gear is easy to tap and doesn't crowd the title; the three intensity labels fit on one row at 375 px; the selected choice is clear in both themes; "Coming later." sits above the tab bar
+- [x] Copy read against the spec's Never: nothing ranks the choices or hints at a change
 
 ### Task 5: Docs
 
-**Description:** Parent repo (own branch and PR): the screens README's Settings line says what each row does (intensity saves on tap and stays; week start and notifications are shown, not set; export is coming later), and Flow 8 notes that the click-through keeps intensity until reload. Front end: spec 007 marked built, and `specs/README.md` moves 007 to Done.
+**Description:** Parent repo (own branch and PR): the screens README's Settings line says what each row does (intensity saves on tap and stays; week start and notifications are shown, not set; export is coming later). Flow 8 is left as it is: `docs/` doesn't describe the mock resetting on reload for anything, and spec 007 records it. Front end: spec 007 marked built, and `specs/README.md` moves 007 to Done.
 
 **Acceptance criteria:**
-- [ ] `docs/` describes Settings as built, with no row that does more than it does.
-- [ ] `specs/README.md` lists 007 under Done; only #8 remains.
+- [x] `docs/` describes Settings as built, with no row that does more than it does.
+- [x] `specs/README.md` lists 007 under Done; only #8 remains.
 
 **Verification:**
-- [ ] `npm test && npm run lint && npm run build`; read-through of the parent diff
+- [x] `npm test && npm run lint && npm run build`; read-through of the parent diff
 
 **Dependencies:** Checkpoint 1
 

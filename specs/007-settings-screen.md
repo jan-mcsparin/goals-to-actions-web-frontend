@@ -1,6 +1,6 @@
 # Spec: Settings screen (#7)
 
-Status: approved 2026-11-12. Issue: [#7](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/7). Module `settings-screen` in the [map](README.md). Depends on #4.
+Status: built 2026-11-12 in one PR, with the docs in a parent-repo PR; plan in [`../tasks/plan.md`](../tasks/plan.md). Issue: [#7](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/7). Module `settings-screen` in the [map](README.md). Depends on #4.
 
 ## Objective
 
@@ -83,9 +83,9 @@ The intensity control is a radio group (`role="radiogroup"`, labelled "Intensity
 
 ## Success criteria
 
-- [ ] Every acceptance criterion on #7 is met.
-- [ ] The gear on Aspirations opens Settings; back returns to Aspirations; the screen is remembered.
-- [ ] Intensity shows the saved choice, changes with one tap, and stays changed after leaving and returning.
-- [ ] Week starts, Notifications and Export read as described.
-- [ ] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
-- [ ] Works at 375 and 390 px, light and dark.
+- [x] Every acceptance criterion on #7 is met.
+- [x] The gear on Aspirations opens Settings; back returns to Aspirations; the screen is remembered.
+- [x] Intensity shows the saved choice, changes with one tap, and stays changed after leaving and returning.
+- [x] Week starts, Notifications and Export read as described.
+- [x] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
+- [x] Works at 375 and 390 px, light and dark.
