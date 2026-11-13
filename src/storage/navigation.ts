@@ -13,12 +13,16 @@ export type Screen =
   | { screen: 'aspiration'; aspirationId: string }
   | { screen: 'upkeep' }
   | { screen: 'goal'; goalId: string; from: GoalOrigin }
+  | { screen: 'settings' }
 
 export type Tab = 'today' | 'week' | 'aspirations'
 
 const KEY = 'gta.screen'
 const TODAY: Screen = { screen: 'today' }
 const LOCAL_DAY = /^\d{4}-\d{2}-\d{2}$/
+// The screens that need nothing but their name.
+const PLAIN_SCREENS = ['today', 'week', 'aspirations', 'upkeep', 'settings'] as const
+type PlainScreen = (typeof PLAIN_SCREENS)[number]
 
 export function readScreen(): Screen {
   try {
@@ -36,8 +40,8 @@ export function saveScreen(screen: Screen): void {
   }
 }
 
-// An opened day counts as Week; an opened aspiration, goal or Keep life
-// running counts as Aspirations.
+// An opened day counts as Week; an opened aspiration, goal, Keep life running
+// or Settings counts as Aspirations.
 export function tabOf(screen: Screen): Tab {
   if (screen.screen === 'today') return 'today'
   if (screen.screen === 'week' || screen.screen === 'day') return 'week'
@@ -47,7 +51,7 @@ export function tabOf(screen: Screen): Tab {
 function parseScreen(value: unknown): Screen | undefined {
   if (!isRecord(value)) return undefined
   const { screen, date, aspirationId, goalId } = value
-  if (screen === 'today' || screen === 'week' || screen === 'aspirations' || screen === 'upkeep') return { screen }
+  if (isPlainScreen(screen)) return { screen }
   if (screen === 'day' && typeof date === 'string' && LOCAL_DAY.test(date)) return { screen, date }
   if (screen === 'aspiration' && isId(aspirationId)) return { screen, aspirationId }
   if (screen === 'goal' && isId(goalId)) {
@@ -63,6 +67,10 @@ function parseGoalOrigin(value: unknown): GoalOrigin | undefined {
   if (screen === 'aspirations') return { screen }
   if (screen === 'aspiration' && isId(aspirationId)) return { screen, aspirationId }
   return undefined
+}
+
+function isPlainScreen(value: unknown): value is PlainScreen {
+  return PLAIN_SCREENS.includes(value as PlainScreen)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

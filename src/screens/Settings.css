@@ -1,0 +1,100 @@
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.settings-rows {
+  margin: 0;
+}
+
+/* Label left, value right; a hairline between rows. */
+.settings-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 2.75rem;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-row dt {
+  font-weight: 600;
+}
+
+.settings-row dd {
+  margin: 0;
+  color: var(--muted);
+}
+
+.settings-intensity h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* Styled like the List / By goal toggle, in three columns. The radio itself is
+   hidden inside its label, which is the target; anchored there, so iOS scrolls
+   to the right place when it takes focus. */
+.intensity-choice {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 0.125rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.intensity-choice label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 2.75rem;
+  padding: 0 0.25rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.intensity-choice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intensity-choice label:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+  color: var(--text);
+  font-weight: 600;
+}
+
+.intensity-choice label:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.settings-note {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+}
+
+.settings-export {
+  width: 100%;
+  border-width: 0 0 1px;
+  border-style: solid;
+  border-color: var(--line);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+}
+
+.settings-export:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}

@@ -1,6 +1,6 @@
 # Spec: Settings screen (#7)
 
-Status: draft 2026-11-10, awaiting approval. Issue: [#7](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/7). Module `settings-screen` in the [map](README.md). Depends on #4.
+Status: built 2026-11-12 in #27, with the docs in [goals-to-actions#12](https://github.com/jan-mcsparin/goals-to-actions/pull/12); plan in [`../tasks/plan.md`](../tasks/plan.md). Issue: [#7](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/7). Module `settings-screen` in the [map](README.md). Depends on #4.
 
 ## Objective
 
@@ -10,7 +10,7 @@ References: [Flow 8](../../docs/flows.md#flow-8-set-intensity), [product rules: 
 
 ### What the person sees
 
-**Getting there:** a gear button in the Aspirations header, top right, labelled "Settings" for screen readers. Settings counts as Aspirations in the tab bar, and "‹ Aspirations" goes back. The open screen is remembered like the others.
+**Getting there:** a gear button in the Aspirations header, top right, labelled "Settings" for screen readers. Settings counts as Aspirations in the tab bar, and "‹ Aspirations" always goes back to the tab (the gear is only there). The open screen is remembered like the others.
 
 **The screen**
 
@@ -18,18 +18,21 @@ References: [Flow 8](../../docs/flows.md#flow-8-set-intensity), [product rules: 
 - **Intensity:** three choices in a row: Easing off, Normal, Going hard. One is always selected; Normal to start. Under it: "Sets how full days are and how much is free."
   - Tapping one saves it at once. There's no Save button and no confirmation.
   - It stays until changed. Nothing resets it, and nothing suggests changing it.
+  - A failed save puts back the earlier choice with "Couldn't save that. Try again."
 - **Week starts:** Monday. Shown, not editable.
 - **Notifications:** Off. Shown, not editable. The app asks for no permission.
-- **Export my data:** a row that, when tapped, shows "Coming later."
+- **Export my data:** a row that, when tapped, shows "Coming later." as the screen's message above the tab bar, which clears itself like any other.
 
-In the click-through nothing reads the intensity yet; the planner will, from its next draft.
+Week starts and Notifications show at once; intensity and Export show once settings have loaded. If they can't load, "Couldn't load settings. Try again in a moment." stays until tapped, with the header and those two rows still there.
+
+In the click-through nothing reads the intensity yet; the planner will, from its next draft. Like every other mock change, a new intensity lasts until the page reloads; the API will keep it.
 
 ## Scope
 
 **In:**
 - `api/`: `getSettings`, `setIntensity`.
 - `domain/settings.ts`: the three intensities in order with their labels.
-- `hooks/useSettings.ts`: load, optimistic change, rollback with a message on failure. The message uses the shared save/load message from [#19](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/19) if it exists by then.
+- `hooks/useSettings.ts`: load (through `useLoaded`), optimistic change, rollback with a message on failure, the newest change winning. Messages use the shared screen message from [#19](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/19), built in PR #23.
 - `screens/Settings.tsx`; the gear in `screens/Aspirations.tsx`; `settings` in `storage/navigation.ts`, `useNavigation` and `App.tsx`.
 - Docs: screens README (what each Settings row does; the gear is already there).
 
@@ -62,7 +65,7 @@ export const INTENSITIES: { value: Intensity; label: string }[] = [
 ]
 ```
 
-The intensity control is a radio group (`role="radiogroup"`, arrow keys move the choice), styled like the List / By goal toggle.
+The intensity control is a radio group (`role="radiogroup"`, labelled "Intensity") of three native radio inputs, so arrow keys move the choice with no key handling of our own. Each move saves. It's styled like the List / By goal toggle, in three columns.
 
 ## Testing strategy
 
@@ -80,13 +83,9 @@ The intensity control is a radio group (`role="radiogroup"`, arrow keys move the
 
 ## Success criteria
 
-- [ ] Every acceptance criterion on #7 is met.
-- [ ] The gear on Aspirations opens Settings; back returns to Aspirations; the screen is remembered.
-- [ ] Intensity shows the saved choice, changes with one tap, and stays changed after leaving and returning.
-- [ ] Week starts, Notifications and Export read as described.
-- [ ] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
-- [ ] Works at 375 and 390 px, light and dark.
-
-## Open questions
-
-1. **Intensity resets on reload** in the click-through, like every other mock change. If you'd like it to stick before the API exists, it could be kept in `localStorage`.
+- [x] Every acceptance criterion on #7 is met.
+- [x] The gear on Aspirations opens Settings; back returns to Aspirations; the screen is remembered.
+- [x] Intensity shows the saved choice, changes with one tap, and stays changed after leaving and returning.
+- [x] Week starts, Notifications and Export read as described.
+- [x] Tests above exist and pass; `npm test`, `npm run lint`, `npm run build` pass.
+- [x] Works at 375 and 390 px, light and dark.

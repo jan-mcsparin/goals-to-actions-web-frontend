@@ -26,8 +26,16 @@ function renderTab() {
   const onOpenAspiration = vi.fn()
   const onOpenGoal = vi.fn()
   const onOpenUpkeep = vi.fn()
-  render(<Aspirations onOpenAspiration={onOpenAspiration} onOpenGoal={onOpenGoal} onOpenUpkeep={onOpenUpkeep} />)
-  return { onOpenAspiration, onOpenGoal, onOpenUpkeep }
+  const onOpenSettings = vi.fn()
+  render(
+    <Aspirations
+      onOpenAspiration={onOpenAspiration}
+      onOpenGoal={onOpenGoal}
+      onOpenUpkeep={onOpenUpkeep}
+      onOpenSettings={onOpenSettings}
+    />,
+  )
+  return { onOpenAspiration, onOpenGoal, onOpenUpkeep, onOpenSettings }
 }
 
 const NOTHING: AspirationsOverview = {
@@ -234,5 +242,18 @@ describe('Aspirations', () => {
       expect(screen.queryByText(/In order of priority/)).toBeNull()
       expect(screen.queryByText(/^Retired/)).toBeNull()
     })
+  })
+})
+
+describe('the gear', () => {
+  it('sits in the header and opens Settings', async () => {
+    const user = userEvent.setup()
+    const { onOpenSettings } = renderTab()
+
+    const top = screen.getByRole('heading', { level: 1, name: 'Aspirations' }).closest('.screen-top') as HTMLElement
+    const gear = within(top).getByRole('button', { name: 'Settings' })
+    await user.click(gear)
+
+    expect(onOpenSettings).toHaveBeenCalledOnce()
   })
 })

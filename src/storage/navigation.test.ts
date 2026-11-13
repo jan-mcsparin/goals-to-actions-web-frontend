@@ -34,6 +34,7 @@ describe('current screen', () => {
     { screen: 'aspirations' },
     { screen: 'aspiration', aspirationId: 'asp-fit' },
     { screen: 'upkeep' },
+    { screen: 'settings' },
     { screen: 'goal', goalId: 'goal-strong', from: { screen: 'aspirations' } },
     { screen: 'goal', goalId: 'goal-strong', from: { screen: 'aspiration', aspirationId: 'asp-fit' } },
   ])('remembers $screen', (opened) => {

@@ -4,9 +4,34 @@
   gap: 1rem;
 }
 
+.aspirations-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .aspirations-header h1 {
   margin: 0;
   font-size: 1.25rem;
+}
+
+/* A 44 px target, pulled right so the icon lines up with the cards' edge. */
+.settings-gear {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: -0.625rem -0.6875rem -0.625rem 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.settings-gear:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .aspirations-note {

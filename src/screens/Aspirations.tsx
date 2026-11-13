@@ -9,12 +9,13 @@ type AspirationsProps = {
   onOpenAspiration: (aspirationId: string) => void
   onOpenGoal: (goalId: string) => void
   onOpenUpkeep: () => void
+  onOpenSettings: () => void
 }
 
 const EMPTY = 'Nothing here yet. Start with one sentence: a goal, or who you want to be.'
 const PRIORITY_HINT = 'In order of priority. The first comes first when goals compete for time. Add one with +.'
 
-export function Aspirations({ onOpenAspiration, onOpenGoal, onOpenUpkeep }: AspirationsProps) {
+export function Aspirations({ onOpenAspiration, onOpenGoal, onOpenUpkeep, onOpenSettings }: AspirationsProps) {
   const { view, message } = useAspirations()
   // With nothing loaded, the message is all there is, so it stays.
   const shownMessage = useFleetingMessage(message, { sticky: !view })
@@ -23,6 +24,9 @@ export function Aspirations({ onOpenAspiration, onOpenGoal, onOpenUpkeep }: Aspi
     <main className="aspirations" aria-busy={!view && !message}>
       <header className="screen-top aspirations-header">
         <h1>Aspirations</h1>
+        <button type="button" className="settings-gear" aria-label="Settings" onClick={onOpenSettings}>
+          <GearIcon />
+        </button>
       </header>
 
       {view?.cards.map((card) => (
@@ -146,5 +150,21 @@ function GoalRows({ rows, onOpenGoal }: { rows: GoalRow[]; onOpenGoal: (goalId: 
         </li>
       ))}
     </ul>
+  )
+}
+
+// Drawn here rather than as ⚙, which iOS shows as a colour emoji.
+function GearIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+        d="M10.3 2.8h3.4l.5 2.6 1.6.9 2.5-.9 1.7 2.9-2 1.7v1.9l2 1.7-1.7 2.9-2.5-.9-1.6.9-.5 2.6h-3.4l-.5-2.6-1.6-.9-2.5.9-1.7-2.9 2-1.7v-1.9l-2-1.7 1.7-2.9 2.5.9 1.6-.9z"
+      />
+      <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.75" />
+    </svg>
   )
 }
