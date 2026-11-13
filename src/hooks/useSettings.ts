@@ -13,6 +13,8 @@ const SAVE_FAILED = "Couldn't save that. Try again."
 const EXPORT_LATER = 'Coming later.'
 
 export type UseSettings = {
+  // Intensity and Export wait for this; the fixed rows don't.
+  loaded: boolean
   intensity?: Intensity
   message?: string
   chooseIntensity: (intensity: Intensity) => void
@@ -44,5 +46,5 @@ export function useSettings(): UseSettings {
     queueMicrotask(() => setMessage(EXPORT_LATER))
   }
 
-  return { intensity: settings?.intensity, message, chooseIntensity, exportData }
+  return { loaded: settings !== undefined, intensity: settings?.intensity, message, chooseIntensity, exportData }
 }

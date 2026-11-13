@@ -24,7 +24,7 @@ afterEach(() => {
 
 async function loaded() {
   const hook = renderHook(() => useSettings())
-  await waitFor(() => expect(hook.result.current.intensity).toBeDefined())
+  await waitFor(() => expect(hook.result.current.loaded).toBe(true))
   return hook
 }
 
@@ -34,6 +34,13 @@ describe('useSettings', () => {
 
     expect(result.current.intensity).toBe('normal')
     expect(result.current.message).toBeUndefined()
+  })
+
+  it('is not loaded until settings arrive', async () => {
+    const { result } = renderHook(() => useSettings())
+
+    expect(result.current.loaded).toBe(false)
+    await waitFor(() => expect(result.current.loaded).toBe(true))
   })
 
   it('shows a new intensity at once and saves it', async () => {
@@ -84,6 +91,7 @@ describe('useSettings', () => {
     const { result } = renderHook(() => useSettings())
 
     await waitFor(() => expect(result.current.message).toBe("Couldn't load settings. Try again in a moment."))
+    expect(result.current.loaded).toBe(false)
     expect(result.current.intensity).toBeUndefined()
   })
 

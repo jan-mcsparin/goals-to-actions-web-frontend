@@ -12,18 +12,18 @@ type SettingsProps = {
 }
 
 export function Settings({ onBack }: SettingsProps) {
-  const { intensity, chooseIntensity, exportData, message } = useSettings()
+  const { loaded, intensity, chooseIntensity, exportData, message } = useSettings()
   // With nothing loaded, the message stays.
-  const shownMessage = useFleetingMessage(message, { sticky: !intensity })
+  const shownMessage = useFleetingMessage(message, { sticky: !loaded })
 
   return (
-    <main className="settings" aria-busy={!intensity && !message}>
+    <main className="settings" aria-busy={!loaded && !message}>
       <header className="screen-top">
         <BackLink to="Aspirations" onBack={onBack} />
         <h1 className="screen-title">Settings</h1>
       </header>
 
-      {intensity && (
+      {loaded && (
         <section className="settings-intensity" aria-labelledby="intensity-heading">
           <h2 id="intensity-heading">Intensity</h2>
           {/* Native radios: arrow keys move the choice, and each move saves. */}
@@ -63,7 +63,7 @@ export function Settings({ onBack }: SettingsProps) {
         </div>
       </dl>
 
-      {intensity && (
+      {loaded && (
         <button type="button" className="settings-row settings-export" onClick={exportData}>
           Export my data
         </button>
