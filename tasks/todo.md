@@ -100,6 +100,6 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 **Scope:** S
 
 ## Checkpoint 2
-- [ ] Tests, lint and build pass
-- [ ] Every success criterion in spec 007 and every acceptance criterion on #7 met
-- [ ] PR opened, closing #7, with the parent-repo docs PR linked
+- [x] Tests, lint and build pass
+- [x] Every success criterion in spec 007 and every acceptance criterion on #7 met
+- [x] PR opened, closing #7, with the parent-repo docs PR linked

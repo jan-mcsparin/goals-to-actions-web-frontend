@@ -1,6 +1,6 @@
 # Spec: Settings screen (#7)
 
-Status: built 2026-11-12 in one PR, with the docs in a parent-repo PR; plan in [`../tasks/plan.md`](../tasks/plan.md). Issue: [#7](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/7). Module `settings-screen` in the [map](README.md). Depends on #4.
+Status: built 2026-11-12 in #27, with the docs in [goals-to-actions#12](https://github.com/jan-mcsparin/goals-to-actions/pull/12); plan in [`../tasks/plan.md`](../tasks/plan.md). Issue: [#7](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/7). Module `settings-screen` in the [map](README.md). Depends on #4.
 
 ## Objective
 
