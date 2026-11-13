@@ -24,7 +24,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, { failed: boole
     const reload = this.props.reload ?? (() => window.location.reload())
     return (
       <main className="screen-failed">
-        <p>Something went wrong showing this.</p>
+        <h1>Something went wrong showing this.</h1>
         <p className="screen-failed-hint">Try another tab, or reload.</p>
         <button type="button" onClick={reload}>
           Reload

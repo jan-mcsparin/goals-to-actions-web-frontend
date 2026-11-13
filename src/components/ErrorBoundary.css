@@ -11,6 +11,13 @@
   margin: 0;
 }
 
+/* The screen's heading, so it can be found like any other; body size, to stay calm. */
+.screen-failed h1 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
 .screen-failed-hint {
   color: var(--muted);
 }

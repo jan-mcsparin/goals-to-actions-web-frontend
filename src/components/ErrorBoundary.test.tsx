@@ -34,7 +34,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     )
 
-    expect(screen.getByText('Something went wrong showing this.')).toBeDefined()
+    expect(screen.getByRole('heading', { level: 1, name: 'Something went wrong showing this.' })).toBeDefined()
     expect(screen.getByText('Try another tab, or reload.')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Reload' })).toBeDefined()
   })
