@@ -1,4 +1,4 @@
-/* A thin, rounded <progress>. Shared by Week and Aspirations. */
+/* A thin, rounded <progress>. Shared by Week, Aspirations and Today's goal cards. */
 .progress-bar {
   appearance: none;
   width: 100%;

@@ -11,10 +11,14 @@ export type TaskRow = {
   fixed?: true
 }
 
+export type Progress = { done: number; total: number }
+
 export type Section = {
   id: string
   title: string
   rows: TaskRow[]
+  // By goal only: how much of this card is done on the day.
+  progress?: Progress
 }
 
 const KEEP_LIFE_RUNNING = 'Keep life running'
@@ -28,9 +32,12 @@ export function dayHeading(day: string, today: string): string {
   return `${weekday} · ${calendarDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
 }
 
-export function progress(plan: DayPlan): { done: number; total: number } {
-  const onToday = visibleTasks(plan)
-  return { done: onToday.filter((task) => task.status === 'done').length, total: onToday.length }
+export function progress(plan: DayPlan): Progress {
+  return countDone(visibleTasks(plan))
+}
+
+function countDone(tasks: Task[]): Progress {
+  return { done: tasks.filter((task) => task.status === 'done').length, total: tasks.length }
 }
 
 export function timeLabel({ kind, time }: TimeOfDay): string {
@@ -73,7 +80,9 @@ export function groupByGoal(plan: DayPlan): Section[] {
     title: goalSubline(goal, plan.aspirations),
     rows: tasks.filter((task) => task.goalId === goal.id).map((task) => rowFor(task)),
   }))
-  return [maintenance, ...goalCards].filter((section) => section.rows.length > 0)
+  return [maintenance, ...goalCards]
+    .filter((section) => section.rows.length > 0)
+    .map((section) => ({ ...section, progress: countDone(section.rows.map((row) => row.task)) }))
 }
 
 export function bankRows(bank: Bank): TaskRow[] {
