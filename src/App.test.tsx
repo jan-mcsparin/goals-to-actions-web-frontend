@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resumeGoal, retireAspiration } from './api/client.ts'
-import { resetStore } from './api/mockStore.ts'
+import { resetStore, store } from './api/mockStore.ts'
 import App from './App.tsx'
 
 // Wednesday 11 Nov 2026, 9 a.m. local time.
@@ -15,6 +15,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
+  vi.restoreAllMocks()
 })
 
 // The Aspirations tab's cards, in order.
@@ -172,6 +173,23 @@ it('restores an opened aspiration and an opened goal after a remount', async () 
   render(<App />)
   expect(await screen.findByRole('heading', { level: 1, name: 'Clear out the garage' })).toBeDefined()
   expect(currentTab()).toBe('Aspirations')
+})
+
+it('shows a calm message in place of a screen that fails to draw, and the tabs still work', async () => {
+  // An active aspiration with no priority can't be drawn (domain/aspiration.ts).
+  const calmHome = store.aspirations.find((aspiration) => aspiration.name === 'Keep a calm home')!
+  delete calmHome.priority
+  localStorage.setItem('gta.screen', JSON.stringify({ screen: 'aspiration', aspirationId: calmHome.id }))
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+  const user = userEvent.setup()
+  render(<App />)
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Something went wrong showing this.' })).toBeDefined()
+  expect(currentTab()).toBe('Aspirations')
+
+  await user.click(screen.getByRole('button', { name: 'Week' }))
+  expect(await screen.findByRole('heading', { level: 1, name: 'This week' })).toBeDefined()
+  expect(screen.queryByText('Something went wrong showing this.')).toBeNull()
 })
 
 it('lands on Aspirations, quietly, for a remembered aspiration that no longer exists', async () => {

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { toLocalDay } from './api/dates.ts'
 import { AddSheet } from './components/AddSheet.tsx'
+import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import { ScreenMessage } from './components/ScreenMessage.tsx'
 import { TabBar } from './components/TabBar.tsx'
 import { addOriginFor, type AddOrigin } from './hooks/useAdd.ts'
@@ -46,48 +47,52 @@ function App() {
   return (
     <DataRevision value={revision}>
       <div className="app">
-        {current.screen === 'today' && <Day key="today" date={today} today={today} />}
-        {current.screen === 'week' && (
-          <Week today={today} onOpenDay={(date) => goTo({ screen: 'day', date })} />
-        )}
-        {current.screen === 'day' && (
-          <Day key={current.date} date={current.date} today={today} onBack={() => goTo({ screen: 'week' })} />
-        )}
-        {current.screen === 'aspirations' && (
-          <Aspirations
-            onOpenAspiration={(aspirationId) => goTo({ screen: 'aspiration', aspirationId })}
-            onOpenGoal={(goalId) => goTo({ screen: 'goal', goalId, from: { screen: 'aspirations' } })}
-            onOpenUpkeep={() => goTo({ screen: 'upkeep' })}
-            onOpenSettings={() => goTo({ screen: 'settings' })}
-          />
-        )}
-        {current.screen === 'settings' && <Settings onBack={backToAspirations} />}
-        {current.screen === 'upkeep' && <Upkeep today={today} onBack={() => goTo({ screen: 'aspirations' })} />}
-        {current.screen === 'aspiration' && (
-          <Aspiration
-            key={current.aspirationId}
-            aspirationId={current.aspirationId}
-            today={today}
-            onBack={backToAspirations}
-            onRetired={backToAspirations}
-            onAddGoal={() => openAdd({ tab: 'goal', aspirationId: current.aspirationId })}
-            onAddRecurring={() => openAdd({ tab: 'recurring', aspirationId: current.aspirationId })}
-            onOpenGoal={(goalId) =>
-              goTo({ screen: 'goal', goalId, from: { screen: 'aspiration', aspirationId: current.aspirationId } })
-            }
-          />
-        )}
-        {current.screen === 'goal' && (
-          <GoalDetail
-            key={current.goalId}
-            goalId={current.goalId}
-            from={current.from}
-            today={today}
-            onBack={() => goTo(current.from)}
-            onOpenAspiration={(aspirationId) => goTo({ screen: 'aspiration', aspirationId })}
-            onNotFound={backToAspirations}
-          />
-        )}
+        {/* Only the open screen: a screen that fails to draw leaves the tab bar
+            and + working, and any other screen starts fresh. */}
+        <ErrorBoundary key={JSON.stringify(current)}>
+          {current.screen === 'today' && <Day key="today" date={today} today={today} />}
+          {current.screen === 'week' && (
+            <Week today={today} onOpenDay={(date) => goTo({ screen: 'day', date })} />
+          )}
+          {current.screen === 'day' && (
+            <Day key={current.date} date={current.date} today={today} onBack={() => goTo({ screen: 'week' })} />
+          )}
+          {current.screen === 'aspirations' && (
+            <Aspirations
+              onOpenAspiration={(aspirationId) => goTo({ screen: 'aspiration', aspirationId })}
+              onOpenGoal={(goalId) => goTo({ screen: 'goal', goalId, from: { screen: 'aspirations' } })}
+              onOpenUpkeep={() => goTo({ screen: 'upkeep' })}
+              onOpenSettings={() => goTo({ screen: 'settings' })}
+            />
+          )}
+          {current.screen === 'settings' && <Settings onBack={backToAspirations} />}
+          {current.screen === 'upkeep' && <Upkeep today={today} onBack={() => goTo({ screen: 'aspirations' })} />}
+          {current.screen === 'aspiration' && (
+            <Aspiration
+              key={current.aspirationId}
+              aspirationId={current.aspirationId}
+              today={today}
+              onBack={backToAspirations}
+              onRetired={backToAspirations}
+              onAddGoal={() => openAdd({ tab: 'goal', aspirationId: current.aspirationId })}
+              onAddRecurring={() => openAdd({ tab: 'recurring', aspirationId: current.aspirationId })}
+              onOpenGoal={(goalId) =>
+                goTo({ screen: 'goal', goalId, from: { screen: 'aspiration', aspirationId: current.aspirationId } })
+              }
+            />
+          )}
+          {current.screen === 'goal' && (
+            <GoalDetail
+              key={current.goalId}
+              goalId={current.goalId}
+              from={current.from}
+              today={today}
+              onBack={() => goTo(current.from)}
+              onOpenAspiration={(aspirationId) => goTo({ screen: 'aspiration', aspirationId })}
+              onNotFound={backToAspirations}
+            />
+          )}
+        </ErrorBoundary>
         <ScreenMessage message={shownConfirmation.shown} onDismiss={shownConfirmation.dismiss} />
         <TabBar current={tabOf(current)} onSelect={(tab) => goTo({ screen: tab })} onAdd={() => openAdd()} />
         <AddSheet
