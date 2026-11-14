@@ -27,6 +27,19 @@ The order follows the model: tab → aspiration → goal. `settings-screen` only
 
 `aspirations-tab` was `goals-screen` until the app became aspirations first (Nov 10); nothing had been built under the old name.
 
+## Switching to the API (drafted 2026-11-13)
+
+The API is built in twelve slices ([its map](../../api/specs/README.md)). After every slice that adds endpoints, the types here are regenerated and the mock is made to compile against them; the app keeps running on mock data. Screens switch to the real API at four points. Reshaping the mock to the new data model is #30 to #39.
+
+| Module id | Spec | Issue | Responsibility | Comes after API slice |
+|---|---|---|---|---|
+| `api-client-foundation` | [040](040-api-client-foundation.md) | #40 | Generated types, the mock/real switch, the Aspirations tab on real data | `aspirations` |
+| `setup-screens-on-api` | written then | #41 | Aspirations, aspiration and goal screens | `milestones-check-ins` |
+| `plan-screens-on-api` | written then | #42 | Today, Week and the bank; planning rules leave `domain/` (ADR-008) | `planner` |
+| `api-by-default` | written then | #43 | Settings, the stored plan, the offline queue; real becomes the default | `settings-sync` |
+
+`install-instant-open` (#8) still goes last, after #43.
+
 ## Decisions shared by these specs
 
 Settled with Jan on 2026-11-10:
