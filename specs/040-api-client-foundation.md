@@ -51,7 +51,7 @@ With the switch on real, screens that aren't wired yet still show mock data, and
 ## Boundaries
 
 - **Always:** screens and hooks keep calling the same `api/` functions; mock is the default; run test, lint and build before each commit.
-- **Ask first:** any new dependency (see Open questions); a change to an `api/` function's signature; a change the API should make instead of the front end adapting.
+- **Ask first:** any new dependency beyond `openapi-typescript`; a change to an `api/` function's signature; a change the API should make instead of the front end adapting.
 - **Never:** hand-write or edit an API type; call `fetch` from a screen or hook; map field names by hand (if a name differs, the contract is wrong).
 
 ## Success criteria
@@ -62,10 +62,13 @@ With the switch on real, screens that aren't wired yet still show mock data, and
 - [ ] Each of the API's assumed decisions 6 to 11 is marked confirmed, or changed, in the API map.
 - [ ] `npm test`, `npm run lint`, `npm run build` pass.
 
+## Settled with Jan, 2026-11-13
+
+1. **The generator is `openapi-typescript`,** a dev dependency, types only. The request helper is written by hand; no `openapi-fetch`.
+2. **The schema is a file the API repo commits** (`openapi.json`, added by the API's `aspirations` slice). Types are regenerated from it without starting the API.
+3. **A proxy in the Vite dev server** (`/api` to the local API) reaches the API in development, from the laptop and the phone. CORS is decided with hosting.
+
 ## Open questions
 
-1. **The generator.** `openapi-typescript` (types only, a dev dependency) is the usual choice, with a small hand-written request helper. Its companion `openapi-fetch` would add a typed client as a runtime dependency. I'd take the first alone. Both need your yes.
-2. **Where the schema comes from.** A file the API repo writes and commits (`openapi.json`), or the running API's `/openapi.json`. A committed file means types can be regenerated without starting Postgres, and its diff shows every contract change in review. That is a small addition to the API's slice 2.
-3. **Reaching the API in development.** A proxy in the Vite dev server (`/api` to the local API) needs no change to the API and works from the phone. The alternative is CORS on the API. I'd proxy now and decide CORS with hosting.
-4. **The tab's read is bigger than the API's.** `getAspirations` returns counts and goals alongside the aspirations; the API's `listAspirations` returns aspirations alone until `goals-targets`. In real mode the tab shows each aspiration with no goals until #41. Is that fine for the proof?
-5. **The switch.** A build-time setting (`VITE_API=real`), so nothing about it ships in the app. Or something tappable in Settings for trying both on the phone. I'd use the build-time setting.
+1. **The tab's read is bigger than the API's.** `getAspirations` returns counts and goals alongside the aspirations; the API's `listAspirations` returns aspirations alone until `goals-targets`. In real mode the tab shows each aspiration with no goals until #41. Is that fine for the proof?
+2. **The switch.** A build-time setting (`VITE_API=real`), so nothing about it ships in the app. Or something tappable in Settings for trying both on the phone. I'd use the build-time setting.
