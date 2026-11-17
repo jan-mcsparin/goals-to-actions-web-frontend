@@ -66,7 +66,7 @@ With the switch on real, screens that aren't wired yet still show mock data, and
 
 1. **The generator is `openapi-typescript`,** a dev dependency, types only. The request helper is written by hand; no `openapi-fetch`.
 2. **The schema is a file the API repo commits** (`openapi.json`, added by the API's `aspirations` slice). Types are regenerated from it without starting the API.
-3. **A proxy in the Vite dev server** (`/api` to the local API) reaches the API in development, from the laptop and the phone. CORS is decided with hosting.
+3. **A proxy in the Vite dev server** (`/api` to the local API) reaches the API in development, from the laptop and the phone. It passes the path on as it is: the API serves its routes under `/api` (ADR-011, API issue #20), so a request looks the same here and through CloudFront. There is no CORS: hosted, the front end and the API share one origin.
 
 ## Open questions
 
