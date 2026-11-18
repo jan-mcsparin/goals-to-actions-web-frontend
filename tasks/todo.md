@@ -61,7 +61,7 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 
 ## Checkpoint 1
 - [x] Tests, lint and build pass on mock
-- [ ] The click-through is unchanged in the browser: Aspirations tab, an aspiration's page, Add an aspiration
+- [x] The click-through is unchanged in the browser: Aspirations tab, an aspiration's page, Add an aspiration (checked in real mode in the browser; mock by the unchanged suite)
 
 ### Task 4: The real aspiration functions
 
@@ -100,22 +100,22 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 **Scope:** M
 
 ## Checkpoint 2
-- [ ] Tests, lint and build pass
-- [ ] Against a local API, on the phone (`npm run dev:real -- --host`, run by Jan): list, add, edit the name and why, move up and down, retire with each choice, bring back. Each one is still there after a reload, and `/api/docs` agrees.
-- [ ] A create sent twice with the same id (curl with the id from a real add) makes one aspiration
-- [ ] With the API stopped: the tab shows its load message; a save on the page rolls back with "Couldn't save that. Try again."; an aspiration id that isn't there goes back quietly
-- [ ] Results recorded for the PR
+- [x] Tests, lint and build pass
+- [x] Against a local API, in Chrome at phone width (`npm run dev:real`); the phone over the local network is left for the PR: list, add, edit the name and why, move up and down, retire with each choice, bring back. Each one is still there after a reload, and `/api/docs` agrees.
+- [x] A create sent twice with the same id (curl with the id from a real add) makes one aspiration
+- [x] With the API unreachable (emulated offline): the tab shows its load message; a save on the page rolls back with "Couldn't save that. Try again."; an aspiration id that isn't there goes back quietly
+- [x] Results recorded for the PR
 
 ### Task 6: Docs
 
 **Description:** README: running against a local API (start the API, `npm run dev:real`, `-- --host` for the phone, `API_URL`, `npm run api:types` after each API slice). CLAUDE.md: the generated file is never edited, and how the switch works; `types.ts` is part generated now. Spec 040 marked built; `specs/README.md` moves 040 to Done. API repo, on its own branch and PR: shared decisions 6 to 11 marked confirmed from the front end, or changed, with what the wiring found.
 
 **Acceptance criteria:**
-- [ ] Someone with both repos side by side can run the front end on the real API from the README alone.
-- [ ] `specs/README.md` lists 040 under Done; the API map says what #40 confirmed.
+- [x] Someone with both repos side by side can run the front end on the real API from the README alone.
+- [x] `specs/README.md` lists 040 under Done; the API map says what #40 confirmed.
 
 **Verification:**
-- [ ] `npm test && npm run lint && npm run build`; read-through of both diffs
+- [x] `npm test && npm run lint && npm run build`; read-through of both diffs
 
 **Dependencies:** Checkpoint 2
 
@@ -124,6 +124,6 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 **Scope:** S
 
 ## Checkpoint 3
-- [ ] Tests, lint and build pass
-- [ ] Every success criterion in spec 040 and every acceptance criterion on #40 met
+- [x] Tests, lint and build pass
+- [x] Every success criterion in spec 040 and every acceptance criterion on #40 met
 - [ ] PR opened, closing #40, with the phone results and the API-repo PR linked

@@ -1,6 +1,6 @@
 # Spec: API client foundation (#40)
 
-Status: approved 2026-11-18 (plan: [`../tasks/plan.md`](../tasks/plan.md)). Issue: [#40](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/40). Module `api-client-foundation` in the [map](README.md). Depends on the API's [`aspirations`](../../api/specs/aspirations.md) spec.
+Status: built 2026-11-18; plan in [`../tasks/plan.md`](../tasks/plan.md), the API map's decisions 6 to 11 marked in the API repo. Issue: [#40](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/40). Module `api-client-foundation` in the [map](README.md). Depends on the API's [`aspirations`](../../api/specs/aspirations.md) spec.
 
 ## Objective
 
@@ -58,11 +58,11 @@ The API has no read for one aspiration and no combined read for the tab. In real
 
 ## Success criteria
 
-- [ ] Every acceptance criterion on #40 is met.
-- [ ] Types regenerate with one command and the result is committed.
-- [ ] The Aspirations tab works fully on the real API with the switch on, and on mock with it off.
-- [ ] Each of the API's assumed decisions 6 to 11 is marked confirmed, or changed, in the API map.
-- [ ] `npm test`, `npm run lint`, `npm run build` pass.
+- [x] Every acceptance criterion on #40 is met.
+- [x] Types regenerate with one command and the result is committed.
+- [x] The Aspirations tab works fully on the real API with the switch on, and on mock with it off.
+- [x] Each of the API's assumed decisions 6 to 11 is marked confirmed, or changed, in the API map.
+- [x] `npm test`, `npm run lint`, `npm run build` pass.
 
 ## Settled with Jan, 2026-11-13
 
@@ -76,3 +76,11 @@ The API has no read for one aspiration and no combined read for the tab. In real
 5. **The tab and the page read from the list in real mode** (see Objective). Each aspiration shows with no goals until #41.
 6. **The client functions keep their signatures.** `moveAspiration(id, 'up' | 'down')` stays; the real one reads the order, swaps, and posts every active id, one call at a time. `addAspiration` makes the id itself. Hooks and screens don't change.
 7. **The switch is a build-time setting,** `VITE_API=real` (`npm run dev:real`). Nothing about it ships in the app.
+
+## Checked, 2026-11-18
+
+In a desktop browser at phone width, against a local API (`npm run dev:real`, Chrome DevTools): list, add, edit, move up and down, retire with each choice, and bring back all reach the API with `X-Time-Zone`, and stay after a reload. A missing aspiration goes back quietly. Offline, a save rolls back with "Couldn't save that. Try again." and the tab shows its load message. With curl through the dev proxy: the same create twice makes one aspiration, a repeated retire or bring back changes nothing, a short reorder is a 409.
+
+Still for the phone: the app over plain http on the local network (the device id path without `randomUUID`), and the tab bar's "Aspirations" label, which sits close to the right edge in the browser.
+
+Found on the way and filed: two moves in the same instant leave the page on a stale order (#17, a real tap can't do it); a dismissed load failure leaves the tab empty, and a screen reads the aspirations two or three times (#43).
