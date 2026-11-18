@@ -11,11 +11,11 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 **Description:** Close both open questions (plan decisions 2 and 4) and add plan decisions 1 and 3 to the spec. Correct the id line in the spec: `getRandomValues`, not `randomUUID`. Mark the spec approved.
 
 **Acceptance criteria:**
-- [ ] No open questions left; each decision is in the section it changes.
-- [ ] Status reads approved, dated 2026-11-18.
+- [x] No open questions left; each decision is in the section it changes.
+- [x] Status reads approved, dated 2026-11-18.
 
 **Verification:**
-- [ ] Read through against `plan.md`; `npm test && npm run lint && npm run build` still pass
+- [x] Read through against `plan.md`; `npm test && npm run lint && npm run build` still pass
 
 **Dependencies:** None
 
@@ -28,12 +28,12 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 **Description:** Add `openapi-typescript` (pinned) and `npm run api:types`, which writes `src/api/openapi.ts` from `../api/openapi.json`. Exclude it from oxlint. `types.ts` takes `Aspiration` and `NewAspiration` from it. The mock data, the mock client, `domain/` and `useAspiration` follow: `priority` becomes `position`, `retiredAt` becomes `retiredOn` (a day), and empty fields are `null`. Tests change in fixtures and field names only.
 
 **Acceptance criteria:**
-- [ ] `npm run api:types` regenerates the file, and running it again changes nothing.
-- [ ] Changing a field of an aspiration in `mockData.ts` to the old name fails `npm run build`.
-- [ ] The full suite passes on mock. Any assertion that had to change, beyond a name or fixture, is listed in the commit message.
+- [x] `npm run api:types` regenerates the file, and running it again changes nothing.
+- [x] Changing a field of an aspiration in `mockData.ts` to the old name fails `npm run build`.
+- [x] The full suite passes on mock. Any assertion that had to change, beyond a name or fixture, is listed in the commit message.
 
 **Verification:**
-- [ ] `npm test && npm run lint && npm run build`; `git diff --stat` shows only the files named below
+- [x] `npm test && npm run lint && npm run build`; `git diff --stat` shows only the files named below
 
 **Dependencies:** Task 1
 
@@ -46,12 +46,12 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 **Description:** `src/api/ids.ts` has `newDeviceId()`, a v4 UUID made with `crypto.getRandomValues`. `src/api/errors.ts` gets `NotFoundError`, which `client.ts` re-exports. `src/api/request.ts` has `request(method, path, body?)` as in the plan. The mock's `addAspiration` uses `newDeviceId()`.
 
 **Acceptance criteria:**
-- [ ] `newDeviceId()` matches the v4 UUID pattern and works with `crypto.randomUUID` removed.
-- [ ] `request` sends `X-Time-Zone` and JSON to `/api/…`; a 404 throws `NotFoundError`; a 500, a 409 and a rejected `fetch` each throw an error that isn't `NotFoundError`; a camelCase body goes out and comes back unchanged.
-- [ ] A new mock aspiration has a UUID id; `useLoaded` and the existing tests still import `NotFoundError` from `client.ts`.
+- [x] `newDeviceId()` matches the v4 UUID pattern and works with `crypto.randomUUID` removed.
+- [x] `request` sends `X-Time-Zone` and JSON to `/api/…`; a 404 throws `NotFoundError`; a 500, a 409 and a rejected `fetch` each throw an error that isn't `NotFoundError`; a camelCase body goes out and comes back unchanged.
+- [x] A new mock aspiration has a UUID id; `useLoaded` and the existing tests still import `NotFoundError` from `client.ts`.
 
 **Verification:**
-- [ ] `npm test`: new `ids.test.ts` and `request.test.ts`; `client.test.ts`
+- [x] `npm test`: new `ids.test.ts` and `request.test.ts`; `client.test.ts`
 
 **Dependencies:** None (can go before or after Task 2)
 
@@ -60,7 +60,7 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 **Scope:** S
 
 ## Checkpoint 1
-- [ ] Tests, lint and build pass on mock
+- [x] Tests, lint and build pass on mock
 - [ ] The click-through is unchanged in the browser: Aspirations tab, an aspiration's page, Add an aspiration
 
 ### Task 4: The real aspiration functions
@@ -68,12 +68,12 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 **Description:** `src/api/realAspirations.ts` implements the seven functions over `request`, as in the plan: `getAspirations` and `getAspiration` from `listAspirations`; `addAspiration` as a PUT with a device id; `updateAspiration` sending both fields; `moveAspiration` chained (read, swap, post the order); `retireAspiration` with `{ itsWork }`; `bringBackAspiration`.
 
 **Acceptance criteria:**
-- [ ] Each function calls the right method and path with the right body, against a stubbed `fetch`, and returns the shape its mock twin returns.
-- [ ] `getAspiration` for an id not in the list throws `NotFoundError`; `moveAspiration` posts every active id with the two swapped, and two calls made together post orders built on each other.
-- [ ] `updateAspiration` without both fields throws before any request; a blank why goes out as `null`.
+- [x] Each function calls the right method and path with the right body, against a stubbed `fetch`, and returns the shape its mock twin returns.
+- [x] `getAspiration` for an id not in the list throws `NotFoundError`; `moveAspiration` posts every active id with the two swapped, and two calls made together post orders built on each other.
+- [x] `updateAspiration` without both fields throws before any request; a blank why goes out as `null`.
 
 **Verification:**
-- [ ] `npm test`: new `realAspirations.test.ts`
+- [x] `npm test`: new `realAspirations.test.ts`
 
 **Dependencies:** Tasks 2, 3
 
@@ -86,12 +86,12 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 **Description:** `src/api/mode.ts` reads `VITE_API`. The seven aspiration functions in `client.ts` hand off to the real ones when it's `real`. `vite.config.ts` proxies `/api` to `API_URL` (default `http://localhost:8000`). `package.json` gets `dev:real`. `vite-env.d.ts` types `VITE_API`.
 
 **Acceptance criteria:**
-- [ ] Without `VITE_API`, nothing calls `fetch` (the existing suite with `fetch` stubbed to fail).
-- [ ] With `VITE_API=real`, `getAspirations` reaches `fetch` at `/api/aspirations`, and `getDay` still answers from the mock.
-- [ ] `npm run dev:real` serves the app, and `/api/health` answers through the proxy while the API runs.
+- [x] Without `VITE_API`, nothing calls `fetch` (the existing suite with `fetch` stubbed to fail).
+- [x] With `VITE_API=real`, `getAspirations` reaches `fetch` at `/api/aspirations`, and `getDay` still answers from the mock.
+- [x] `/api/health` and `/api/aspirations` answer through the dev server's proxy while the API runs (checked 2026-11-18).
 
 **Verification:**
-- [ ] `npm test`: new `mode` test in `client.test.ts`; `curl localhost:5173/api/health` with the API running
+- [x] `npm test`: new `mode` test in `client.test.ts`; `curl localhost:5173/api/health` with the API running
 
 **Dependencies:** Task 4
 
