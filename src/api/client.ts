@@ -1,5 +1,6 @@
-// The functions screens and hooks call. They read the in-memory mock store for
-// now; later they call the real API and keep the same signatures.
+// The functions screens and hooks call. They read the in-memory mock store,
+// except that with the switch on real (mode.ts) the aspiration ones call the
+// API instead (realAspirations.ts), with the same signatures.
 import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
 import { taskWeek } from '../domain/add.ts'
 import { isWithinGoal, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
@@ -7,6 +8,8 @@ import { isIntensity } from '../domain/settings.ts'
 import { NotFoundError } from './errors.ts'
 import { newDeviceId } from './ids.ts'
 import { store } from './mockStore.ts'
+import { realApi } from './mode.ts'
+import * as real from './realAspirations.ts'
 import type {
   Aspiration,
   AspirationDetail,
@@ -64,6 +67,7 @@ export async function getWeek(): Promise<WeekPlan> {
 }
 
 export async function getAspirations(): Promise<AspirationsOverview> {
+  if (realApi) return real.getAspirations()
   const weekOf = thisWeek()
   return structuredClone({
     aspirations: store.aspirations,
@@ -76,6 +80,7 @@ export async function getAspirations(): Promise<AspirationsOverview> {
 }
 
 export async function getAspiration(aspirationId: string): Promise<AspirationDetail> {
+  if (realApi) return real.getAspiration(aspirationId)
   const aspiration = findAspiration(aspirationId)
   const weekOf = thisWeek()
   const goals = store.goals.filter((goal) => goal.aspirationId === aspirationId)
@@ -229,6 +234,7 @@ export async function updateAspiration(
   aspirationId: string,
   changes: { name?: string; why?: string },
 ): Promise<Aspiration> {
+  if (realApi) return real.updateAspiration(aspirationId, changes)
   const aspiration = findAspiration(aspirationId)
   const name = changes.name?.trim()
   if (name === '') throw new Error('An aspiration needs a name')
@@ -242,6 +248,7 @@ export async function updateAspiration(
 
 // Swaps priority with the active aspiration just above or below.
 export async function moveAspiration(aspirationId: string, direction: 'up' | 'down'): Promise<Aspiration[]> {
+  if (realApi) return real.moveAspiration(aspirationId, direction)
   const aspiration = findActiveAspiration(aspirationId)
   const order = activeAspirations()
   const index = order.indexOf(aspiration)
@@ -259,6 +266,7 @@ export async function moveAspiration(aspirationId: string, direction: 'up' | 'do
 // 'keep': its active and paused goals and its recurring items carry on with
 // no aspiration. Either way its reached and ended goals stay with it.
 export async function retireAspiration(aspirationId: string, itsWork: 'pause' | 'keep'): Promise<Aspiration> {
+  if (realApi) return real.retireAspiration(aspirationId, itsWork)
   const aspiration = findActiveAspiration(aspirationId)
   const goals = store.goals.filter((goal) => goal.aspirationId === aspirationId && isCurrentGoal(goal))
   const items = store.recurringItems.filter((item) => item.aspirationId === aspirationId)
@@ -275,6 +283,7 @@ export async function retireAspiration(aspirationId: string, itsWork: 'pause' | 
 
 // Active again, last in priority. Goals and recurring items it paused stay paused.
 export async function bringBackAspiration(aspirationId: string): Promise<Aspiration> {
+  if (realApi) return real.bringBackAspiration(aspirationId)
   const aspiration = findAspiration(aspirationId)
   if (aspiration.status !== 'retired') throw new Error(`${aspirationId} is not retired`)
 
@@ -363,6 +372,7 @@ export async function addGoal(goal: NewGoal): Promise<Goal> {
 // Last in priority; it can be moved up on its page. Its id is made here, on
 // the device, as the real API expects.
 export async function addAspiration(aspiration: NewAspiration): Promise<Aspiration> {
+  if (realApi) return real.addAspiration(aspiration)
   const name = aspiration.name.trim()
   if (!name) throw new Error('An aspiration needs a name')
 

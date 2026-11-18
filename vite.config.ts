@@ -15,6 +15,11 @@ function appNameInHtml(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    // The API serves its routes under /api, as it does hosted, so the path
+    // passes on unchanged (ADR-011). Same origin for the laptop and the phone.
+    proxy: { '/api': process.env.API_URL ?? 'http://localhost:8000' },
+  },
   plugins: [
     react(),
     appNameInHtml(),

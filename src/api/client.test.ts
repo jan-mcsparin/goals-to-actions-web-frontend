@@ -1418,3 +1418,39 @@ describe('setIntensity', () => {
     expect(store.settings).toEqual({ intensity: 'normal', intensitySetOn: '2026-10-01', weekStartsOn: 'monday' })
   })
 })
+
+describe('the mock or real switch', () => {
+  const fetchMock = vi.fn<typeof fetch>()
+
+  beforeEach(() => {
+    fetchMock.mockReset()
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ aspirations: [] }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
+    vi.resetModules()
+  })
+
+  it('keeps everything on the mock by default', async () => {
+    await getAspirations()
+    await getDay('2026-11-11')
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('sends the aspiration functions to the API with VITE_API=real, and leaves the rest on the mock', async () => {
+    vi.stubEnv('VITE_API', 'real')
+    vi.resetModules()
+    const client = await import('./client.ts')
+
+    expect(await client.getAspirations()).toMatchObject({ aspirations: [], goals: [] })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/aspirations')
+
+    await client.getDay('2026-11-11')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+})
