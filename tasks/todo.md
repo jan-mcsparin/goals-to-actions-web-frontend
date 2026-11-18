@@ -1,105 +1,129 @@
-# Tasks: Settings screen (#7)
+# Tasks: API client foundation (#40)
 
-Plan: [`plan.md`](plan.md). Spec: [`../specs/007-settings-screen.md`](../specs/007-settings-screen.md).
+Plan: [`plan.md`](plan.md). Spec: [`../specs/040-api-client-foundation.md`](../specs/040-api-client-foundation.md).
 
-Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run lint && npm run build`, then one commit. Test dates are fixed to Wednesday 11 Nov 2026. New test files call `resetStore()` in `beforeEach`.
+Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run lint && npm run build`, then one commit. Test dates are fixed to Wednesday 11 Nov 2026. New test files call `resetStore()` in `beforeEach`; files that stub `fetch` restore it in `afterEach`.
 
-# PR: `settings-screen` (closes #7)
+# PR: `api-client-foundation` (closes #40)
 
-### Task 1: Settle spec 007
+### Task 1: Settle spec 040
 
-**Description:** Close the open question (intensity resets on reload, plan decision 1). Add the architecture decisions that the spec doesn't already cover: native radios in the radiogroup, Export using the screen message, the load-failure wording, and that the constant rows show before the load. Mark it approved.
+**Description:** Close both open questions (plan decisions 2 and 4) and add plan decisions 1 and 3 to the spec. Correct the id line in the spec: `getRandomValues`, not `randomUUID`. Mark the spec approved.
 
 **Acceptance criteria:**
-- [x] No open questions left; each decision is in the section it changes.
-- [x] Status reads approved, dated 2026-11-12.
+- [ ] No open questions left; each decision is in the section it changes.
+- [ ] Status reads approved, dated 2026-11-18.
 
 **Verification:**
-- [x] Read through against `plan.md`; `npm test && npm run lint && npm run build` still pass
+- [ ] Read through against `plan.md`; `npm test && npm run lint && npm run build` still pass
 
 **Dependencies:** None
 
-**Files:** `specs/007-settings-screen.md`
+**Files:** `specs/040-api-client-foundation.md`
 
 **Scope:** XS
 
-### Task 2: `INTENSITIES`, `getSettings` and `setIntensity`
+### Task 2: Generated types, and the mock's aspirations on them
 
-**Description:** `domain/settings.ts` exports `INTENSITIES` (the three in order, with labels) as in the spec. `getSettings()` returns a copy of the store's settings. `setIntensity(intensity)` sets the intensity and `intensitySetOn` to today, and returns a copy.
+**Description:** Add `openapi-typescript` (pinned) and `npm run api:types`, which writes `src/api/openapi.ts` from `../api/openapi.json`. Exclude it from oxlint. `types.ts` takes `Aspiration` and `NewAspiration` from it. The mock data, the mock client, `domain/` and `useAspiration` follow: `priority` becomes `position`, `retiredAt` becomes `retiredOn` (a day), and empty fields are `null`. Tests change in fixtures and field names only.
 
 **Acceptance criteria:**
-- [x] `getSettings` returns Normal, set on 2026-10-01, weeks starting Monday; changing the returned object doesn't change the store.
-- [x] `setIntensity('goingHard')` returns Going hard set today, and the next `getSettings` agrees; an unknown value rejects.
-- [x] `INTENSITIES` lists Easing off, Normal, Going hard, in that order.
+- [ ] `npm run api:types` regenerates the file, and running it again changes nothing.
+- [ ] Changing a field of an aspiration in `mockData.ts` to the old name fails `npm run build`.
+- [ ] The full suite passes on mock. Any assertion that had to change, beyond a name or fixture, is listed in the commit message.
 
 **Verification:**
-- [x] `npm test`: `client.test.ts` (a settings block), new `domain/settings.test.ts`
+- [ ] `npm test && npm run lint && npm run build`; `git diff --stat` shows only the files named below
 
 **Dependencies:** Task 1
 
-**Files:** `src/domain/settings.ts`, `src/domain/settings.test.ts`, `src/api/client.ts`, `src/api/client.test.ts`
+**Files:** `package.json`, `package-lock.json`, `src/api/openapi.ts`, `src/api/types.ts`, `src/api/mockData.ts`, `src/api/client.ts`, `src/domain/{aspiration,aspirations,add,today}.ts`, `src/hooks/useAspiration.ts`, and their tests
+
+**Scope:** L, but mechanical: one rename across files, with no new behaviour. It isn't split, because no half of it compiles.
+
+### Task 3: Device ids and the request helper
+
+**Description:** `src/api/ids.ts` has `newDeviceId()`, a v4 UUID made with `crypto.getRandomValues`. `src/api/errors.ts` gets `NotFoundError`, which `client.ts` re-exports. `src/api/request.ts` has `request(method, path, body?)` as in the plan. The mock's `addAspiration` uses `newDeviceId()`.
+
+**Acceptance criteria:**
+- [ ] `newDeviceId()` matches the v4 UUID pattern and works with `crypto.randomUUID` removed.
+- [ ] `request` sends `X-Time-Zone` and JSON to `/api/…`; a 404 throws `NotFoundError`; a 500, a 409 and a rejected `fetch` each throw an error that isn't `NotFoundError`; a camelCase body goes out and comes back unchanged.
+- [ ] A new mock aspiration has a UUID id; `useLoaded` and the existing tests still import `NotFoundError` from `client.ts`.
+
+**Verification:**
+- [ ] `npm test`: new `ids.test.ts` and `request.test.ts`; `client.test.ts`
+
+**Dependencies:** None (can go before or after Task 2)
+
+**Files:** `src/api/ids.ts`, `src/api/errors.ts`, `src/api/request.ts`, `src/api/client.ts`, tests
 
 **Scope:** S
 
-### Task 3: The gear opens Settings
+## Checkpoint 1
+- [ ] Tests, lint and build pass on mock
+- [ ] The click-through is unchanged in the browser: Aspirations tab, an aspiration's page, Add an aspiration
 
-**Description:** `settings` joins the `Screen` union and `parseScreen`. The Aspirations header gets a gear button labelled "Settings" at the top right. `screens/Settings.tsx` shows the pinned header ("‹ Aspirations", "Settings") and the two constant rows: Week starts: Monday, and Notifications: Off. `App` renders it, with back going to the tab.
+### Task 4: The real aspiration functions
 
-**Acceptance criteria:**
-- [x] The gear opens Settings; Aspirations stays current in the tab bar; "‹ Aspirations" returns.
-- [x] Settings is still open after a remount; `settings` round-trips in storage, and junk still falls back to Today.
-- [x] Week starts reads Monday and Notifications reads Off, and neither is a button or input.
-
-**Verification:**
-- [x] `npm test`: `navigation.test.ts`, `Aspirations.test.tsx`, new `screens/Settings.test.tsx`, `App.test.tsx`
-
-**Dependencies:** Task 1
-
-**Files:** `src/storage/navigation.ts`, `src/storage/navigation.test.ts`, `src/screens/Aspirations.tsx`, `src/screens/Aspirations.css`, `src/screens/Settings.tsx`, `src/screens/Settings.css`, `src/App.tsx`, tests
-
-**Scope:** M
-
-### Task 4: Intensity and Export
-
-**Description:** `hooks/useSettings.ts` loads settings through `useLoaded` and gives the screen `intensity`, `setIntensity` (optimistic, rolled back with "Couldn't save that. Try again." on failure, newest save wins), `exportData` (sets "Coming later.") and the message. Settings shows the intensity radiogroup once loaded, with "Sets how full days are and how much is free." under it, and an Export my data row. The screen's message shows through `ScreenMessage`; a load failure is sticky.
+**Description:** `src/api/realAspirations.ts` implements the seven functions over `request`, as in the plan: `getAspirations` and `getAspiration` from `listAspirations`; `addAspiration` as a PUT with a device id; `updateAspiration` sending both fields; `moveAspiration` chained (read, swap, post the order); `retireAspiration` with `{ itsWork }`; `bringBackAspiration`.
 
 **Acceptance criteria:**
-- [x] Normal is selected at first; tapping Going hard selects it and calls `setIntensity`; leaving and coming back shows Going hard.
-- [x] A failed save goes back to the earlier choice with the message; with two quick changes where the first fails, the second stays. Arrow keys move the choice.
-- [x] Export my data shows "Coming later."; a failed load shows "Couldn't load settings. Try again in a moment." until tapped, with the header and constant rows still there.
+- [ ] Each function calls the right method and path with the right body, against a stubbed `fetch`, and returns the shape its mock twin returns.
+- [ ] `getAspiration` for an id not in the list throws `NotFoundError`; `moveAspiration` posts every active id with the two swapped, and two calls made together post orders built on each other.
+- [ ] `updateAspiration` without both fields throws before any request; a blank why goes out as `null`.
 
 **Verification:**
-- [x] `npm test`: new `hooks/useSettings.test.tsx`, `Settings.test.tsx`, `App.test.tsx`
+- [ ] `npm test`: new `realAspirations.test.ts`
 
 **Dependencies:** Tasks 2, 3
 
-**Files:** `src/hooks/useSettings.ts`, `src/hooks/useSettings.test.tsx`, `src/screens/Settings.tsx`, `src/screens/Settings.css`, `src/screens/Settings.test.tsx`
+**Files:** `src/api/realAspirations.ts`, `src/api/realAspirations.test.ts`
 
 **Scope:** M
 
-## Checkpoint 1
-- [x] Tests, lint and build pass
-- [x] On the phone, 375 and 390 px, light and dark: the gear is easy to tap and doesn't crowd the title; the three intensity labels fit on one row at 375 px; the selected choice is clear in both themes; "Coming later." sits above the tab bar
-- [x] Copy read against the spec's Never: nothing ranks the choices or hints at a change
+### Task 5: The switch and the dev proxy
 
-### Task 5: Docs
-
-**Description:** Parent repo (own branch and PR): the screens README's Settings line says what each row does (intensity saves on tap and stays; week start and notifications are shown, not set; export is coming later). Flow 8 is left as it is: `docs/` doesn't describe the mock resetting on reload for anything, and spec 007 records it. Front end: spec 007 marked built, and `specs/README.md` moves 007 to Done.
+**Description:** `src/api/mode.ts` reads `VITE_API`. The seven aspiration functions in `client.ts` hand off to the real ones when it's `real`. `vite.config.ts` proxies `/api` to `API_URL` (default `http://localhost:8000`). `package.json` gets `dev:real`. `vite-env.d.ts` types `VITE_API`.
 
 **Acceptance criteria:**
-- [x] `docs/` describes Settings as built, with no row that does more than it does.
-- [x] `specs/README.md` lists 007 under Done; only #8 remains.
+- [ ] Without `VITE_API`, nothing calls `fetch` (the existing suite with `fetch` stubbed to fail).
+- [ ] With `VITE_API=real`, `getAspirations` reaches `fetch` at `/api/aspirations`, and `getDay` still answers from the mock.
+- [ ] `npm run dev:real` serves the app, and `/api/health` answers through the proxy while the API runs.
 
 **Verification:**
-- [x] `npm test && npm run lint && npm run build`; read-through of the parent diff
+- [ ] `npm test`: new `mode` test in `client.test.ts`; `curl localhost:5173/api/health` with the API running
 
-**Dependencies:** Checkpoint 1
+**Dependencies:** Task 4
 
-**Files:** `../docs/screens/README.md`, `../docs/flows.md`, `specs/007-settings-screen.md`, `specs/README.md`
+**Files:** `src/api/mode.ts`, `src/api/client.ts`, `src/api/client.test.ts`, `vite.config.ts`, `package.json`, `src/vite-env.d.ts`
+
+**Scope:** M
+
+## Checkpoint 2
+- [ ] Tests, lint and build pass
+- [ ] Against a local API, on the phone (`npm run dev:real -- --host`, run by Jan): list, add, edit the name and why, move up and down, retire with each choice, bring back. Each one is still there after a reload, and `/api/docs` agrees.
+- [ ] A create sent twice with the same id (curl with the id from a real add) makes one aspiration
+- [ ] With the API stopped: the tab shows its load message; a save on the page rolls back with "Couldn't save that. Try again."; an aspiration id that isn't there goes back quietly
+- [ ] Results recorded for the PR
+
+### Task 6: Docs
+
+**Description:** README: running against a local API (start the API, `npm run dev:real`, `-- --host` for the phone, `API_URL`, `npm run api:types` after each API slice). CLAUDE.md: the generated file is never edited, and how the switch works; `types.ts` is part generated now. Spec 040 marked built; `specs/README.md` moves 040 to Done. API repo, on its own branch and PR: shared decisions 6 to 11 marked confirmed from the front end, or changed, with what the wiring found.
+
+**Acceptance criteria:**
+- [ ] Someone with both repos side by side can run the front end on the real API from the README alone.
+- [ ] `specs/README.md` lists 040 under Done; the API map says what #40 confirmed.
+
+**Verification:**
+- [ ] `npm test && npm run lint && npm run build`; read-through of both diffs
+
+**Dependencies:** Checkpoint 2
+
+**Files:** `README.md`, `CLAUDE.md`, `specs/040-api-client-foundation.md`, `specs/README.md`, `../api/specs/README.md`
 
 **Scope:** S
 
-## Checkpoint 2
-- [x] Tests, lint and build pass
-- [x] Every success criterion in spec 007 and every acceptance criterion on #7 met
-- [x] PR opened, closing #7, with the parent-repo docs PR linked
+## Checkpoint 3
+- [ ] Tests, lint and build pass
+- [ ] Every success criterion in spec 040 and every acceptance criterion on #40 met
+- [ ] PR opened, closing #40, with the phone results and the API-repo PR linked
