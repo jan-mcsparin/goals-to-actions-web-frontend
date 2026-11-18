@@ -98,13 +98,13 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
   }
 
   function move(direction: 'up' | 'down') {
-    const position = detail?.aspiration.priority
-    if (!detail || position === undefined) return
+    const position = detail?.aspiration.position
+    if (!detail || position == null) return
     const next = direction === 'up' ? position - 1 : position + 1
     if (next < 1 || next > detail.activeCount) return
 
     saveOptimistically(
-      (before) => ({ ...before, aspiration: { ...before.aspiration, priority: next } }),
+      (before) => ({ ...before, aspiration: { ...before.aspiration, position: next } }),
       () => moveAspiration(aspirationId, direction),
     )
   }

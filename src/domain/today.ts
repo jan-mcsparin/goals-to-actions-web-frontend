@@ -128,7 +128,7 @@ function sublineFor(task: Task, records: Pick<DayPlan, 'goals' | 'aspirations'>)
 // Goals in their aspiration's priority order; goals without one come last.
 export function goalsByPriority(plan: Pick<DayPlan, 'goals' | 'aspirations'>): Goal[] {
   const priorityOf = (goal: Goal) =>
-    plan.aspirations.find((aspiration) => aspiration.id === goal.aspirationId)?.priority ?? Infinity
+    plan.aspirations.find((aspiration) => aspiration.id === goal.aspirationId)?.position ?? Infinity
   return [...plan.goals].sort((a, b) => priorityOf(a) - priorityOf(b))
 }
 

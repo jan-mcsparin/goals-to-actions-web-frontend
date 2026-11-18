@@ -440,7 +440,7 @@ describe('getAspiration', () => {
   it('returns the aspiration with its goals of every status and their milestones in order', async () => {
     const detail = await getAspiration('asp-fit')
 
-    expect(detail.aspiration).toMatchObject({ id: 'asp-fit', name: 'Be fit', priority: 1 })
+    expect(detail.aspiration).toMatchObject({ id: 'asp-fit', name: 'Be fit', position: 1 })
     expect(ids(detail.goals)).toEqual(['goal-5k', 'goal-endurance', 'goal-look-good', 'goal-strong'])
     expect(detail.milestones.filter((milestone) => milestone.goalId === 'goal-strong').map((milestone) => milestone.id)).toEqual([
       'ms-strong-1',
@@ -481,7 +481,7 @@ describe('getAspiration', () => {
     const detail = await getAspiration('asp-spanish')
 
     expect(detail.aspiration.status).toBe('retired')
-    expect(detail.aspiration.priority).toBeUndefined()
+    expect(detail.aspiration.position).toBeNull()
     expect(ids(detail.goals)).toEqual(['goal-spanish-a2'])
   })
 
@@ -861,7 +861,7 @@ describe('updateAspiration', () => {
   it('removes the why when it is cleared, and leaves what is not given alone', async () => {
     const saved = await updateAspiration('asp-fit', { why: '  ' })
 
-    expect(saved.why).toBeUndefined()
+    expect(saved.why).toBeNull()
     expect(saved.name).toBe('Be fit')
   })
 
@@ -876,14 +876,14 @@ describe('updateAspiration', () => {
 })
 
 describe('moveAspiration', () => {
-  function addActive(id: string, priority: number) {
-    store.aspirations.push({ id, name: id, priority, status: 'active', createdAt: '2026-11-01T09:00:00Z' })
+  function addActive(id: string, position: number) {
+    store.aspirations.push({ id, name: id, why: null, position, status: 'active', createdAt: '2026-11-01T09:00:00Z', retiredOn: null })
   }
 
   it('moves the first one down, and returns the active ones in order', async () => {
     const order = await moveAspiration('asp-fit', 'down')
 
-    expect(order.map((aspiration) => [aspiration.id, aspiration.priority])).toEqual([
+    expect(order.map((aspiration) => [aspiration.id, aspiration.position])).toEqual([
       ['asp-home', 1],
       ['asp-fit', 2],
     ])
@@ -902,7 +902,7 @@ describe('moveAspiration', () => {
     expect(up.map((aspiration) => aspiration.id)).toEqual(['asp-home', 'asp-fit', 'asp-build'])
 
     const down = await moveAspiration('asp-fit', 'down')
-    expect(down.map((aspiration) => [aspiration.id, aspiration.priority])).toEqual([
+    expect(down.map((aspiration) => [aspiration.id, aspiration.position])).toEqual([
       ['asp-home', 1],
       ['asp-build', 2],
       ['asp-fit', 3],
@@ -937,12 +937,12 @@ describe('retireAspiration', () => {
     })
   }
 
-  it('retires it with the time, takes away its priority and moves the ones below up', async () => {
+  it('retires it with the day, takes away its priority and moves the ones below up', async () => {
     const saved = await retireAspiration('asp-fit', 'pause')
 
-    expect(saved).toMatchObject({ status: 'retired', retiredAt: WEDNESDAY.toISOString() })
-    expect(saved.priority).toBeUndefined()
-    expect(store.aspirations.find((aspiration) => aspiration.id === 'asp-home')?.priority).toBe(1)
+    expect(saved).toMatchObject({ status: 'retired', retiredOn: '2026-11-11' })
+    expect(saved.position).toBeNull()
+    expect(store.aspirations.find((aspiration) => aspiration.id === 'asp-home')?.position).toBe(1)
   })
 
   it('with pause, pauses its active goals and turns off its recurring items', async () => {
@@ -1027,7 +1027,7 @@ describe('retireAspiration', () => {
   it('rejects retiring a retired aspiration or an unknown id, changing nothing', async () => {
     await expect(retireAspiration('asp-spanish', 'pause')).rejects.toThrow('asp-spanish is retired')
     await expect(retireAspiration('asp-nope', 'pause')).rejects.toThrow('No aspiration with id asp-nope')
-    expect(store.aspirations.find((aspiration) => aspiration.id === 'asp-spanish')?.retiredAt).toBe('2026-09-15T09:00:00Z')
+    expect(store.aspirations.find((aspiration) => aspiration.id === 'asp-spanish')?.retiredOn).toBe('2026-09-15')
   })
 })
 
@@ -1035,8 +1035,8 @@ describe('bringBackAspiration', () => {
   it('makes a retired aspiration active again, last in priority', async () => {
     const saved = await bringBackAspiration('asp-spanish')
 
-    expect(saved).toMatchObject({ status: 'active', priority: 3 })
-    expect(saved.retiredAt).toBeUndefined()
+    expect(saved).toMatchObject({ status: 'active', position: 3 })
+    expect(saved.retiredOn).toBeNull()
   })
 
   it('leaves its paused goals paused', async () => {
@@ -1128,7 +1128,7 @@ function expectConsistentStore() {
   }
   for (const goal of store.goals) if (goal.aspirationId) expect(aspirationIds).toContain(goal.aspirationId)
   for (const target of store.weeklyTargets) expect(goalIds).toContain(target.goalId)
-  const priorities = store.aspirations.filter((a) => a.status === 'active').map((a) => a.priority).sort()
+  const priorities = store.aspirations.filter((a) => a.status === 'active').map((a) => a.position).sort()
   expect(priorities).toEqual(priorities.map((_, index) => index + 1))
 }
 
@@ -1319,7 +1319,7 @@ describe('addAspiration', () => {
   it('stores an active aspiration last of the active ones', async () => {
     const aspiration = await addAspiration({ name: '  Be generous ', why: ' So the people I love feel it ' })
 
-    expect(aspiration).toMatchObject({ name: 'Be generous', why: 'So the people I love feel it', status: 'active', priority: 3 })
+    expect(aspiration).toMatchObject({ name: 'Be generous', why: 'So the people I love feel it', status: 'active', position: 3 })
     expect(Number.isNaN(Date.parse(aspiration.createdAt))).toBe(false)
     const { aspirations } = await getAspirations()
     expect(aspirations.find((row) => row.id === aspiration.id)).toEqual(aspiration)
@@ -1329,8 +1329,8 @@ describe('addAspiration', () => {
   it('stores one without a why', async () => {
     const aspiration = await addAspiration({ name: 'Be generous', why: '   ' })
 
-    expect(aspiration.why).toBeUndefined()
-    expect((await addAspiration({ name: 'Read more' })).priority).toBe(4)
+    expect(aspiration.why).toBeNull()
+    expect((await addAspiration({ name: 'Read more' })).position).toBe(4)
     expectConsistentStore()
   })
 

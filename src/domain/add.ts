@@ -69,7 +69,7 @@ export function splitGoalSentence(sentence: string): { label: string; measurable
 export function aspirationChoices(aspirations: Aspiration[]): Choice[] {
   return aspirations
     .filter((aspiration) => aspiration.status === 'active')
-    .sort((a, b) => a.priority! - b.priority!)
+    .sort((a, b) => a.position! - b.position!)
     .map(({ id, name }) => ({ id, label: name }))
 }
 

@@ -17,7 +17,7 @@ function task(id: string, plannedDay: string | undefined, fields: Partial<Task> 
   }
 }
 
-const fit: Aspiration = { id: 'asp-fit', name: 'Be fit', priority: 1, status: 'active', createdAt: '2026-10-01T09:00:00Z' }
+const fit: Aspiration = { id: 'asp-fit', name: 'Be fit', why: null, position: 1, status: 'active', createdAt: '2026-10-01T09:00:00Z', retiredOn: null }
 const strong: Goal = {
   id: 'goal-strong',
   label: 'Be strong',
@@ -75,7 +75,7 @@ describe('weekProgress', () => {
   })
 
   it('orders goals by aspiration priority, as the By goal view does', () => {
-    const builder: Aspiration = { ...fit, id: 'asp-build', name: 'Be a builder', priority: 0 }
+    const builder: Aspiration = { ...fit, id: 'asp-build', name: 'Be a builder', position: 0 }
     const proto: Goal = { ...strong, id: 'goal-proto', label: 'Prototype', aspirationId: 'asp-build' }
     const target = (goalId: string): WeeklyTarget => ({ ...lifting, id: `wt-${goalId}`, goalId })
     const plan: WeekPlan = {

@@ -178,7 +178,7 @@ it('restores an opened aspiration and an opened goal after a remount', async () 
 it('shows a calm message in place of a screen that fails to draw, and the tabs still work', async () => {
   // An active aspiration with no priority can't be drawn (domain/aspiration.ts).
   const calmHome = store.aspirations.find((aspiration) => aspiration.name === 'Keep a calm home')!
-  delete calmHome.priority
+  calmHome.position = null
   localStorage.setItem('gta.screen', JSON.stringify({ screen: 'aspiration', aspirationId: calmHome.id }))
   vi.spyOn(console, 'error').mockImplementation(() => {})
   const user = userEvent.setup()

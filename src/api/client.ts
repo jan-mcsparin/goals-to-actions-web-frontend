@@ -226,7 +226,7 @@ export async function endGoal(goalId: string, outcome: 'reached' | 'ended'): Pro
   return structuredClone(goal)
 }
 
-// A blank why is removed; anything not given stays as it was.
+// A blank why is null; anything not given stays as it was.
 export async function updateAspiration(
   aspirationId: string,
   changes: { name?: string; why?: string },
@@ -237,9 +237,7 @@ export async function updateAspiration(
 
   if (name !== undefined) aspiration.name = name
   if (changes.why !== undefined) {
-    const why = changes.why.trim()
-    if (why) aspiration.why = why
-    else delete aspiration.why
+    aspiration.why = changes.why.trim() || null
   }
   return structuredClone(aspiration)
 }
@@ -252,9 +250,9 @@ export async function moveAspiration(aspirationId: string, direction: 'up' | 'do
   const neighbour = order[direction === 'up' ? index - 1 : index + 1]
   if (!neighbour) throw new Error(`${aspirationId} is already ${direction === 'up' ? 'first' : 'last'}`)
 
-  const priority = aspiration.priority
-  aspiration.priority = neighbour.priority
-  neighbour.priority = priority
+  const position = aspiration.position
+  aspiration.position = neighbour.position
+  neighbour.position = position
   return structuredClone(activeAspirations())
 }
 
@@ -271,9 +269,9 @@ export async function retireAspiration(aspirationId: string, itsWork: 'pause' | 
   else for (const record of [...goals, ...items]) delete record.aspirationId
 
   aspiration.status = 'retired'
-  aspiration.retiredAt = new Date().toISOString()
-  delete aspiration.priority
-  activeAspirations().forEach((active, index) => (active.priority = index + 1))
+  aspiration.retiredOn = toLocalDay(new Date())
+  aspiration.position = null
+  activeAspirations().forEach((active, index) => (active.position = index + 1))
   return structuredClone(aspiration)
 }
 
@@ -282,9 +280,9 @@ export async function bringBackAspiration(aspirationId: string): Promise<Aspirat
   const aspiration = findAspiration(aspirationId)
   if (aspiration.status !== 'retired') throw new Error(`${aspirationId} is not retired`)
 
-  aspiration.priority = activeAspirations().length + 1
+  aspiration.position = activeAspirations().length + 1
   aspiration.status = 'active'
-  delete aspiration.retiredAt
+  aspiration.retiredOn = null
   return structuredClone(aspiration)
 }
 
@@ -372,11 +370,12 @@ export async function addAspiration(aspiration: NewAspiration): Promise<Aspirati
   const added: Aspiration = {
     id: newId('asp'),
     name,
-    priority: activeAspirations().length + 1,
+    why: aspiration.why?.trim() || null,
+    position: activeAspirations().length + 1,
     status: 'active',
     createdAt: new Date().toISOString(),
+    retiredOn: null,
   }
-  if (aspiration.why?.trim()) added.why = aspiration.why.trim()
   store.aspirations.push(added)
   return structuredClone(added)
 }
@@ -561,11 +560,11 @@ function findActiveAspiration(aspirationId: string): Aspiration {
   return aspiration
 }
 
-// In priority order. Only active aspirations have a priority.
+// In priority order. Only active aspirations have a position.
 function activeAspirations(): Aspiration[] {
   return store.aspirations
     .filter((aspiration) => aspiration.status === 'active')
-    .sort((a, b) => a.priority! - b.priority!)
+    .sort((a, b) => a.position! - b.position!)
 }
 
 function findTask(taskId: string): Task {

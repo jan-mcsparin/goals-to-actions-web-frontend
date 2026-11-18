@@ -24,7 +24,7 @@ const TODAY = '2026-11-11'
 const WEEK_OF = '2026-11-09'
 
 function aspiration(extra: Partial<Aspiration> = {}): Aspiration {
-  return { id: 'fit', name: 'Be fit', priority: 1, status: 'active', createdAt: '2026-10-01T09:00:00Z', ...extra }
+  return { id: 'fit', name: 'Be fit', why: null, position: 1, status: 'active', createdAt: '2026-10-01T09:00:00Z', retiredOn: null, ...extra }
 }
 
 function goal(id: string, extra: Partial<Goal> = {}): Goal {
@@ -84,7 +84,7 @@ function activePage(parts: Partial<AspirationDetail>): ActivePage {
 
 function retiredPage(parts: Partial<AspirationDetail>): RetiredPage {
   const page = aspirationPage(
-    detailOf({ aspiration: aspiration({ status: 'retired', priority: undefined, retiredAt: '2026-11-10T15:00:00Z' }), ...parts }),
+    detailOf({ aspiration: aspiration({ status: 'retired', position: null, retiredOn: '2026-11-10' }), ...parts }),
     TODAY,
   )
   if (page.kind !== 'retired') throw new Error('Expected a retired page')
@@ -195,18 +195,18 @@ describe('aspirationPage, active', () => {
   })
 
   it('places it in priority and says which moves apply', () => {
-    expect(activePage({ aspiration: aspiration({ priority: 1 }), activeCount: 3 }).priority).toEqual({
+    expect(activePage({ aspiration: aspiration({ position: 1 }), activeCount: 3 }).priority).toEqual({
       line: '1st of 3 aspirations',
       hint: 'Comes first when goals compete for time',
       canMoveUp: false,
       canMoveDown: true,
     })
-    expect(activePage({ aspiration: aspiration({ priority: 2 }), activeCount: 3 }).priority).toMatchObject({
+    expect(activePage({ aspiration: aspiration({ position: 2 }), activeCount: 3 }).priority).toMatchObject({
       hint: 'Higher ones come first when goals compete for time',
       canMoveUp: true,
       canMoveDown: true,
     })
-    expect(activePage({ aspiration: aspiration({ priority: 3 }), activeCount: 3 }).priority).toMatchObject({
+    expect(activePage({ aspiration: aspiration({ position: 3 }), activeCount: 3 }).priority).toMatchObject({
       canMoveUp: true,
       canMoveDown: false,
     })
@@ -219,9 +219,9 @@ describe('aspirationPage, active', () => {
   })
 
   it('refuses an active aspiration with no priority', () => {
-    const detail = detailOf({ aspiration: aspiration({ priority: undefined }) })
+    const detail = detailOf({ aspiration: aspiration({ position: null }) })
 
-    expect(() => aspirationPage(detail, TODAY)).toThrow('Active aspiration fit has no priority')
+    expect(() => aspirationPage(detail, TODAY)).toThrow('Active aspiration fit has no position')
   })
 
   it('carries the history line for the Retire sheet', () => {
@@ -240,16 +240,16 @@ describe('aspirationPage, retired', () => {
 
   it('adds the year when it was retired in another year', () => {
     const page = retiredPage({
-      aspiration: aspiration({ status: 'retired', priority: undefined, retiredAt: '2025-09-15T09:00:00Z' }),
+      aspiration: aspiration({ status: 'retired', position: null, retiredOn: '2025-09-15' }),
     })
 
     expect(page.retiredLine).toBe('Retired Sep 15, 2025')
   })
 
   it('refuses a retired aspiration with no retired date', () => {
-    const detail = detailOf({ aspiration: aspiration({ status: 'retired', priority: undefined }) })
+    const detail = detailOf({ aspiration: aspiration({ status: 'retired', position: null }) })
 
-    expect(() => aspirationPage(detail, TODAY)).toThrow('Retired aspiration fit has no retiredAt')
+    expect(() => aspirationPage(detail, TODAY)).toThrow('Retired aspiration fit has no retiredOn')
   })
 
   it('lists its past goals, its paused goals and the recurring items it paused', () => {
@@ -291,7 +291,7 @@ describe('withNameAndWhy', () => {
   })
 
   it('removes a blank why', () => {
-    expect(withNameAndWhy(aspiration({ why: 'Old' }), { name: 'Be fit', why: '  ' })).not.toHaveProperty('why')
+    expect(withNameAndWhy(aspiration({ why: 'Old' }), { name: 'Be fit', why: '  ' }).why).toBeNull()
   })
 })
 

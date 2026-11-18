@@ -43,7 +43,7 @@ function goal(extra: Partial<Goal> = {}): Goal {
   }
 }
 
-const BE_FIT: Aspiration = { id: 'fit', name: 'Be fit', priority: 1, status: 'active', createdAt: '2026-10-01T09:00:00Z' }
+const BE_FIT: Aspiration = { id: 'fit', name: 'Be fit', why: null, position: 1, status: 'active', createdAt: '2026-10-01T09:00:00Z', retiredOn: null }
 
 function milestone(id: string, status: MilestoneStatus, extra: Partial<Milestone> = {}): Milestone {
   return { id, goalId: 'strong', measurableLine: `Line ${id}`, status, ...extra }

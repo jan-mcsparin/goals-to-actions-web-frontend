@@ -5,6 +5,7 @@
 import { fromLocalDay, mondayOfDay } from '../api/dates.ts'
 import type { Aspiration, AspirationDetail, Goal, RecurringItem } from '../api/types.ts'
 import { goalProgress, milestoneCount, weekCount } from './aspirations.ts'
+import { dayLabel } from './goalDetail.ts'
 import { daysLeft, daysLeftLabel } from './week.ts'
 
 export type GoalCard = {
@@ -69,11 +70,11 @@ export function aspirationPage(detail: AspirationDetail, today: string): Aspirat
   const paused = detail.goals.filter((goal) => goal.status === 'paused')
 
   if (aspiration.status === 'retired') {
-    if (!aspiration.retiredAt) throw new Error(`Retired aspiration ${aspiration.id} has no retiredAt`)
+    if (!aspiration.retiredOn) throw new Error(`Retired aspiration ${aspiration.id} has no retiredOn`)
     return {
       kind: 'retired',
       ...heading,
-      retiredLine: `Retired ${dayLabel(aspiration.retiredAt, today)}`,
+      retiredLine: `Retired ${dayLabel(aspiration.retiredOn, today)}`,
       activeGoals: detail.goals.filter((goal) => goal.status === 'active').map((goal) => goalCard(goal, detail)),
       pausedGoals: paused.map((goal) => goalCard(goal, detail)),
       recurring: detail.recurringItems.filter((item) => !item.active).map((item) => recurringRow(item, true)),
@@ -83,9 +84,9 @@ export function aspirationPage(detail: AspirationDetail, today: string): Aspirat
 
   const active = detail.goals.filter((goal) => goal.status === 'active')
   const week = weekCount(aspiration.id, detail)
-  // Every active aspiration has a priority, and it's its position.
-  const position = aspiration.priority
-  if (position === undefined) throw new Error(`Active aspiration ${aspiration.id} has no priority`)
+  // Every active aspiration has a position: its place in priority.
+  const position = aspiration.position
+  if (position === null) throw new Error(`Active aspiration ${aspiration.id} has no position`)
   return {
     kind: 'active',
     ...heading,
@@ -116,11 +117,9 @@ export type NameAndWhy = { name: string; why: string }
 export type ItsWork = 'pause' | 'keep'
 
 // The aspiration as an edit leaves it, as the API saves it: both trimmed, a
-// blank why removed. A blank name isn't valid; callers check canSaveName first.
+// blank why null. A blank name isn't valid; callers check canSaveName first.
 export function withNameAndWhy(aspiration: Aspiration, changes: NameAndWhy): Aspiration {
-  const { why: _oldWhy, ...rest } = aspiration
-  const why = changes.why.trim()
-  return { ...rest, name: changes.name.trim(), ...(why && { why }) }
+  return { ...aspiration, name: changes.name.trim(), why: changes.why.trim() || null }
 }
 
 export function canSaveName(name: string): boolean {
@@ -182,13 +181,6 @@ function isPast(goal: Goal): boolean {
   return goal.status === 'reached' || goal.status === 'ended'
 }
 
-
-// "Nov 10", or "Sep 15, 2025" in another year.
-function dayLabel(instant: string, today: string): string {
-  const date = new Date(instant)
-  const sameYear = date.getFullYear() === fromLocalDay(today).getFullYear()
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(!sameYear && { year: 'numeric' }) })
-}
 
 function counted(count: number, noun: string): string {
   return `${count} ${count === 1 ? noun : `${noun}s`}`

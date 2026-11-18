@@ -22,8 +22,8 @@ import {
 
 const WEEK_OF = '2026-11-09'
 
-function aspiration(id: string, priority: number, extra: Partial<Aspiration> = {}): Aspiration {
-  return { id, name: id, priority, status: 'active', createdAt: '2026-10-01T09:00:00Z', ...extra }
+function aspiration(id: string, position: number, extra: Partial<Aspiration> = {}): Aspiration {
+  return { id, name: id, why: null, position, status: 'active', createdAt: '2026-10-01T09:00:00Z', retiredOn: null, ...extra }
 }
 
 function goal(id: string, extra: Partial<Goal> = {}): Goal {
@@ -281,7 +281,7 @@ describe('otherGoals', () => {
   })
 
   it('takes in an active goal whose aspiration is retired, until it is brought back', () => {
-    const spanish = aspiration('spanish', 0, { status: 'retired', priority: undefined, retiredAt: '2026-11-10' })
+    const spanish = aspiration('spanish', 0, { status: 'retired', position: null, retiredOn: '2026-11-10' })
     const other = otherGoals(
       overviewOf({
         aspirations: [aspiration('fit', 1), spanish],
