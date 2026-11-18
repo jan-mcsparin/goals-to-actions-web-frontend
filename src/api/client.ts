@@ -4,6 +4,8 @@ import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
 import { taskWeek } from '../domain/add.ts'
 import { isWithinGoal, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
 import { isIntensity } from '../domain/settings.ts'
+import { NotFoundError } from './errors.ts'
+import { newDeviceId } from './ids.ts'
 import { store } from './mockStore.ts'
 import type {
   Aspiration,
@@ -27,11 +29,7 @@ import type {
   WeeklyTarget,
 } from './types.ts'
 
-// A record that isn't there (the API's 404), so a screen can tell it apart
-// from a failed request.
-export class NotFoundError extends Error {
-  name = 'NotFoundError'
-}
+export { NotFoundError }
 
 // Set-aside (skipped) tasks keep their day but don't show on it.
 export async function getDay(date: string): Promise<DayPlan> {
@@ -362,13 +360,14 @@ export async function addGoal(goal: NewGoal): Promise<Goal> {
   return structuredClone(added)
 }
 
-// Last in priority; it can be moved up on its page.
+// Last in priority; it can be moved up on its page. Its id is made here, on
+// the device, as the real API expects.
 export async function addAspiration(aspiration: NewAspiration): Promise<Aspiration> {
   const name = aspiration.name.trim()
   if (!name) throw new Error('An aspiration needs a name')
 
   const added: Aspiration = {
-    id: newId('asp'),
+    id: newDeviceId(),
     name,
     why: aspiration.why?.trim() || null,
     position: activeAspirations().length + 1,
@@ -527,9 +526,8 @@ function findCurrentGoal(goalId: string): Goal {
   return goal
 }
 
-// The real API assigns ids; the mock makes its own. A counter, not
-// crypto.randomUUID, which browsers leave out on plain-http pages such as the
-// dev server opened from a phone. The store resets on reload, and so does this.
+// Ids for the records whose screens aren't on the API yet; #39 moves them to
+// newDeviceId. A counter: the store resets on reload, and so does this.
 let lastId = 0
 
 function newId(prefix: string): string {

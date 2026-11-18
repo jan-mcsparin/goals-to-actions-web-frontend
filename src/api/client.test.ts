@@ -1321,6 +1321,7 @@ describe('addAspiration', () => {
 
     expect(aspiration).toMatchObject({ name: 'Be generous', why: 'So the people I love feel it', status: 'active', position: 3 })
     expect(Number.isNaN(Date.parse(aspiration.createdAt))).toBe(false)
+    expect(aspiration.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
     const { aspirations } = await getAspirations()
     expect(aspirations.find((row) => row.id === aspiration.id)).toEqual(aspiration)
     expectConsistentStore()
