@@ -126,4 +126,4 @@ Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run li
 ## Checkpoint 3
 - [x] Tests, lint and build pass
 - [x] Every success criterion in spec 040 and every acceptance criterion on #40 met
-- [ ] PR opened, closing #40, with the phone results and the API-repo PR linked
+- [x] PR opened (#49), closing #40, with the API-repo PR (goals-to-actions-api#25) linked; the phone checks are listed in it
