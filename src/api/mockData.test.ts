@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildMockData } from './mockData.ts'
+import { isFixedDay } from '../domain/recurring.ts'
 
 const MONDAY = new Date(2026, 10, 9, 9)
 const WEDNESDAY = new Date(2026, 10, 11, 9)
@@ -131,8 +132,8 @@ describe('mock data contents', () => {
     expect(
       data.recurringItems.filter((item) => item.aspirationId === 'asp-fit').map((item) => item.name),
     ).toEqual(['Stretch', 'Hockey'])
-    expect(data.recurringItems.some((item) => item.fixedDay)).toBe(true)
-    expect(data.recurringItems.some((item) => !item.fixedDay)).toBe(true)
+    expect(data.recurringItems.some((item) => isFixedDay(item.schedule))).toBe(true)
+    expect(data.recurringItems.some((item) => !isFixedDay(item.schedule))).toBe(true)
   })
 
   it('has done, bank and rolled-over tasks', () => {

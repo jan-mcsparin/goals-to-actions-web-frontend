@@ -54,8 +54,8 @@ function tasks(goalId: string, ...statuses: Task['status'][]): Task[] {
   }))
 }
 
-function recurring(name: string, aspirationId?: string, active = true): RecurringItem {
-  return { id: `rec-${name}`, name, repeatRule: 'Once a week', fixedDay: false, active, nextDue: '2026-11-15', aspirationId }
+function recurring(name: string, aspirationId: string | null = null, active = true): RecurringItem {
+  return { id: `rec-${name}`, name, aspirationId: aspirationId, fromGoalId: null, schedule: { kind: 'flexible', times: 1, period: 'week' }, startsOn: '2026-10-01', active, createdAt: '2026-10-01T09:00:00Z' }
 }
 
 // Targets and milestones are given per goal; each goal gets its target and

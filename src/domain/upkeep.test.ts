@@ -15,17 +15,19 @@ function onDay(id: string, plannedDay: string, extra: Partial<Task> = {}): Task 
 const rent: RecurringItem = {
   id: 'rec-rent',
   name: 'Pay rent',
-  repeatRule: 'Monthly on the 1st',
-  fixedDay: true,
+  aspirationId: null,
+  fromGoalId: null,
+  schedule: { kind: 'monthly', dayOfMonth: 1 },
+  startsOn: '2026-10-01',
   active: true,
-  nextDue: '2026-12-01',
+  createdAt: '2026-10-01T09:00:00Z',
 }
 
 describe('upkeepView', () => {
-  it('lists recurring items by name with their repeat rule', () => {
+  it('lists recurring items by name with how they repeat', () => {
     const view = upkeepView({ recurringItems: [rent], tasks: [] }, WEDNESDAY)
 
-    expect(view.recurring).toEqual([{ id: 'rec-rent', name: 'Pay rent', repeatRule: 'Monthly on the 1st' }])
+    expect(view.recurring).toEqual([{ id: 'rec-rent', name: 'Pay rent', repeat: 'Monthly on the 1st' }])
   })
 
   it('says where each task sits: a day, the bank, or a later week', () => {

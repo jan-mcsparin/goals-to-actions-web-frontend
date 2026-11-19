@@ -31,10 +31,12 @@ const reading = goal('goal-read', 'Read more')
 const trash: RecurringItem = {
   id: 'rec-trash',
   name: 'Take out the trash',
-  repeatRule: 'Every Tuesday',
-  fixedDay: true,
+  aspirationId: null,
+  fromGoalId: null,
+  schedule: { kind: 'weekly', weekday: 'tuesday' },
+  startsOn: '2026-10-01',
   active: true,
-  nextDue: DAY,
+  createdAt: '2026-10-01T09:00:00Z',
 }
 
 function plan(tasks: Task[]): DayPlan {
@@ -112,7 +114,7 @@ describe('groupForList', () => {
 })
 
 describe('fixed-day tasks', () => {
-  const laundry: RecurringItem = { ...trash, id: 'rec-laundry', name: 'Laundry', fixedDay: false }
+  const laundry: RecurringItem = { ...trash, id: 'rec-laundry', name: 'Laundry', schedule: { kind: 'flexible', times: 1, period: 'week' } }
 
   it('marks rows from a fixed-day recurring item, in both views', () => {
     const tasks = [

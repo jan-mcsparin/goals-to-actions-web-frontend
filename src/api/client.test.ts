@@ -37,7 +37,7 @@ import {
 } from './client.ts'
 import type { StoredWeeklyTarget } from './mockData.ts'
 import { resetStore, store } from './mockStore.ts'
-import type { Goal, ListedGoal, WeeklyTargetInput } from './types.ts'
+import type { Goal, ListedGoal, NewRecurringItem, WeeklyTargetInput } from './types.ts'
 
 // Wednesday 11 Nov 2026, 9 a.m. local time.
 const WEDNESDAY = new Date(2026, 10, 11, 9, 0)
@@ -1174,8 +1174,8 @@ describe('retireAspiration', () => {
     expect(store.goals.find((goal) => goal.id === 'goal-5k')?.aspirationId).toBe('asp-fit')
     const items = store.recurringItems.filter((item) => ['rec-stretch', 'rec-hockey'].includes(item.id))
     expect(items.map((item) => [item.active, item.aspirationId])).toEqual([
-      [true, undefined],
-      [true, undefined],
+      [true, null],
+      [true, null],
     ])
     expect(taskStatus('task-lift-today')).toBe('planned')
   })
@@ -1509,21 +1509,30 @@ describe('addAspiration', () => {
 })
 
 describe('addRecurringItem', () => {
-  const trash = { name: '  Water the plants ', repeatRule: 'Every Tuesday', fixedDay: true, nextDue: '2026-11-17' }
+  const trash: NewRecurringItem = { name: '  Water the plants ', schedule: { kind: 'weekly', weekday: 'tuesday' }, startsOn: WEDNESDAY_DAY }
 
   it('stores an active item with no aspiration, on Keep life running', async () => {
     const item = await addRecurringItem(trash)
 
-    expect(item).toEqual({ id: item.id, name: 'Water the plants', repeatRule: 'Every Tuesday', fixedDay: true, active: true, nextDue: '2026-11-17' })
+    expect(item).toEqual({
+      id: item.id,
+      name: 'Water the plants',
+      aspirationId: null,
+      fromGoalId: null,
+      schedule: { kind: 'weekly', weekday: 'tuesday' },
+      startsOn: WEDNESDAY_DAY,
+      active: true,
+      createdAt: item.createdAt,
+    })
     const { recurringItems } = await getUpkeep()
     expect(recurringItems.find((row) => row.id === item.id)).toEqual(item)
     expectConsistentStore()
   })
 
   it('stores one under an aspiration, on its page', async () => {
-    const item = await addRecurringItem({ name: 'Stretch more', repeatRule: '3 times a week', fixedDay: false, nextDue: WEDNESDAY_DAY, aspirationId: 'asp-fit' })
+    const item = await addRecurringItem({ name: 'Stretch more', schedule: { kind: 'flexible', times: 3, period: 'week' }, startsOn: WEDNESDAY_DAY, aspirationId: 'asp-fit' })
 
-    expect(item).toMatchObject({ aspirationId: 'asp-fit', fixedDay: false, active: true })
+    expect(item).toMatchObject({ aspirationId: 'asp-fit', active: true })
     const { recurringItems } = await getAspiration('asp-fit')
     expect(recurringItems.find((row) => row.id === item.id)).toEqual(item)
     expect((await getUpkeep()).recurringItems.map((row) => row.id)).not.toContain(item.id)

@@ -60,7 +60,7 @@ function tasks(goalId: string, ...statuses: Task['status'][]): Task[] {
 }
 
 function recurring(name: string, active = true): RecurringItem {
-  return { id: `rec-${name}`, name, repeatRule: 'Once a week', fixedDay: false, active, nextDue: '2026-11-15', aspirationId: 'fit' }
+  return { id: `rec-${name}`, name, aspirationId: 'fit', fromGoalId: null, schedule: { kind: 'flexible', times: 1, period: 'week' }, startsOn: '2026-10-01', active, createdAt: '2026-10-01T09:00:00Z' }
 }
 
 // Targets and milestones are given per goal; each goal gets its target and
@@ -188,7 +188,7 @@ describe('aspirationPage, active', () => {
   it('lists its active recurring items with their repeat rule', () => {
     const page = activePage({ recurringItems: [recurring('Stretch'), recurring('Old', false)] })
 
-    expect(page.recurring).toEqual([{ itemId: 'rec-Stretch', name: 'Stretch', repeatRule: 'Once a week', paused: false }])
+    expect(page.recurring).toEqual([{ itemId: 'rec-Stretch', name: 'Stretch', repeat: 'Once a week', paused: false }])
   })
 
   it('lists past goals as Reached or Ended', () => {
@@ -266,7 +266,7 @@ describe('aspirationPage, retired', () => {
 
     expect(page.pastGoals.map((row) => row.goalId)).toEqual(['5k'])
     expect(page.pausedGoals.map((card) => [card.goalId, card.progress])).toEqual([['strong', 'Paused']])
-    expect(page.recurring).toEqual([{ itemId: 'rec-Stretch', name: 'Stretch', repeatRule: 'Once a week', paused: true }])
+    expect(page.recurring).toEqual([{ itemId: 'rec-Stretch', name: 'Stretch', repeat: 'Once a week', paused: true }])
   })
 
   it('shows a goal resumed on its own as active, apart from the paused ones', () => {

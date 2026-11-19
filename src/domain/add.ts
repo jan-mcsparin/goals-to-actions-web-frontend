@@ -1,9 +1,10 @@
 // Rules for the Add sheet: where a new task goes, the line confirming it, how
-// a goal's sentence splits, how a repeat reads and when it's next due, and
-// when a form is ready to save.
-import { addDays, fromLocalDay, mondayOfDay, toLocalDay } from '../api/dates.ts'
-import type { Aspiration, Goal, GoalType, NewGoal, NewRecurringItem, NewTask, Task } from '../api/types.ts'
+// a goal's sentence splits, the Recurring tab's choices, and when a form is
+// ready to save.
+import { mondayOfDay } from '../api/dates.ts'
+import type { Aspiration, Goal, GoalType, NewGoal, NewRecurringItem, NewTask, Schedule, Task } from '../api/types.ts'
 import { dayLabel, isWithinGoal, parsedTarget, type TargetDraft } from './goalDetail.ts'
+import { ordinal, repeatText, weekdayName, type Weekday } from './recurring.ts'
 
 // This week's Monday, or the Monday of the due date's week when that's later.
 export function taskWeek(dueDate: string | undefined, today: string): string {
@@ -157,109 +158,69 @@ export function aspirationReady(draft: AspirationDraft): boolean {
   return draft.name.trim() !== ''
 }
 
-// How often a recurring item comes round. Fixed: a weekday (0 is Sunday, as
-// Date.getDay) or a day of the month, 1–28 so every month has it. Flexible:
-// 1–6 times a week, every two weeks, or once a month.
-export type RepeatChoice =
-  | { kind: 'weekday'; weekday: number }
-  | { kind: 'monthDay'; day: number }
-  | { kind: 'timesAWeek'; times: number }
-  | { kind: 'everyTwoWeeks' }
-  | { kind: 'onceAMonth' }
-
-const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-
-// As the mock reads: "Every Tuesday", "Monthly on the 1st", "3 times a week".
-export function repeatRuleText(choice: RepeatChoice): string {
-  switch (choice.kind) {
-    case 'weekday':
-      return `Every ${WEEKDAY_NAMES[choice.weekday]}`
-    case 'monthDay':
-      return `Monthly on the ${ordinal(choice.day)}`
-    case 'timesAWeek':
-      return choice.times === 1 ? 'Once a week' : `${choice.times} times a week`
-    case 'everyTwoWeeks':
-      return 'Every two weeks'
-    case 'onceAMonth':
-      return 'Once a month'
-  }
-}
-
-export function isFixedDay(choice: RepeatChoice): boolean {
-  return choice.kind === 'weekday' || choice.kind === 'monthDay'
-}
-
-// The first day on or after today that the item falls on. A flexible item
-// can be done any day, so it's due today.
-export function nextDue(choice: RepeatChoice, today: string): string {
-  const date = fromLocalDay(today)
-  if (choice.kind === 'weekday') {
-    return toLocalDay(addDays(date, (choice.weekday - date.getDay() + 7) % 7))
-  }
-  if (choice.kind === 'monthDay') {
-    const monthsAhead = choice.day < date.getDate() ? 1 : 0
-    return toLocalDay(new Date(date.getFullYear(), date.getMonth() + monthsAhead, choice.day))
-  }
-  return today
-}
-
-function ordinal(day: number): string {
-  const teens = day % 100 >= 11 && day % 100 <= 13
-  const suffix = teens ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[day % 10] ?? 'th')
-  return `${day}${suffix}`
-}
-
-export function recurringReady(draft: { name: string }): boolean {
-  return draft.name.trim() !== ''
-}
-
-// A choice in the Recurring tab's pickers: its value in the select (read back
-// by repeatChoice) and its label there.
+// The Recurring tab's pickers. Each option's value names a schedule
+// ("weekly:tuesday", "monthly:1", "flexible:3:week"), read back by
+// scheduleOf.
 export type RepeatOption = { value: string; label: string }
 
-function repeatOption(choice: RepeatChoice, label: string): RepeatOption {
-  return { value: repeatValue(choice), label }
-}
-
-// "weekday:2", "monthDay:1", "timesAWeek:3", "everyTwoWeeks"; read back by repeatChoice.
-function repeatValue(choice: RepeatChoice): string {
-  switch (choice.kind) {
-    case 'weekday':
-      return `weekday:${choice.weekday}`
-    case 'monthDay':
-      return `monthDay:${choice.day}`
-    case 'timesAWeek':
-      return `timesAWeek:${choice.times}`
-    default:
-      return choice.kind
+function optionValue(schedule: Schedule): string {
+  switch (schedule.kind) {
+    case 'weekly':
+      return `weekly:${schedule.weekday}`
+    case 'monthly':
+      return `monthly:${schedule.dayOfMonth}`
+    case 'flexible':
+      return `flexible:${schedule.times}:${schedule.period}`
   }
 }
 
 // Weeks start Monday, so Sunday comes last.
-export const WEEKDAY_OPTIONS: RepeatOption[] = [1, 2, 3, 4, 5, 6, 0].map((weekday) =>
-  repeatOption({ kind: 'weekday', weekday }, WEEKDAY_NAMES[weekday]),
-)
+const WEEKDAYS: Weekday[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
-export const MONTH_DAY_OPTIONS: RepeatOption[] = Array.from({ length: 28 }, (_, index) =>
-  repeatOption({ kind: 'monthDay', day: index + 1 }, ordinal(index + 1)),
-)
+const WEEKLY_SCHEDULES: Schedule[] = WEEKDAYS.map((weekday) => ({ kind: 'weekly', weekday }))
 
-const FLEXIBLE_CHOICES: RepeatChoice[] = [
-  ...[1, 2, 3, 4, 5, 6].map((times) => ({ kind: 'timesAWeek', times }) as const),
-  { kind: 'everyTwoWeeks' },
-  { kind: 'onceAMonth' },
+// Up to the 28th, so every month has the day.
+const MONTH_DAYS = Array.from({ length: 28 }, (_, index) => index + 1)
+
+const MONTHLY_SCHEDULES: Schedule[] = MONTH_DAYS.map((dayOfMonth) => ({ kind: 'monthly', dayOfMonth }))
+
+const FLEXIBLE_SCHEDULES: Schedule[] = [
+  ...[1, 2, 3, 4, 5, 6].map((times) => ({ kind: 'flexible', times, period: 'week' }) as const),
+  { kind: 'flexible', times: 1, period: 'twoWeeks' },
+  { kind: 'flexible', times: 1, period: 'month' },
 ]
 
-export const FLEXIBLE_OPTIONS: RepeatOption[] = FLEXIBLE_CHOICES.map((choice) => repeatOption(choice, repeatRuleText(choice)))
+// Labelled by the day alone, under "Every week on".
+export const WEEKDAY_OPTIONS: RepeatOption[] = WEEKDAYS.map((weekday) => ({
+  value: optionValue({ kind: 'weekly', weekday }),
+  label: weekdayName(weekday),
+}))
 
-// An option's value back as the choice it stands for.
-export function repeatChoice(value: string): RepeatChoice {
-  const [kind, number] = value.split(':')
-  if (kind === 'weekday') return { kind, weekday: Number(number) }
-  if (kind === 'monthDay') return { kind, day: Number(number) }
-  if (kind === 'timesAWeek') return { kind, times: Number(number) }
-  if (kind === 'everyTwoWeeks' || kind === 'onceAMonth') return { kind }
-  throw new Error(`Unknown repeat: ${value}`)
+// Labelled "1st" to "28th", under "Every month on the".
+export const MONTH_DAY_OPTIONS: RepeatOption[] = MONTH_DAYS.map((dayOfMonth) => ({
+  value: optionValue({ kind: 'monthly', dayOfMonth }),
+  label: ordinal(dayOfMonth),
+}))
+
+// Labelled as the schedule reads: "3 times a week".
+export const FLEXIBLE_OPTIONS: RepeatOption[] = FLEXIBLE_SCHEDULES.map((schedule) => ({
+  value: optionValue(schedule),
+  label: repeatText(schedule),
+}))
+
+const SCHEDULES_BY_VALUE = new Map(
+  [...WEEKLY_SCHEDULES, ...MONTHLY_SCHEDULES, ...FLEXIBLE_SCHEDULES].map((schedule) => [optionValue(schedule), schedule]),
+)
+
+// An option's value back as the schedule it stands for.
+export function scheduleOf(value: string): Schedule {
+  const schedule = SCHEDULES_BY_VALUE.get(value)
+  if (!schedule) throw new Error(`Unknown repeat: ${value}`)
+  return { ...schedule }
+}
+
+export function recurringReady(draft: { name: string }): boolean {
+  return draft.name.trim() !== ''
 }
 
 // Both pickers keep their choice, so switching between Fixed day and Flexible
@@ -270,16 +231,14 @@ export function emptyRecurringDraft(aspirationId = ''): RecurringDraft {
   return { name: '', fixedDay: true, fixed: WEEKDAY_OPTIONS[0].value, flexible: FLEXIBLE_OPTIONS[0].value, aspirationId }
 }
 
+// It can be due from today: the plan places it on its first day from here.
 export function recurringInput(draft: RecurringDraft, today: string): NewRecurringItem {
-  const choice = repeatChoice(draft.fixedDay ? draft.fixed : draft.flexible)
-  const input: NewRecurringItem = {
+  return {
     name: draft.name.trim(),
-    repeatRule: repeatRuleText(choice),
-    fixedDay: isFixedDay(choice),
-    nextDue: nextDue(choice, today),
+    aspirationId: draft.aspirationId || null,
+    schedule: scheduleOf(draft.fixedDay ? draft.fixed : draft.flexible),
+    startsOn: today,
   }
-  if (draft.aspirationId) input.aspirationId = draft.aspirationId
-  return input
 }
 
 export const RECURRING_CONFIRMATION = "Added. It will show up in the plan when it's next due."

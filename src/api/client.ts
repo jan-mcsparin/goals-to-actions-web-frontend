@@ -300,7 +300,7 @@ export async function retireAspiration(aspirationId: string, itsWork: 'pause' | 
   if (itsWork === 'pause') pauseWork(goals, items)
   else {
     for (const goal of goals) goal.aspirationId = null
-    for (const item of items) delete item.aspirationId
+    for (const item of items) item.aspirationId = null
   }
 
   aspiration.status = 'retired'
@@ -325,7 +325,7 @@ export async function bringBackAspiration(aspirationId: string): Promise<Aspirat
 export async function getUpkeep(): Promise<Upkeep> {
   const weekOf = thisWeek()
   return structuredClone({
-    recurringItems: store.recurringItems.filter((item) => item.active && item.aspirationId === undefined),
+    recurringItems: store.recurringItems.filter((item) => item.active && item.aspirationId === null),
     tasks: store.tasks.filter((task) => isLoose(task) && isWaiting(task) && task.weekOf >= weekOf),
   })
 }
@@ -439,12 +439,13 @@ export async function addRecurringItem(item: NewRecurringItem): Promise<Recurrin
   const added: RecurringItem = {
     id: newId('rec'),
     name,
-    repeatRule: item.repeatRule,
-    fixedDay: item.fixedDay,
+    aspirationId: item.aspirationId ?? null,
+    fromGoalId: item.fromGoalId ?? null,
+    schedule: item.schedule,
+    startsOn: item.startsOn,
     active: true,
-    nextDue: item.nextDue,
+    createdAt: new Date().toISOString(),
   }
-  if (item.aspirationId) added.aspirationId = item.aspirationId
   store.recurringItems.push(added)
   return structuredClone(added)
 }

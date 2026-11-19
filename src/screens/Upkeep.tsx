@@ -35,7 +35,7 @@ export function Upkeep({ today, onBack }: UpkeepProps) {
                 {view.recurring.map((item) => (
                   <li key={item.id}>
                     <span className="upkeep-title">{item.name}</span>
-                    <span className="upkeep-detail">{item.repeatRule}</span>
+                    <span className="upkeep-detail">{item.repeat}</span>
                   </li>
                 ))}
               </ul>

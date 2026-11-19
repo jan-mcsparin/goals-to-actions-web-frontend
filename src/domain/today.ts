@@ -2,6 +2,7 @@
 // these sections as they come; all grouping, ordering and wording lives here.
 import { fromLocalDay } from '../api/dates.ts'
 import type { Aspiration, Bank, DayPlan, Goal, Task, TimeOfDay } from '../api/types.ts'
+import { isFixedDay } from './recurring.ts'
 
 export type TaskRow = {
   task: Task
@@ -117,7 +118,7 @@ function rowFor(task: Task, subline?: string): TaskRow {
 
 function maintenanceRow(task: Task, plan: DayPlan): TaskRow {
   const item = plan.recurringItems.find((candidate) => candidate.id === task.recurringItemId)
-  return item?.fixedDay ? { ...rowFor(task), fixed: true } : rowFor(task)
+  return item && isFixedDay(item.schedule) ? { ...rowFor(task), fixed: true } : rowFor(task)
 }
 
 function sublineFor(task: Task, records: Pick<DayPlan, 'goals' | 'aspirations'>): string | undefined {
