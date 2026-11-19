@@ -173,11 +173,11 @@ From the review of Task 5:
 - `client.ts` branches on `realApi`.
 
 **Acceptance criteria:**
-- [ ] Each real function sends the right method, path and body (stubbed `fetch`).
-- [ ] With the switch on, no mock goal or milestone reaches the three screens.
+- [x] Each real function sends the right method, path and body (stubbed `fetch`).
+- [x] With the switch on, no mock goal or milestone reaches the three screens.
 
 **Verification:**
-- [ ] `npm test && npm run lint && npm run build`
+- [x] `npm test && npm run lint && npm run build`
 
 **Dependencies:** Task 6
 

@@ -11,7 +11,7 @@ React + Vite + TypeScript, client-rendered, no SSR. PWA via vite-plugin-pwa (man
 ```
 src/
   config.ts        APP_NAME and other product constants (the only place the name appears in code)
-  api/             API client functions + types. openapi.ts is generated; realAspirations.ts is the part on the real API
+  api/             API client functions + types. openapi.ts is generated; realAspirations.ts and realGoals.ts are the parts on the real API
   domain/          plain TS: planning, pacing, rollover rules. No React imports. Unit-tested.
   storage/         On-device storage: Today's view choice and the open screen (localStorage) now; IndexedDB plan cache + offline queue later, once there's an API
   hooks/           React hooks wrapping api/, domain/ and storage/

@@ -1,6 +1,7 @@
 // The functions screens and hooks call. They read the in-memory mock store,
-// except that with the switch on real (mode.ts) the aspiration ones call the
-// API instead (realAspirations.ts), with the same signatures.
+// except that with the switch on real (mode.ts) the aspiration and goal ones
+// call the API instead (realAspirations.ts, realGoals.ts), with the same
+// signatures.
 import { mondayOf, toLocalDay } from './dates.ts'
 import { taskWeek } from '../domain/add.ts'
 import { isWithinGoal, MOST_SESSIONS, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
@@ -11,6 +12,7 @@ import type { StoredCheckIn, StoredGoal, StoredMilestone } from './mockData.ts'
 import { store } from './mockStore.ts'
 import { realApi } from './mode.ts'
 import * as real from './realAspirations.ts'
+import * as realGoals from './realGoals.ts'
 import type {
   Aspiration,
   AspirationDetail,
@@ -100,6 +102,7 @@ export async function getAspiration(aspirationId: string): Promise<AspirationDet
 
 // As the API's page: positions and results worked out from the store.
 export async function getGoal(goalId: string): Promise<GoalDetail> {
+  if (realApi) return realGoals.getGoal(goalId)
   const goal = findGoal(goalId)
   const aspiration = store.aspirations.find((candidate) => candidate.id === goal.aspirationId)
   return structuredClone({
@@ -114,6 +117,7 @@ export async function getGoal(goalId: string): Promise<GoalDetail> {
 // A count target, from this week. A second change in the same week updates
 // that week's row, so earlier weeks keep the target they had.
 export async function setWeeklyTarget(goalId: string, target: WeeklyTargetInput): Promise<Goal> {
+  if (realApi) return realGoals.setWeeklyTarget(goalId, target)
   const goal = findCurrentGoal(goalId)
   const checked = checkedTarget(goal.type, target)
 
@@ -129,6 +133,7 @@ export async function addMilestone(
   goalId: string,
   milestone: { measurableLine: string; targetDate?: string },
 ): Promise<GoalDetail> {
+  if (realApi) return realGoals.addMilestone(goalId, milestone)
   const goal = findCurrentGoal(goalId)
   const measurableLine = milestone.measurableLine.trim()
   if (!measurableLine) throw new Error('A milestone needs a measurable line')
@@ -149,6 +154,7 @@ export async function checkIn(
   outcome: 'hit' | 'notYet',
   result?: string,
 ): Promise<GoalDetail> {
+  if (realApi) return realGoals.checkIn(goalId, milestoneId, outcome, result)
   const goal = findCurrentGoal(goalId)
   const next = nextMilestone(milestonesOf(goalId))
   const milestone = milestoneId === null ? undefined : findMilestone(milestoneId)
@@ -168,6 +174,7 @@ export async function checkIn(
 // not-yet milestone goes back to upcoming; a hit one stays hit. A later date
 // pushes the ones after it out. Its check-ins stay.
 export async function updateMilestone(milestoneId: string, edit: MilestoneEdit): Promise<GoalDetail> {
+  if (realApi) return realGoals.updateMilestone(milestoneId, edit)
   const milestone = findMilestone(milestoneId)
   const goal = findCurrentGoal(milestone.goalId)
   const measurableLine = edit.measurableLine.trim()
@@ -190,6 +197,7 @@ export async function updateMilestone(milestoneId: string, edit: MilestoneEdit):
 // Keep the date: a not-yet milestone back to upcoming. An upcoming one stays
 // as it is; a hit one can't be kept.
 export async function keepMilestone(milestoneId: string): Promise<GoalDetail> {
+  if (realApi) return realGoals.keepMilestone(milestoneId)
   const milestone = findMilestone(milestoneId)
   findCurrentGoal(milestone.goalId)
   if (milestone.status === 'hit') throw new Error(`${milestoneId} is already hit`)
@@ -200,6 +208,7 @@ export async function keepMilestone(milestoneId: string): Promise<GoalDetail> {
 // Its not-done tasks this week are set aside (skipped), keeping their day,
 // as when an aspiration is retired with "Pause them".
 export async function pauseGoal(goalId: string): Promise<Goal> {
+  if (realApi) return realGoals.pauseGoal(goalId)
   const goal = findGoal(goalId)
   if (goal.status !== 'active') throw new Error(`${goalId} is ${goal.status}`)
   pauseWork([goal], [])
@@ -209,6 +218,7 @@ export async function pauseGoal(goalId: string): Promise<Goal> {
 // Active again, from paused: its set-aside tasks this week go back to the
 // bank. Allowed under a retired aspiration: the goal keeps it.
 export async function resumeGoal(goalId: string): Promise<Goal> {
+  if (realApi) return realGoals.resumeGoal(goalId)
   return changeStatus(goalId, ['paused'], 'active', (goal) => {
     const weekOf = thisWeek()
     for (const task of store.tasks) {
@@ -220,21 +230,25 @@ export async function resumeGoal(goalId: string): Promise<Goal> {
 
 // Active again after reaching it by mistake; the end date goes.
 export async function reopenGoal(goalId: string): Promise<Goal> {
+  if (realApi) return realGoals.reopenGoal(goalId)
   return changeStatus(goalId, ['reached'], 'active', comeBack)
 }
 
 // The same goal, active again after ending it; the end date goes.
 export async function goAgain(goalId: string): Promise<Goal> {
+  if (realApi) return realGoals.goAgain(goalId)
   return changeStatus(goalId, ['ended'], 'active', comeBack)
 }
 
 // Ended for now, today. Its tasks stay as they are.
 export async function endGoal(goalId: string): Promise<Goal> {
+  if (realApi) return realGoals.endGoal(goalId)
   return changeStatus(goalId, ['active', 'paused'], 'ended', (goal) => finish(goal, 'ended'))
 }
 
 // Reached today, as a hit on the goal's own line does. Its tasks stay as they are.
 export async function markGoalReached(goalId: string): Promise<Goal> {
+  if (realApi) return realGoals.markGoalReached(goalId)
   return changeStatus(goalId, ['active', 'paused'], 'reached', (goal) => finish(goal, 'reached'))
 }
 
@@ -359,6 +373,7 @@ const MOST_STAND_IN_TASKS = 7
 // is stored. A weekly target's tasks stand in for the planner, so the new
 // goal can be followed into the week.
 export async function createGoal(goal: NewGoal): Promise<Goal> {
+  if (realApi) return realGoals.createGoal(goal)
   const label = goal.label.trim()
   const measurableLine = goal.measurableLine.trim()
   if (!label || !measurableLine) throw new Error('A goal needs a label and a measurable line')

@@ -9,7 +9,8 @@ import {
   retireAspiration,
   updateAspiration,
 } from './realAspirations.ts'
-import type { Aspiration } from './types.ts'
+import { GOAL_DEFAULTS, listed } from '../test/goals.ts'
+import type { Aspiration, Goal, ListedGoal } from './types.ts'
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
@@ -37,12 +38,19 @@ function reply(body: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }))
 }
 
-// Answers like the API would, from a list of aspirations it keeps.
-function serve(aspirations: Aspiration[]) {
+function goal(id: string, aspirationId: string | null): Goal {
+  return { ...GOAL_DEFAULTS, id, label: id, measurableLine: '-', type: 'building', status: 'active', startDate: '2026-10-05', aspirationId }
+}
+
+const [STRONG, CLEAN_HOUSE, READING] = listed([goal('strong', 'fit'), goal('clean-house', 'home'), goal('reading', null)])
+
+// Answers like the API would, from the aspirations and goals it keeps.
+function serve(aspirations: Aspiration[], goals: ListedGoal[] = []) {
   let rows = structuredClone(aspirations)
   fetchMock.mockImplementation(async (url, init) => {
     const path = String(url)
     if (init?.method === 'GET' && path === '/api/aspirations') return reply({ aspirations: rows })
+    if (init?.method === 'GET' && path === '/api/goals') return reply({ goals })
     if (init?.method === 'POST' && path === '/api/aspirations/reorder') {
       const { ids } = JSON.parse(String(init.body)) as { ids: string[] }
       rows = rows.map((row) => (ids.includes(row.id) ? { ...row, position: ids.indexOf(row.id) + 1 } : row))
@@ -67,26 +75,27 @@ afterEach(() => {
 })
 
 describe('getAspirations', () => {
-  it('lists the aspirations, with nothing else until the goals screens move to the API', async () => {
-    serve([FIT, SPANISH])
+  // Recurring items and this week's tasks wait for their own screens (#42).
+  it('lists the aspirations and every goal, with their progress', async () => {
+    serve([FIT, SPANISH], [STRONG, READING])
 
     expect(await getAspirations()).toEqual({
       aspirations: [FIT, SPANISH],
-      goals: [],
+      goals: [STRONG, READING],
       recurringItems: [],
       weekTasks: [],
     })
-    expect(sent()).toMatchObject({ url: '/api/aspirations', method: 'GET' })
+    expect(fetchMock.mock.calls.map(([url]) => url).sort()).toEqual(['/api/aspirations', '/api/goals'])
   })
 })
 
 describe('getAspiration', () => {
-  it('picks the aspiration from the list and counts the active ones', async () => {
-    serve([FIT, HOME, SPANISH])
+  it('picks the aspiration and its goals from the lists, and counts the active ones', async () => {
+    serve([FIT, HOME, SPANISH], [STRONG, CLEAN_HOUSE, READING])
 
     expect(await getAspiration('home')).toEqual({
       aspiration: HOME,
-      goals: [],
+      goals: [CLEAN_HOUSE],
       recurringItems: [],
       weekTasks: [],
       activeCount: 2,

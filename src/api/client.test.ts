@@ -1579,9 +1579,13 @@ describe('setIntensity', () => {
 describe('the mock or real switch', () => {
   const fetchMock = vi.fn<typeof fetch>()
 
+  // Each list empty, and anything else answered with an empty object.
   beforeEach(() => {
     fetchMock.mockReset()
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ aspirations: [] }), { status: 200 }))
+    fetchMock.mockImplementation(async (url) => {
+      const lists: Record<string, unknown> = { '/api/aspirations': { aspirations: [] }, '/api/goals': { goals: [] } }
+      return new Response(JSON.stringify(lists[String(url)] ?? {}), { status: 200 })
+    })
     vi.stubGlobal('fetch', fetchMock)
   })
 
@@ -1591,23 +1595,52 @@ describe('the mock or real switch', () => {
     vi.resetModules()
   })
 
+  function paths() {
+    return fetchMock.mock.calls.map(([url, init]) => `${init?.method} ${String(url).replace(/[0-9a-f-]{36}/, '{id}')}`)
+  }
+
   it('keeps everything on the mock by default', async () => {
     await getAspirations()
+    await getGoal('goal-strong')
     await getDay('2026-11-11')
 
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('sends the aspiration functions to the API with VITE_API=real, and leaves the rest on the mock', async () => {
+  it('sends the aspiration and goal functions to the API with VITE_API=real, and leaves the rest on the mock', async () => {
     vi.stubEnv('VITE_API', 'real')
     vi.resetModules()
     const client = await import('./client.ts')
 
     expect(await client.getAspirations()).toMatchObject({ aspirations: [], goals: [] })
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/aspirations')
-
+    await client.getAspiration('a1').catch(() => {})
+    await client.getGoal('g1')
+    await client.createGoal({ label: 'Be strong', measurableLine: 'Bench 175', type: 'building' })
+    await client.setWeeklyTarget('g1', countOf(3, 'lifting sessions'))
+    await client.addMilestone('g1', { measurableLine: 'Bench 172' })
+    await client.updateMilestone('m1', { measurableLine: 'Bench 172', targetDate: null })
+    await client.keepMilestone('m1')
+    await client.checkIn('g1', null, 'hit')
+    for (const change of [client.pauseGoal, client.resumeGoal, client.endGoal, client.markGoalReached, client.reopenGoal, client.goAgain]) {
+      await change('g1')
+    }
     await client.getDay('2026-11-11')
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    expect(paths().slice(0, 2).sort()).toEqual(['GET /api/aspirations', 'GET /api/goals'])
+    expect(paths().slice(4)).toEqual([
+      'GET /api/goals/g1',
+      'PUT /api/goals/{id}',
+      'PUT /api/goals/g1/weekly-target',
+      'PUT /api/milestones/{id}',
+      'PATCH /api/milestones/m1',
+      'POST /api/milestones/m1/keep',
+      'PUT /api/check-ins/{id}',
+      'POST /api/goals/g1/pause',
+      'POST /api/goals/g1/resume',
+      'POST /api/goals/g1/end',
+      'POST /api/goals/g1/mark-reached',
+      'POST /api/goals/g1/reopen',
+      'POST /api/goals/g1/go-again',
+    ])
   })
 })
