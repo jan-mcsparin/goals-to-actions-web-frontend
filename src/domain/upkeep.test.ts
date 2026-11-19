@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import type { RecurringItem, Task } from '../api/types.ts'
 import { upkeepView, whereLabel } from './upkeep.ts'
+import { aTask } from '../test/tasks.ts'
 
 const WEDNESDAY = '2026-11-11'
 
 function task(id: string, extra: Partial<Task> = {}): Task {
-  return { id, title: id, status: 'inBank', weekOf: '2026-11-09', rolloverCount: 0, ...extra }
+  return aTask(id, extra)
 }
 
 function onDay(id: string, plannedDay: string, extra: Partial<Task> = {}): Task {
-  return task(id, { status: 'planned', plannedDay, ...extra })
+  return task(id, { plannedDay, ...extra })
 }
 
 const rent: RecurringItem = {
@@ -34,7 +35,7 @@ describe('upkeepView', () => {
     const tasks = [
       onDay('Groceries', '2026-11-12'),
       task('Call the dentist'),
-      task('Renew the insurance', { weekOf: '2026-11-23' }),
+      task('Renew the insurance', { week: '2026-11-23' }),
     ]
 
     const { todo } = upkeepView({ recurringItems: [], tasks }, WEDNESDAY)
@@ -56,7 +57,7 @@ describe('upkeepView', () => {
 
   it('orders tasks by day, then the bank, then later weeks', () => {
     const tasks = [
-      task('later', { weekOf: '2026-11-16' }),
+      task('later', { week: '2026-11-16' }),
       task('bank'),
       onDay('saturday', '2026-11-14'),
       onDay('today', WEDNESDAY),
@@ -74,7 +75,7 @@ describe('upkeepView', () => {
 
 describe('whereLabel', () => {
   it('names a later week even when the task already has a day in it', () => {
-    expect(whereLabel(onDay('later', '2026-11-25', { weekOf: '2026-11-23' }), WEDNESDAY)).toBe('Week of Nov 23')
+    expect(whereLabel(onDay('later', '2026-11-25', { week: '2026-11-23' }), WEDNESDAY)).toBe('Week of Nov 23')
   })
 
   it('names an earlier day of this week by its weekday', () => {
@@ -83,6 +84,6 @@ describe('whereLabel', () => {
 
   it('works out this week from any day in it', () => {
     expect(whereLabel(task('bank'), '2026-11-15')).toBe('In the bank')
-    expect(whereLabel(task('next', { weekOf: '2026-11-16' }), '2026-11-15')).toBe('Week of Nov 16')
+    expect(whereLabel(task('next', { week: '2026-11-16' }), '2026-11-15')).toBe('Week of Nov 16')
   })
 })

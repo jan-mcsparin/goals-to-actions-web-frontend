@@ -1,6 +1,6 @@
 // This week, ready to render: progress per goal, a line per day, and the bank.
 // Loads through the API client; rules come from domain/week.ts.
-import { getWeek, pullFromBank } from '../api/client.ts'
+import { getWeek, placeTask } from '../api/client.ts'
 import { mondayOfDay } from '../api/dates.ts'
 import type { Task, WeekPlan } from '../api/types.ts'
 import {
@@ -14,6 +14,7 @@ import {
 } from '../domain/week.ts'
 import { withTaskReplaced } from './planUpdates.ts'
 import { useLoaded } from './useLoaded.ts'
+import { isInBank, placedOnDay, weekOf } from '../domain/tasks'
 
 const LOAD_FAILED = "Couldn't load this week. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
@@ -40,11 +41,13 @@ export function useWeek(today: string): UseWeek {
   function place(bankTaskId: string, date: string) {
     const before = plan?.tasks.find((task) => task.id === bankTaskId)
     if (!before) return
+    const week = weekOf(before)
+    if (week === null) return
 
-    replaceTask({ ...before, status: 'planned', plannedDay: date, placedByHand: true })
+    replaceTask(placedOnDay(before, date))
     setMessage(undefined)
 
-    pullFromBank(bankTaskId, date)
+    placeTask(bankTaskId, week, date)
       .then(replaceTask)
       .catch(() => {
         replaceTask(before)
@@ -64,7 +67,7 @@ function viewOf(plan: WeekPlan, today: string): WeekView {
   return {
     progress: weekProgress(plan, today),
     days: daySummaries(plan, today),
-    bank: plan.tasks.filter((task) => task.status === 'inBank'),
+    bank: plan.tasks.filter(isInBank),
     pickableDays: pickableDays(plan.weekOf, today),
   }
 }

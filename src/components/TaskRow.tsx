@@ -2,6 +2,7 @@ import type { TaskRow as TaskRowData } from '../domain/today.ts'
 import { TaskMenu } from './TaskMenu.tsx'
 import './TaskRow.css'
 import './taskText.css'
+import { isDone } from '../domain/tasks'
 
 type TaskRowProps = {
   row: TaskRowData
@@ -15,7 +16,7 @@ type TaskRowProps = {
 // fixed-day items, which stay on their day.
 export function TaskRow({ row, onToggle, onSendToBank, onSwap }: TaskRowProps) {
   const { task, timeLabel, subline } = row
-  const done = task.status === 'done'
+  const done = isDone(task)
   const titleId = `task-${task.id}-title`
   const timeId = `task-${task.id}-time`
   const sublineId = `task-${task.id}-subline`

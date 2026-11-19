@@ -5,6 +5,7 @@ import { resetStore, store } from '../api/mockStore.ts'
 import type { Task } from '../api/types.ts'
 import { NEW_ASPIRATION } from '../domain/add.ts'
 import { addOriginFor, useAdd, type AddOrigin } from './useAdd.ts'
+import { aTask } from '../test/tasks.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
@@ -148,7 +149,7 @@ describe('useAdd', () => {
     act(() => void result.current.save())
     expect(result.current.canSave).toBe(false)
     act(() => void result.current.save())
-    await act(async () => finish({ id: 't', title: 'Fill out my ballot', status: 'inBank', weekOf: '2026-11-09', rolloverCount: 0 }))
+    await act(async () => finish(aTask('t', { title: 'Fill out my ballot' })))
 
     expect(addTask).toHaveBeenCalledTimes(1)
   })

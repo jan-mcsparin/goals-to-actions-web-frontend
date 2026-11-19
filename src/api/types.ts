@@ -39,29 +39,11 @@ export type Schedule = Schemas['RecurringItem']['schedule']
 // Keep life running. startsOn is the first day it can be due.
 export type RecurringItem = Schemas['RecurringItem']
 
-export type TaskStatus = 'inBank' | 'planned' | 'done' | 'skipped'
+export type TimeOfDay = Schemas['TimeOfDay']
 
-export type TimeOfDay = {
-  kind: 'by' | 'at'
-  time: string // 'HH:MM', 24-hour
-}
-
-export type Task = {
-  id: string
-  title: string
-  status: TaskStatus
-  weekOf: string
-  plannedDay?: string
-  dueDate?: string
-  timeOfDay?: TimeOfDay
-  goalId?: string
-  recurringItemId?: string
-  valueLogged?: number
-  rolloverCount: number
-  completedAt?: string
-  // Set when the person puts the task on a day. The planner must never move it.
-  placedByHand?: boolean
-}
+// A task as the API sends it. `plannedDay` is empty in the bank, and `week` is empty while it
+// waits (the upcoming list) or is set aside.
+export type Task = Schemas['Task']
 
 // What the Add sheet sends to addTask. Not stored as is: the API places it.
 export type NewTask = {

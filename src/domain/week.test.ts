@@ -2,20 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { countTarget, GOAL_DEFAULTS, type TargetFor, withTargets } from '../test/goals.ts'
 import type { Aspiration, Goal, RecurringItem, Task, WeekPlan } from '../api/types.ts'
 import { daySummaries, pacingLine, pickableDays, weekProgress, weekRange } from './week.ts'
+import { aTask } from '../test/tasks.ts'
 
 const MONDAY = '2026-11-09'
 const WEDNESDAY = '2026-11-11'
 
 function task(id: string, plannedDay: string | undefined, fields: Partial<Task> = {}): Task {
-  return {
-    id,
-    title: id,
-    status: plannedDay ? 'planned' : 'inBank',
-    weekOf: MONDAY,
-    plannedDay,
-    rolloverCount: 0,
-    ...fields,
-  }
+  return aTask(id, { week: MONDAY, plannedDay: plannedDay ?? null, ...fields })
 }
 
 const fit: Aspiration = { id: 'asp-fit', name: 'Be fit', why: null, position: 1, status: 'active', createdAt: '2026-10-01T09:00:00Z', retiredOn: null }
@@ -61,11 +54,11 @@ describe('pacingLine', () => {
 describe('weekProgress', () => {
   it("counts the goal's done tasks and paces against the rest of the week", () => {
     const plan = week([
-      task('Lift Mon', MONDAY, { goalId: 'goal-strong', status: 'done' }),
+      task('Lift Mon', MONDAY, { goalId: 'goal-strong', state: 'done' }),
       task('Lift Tue', '2026-11-10', { goalId: 'goal-strong' }),
       task('Lift Wed', WEDNESDAY, { goalId: 'goal-strong' }),
       task('Lift bank', undefined, { goalId: 'goal-strong' }),
-      task('Read', WEDNESDAY, { goalId: 'goal-read', status: 'done' }),
+      task('Read', WEDNESDAY, { goalId: 'goal-read', state: 'done' }),
     ])
 
     expect(weekProgress(plan, WEDNESDAY)).toEqual([
@@ -82,7 +75,7 @@ describe('weekProgress', () => {
   // A goal carries its target whatever its status, and a paused goal can
   // still be in the week through its done or set-aside tasks.
   it('leaves out a goal that is not active', () => {
-    const plan = week([task('Lift Mon', MONDAY, { goalId: 'goal-strong', status: 'done' })])
+    const plan = week([task('Lift Mon', MONDAY, { goalId: 'goal-strong', state: 'done' })])
     plan.goals = plan.goals.map((goal) => ({ ...goal, status: 'paused' }))
 
     expect(weekProgress(plan, WEDNESDAY)).toEqual([])
@@ -111,12 +104,12 @@ describe('weekProgress', () => {
 
 describe('daySummaries', () => {
   const plan = week([
-    task('Lift', MONDAY, { status: 'done' }),
-    task('Laundry', MONDAY, { status: 'done' }),
+    task('Lift', MONDAY, { state: 'done' }),
+    task('Laundry', MONDAY, { state: 'done' }),
     task('Take out the trash', '2026-11-10', { timeOfDay: { kind: 'by', time: '07:00' }, recurringItemId: 'rec-trash' }),
     task('Pay rent', '2026-11-10'),
     task('Lift: bench day', WEDNESDAY, { timeOfDay: { kind: 'at', time: '18:00' } }),
-    task('Skipped', WEDNESDAY, { status: 'skipped' }),
+    task('Back in the bank', undefined),
     task('In the bank', undefined),
   ])
   const days = daySummaries(plan, WEDNESDAY)

@@ -3,6 +3,7 @@
 import { fromLocalDay } from '../api/dates.ts'
 import type { Aspiration, Bank, DayPlan, Goal, Task, TimeOfDay } from '../api/types.ts'
 import { isFixedDay } from './recurring.ts'
+import { isDone, isOnDay } from './tasks'
 
 export type TaskRow = {
   task: Task
@@ -38,7 +39,7 @@ export function progress(plan: DayPlan): Progress {
 }
 
 function countDone(tasks: Task[]): Progress {
-  return { done: tasks.filter((task) => task.status === 'done').length, total: tasks.length }
+  return { done: tasks.filter(isDone).length, total: tasks.length }
 }
 
 export function timeLabel({ kind, time }: TimeOfDay): string {
@@ -90,13 +91,13 @@ export function bankRows(bank: Bank): TaskRow[] {
   return bank.tasks.map((task) => rowFor(task, sublineFor(task, bank)))
 }
 
-// Skipped tasks have gone back to the bank, so they're no longer part of today.
+// A task that went back to the bank is no longer part of today.
 function visibleTasks(plan: DayPlan): Task[] {
-  return plan.tasks.filter((task) => task.status === 'planned' || task.status === 'done')
+  return plan.tasks.filter((task) => isOnDay(task))
 }
 
 function isMaintenance(task: Task): boolean {
-  return task.goalId === undefined
+  return task.goalId === null
 }
 
 // Timed tasks anchor the day in time order; untimed ones follow in plan order.

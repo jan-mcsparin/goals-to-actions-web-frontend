@@ -10,11 +10,12 @@ import {
   progress,
   timeLabel,
 } from './today.ts'
+import { aTask } from '../test/tasks.ts'
 
 const DAY = '2026-11-11'
 
 function task(id: string, fields: Partial<Task> = {}): Task {
-  return { id, title: id, status: 'planned', weekOf: '2026-11-09', plannedDay: DAY, rolloverCount: 0, ...fields }
+  return aTask(id, { plannedDay: DAY, ...fields })
 }
 
 const fit: Aspiration = { id: 'asp-fit', name: 'Be fit', why: null, position: 2, status: 'active', createdAt: '2026-10-01T09:00:00Z', retiredOn: null }
@@ -106,8 +107,8 @@ describe('groupForList', () => {
     expect(forward.rows[0]).toMatchObject({ timeLabel: 'at 6 p.m.', subline: 'Be strong · Be fit' })
   })
 
-  it('leaves out skipped tasks and empty groups', () => {
-    const sections = groupForList(plan([task('Ballot'), task('Lift', { goalId: 'goal-strong', status: 'skipped' })]))
+  it('leaves out tasks that went back to the bank, and empty groups', () => {
+    const sections = groupForList(plan([task('Ballot'), task('Lift', { goalId: 'goal-strong', plannedDay: null })]))
 
     expect(sections.map((section) => section.title)).toEqual(['Keep life running'])
   })
@@ -166,13 +167,13 @@ describe('groupByGoal', () => {
     expect(sections.map((section) => section.title)).toEqual(['Keep life running'])
   })
 
-  it('gives each card its own count for the day, ignoring skipped', () => {
+  it('gives each card its own count for the day, ignoring tasks back in the bank', () => {
     const sections = groupByGoal(
       plan([
-        task('Lift', { goalId: 'goal-strong', status: 'done' }),
+        task('Lift', { goalId: 'goal-strong', state: 'done' }),
         task('Run', { goalId: 'goal-strong' }),
-        task('Stretch', { goalId: 'goal-strong', status: 'skipped' }),
-        task('Trash', { recurringItemId: 'rec-trash', status: 'done' }),
+        task('Stretch', { goalId: 'goal-strong', plannedDay: null }),
+        task('Trash', { recurringItemId: 'rec-trash', state: 'done' }),
       ]),
     )
 
@@ -190,9 +191,9 @@ describe('groupByGoal', () => {
 })
 
 describe('progress', () => {
-  it('counts done over planned and done, ignoring skipped', () => {
+  it('counts done over planned and done, ignoring tasks back in the bank', () => {
     const result = progress(
-      plan([task('A', { status: 'done' }), task('B'), task('C'), task('D', { status: 'skipped' })]),
+      plan([task('A', { state: 'done' }), task('B'), task('C'), task('D', { plannedDay: null })]),
     )
 
     expect(result).toEqual({ done: 1, total: 3 })
@@ -217,8 +218,8 @@ describe('bankRows', () => {
     const bank: Bank = {
       weekOf: '2026-11-09',
       tasks: [
-        task('Deadlift', { status: 'inBank', plannedDay: undefined, goalId: 'goal-strong' }),
-        task('Dentist', { status: 'inBank', plannedDay: undefined, timeOfDay: { kind: 'by', time: '17:00' } }),
+        task('Deadlift', { plannedDay: null, goalId: 'goal-strong' }),
+        task('Dentist', { plannedDay: null, timeOfDay: { kind: 'by', time: '17:00' } }),
       ],
       goals: [strong],
       aspirations: [fit],
