@@ -593,7 +593,7 @@ export interface components {
             position: number;
             /**
              * Result
-             * @description Its hit check-in's result. Empty until it's hit.
+             * @description Its latest check-in's result, hit or not yet. Empty while it's upcoming.
              */
             result: string | null;
             /**
