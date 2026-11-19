@@ -50,12 +50,12 @@ export function daysLeftLabel(count: number): string {
 export function weekProgress(plan: WeekPlan, today: string): ProgressRow[] {
   const left = daysLeft(plan.weekOf, today)
   return goalsByPriority(plan).flatMap((goal) => {
-    const target = plan.weeklyTargets.find((candidate) => candidate.goalId === goal.id)
-    if (!target || goal.type !== 'building') return []
+    const target = goal.weeklyTarget
+    if (!target || goal.type !== 'building' || goal.status !== 'active') return []
     const goalTasks = plan.tasks.filter((task) => task.goalId === goal.id)
     const done = goalTasks.filter((task) => task.status === 'done').length
     const plannedAhead = goalTasks.filter((task) => isPlannedOnOrAfter(task, today)).length
-    return [progressRow(goal, plan, { done, plannedAhead, target: target.amount, daysLeft: left })]
+    return [progressRow(goal, plan, { done, plannedAhead, target: target.sessions, daysLeft: left })]
   })
 }
 

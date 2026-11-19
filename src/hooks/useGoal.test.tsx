@@ -118,13 +118,13 @@ describe('useGoal, saving', () => {
   it('starts the target sheet from the target in force', async () => {
     const { result } = await loaded()
 
-    expect(result.current.targetDraft).toEqual({ amount: '3', unit: 'lifting sessions' })
+    expect(result.current.targetDraft).toEqual({ sessions: '3', unit: 'lifting sessions' })
   })
 
   it('shows a new target at once and saves it', async () => {
     const { result } = await loaded()
 
-    act(() => result.current.setTarget({ amount: '4', unit: 'lifting sessions' }))
+    act(() => result.current.setTarget({ sessions: '4', unit: 'lifting sessions' }))
 
     expect(targetLine(result.current.page)).toBe('4 lifting sessions')
     await waitFor(() => expect(setWeeklyTarget).toHaveBeenCalledWith('goal-strong', 4, 'lifting sessions'))
@@ -133,7 +133,7 @@ describe('useGoal, saving', () => {
   it('ignores a target that can’t be saved', async () => {
     const { result } = await loaded()
 
-    act(() => result.current.setTarget({ amount: '0', unit: 'lifting sessions' }))
+    act(() => result.current.setTarget({ sessions: '0', unit: 'lifting sessions' }))
 
     expect(targetLine(result.current.page)).toBe('3 lifting sessions')
     expect(setWeeklyTarget).not.toHaveBeenCalled()
@@ -158,7 +158,7 @@ describe('useGoal, saving', () => {
     vi.mocked(addMilestone).mockRejectedValueOnce(new Error('offline'))
     const { result } = await loaded()
 
-    act(() => result.current.setTarget({ amount: '4', unit: 'lifting sessions' }))
+    act(() => result.current.setTarget({ sessions: '4', unit: 'lifting sessions' }))
     act(() => result.current.addMilestone({ measurableLine: 'Bench 172', targetDate: '' }))
 
     await waitFor(() => expect(result.current.message).toBe("Couldn't save that. Try again."))

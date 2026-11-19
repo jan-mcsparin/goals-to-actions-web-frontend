@@ -68,13 +68,13 @@ Test dates are fixed to Wednesday 11 Nov 2026. Every API task runs the API repo'
 - The domain, `useGoal`, `useAdd` and the form read the new shape. Count targets only.
 
 **Acceptance criteria:**
-- [ ] No hand-written goal or target type is left in `types.ts`.
-- [ ] Every screen looks as it did. The Target sheet and Goal form still say "3 sessions".
-- [ ] Any assertion changed beyond a name or fixture is listed in the commit message.
+- [x] No hand-written goal or target type is left in `types.ts`.
+- [x] Every screen looks as it did. The Target sheet and Goal form still say "3 sessions".
+- [x] Any assertion changed beyond a name or fixture is listed in the commit message.
 
 **Verification:**
-- [ ] `npm test && npm run lint && npm run build`
-- [ ] Renaming a field in `mockData.ts` fails the build.
+- [x] `npm test && npm run lint && npm run build`
+- [x] Renaming a field in `mockData.ts` fails the build.
 
 **Dependencies:** Checkpoint 1
 

@@ -20,7 +20,6 @@ describe.each([
       ...data.aspirations,
       ...data.goals,
       ...data.milestones,
-      ...data.weeklyTargets,
       ...data.recurringItems,
       ...data.tasks,
     ].map((record) => record.id)
@@ -86,7 +85,7 @@ describe('mock data contents', () => {
 
   it('gives Be strong a baseline, a weekly target and five milestones', () => {
     const strong = data.goals.find((goal) => goal.label === 'Be strong')
-    expect(strong?.baseline).toBeDefined()
+    expect(strong?.baseline).toBeTruthy()
     expect(data.weeklyTargets.filter((target) => target.goalId === strong?.id)).toHaveLength(1)
 
     const milestones = data.milestones.filter((milestone) => milestone.goalId === strong?.id)
@@ -103,7 +102,7 @@ describe('mock data contents', () => {
 
   it('gives Have endurance two runs a week, one done on Monday and one in the bank', () => {
     const runs = data.tasks.filter((task) => task.goalId === 'goal-endurance')
-    expect(data.weeklyTargets.find((target) => target.goalId === 'goal-endurance')?.amount).toBe(2)
+    expect(data.weeklyTargets.find((target) => target.goalId === 'goal-endurance')?.sessions).toBe(2)
     expect(runs.map((task) => [task.status, task.plannedDay])).toEqual([
       ['done', '2026-11-09'],
       ['inBank', undefined],

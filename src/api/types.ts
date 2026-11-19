@@ -11,22 +11,11 @@ type Schemas = components['schemas']
 export type Aspiration = Schemas['Aspiration']
 export type AspirationStatus = Aspiration['status']
 
-export type GoalType = 'building' | 'quitting' | 'oneOff'
-export type GoalStatus = 'active' | 'paused' | 'reached' | 'ended'
-
-export type Goal = {
-  id: string
-  label: string
-  measurableLine: string
-  type: GoalType
-  baseline?: string
-  status: GoalStatus
-  startDate: string
-  deadline?: string
-  lastReviewedAt?: string
-  endedAt?: string // a day, set when reached or ended
-  aspirationId?: string
-}
+// Empty fields are null. weeklyTarget is the latest target (building goals
+// only); slipped is worked out by the API: active, with its deadline passed.
+export type Goal = Schemas['Goal']
+export type GoalType = Goal['type']
+export type GoalStatus = Goal['status']
 
 export type MilestoneStatus = 'upcoming' | 'hit' | 'notYet'
 
@@ -40,14 +29,10 @@ export type Milestone = {
   checkedInOn?: string
 }
 
-// A change adds a new row with a later effectiveFrom, so history is kept.
-export type WeeklyTarget = {
-  id: string
-  goalId: string
-  amount: number
-  unit: string
-  effectiveFrom: string
-}
+// A count ("3 lifting sessions") or an amount ("25 miles over 4 runs"). The
+// screens make count targets only for now (#32).
+export type WeeklyTarget = Schemas['WeeklyTarget']
+export type WeeklyTargetInput = Schemas['WeeklyTargetInput']
 
 export type RecurringItem = {
   id: string
@@ -92,17 +77,8 @@ export type NewTask = {
   onToday?: boolean
 }
 
-// What the Add sheet sends to addGoal. Status and ids are the API's.
-export type NewGoal = {
-  label: string
-  measurableLine: string
-  type: GoalType
-  aspirationId?: string
-  baseline?: string
-  startDate?: string // today when left out
-  deadline?: string
-  weeklyTarget?: { amount: number; unit: string } // building only
-}
+// What the Add sheet sends to addGoal. A building goal sends its target too.
+export type NewGoal = Schemas['NewGoal']
 
 // What the Add sheet sends to addAspiration. It goes last in priority.
 export type NewAspiration = Schemas['AspirationInput']
@@ -135,14 +111,13 @@ export type DayPlan = {
 }
 
 // Every task in a week (planned, done and in the bank), with what they
-// reference and each active goal's current weekly target.
+// reference, and every active goal with a weekly target.
 export type WeekPlan = {
   weekOf: string
   tasks: Task[]
   goals: Goal[]
   aspirations: Aspiration[]
   recurringItems: RecurringItem[]
-  weeklyTargets: WeeklyTarget[]
 }
 
 // This week's tasks not yet on a day, with what they reference (like DayPlan).
@@ -161,7 +136,6 @@ export type AspirationsOverview = {
   goals: Goal[] // every status
   milestones: Milestone[] // for those goals, in each goal's order
   recurringItems: RecurringItem[] // active ones
-  weeklyTargets: WeeklyTarget[] // the target in force this week, per active goal
   weekTasks: Task[] // this week's tasks that belong to a goal
 }
 
@@ -171,7 +145,6 @@ export type AspirationDetail = {
   goals: Goal[] // its goals, every status
   milestones: Milestone[] // for those goals, in each goal's order
   recurringItems: RecurringItem[] // its items, active or not
-  weeklyTargets: WeeklyTarget[] // the target in force this week, per active goal
   weekTasks: Task[] // this week's tasks for its goals
   activeCount: number // active aspirations, for "1st of 3"
 }
@@ -181,7 +154,6 @@ export type GoalDetail = {
   goal: Goal
   aspiration?: Aspiration
   milestones: Milestone[] // in order
-  weeklyTarget?: WeeklyTarget // in force this week, whatever the goal's status
 }
 
 // Keep life running: what has to happen but rolls up to no goal or aspiration.

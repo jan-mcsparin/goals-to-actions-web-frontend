@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { countTarget, GOAL_DEFAULTS, type TargetFor, withTargets } from '../test/goals.ts'
 import type {
   Aspiration,
   AspirationsOverview,
@@ -7,7 +8,6 @@ import type {
   MilestoneStatus,
   RecurringItem,
   Task,
-  WeeklyTarget,
 } from '../api/types.ts'
 import {
   aspirationCards,
@@ -28,6 +28,7 @@ function aspiration(id: string, position: number, extra: Partial<Aspiration> = {
 
 function goal(id: string, extra: Partial<Goal> = {}): Goal {
   return {
+    ...GOAL_DEFAULTS,
     id,
     label: id,
     measurableLine: 'A measurable line',
@@ -48,8 +49,8 @@ function milestones(goalId: string, ...statuses: MilestoneStatus[]): Milestone[]
   }))
 }
 
-function target(goalId: string, amount: number): WeeklyTarget {
-  return { id: `wt-${goalId}`, goalId, amount, unit: 'sessions', effectiveFrom: '2026-10-05' }
+function target(goalId: string, sessions: number): TargetFor {
+  return countTarget(goalId, sessions)
 }
 
 function tasks(goalId: string, ...statuses: Task['status'][]): Task[] {
@@ -67,15 +68,15 @@ function recurring(name: string, aspirationId?: string, active = true): Recurrin
   return { id: `rec-${name}`, name, repeatRule: 'Once a week', fixedDay: false, active, nextDue: '2026-11-15', aspirationId }
 }
 
-function overviewOf(parts: Partial<AspirationsOverview>): AspirationsOverview {
+// Targets are given per goal and put on their goals.
+function overviewOf({ weeklyTargets, ...parts }: Partial<AspirationsOverview> & { weeklyTargets?: TargetFor[] }): AspirationsOverview {
   return {
     aspirations: [aspiration('fit', 1)],
-    goals: [],
     milestones: [],
     recurringItems: [],
-    weeklyTargets: [],
     weekTasks: [],
     ...parts,
+    goals: withTargets(parts.goals ?? [], weeklyTargets),
   }
 }
 
@@ -106,7 +107,7 @@ describe('aspirationCards', () => {
           goal('mobility', { status: 'paused' }),
           goal('5k', { status: 'reached' }),
           goal('swim', { status: 'ended' }),
-          goal('passport', { aspirationId: undefined }),
+          goal('passport', { aspirationId: null }),
         ],
       }),
     )
@@ -264,10 +265,10 @@ describe('otherGoals', () => {
       overviewOf({
         goals: [
           goal('strong'),
-          goal('passport', { aspirationId: undefined, type: 'oneOff', deadline: '2026-12-19' }),
-          goal('reading', { aspirationId: undefined, status: 'paused' }),
-          goal('taxes', { aspirationId: undefined, type: 'oneOff', status: 'reached' }),
-          goal('blog', { aspirationId: undefined, status: 'ended' }),
+          goal('passport', { aspirationId: null, type: 'oneOff', deadline: '2026-12-19' }),
+          goal('reading', { aspirationId: null, status: 'paused' }),
+          goal('taxes', { aspirationId: null, type: 'oneOff', status: 'reached' }),
+          goal('blog', { aspirationId: null, status: 'ended' }),
         ],
       }),
     )
@@ -303,7 +304,7 @@ describe('otherGoals', () => {
   })
 
   it('is kept when only past goals have no aspiration', () => {
-    const other = otherGoals(overviewOf({ goals: [goal('taxes', { aspirationId: undefined, status: 'reached' })] }))
+    const other = otherGoals(overviewOf({ goals: [goal('taxes', { aspirationId: null, status: 'reached' })] }))
 
     expect(other?.goals).toEqual([])
     expect(other?.past).toHaveLength(1)
@@ -335,7 +336,7 @@ describe('aspirationsView', () => {
     expect(aspirationsView(overviewOf({ aspirations: [] })).isEmpty).toBe(true)
     expect(aspirationsView(overviewOf({})).isEmpty).toBe(false)
     expect(
-      aspirationsView(overviewOf({ aspirations: [], goals: [goal('passport', { aspirationId: undefined })] })).isEmpty,
+      aspirationsView(overviewOf({ aspirations: [], goals: [goal('passport', { aspirationId: null })] })).isEmpty,
     ).toBe(false)
   })
 
@@ -343,7 +344,7 @@ describe('aspirationsView', () => {
     const view = aspirationsView(
       overviewOf({
         aspirations: [aspiration('fit', 1), aspiration('spanish', 2, { status: 'retired' })],
-        goals: [goal('strong'), goal('passport', { aspirationId: undefined })],
+        goals: [goal('strong'), goal('passport', { aspirationId: null })],
         recurringItems: [recurring('Pay rent')],
       }),
     )

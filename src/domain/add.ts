@@ -98,7 +98,7 @@ export function emptyGoalDraft(): GoalDraft {
     aspirationId: '',
     newAspirationName: '',
     baseline: '',
-    target: { amount: '', unit: '' },
+    target: { sessions: '', unit: '' },
     startDate: '',
     deadline: '',
   }
@@ -147,7 +147,7 @@ export function goalConfirmation(type: GoalType): string {
 }
 
 function targetBlankOrWhole(target: TargetDraft): boolean {
-  const blank = !target.amount.trim() && !target.unit.trim()
+  const blank = !target.sessions.trim() && !target.unit.trim()
   return blank || parsedTarget(target) !== undefined
 }
 

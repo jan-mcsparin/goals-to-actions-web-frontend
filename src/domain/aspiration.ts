@@ -163,10 +163,10 @@ function goalCard(goal: Goal, detail: AspirationDetail): GoalCard {
 // Building goals only, while active. Done isn't capped, as on Week.
 function weekLineFor(goal: Goal, detail: AspirationDetail): string | undefined {
   if (goal.type !== 'building' || goal.status !== 'active') return undefined
-  const target = detail.weeklyTargets.find((candidate) => candidate.goalId === goal.id)
+  const target = goal.weeklyTarget
   if (!target) return 'No weekly target yet'
   const done = detail.weekTasks.filter((task) => task.goalId === goal.id && task.status === 'done').length
-  return `This week: ${done} of ${target.amount} ${target.unit}`
+  return `This week: ${done} of ${target.sessions} ${target.unit}`
 }
 
 function recurringRow(item: RecurringItem, paused: boolean): RecurringRow {

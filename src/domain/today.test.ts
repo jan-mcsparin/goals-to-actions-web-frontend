@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { GOAL_DEFAULTS } from '../test/goals.ts'
 import type { Aspiration, Bank, DayPlan, Goal, RecurringItem, Task } from '../api/types.ts'
 import {
   bankRows,
@@ -20,7 +21,7 @@ const fit: Aspiration = { id: 'asp-fit', name: 'Be fit', why: null, position: 2,
 const builder: Aspiration = { id: 'asp-build', name: 'Be a builder', why: null, position: 1, status: 'active', createdAt: '2026-10-01T09:00:00Z', retiredOn: null }
 
 function goal(id: string, label: string, aspirationId?: string): Goal {
-  return { id, label, measurableLine: '-', type: 'building', status: 'active', startDate: '2026-10-05', aspirationId }
+  return { ...GOAL_DEFAULTS, id, label, measurableLine: '-', type: 'building', status: 'active', startDate: '2026-10-05', aspirationId: aspirationId ?? null }
 }
 
 const strong = goal('goal-strong', 'Be strong', 'asp-fit')

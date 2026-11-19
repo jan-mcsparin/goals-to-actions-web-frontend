@@ -1,12 +1,13 @@
 // The functions screens and hooks call. They read the in-memory mock store,
 // except that with the switch on real (mode.ts) the aspiration ones call the
 // API instead (realAspirations.ts), with the same signatures.
-import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
+import { mondayOf, toLocalDay } from './dates.ts'
 import { taskWeek } from '../domain/add.ts'
 import { isWithinGoal, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
 import { isIntensity } from '../domain/settings.ts'
 import { NotFoundError } from './errors.ts'
 import { newDeviceId } from './ids.ts'
+import type { StoredGoal } from './mockData.ts'
 import { store } from './mockStore.ts'
 import { realApi } from './mode.ts'
 import * as real from './realAspirations.ts'
@@ -30,6 +31,7 @@ import type {
   Upkeep,
   WeekPlan,
   WeeklyTarget,
+  WeeklyTargetInput,
 } from './types.ts'
 
 export { NotFoundError }
@@ -61,9 +63,10 @@ export async function uncheckTask(taskId: string): Promise<Task> {
 export async function getWeek(): Promise<WeekPlan> {
   const weekOf = thisWeek()
   const tasks = store.tasks.filter((task) => task.weekOf === weekOf)
-  const weeklyTargets = targetsInForce(weekOf)
-  const targetGoalIds = weeklyTargets.map((target) => target.goalId)
-  return structuredClone({ weekOf, tasks, ...recordsReferencedBy(tasks, targetGoalIds), weeklyTargets })
+  const targetGoalIds = store.goals
+    .filter((goal) => goal.status === 'active' && latestTarget(goal.id))
+    .map((goal) => goal.id)
+  return structuredClone({ weekOf, tasks, ...recordsReferencedBy(tasks, targetGoalIds) })
 }
 
 export async function getAspirations(): Promise<AspirationsOverview> {
@@ -71,10 +74,9 @@ export async function getAspirations(): Promise<AspirationsOverview> {
   const weekOf = thisWeek()
   return structuredClone({
     aspirations: store.aspirations,
-    goals: store.goals,
+    goals: store.goals.map(goalOut),
     milestones: store.milestones,
     recurringItems: store.recurringItems.filter((item) => item.active),
-    weeklyTargets: targetsInForce(weekOf),
     weekTasks: store.tasks.filter((task) => task.weekOf === weekOf && task.goalId !== undefined),
   })
 }
@@ -87,10 +89,9 @@ export async function getAspiration(aspirationId: string): Promise<AspirationDet
   const goalIds = new Set(goals.map((goal) => goal.id))
   return structuredClone({
     aspiration,
-    goals,
+    goals: goals.map(goalOut),
     milestones: store.milestones.filter((milestone) => goalIds.has(milestone.goalId)),
     recurringItems: store.recurringItems.filter((item) => item.aspirationId === aspirationId),
-    weeklyTargets: targetsInForce(weekOf).filter((target) => goalIds.has(target.goalId)),
     weekTasks: store.tasks.filter((task) => task.weekOf === weekOf && task.goalId !== undefined && goalIds.has(task.goalId)),
     activeCount: activeAspirations().length,
   })
@@ -99,31 +100,30 @@ export async function getAspiration(aspirationId: string): Promise<AspirationDet
 export async function getGoal(goalId: string): Promise<GoalDetail> {
   const goal = findGoal(goalId)
   return structuredClone({
-    goal,
+    goal: goalOut(goal),
     aspiration: store.aspirations.find((aspiration) => aspiration.id === goal.aspirationId),
     milestones: milestonesOf(goalId),
-    weeklyTarget: currentTarget(goalId, sundayOf(thisWeek())),
   })
 }
 
-// Takes effect this week. A second change in the same week updates that
-// week's row, so earlier weeks keep the target they had.
-export async function setWeeklyTarget(goalId: string, amount: number, unit: string): Promise<WeeklyTarget> {
+// A count target, from this week. A second change in the same week updates
+// that week's row, so earlier weeks keep the target they had.
+export async function setWeeklyTarget(goalId: string, sessions: number, unit: string): Promise<WeeklyTarget> {
   const goal = findCurrentGoal(goalId)
   if (goal.type !== 'building') throw new Error(`${goalId} is not a building goal`)
-  if (!Number.isInteger(amount) || amount < 1) throw new Error('A weekly target is a whole number, at least 1')
+  if (!Number.isInteger(sessions) || sessions < 1) throw new Error('A weekly target is a whole number, at least 1')
   const trimmedUnit = unit.trim()
   if (!trimmedUnit) throw new Error('A weekly target needs a unit')
 
   const weekOf = thisWeek()
-  let target = store.weeklyTargets.find((row) => row.goalId === goalId && row.effectiveFrom === weekOf)
-  if (!target) {
-    target = { id: newId('wt'), goalId, amount, unit: trimmedUnit, effectiveFrom: weekOf }
-    store.weeklyTargets.push(target)
+  let row = store.weeklyTargets.find((candidate) => candidate.goalId === goalId && candidate.effectiveFrom === weekOf)
+  if (!row) {
+    row = { goalId, kind: 'count', sessions, amount: null, unit: trimmedUnit, effectiveFrom: weekOf }
+    store.weeklyTargets.push(row)
   }
-  target.amount = amount
-  target.unit = trimmedUnit
-  return structuredClone(target)
+  row.sessions = sessions
+  row.unit = trimmedUnit
+  return structuredClone(latestTarget(goalId)!)
 }
 
 // Goes after the goal's last milestone, upcoming, never past the deadline.
@@ -198,7 +198,7 @@ export async function pauseGoal(goalId: string): Promise<Goal> {
   const goal = findGoal(goalId)
   if (goal.status !== 'active') throw new Error(`${goalId} is ${goal.status}`)
   pauseWork([goal], [])
-  return structuredClone(goal)
+  return structuredClone(goalOut(goal))
 }
 
 // Active again. From paused, its set-aside tasks this week go back to the
@@ -213,20 +213,20 @@ export async function resumeGoal(goalId: string): Promise<Goal> {
       if (task.goalId === goalId && task.weekOf === weekOf && task.status === 'skipped') moveToBank(task)
     }
   } else if (goal.status === 'ended' || goal.status === 'reached') {
-    delete goal.endedAt
+    goal.endedOn = null
   } else {
     throw new Error(`${goalId} is ${goal.status}`)
   }
   goal.status = 'active'
-  return structuredClone(goal)
+  return structuredClone(goalOut(goal))
 }
 
 // Reached or ended today. Its tasks stay as they are.
 export async function endGoal(goalId: string, outcome: 'reached' | 'ended'): Promise<Goal> {
   const goal = findCurrentGoal(goalId)
   goal.status = outcome
-  goal.endedAt = toLocalDay(new Date())
-  return structuredClone(goal)
+  goal.endedOn = toLocalDay(new Date())
+  return structuredClone(goalOut(goal))
 }
 
 // A blank why is null; anything not given stays as it was.
@@ -272,7 +272,10 @@ export async function retireAspiration(aspirationId: string, itsWork: 'pause' | 
   const items = store.recurringItems.filter((item) => item.aspirationId === aspirationId)
 
   if (itsWork === 'pause') pauseWork(goals, items)
-  else for (const record of [...goals, ...items]) delete record.aspirationId
+  else {
+    for (const goal of goals) goal.aspirationId = null
+    for (const item of items) delete item.aspirationId
+  }
 
   aspiration.status = 'retired'
   aspiration.retiredOn = toLocalDay(new Date())
@@ -354,19 +357,28 @@ export async function addGoal(goal: NewGoal): Promise<Goal> {
   if (goal.deadline && !isWithinGoal(goal.deadline, { startDate })) throw new Error("A goal's deadline can't come before its start")
   const target = goal.weeklyTarget && checkedTarget(goal.type, goal.weeklyTarget)
 
-  const added: Goal = { id: newId('goal'), label, measurableLine, type: goal.type, status: 'active', startDate }
-  if (goal.aspirationId) added.aspirationId = goal.aspirationId
-  if (goal.baseline?.trim()) added.baseline = goal.baseline.trim()
-  if (goal.deadline) added.deadline = goal.deadline
+  const added: StoredGoal = {
+    id: newId('goal'),
+    label,
+    measurableLine,
+    type: goal.type,
+    status: 'active',
+    startDate,
+    aspirationId: goal.aspirationId ?? null,
+    baseline: goal.baseline?.trim() || null,
+    deadline: goal.deadline ?? null,
+    endedOn: null,
+    createdAt: new Date().toISOString(),
+  }
   store.goals.push(added)
   if (target) {
     const weekOf = thisWeek()
-    store.weeklyTargets.push({ id: newId('wt'), goalId: added.id, ...target, effectiveFrom: weekOf })
-    for (let count = 0; count < Math.min(target.amount, MOST_STAND_IN_TASKS); count++) {
+    store.weeklyTargets.push({ goalId: added.id, ...target, effectiveFrom: weekOf })
+    for (let count = 0; count < Math.min(target.sessions, MOST_STAND_IN_TASKS); count++) {
       store.tasks.push({ id: newId('task'), title: label, goalId: added.id, status: 'inBank', weekOf, rolloverCount: 0 })
     }
   }
-  return structuredClone(added)
+  return structuredClone(goalOut(added))
 }
 
 // Last in priority; it can be moved up on its page. Its id is made here, on
@@ -471,23 +483,20 @@ function thisWeek(): string {
   return toLocalDay(mondayOf(new Date()))
 }
 
-// Each active goal's target for the week starting on weekOf, if it has one.
-function targetsInForce(weekOf: string): WeeklyTarget[] {
-  const sunday = sundayOf(weekOf)
-  return store.goals
-    .filter((goal) => goal.status === 'active')
-    .flatMap((goal) => currentTarget(goal.id, sunday) ?? [])
+// A goal as the API sends it: with its latest target, and whether it has slipped.
+function goalOut(goal: StoredGoal): Goal {
+  const slipped = goal.status === 'active' && goal.deadline !== null && goal.deadline < toLocalDay(new Date())
+  return { ...goal, slipped, weeklyTarget: latestTarget(goal.id) ?? null }
 }
 
-function sundayOf(weekOf: string): string {
-  return toLocalDay(addDays(fromLocalDay(weekOf), 6))
-}
-
-// A target change adds a row; the one in force is the latest that has started.
-function currentTarget(goalId: string, onOrBefore: string): WeeklyTarget | undefined {
-  return store.weeklyTargets
-    .filter((target) => target.goalId === goalId && target.effectiveFrom <= onOrBefore)
+// A target change adds a row, or updates this week's; the latest is the one shown.
+function latestTarget(goalId: string): WeeklyTarget | undefined {
+  const row = store.weeklyTargets
+    .filter((target) => target.goalId === goalId)
     .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0]
+  if (!row) return undefined
+  const { goalId: _goalId, ...target } = row
+  return target
 }
 
 function findAspiration(aspirationId: string): Aspiration {
@@ -496,7 +505,7 @@ function findAspiration(aspirationId: string): Aspiration {
   return aspiration
 }
 
-function findGoal(goalId: string): Goal {
+function findGoal(goalId: string): StoredGoal {
   const goal = store.goals.find((candidate) => candidate.id === goalId)
   if (!goal) throw new NotFoundError(`No goal with id ${goalId}`)
   return goal
@@ -509,7 +518,7 @@ function findMilestone(milestoneId: string): Milestone {
 }
 
 // New work can only go to an active goal, as the Add sheet's picker offers.
-function findActiveGoal(goalId: string): Goal {
+function findActiveGoal(goalId: string): StoredGoal {
   const goal = findGoal(goalId)
   if (goal.status !== 'active') throw new Error(`${goalId} is ${goal.status}`)
   return goal
@@ -521,16 +530,16 @@ function milestonesOf(goalId: string): Milestone[] {
 }
 
 // The rule setWeeklyTarget enforces, for a new goal.
-function checkedTarget(type: Goal['type'], target: { amount: number; unit: string }): { amount: number; unit: string } {
+function checkedTarget(type: Goal['type'], target: WeeklyTargetInput): Omit<WeeklyTarget, 'effectiveFrom'> {
   if (type !== 'building') throw new Error('Only a building goal has a weekly target')
   const unit = target.unit.trim()
-  if (!Number.isInteger(target.amount) || target.amount < 1) throw new Error('A weekly target is a whole number, at least 1')
+  if (!Number.isInteger(target.sessions) || target.sessions < 1) throw new Error('A weekly target is a whole number, at least 1')
   if (!unit) throw new Error('A weekly target needs a unit')
-  return { amount: target.amount, unit }
+  return { kind: target.kind, sessions: target.sessions, amount: target.amount ?? null, unit }
 }
 
 // Active or paused: a reached or ended goal can't be changed.
-function findCurrentGoal(goalId: string): Goal {
+function findCurrentGoal(goalId: string): StoredGoal {
   const goal = findGoal(goalId)
   if (!isCurrentGoal(goal)) throw new Error(`${goalId} is ${goal.status}`)
   return goal
@@ -544,7 +553,7 @@ function newId(prefix: string): string {
   return `${prefix}-new-${++lastId}`
 }
 
-function pauseWork(goals: Goal[], items: RecurringItem[]) {
+function pauseWork(goals: StoredGoal[], items: RecurringItem[]) {
   const pausing = goals.filter((goal) => goal.status === 'active')
   const goalIds = new Set(pausing.map((goal) => goal.id))
   const itemIds = new Set(items.map((item) => item.id))
@@ -558,7 +567,7 @@ function pauseWork(goals: Goal[], items: RecurringItem[]) {
   }
 }
 
-function isCurrentGoal(goal: Goal): boolean {
+function isCurrentGoal(goal: StoredGoal): boolean {
   return goal.status === 'active' || goal.status === 'paused'
 }
 
@@ -585,7 +594,7 @@ function findTask(taskId: string): Task {
 // extra goals asked for (a goal with a weekly target but no tasks yet).
 function recordsReferencedBy(tasks: Task[], extraGoalIds: string[] = []) {
   const goalIds = new Set([...tasks.flatMap((task) => task.goalId ?? []), ...extraGoalIds])
-  const goals = store.goals.filter((goal) => goalIds.has(goal.id))
+  const goals = store.goals.filter((goal) => goalIds.has(goal.id)).map(goalOut)
   const recurringItems = store.recurringItems.filter((item) =>
     tasks.some((task) => task.recurringItemId === item.id),
   )

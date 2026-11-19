@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { countTarget, GOAL_DEFAULTS } from '../test/goals.ts'
 import type { Aspiration, Goal, GoalDetail, Milestone, MilestoneStatus, WeeklyTarget } from '../api/types.ts'
 import {
   achievementLine,
@@ -29,8 +30,12 @@ import {
 // Wednesday 11 Nov 2026.
 const TODAY = '2026-11-11'
 
+const { goalId: _goalId, ...TARGET } = countTarget('strong', 3, 'lifting sessions')
+
 function goal(extra: Partial<Goal> = {}): Goal {
   return {
+    ...GOAL_DEFAULTS,
+    weeklyTarget: TARGET,
     id: 'strong',
     label: 'Be strong',
     measurableLine: 'Bench 175, squat 350, deadlift 400',
@@ -49,18 +54,17 @@ function milestone(id: string, status: MilestoneStatus, extra: Partial<Milestone
   return { id, goalId: 'strong', measurableLine: `Line ${id}`, status, ...extra }
 }
 
-const TARGET: WeeklyTarget = { id: 'wt', goalId: 'strong', amount: 3, unit: 'lifting sessions', effectiveFrom: '2026-10-05' }
-
-function detail(extra: Partial<GoalDetail> = {}): GoalDetail {
+// The goal's target can be given here, as the page's own field once was.
+function detail({ weeklyTarget, ...extra }: Partial<GoalDetail> & { weeklyTarget?: WeeklyTarget | null } = {}): GoalDetail {
+  const shown = extra.goal ?? goal()
   return {
-    goal: goal(),
+    goal: weeklyTarget === undefined ? shown : { ...shown, weeklyTarget },
     aspiration: BE_FIT,
     milestones: [
       milestone('m1', 'hit', { result: 'Bench 150, squat 290, deadlift 330', targetDate: '2026-11-02', checkedInOn: '2026-11-02' }),
       milestone('m2', 'upcoming', { targetDate: '2026-11-30' }),
       milestone('m3', 'upcoming'),
     ],
-    weeklyTarget: TARGET,
     ...extra,
   }
 }
@@ -135,7 +139,7 @@ describe('goalPage started and latest', () => {
 
   it('leaves out Latest with no results, and the section with no baseline', () => {
     expect(current(detail({ milestones: [] })).started).toEqual({ startedAt: 'Started at: Bench 145, squat 275, deadlift 315' })
-    expect(current(detail({ goal: goal({ baseline: undefined }) })).started).toBeUndefined()
+    expect(current(detail({ goal: goal({ baseline: null }) })).started).toBeUndefined()
   })
 })
 
@@ -161,7 +165,7 @@ describe('goalPage timeline', () => {
     const rows = milestoneRows(
       current(detail({ milestones: [milestone('m1', 'hit', { result: 'Bench 150' }), milestone('m2', 'hit'), milestone('m3', 'notYet', { result: 'Bench 152' }), milestone('m4', 'upcoming')] })),
     )
-    const reached = goalPage(detail({ goal: goal({ status: 'reached', endedAt: '2026-11-10', deadline: '2027-03-01' }) }), TODAY)
+    const reached = goalPage(detail({ goal: goal({ status: 'reached', endedOn: '2026-11-10', deadline: '2027-03-01' }) }), TODAY)
 
     expect(rows.map((row) => row.statusLine)).toEqual(['Hit · Bench 150', 'Hit', 'Not yet · Bench 152', undefined])
     expect(reached.timeline.rows.at(-1)).toMatchObject({ detail: 'Goal · Wk 22 · Mar 1', statusLine: 'Reached' })
@@ -225,14 +229,14 @@ describe('goalPage timeline', () => {
   it('lets a paused goal be checked in, but not a reached or ended one', () => {
     expect(milestoneRows(current(detail({ goal: goal({ status: 'paused' }) })))[1].checkable).toBe(true)
     for (const status of ['reached', 'ended'] as const) {
-      const page = goalPage(detail({ goal: goal({ status, endedAt: '2026-11-10' }) }), TODAY)
+      const page = goalPage(detail({ goal: goal({ status, endedOn: '2026-11-10' }) }), TODAY)
       expect(page.timeline.rows.some((row) => row.kind !== 'start' && row.checkable)).toBe(false)
       expect(page.timeline.rows.some((row) => row.kind !== 'start' && row.next)).toBe(false)
     }
   })
 
   it('counts a reached goal complete: milestones never checked in were passed on the way', () => {
-    const page = goalPage(detail({ goal: goal({ status: 'reached', endedAt: '2026-11-10' }) }), TODAY)
+    const page = goalPage(detail({ goal: goal({ status: 'reached', endedOn: '2026-11-10' }) }), TODAY)
 
     expect(page.timeline.count).toBe('4 of 4 hit')
     expect(page.timeline.rows.at(-1)).toMatchObject({ kind: 'goal', status: 'hit' })
@@ -245,7 +249,7 @@ describe('goalPage timeline', () => {
 
   it('passes nothing on a goal that is still going or ended for now', () => {
     for (const status of ['active', 'ended'] as const) {
-      const page = goalPage(detail({ goal: goal({ status, endedAt: '2026-11-10' }) }), TODAY)
+      const page = goalPage(detail({ goal: goal({ status, endedOn: '2026-11-10' }) }), TODAY)
       expect(milestoneRows(page).some((row) => row.passed)).toBe(false)
     }
   })
@@ -254,7 +258,7 @@ describe('goalPage timeline', () => {
 describe('goalPage target', () => {
   it('shows a building goal’s target, or invites setting one', () => {
     expect(current(detail()).target).toEqual({ kind: 'weekly', line: '3 lifting sessions', action: 'Edit' })
-    expect(current(detail({ weeklyTarget: undefined })).target).toEqual({ kind: 'weekly', line: 'No weekly target yet', action: 'Set' })
+    expect(current(detail({ weeklyTarget: null })).target).toEqual({ kind: 'weekly', line: 'No weekly target yet', action: 'Set' })
   })
 
   it('shows a one-off goal’s deadline, if any, and when a quitting goal started', () => {
@@ -302,8 +306,8 @@ describe('goalPage not-yet card', () => {
 
   it('leaves out an empty part, and is absent with nothing not yet', () => {
     const noResult = current(detail({ milestones: [milestone('m1', 'notYet')] }))
-    const noBaseline = current(detail({ goal: goal({ baseline: undefined }), milestones: [milestone('m1', 'notYet', { result: 'Bench 150' })] }))
-    const neither = current(detail({ goal: goal({ baseline: undefined }), milestones: [milestone('m1', 'notYet')] }))
+    const noBaseline = current(detail({ goal: goal({ baseline: null }), milestones: [milestone('m1', 'notYet', { result: 'Bench 150' })] }))
+    const neither = current(detail({ goal: goal({ baseline: null }), milestones: [milestone('m1', 'notYet')] }))
 
     expect(noResult.notYet?.progress).toBe('You started at bench 145, squat 275, deadlift 315.')
     expect(noBaseline.notYet?.progress).toBe('Now: bench 150.')
@@ -314,16 +318,16 @@ describe('goalPage not-yet card', () => {
 
 describe('goalPage reached and ended', () => {
   it('reads Reached with the date and what’s next for its aspiration', () => {
-    const page = goalPage(detail({ goal: goal({ status: 'reached', endedAt: '2026-11-10' }) }), TODAY)
+    const page = goalPage(detail({ goal: goal({ status: 'reached', endedOn: '2026-11-10' }) }), TODAY)
 
     expect(page).toMatchObject({ kind: 'reached', reachedLine: 'Reached Nov 10', whatsNext: 'What’s next for Be fit?' })
-    const lastYear = goalPage(detail({ goal: goal({ status: 'reached', endedAt: '2025-09-15' }), aspiration: undefined }), TODAY)
+    const lastYear = goalPage(detail({ goal: goal({ status: 'reached', endedOn: '2025-09-15' }), aspiration: undefined }), TODAY)
     expect(lastYear).toMatchObject({ reachedLine: 'Reached Sep 15, 2025' })
     expect(lastYear).not.toHaveProperty('whatsNext')
   })
 
   it('reads Not yet with what was achieved when ended', () => {
-    const page = goalPage(detail({ goal: goal({ status: 'ended', endedAt: '2026-11-10' }) }), TODAY)
+    const page = goalPage(detail({ goal: goal({ status: 'ended', endedOn: '2026-11-10' }) }), TODAY)
 
     expect(page).toMatchObject({ kind: 'ended', achievement: '1 of 4 milestones hit' })
     expect((page as EndedPage).started?.startedAt).toBe('Started at: Bench 145, squat 275, deadlift 315')
@@ -557,24 +561,24 @@ describe('showAllLabel', () => {
 
 describe('the target form', () => {
   it('starts from the target in force, or empty', () => {
-    expect(targetDraft(detail())).toEqual({ amount: '3', unit: 'lifting sessions' })
-    expect(targetDraft(detail({ weeklyTarget: undefined }))).toEqual({ amount: '', unit: '' })
+    expect(targetDraft(detail())).toEqual({ sessions: '3', unit: 'lifting sessions' })
+    expect(targetDraft(detail({ weeklyTarget: null }))).toEqual({ sessions: '', unit: '' })
   })
 
   it('takes a whole number of at least 1 and a unit, trimmed', () => {
-    expect(parsedTarget({ amount: ' 4 ', unit: ' gym visits ' })).toEqual({ amount: 4, unit: 'gym visits' })
-    for (const amount of ['0', '-1', '2.5', 'three', '']) {
-      expect(parsedTarget({ amount, unit: 'runs' })).toBeUndefined()
+    expect(parsedTarget({ sessions: ' 4 ', unit: ' gym visits ' })).toEqual({ kind: 'count', sessions: 4, amount: null, unit: 'gym visits' })
+    for (const sessions of ['0', '-1', '2.5', 'three', '']) {
+      expect(parsedTarget({ sessions, unit: 'runs' })).toBeUndefined()
     }
-    expect(parsedTarget({ amount: '3', unit: '  ' })).toBeUndefined()
+    expect(parsedTarget({ sessions: '3', unit: '  ' })).toBeUndefined()
   })
 
   it('shows a new target at once, from this week', () => {
-    const changed = withTarget(detail(), { amount: 4, unit: 'lifting sessions' }, TODAY)
-    const first = withTarget(detail({ weeklyTarget: undefined }), { amount: 2, unit: 'clean meals' }, TODAY)
+    const changed = withTarget(detail(), { kind: 'count', sessions: 4, unit: 'lifting sessions' }, TODAY)
+    const first = withTarget(detail({ weeklyTarget: null }), { kind: 'count', sessions: 2, unit: 'clean meals' }, TODAY)
 
-    expect(changed.weeklyTarget).toMatchObject({ goalId: 'strong', amount: 4, unit: 'lifting sessions', effectiveFrom: '2026-11-09' })
-    expect(first.weeklyTarget).toMatchObject({ goalId: 'strong', amount: 2, unit: 'clean meals', effectiveFrom: '2026-11-09' })
+    expect(changed.goal.weeklyTarget).toEqual({ kind: 'count', sessions: 4, amount: null, unit: 'lifting sessions', effectiveFrom: '2026-11-09' })
+    expect(first.goal.weeklyTarget).toEqual({ kind: 'count', sessions: 2, amount: null, unit: 'clean meals', effectiveFrom: '2026-11-09' })
     expect(current(changed).target).toEqual({ kind: 'weekly', line: '4 lifting sessions', action: 'Edit' })
   })
 })

@@ -43,7 +43,6 @@ const NOTHING: AspirationsOverview = {
   goals: [],
   milestones: [],
   recurringItems: [],
-  weeklyTargets: [],
   weekTasks: [],
 }
 

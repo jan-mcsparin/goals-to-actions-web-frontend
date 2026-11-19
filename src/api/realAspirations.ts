@@ -12,7 +12,7 @@ import type { Aspiration, AspirationDetail, AspirationsOverview, NewAspiration }
 
 type AspirationList = components['schemas']['AspirationList']
 
-const NOTHING_ELSE = { goals: [], milestones: [], recurringItems: [], weeklyTargets: [], weekTasks: [] }
+const NOTHING_ELSE = { goals: [], milestones: [], recurringItems: [], weekTasks: [] }
 
 export async function getAspirations(): Promise<AspirationsOverview> {
   return { aspirations: await listAspirations(), ...NOTHING_ELSE }

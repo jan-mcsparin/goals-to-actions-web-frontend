@@ -91,14 +91,14 @@ export function milestoneCount(
 // twice over can't hide another. No unit: the goals count different things.
 export function weekCount(
   aspirationId: string,
-  overview: Pick<AspirationsOverview, 'goals' | 'weeklyTargets' | 'weekTasks'>,
+  overview: Pick<AspirationsOverview, 'goals' | 'weekTasks'>,
 ): WeekCount | undefined {
   const counted = overview.goals.flatMap((goal) => {
     if (goal.aspirationId !== aspirationId || goal.status !== 'active' || goal.type !== 'building') return []
-    const target = overview.weeklyTargets.find((candidate) => candidate.goalId === goal.id)
+    const target = goal.weeklyTarget
     if (!target) return []
     const done = overview.weekTasks.filter((task) => task.goalId === goal.id && task.status === 'done').length
-    return [{ done: Math.min(done, target.amount), total: target.amount }]
+    return [{ done: Math.min(done, target.sessions), total: target.sessions }]
   })
   if (counted.length === 0) return undefined
 
@@ -116,7 +116,7 @@ export function otherGoals(overview: AspirationsOverview): OtherGoals | undefine
   )
   const loose = overview.goals.filter(
     (goal) =>
-      goal.aspirationId === undefined || (goal.status === 'active' && retiredIds.has(goal.aspirationId)),
+      goal.aspirationId === null || (goal.status === 'active' && retiredIds.has(goal.aspirationId)),
   )
   if (loose.length === 0) return undefined
   return {

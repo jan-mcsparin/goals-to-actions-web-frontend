@@ -180,11 +180,11 @@ function GoalFields({ draft, today, aspirations, aspirationsMessage, onChange }:
           <div className="add-form-row">
             <input
               id={targetId}
-              value={draft.target.amount}
+              value={draft.target.sessions}
               inputMode="numeric"
               placeholder="3"
               autoComplete="off"
-              onChange={(event) => onChange({ target: { ...draft.target, amount: event.target.value } })}
+              onChange={(event) => onChange({ target: { ...draft.target, sessions: event.target.value } })}
             />
             <input
               aria-label="Unit"

@@ -290,7 +290,7 @@ describe('useAdd on the Goal tab', () => {
 
   it("adds a building goal's weekly target and its bank tasks", async () => {
     const { result } = onGoalTab()
-    act(() => result.current.editGoal({ ...BE_STRONG, target: { amount: '3', unit: 'lifting sessions' } }))
+    act(() => result.current.editGoal({ ...BE_STRONG, target: { sessions: '3', unit: 'lifting sessions' } }))
 
     await act(async () => result.current.save())
 

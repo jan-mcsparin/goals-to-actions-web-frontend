@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { countTarget, GOAL_DEFAULTS, type TargetFor, withTargets } from '../test/goals.ts'
 import type {
   Aspiration,
   AspirationDetail,
@@ -7,7 +8,6 @@ import type {
   MilestoneStatus,
   RecurringItem,
   Task,
-  WeeklyTarget,
 } from '../api/types.ts'
 import {
   aspirationPage,
@@ -29,6 +29,7 @@ function aspiration(extra: Partial<Aspiration> = {}): Aspiration {
 
 function goal(id: string, extra: Partial<Goal> = {}): Goal {
   return {
+    ...GOAL_DEFAULTS,
     id,
     label: id,
     measurableLine: `${id} measurable line`,
@@ -44,8 +45,8 @@ function milestones(goalId: string, ...statuses: MilestoneStatus[]): Milestone[]
   return statuses.map((status, index) => ({ id: `${goalId}-ms-${index}`, goalId, measurableLine: 'A step', status }))
 }
 
-function target(goalId: string, amount: number, unit = 'sessions'): WeeklyTarget {
-  return { id: `wt-${goalId}`, goalId, amount, unit, effectiveFrom: '2026-10-05' }
+function target(goalId: string, sessions: number, unit = 'sessions'): TargetFor {
+  return countTarget(goalId, sessions, unit)
 }
 
 function tasks(goalId: string, ...statuses: Task['status'][]): Task[] {
@@ -63,26 +64,28 @@ function recurring(name: string, active = true): RecurringItem {
   return { id: `rec-${name}`, name, repeatRule: 'Once a week', fixedDay: false, active, nextDue: '2026-11-15', aspirationId: 'fit' }
 }
 
-function detailOf(parts: Partial<AspirationDetail>): AspirationDetail {
+// Targets are given per goal and put on their goals.
+type DetailParts = Partial<AspirationDetail> & { weeklyTargets?: TargetFor[] }
+
+function detailOf({ weeklyTargets, ...parts }: DetailParts): AspirationDetail {
   return {
     aspiration: aspiration(),
-    goals: [],
     milestones: [],
     recurringItems: [],
-    weeklyTargets: [],
     weekTasks: [],
     activeCount: 1,
     ...parts,
+    goals: withTargets(parts.goals ?? [], weeklyTargets),
   }
 }
 
-function activePage(parts: Partial<AspirationDetail>): ActivePage {
+function activePage(parts: DetailParts): ActivePage {
   const page = aspirationPage(detailOf(parts), TODAY)
   if (page.kind !== 'active') throw new Error('Expected an active page')
   return page
 }
 
-function retiredPage(parts: Partial<AspirationDetail>): RetiredPage {
+function retiredPage(parts: DetailParts): RetiredPage {
   const page = aspirationPage(
     detailOf({ aspiration: aspiration({ status: 'retired', position: null, retiredOn: '2026-11-10' }), ...parts }),
     TODAY,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Aspiration, Goal, RecurringItem, Task, WeekPlan, WeeklyTarget } from '../api/types.ts'
+import { countTarget, GOAL_DEFAULTS, type TargetFor, withTargets } from '../test/goals.ts'
+import type { Aspiration, Goal, RecurringItem, Task, WeekPlan } from '../api/types.ts'
 import { daySummaries, pacingLine, pickableDays, weekProgress, weekRange } from './week.ts'
 
 const MONDAY = '2026-11-09'
@@ -19,6 +20,7 @@ function task(id: string, plannedDay: string | undefined, fields: Partial<Task> 
 
 const fit: Aspiration = { id: 'asp-fit', name: 'Be fit', why: null, position: 1, status: 'active', createdAt: '2026-10-01T09:00:00Z', retiredOn: null }
 const strong: Goal = {
+  ...GOAL_DEFAULTS,
   id: 'goal-strong',
   label: 'Be strong',
   measurableLine: '-',
@@ -27,7 +29,7 @@ const strong: Goal = {
   startDate: '2026-10-05',
   aspirationId: 'asp-fit',
 }
-const reading: Goal = { ...strong, id: 'goal-read', label: 'Read more', aspirationId: undefined }
+const reading: Goal = { ...strong, id: 'goal-read', label: 'Read more', aspirationId: null }
 const trash: RecurringItem = {
   id: 'rec-trash',
   name: 'Take out the trash',
@@ -36,10 +38,11 @@ const trash: RecurringItem = {
   active: true,
   nextDue: '2026-11-10',
 }
-const lifting: WeeklyTarget = { id: 'wt-1', goalId: 'goal-strong', amount: 3, unit: 'lifting sessions', effectiveFrom: '2026-10-05' }
+const lifting = countTarget('goal-strong', 3, 'lifting sessions')
 
-function week(tasks: Task[], weeklyTargets: WeeklyTarget[] = [lifting]): WeekPlan {
-  return { weekOf: MONDAY, tasks, goals: [strong, reading], aspirations: [fit], recurringItems: [trash], weeklyTargets }
+// Targets are given per goal and put on their goals.
+function week(tasks: Task[], weeklyTargets: TargetFor[] = [lifting]): WeekPlan {
+  return { weekOf: MONDAY, tasks, goals: withTargets([strong, reading], weeklyTargets), aspirations: [fit], recurringItems: [trash] }
 }
 
 describe('pacingLine', () => {
@@ -74,13 +77,23 @@ describe('weekProgress', () => {
     ])
   })
 
+  // A goal carries its target whatever its status, and a paused goal can
+  // still be in the week through its done or set-aside tasks.
+  it('leaves out a goal that is not active', () => {
+    const plan = week([task('Lift Mon', MONDAY, { goalId: 'goal-strong', status: 'done' })])
+    plan.goals = plan.goals.map((goal) => ({ ...goal, status: 'paused' }))
+
+    expect(weekProgress(plan, WEDNESDAY)).toEqual([])
+  })
+
   it('orders goals by aspiration priority, as the By goal view does', () => {
     const builder: Aspiration = { ...fit, id: 'asp-build', name: 'Be a builder', position: 0 }
     const proto: Goal = { ...strong, id: 'goal-proto', label: 'Prototype', aspirationId: 'asp-build' }
-    const target = (goalId: string): WeeklyTarget => ({ ...lifting, id: `wt-${goalId}`, goalId })
+    const target = (goalId: string): TargetFor => ({ ...lifting, goalId })
+    const targets = [target('goal-read'), target('goal-strong'), target('goal-proto')]
     const plan: WeekPlan = {
-      ...week([], [target('goal-read'), target('goal-strong'), target('goal-proto')]),
-      goals: [strong, reading, proto],
+      ...week([], targets),
+      goals: withTargets([strong, reading, proto], targets),
       aspirations: [fit, builder],
     }
 

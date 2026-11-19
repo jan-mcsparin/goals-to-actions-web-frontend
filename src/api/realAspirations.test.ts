@@ -75,7 +75,6 @@ describe('getAspirations', () => {
       goals: [],
       milestones: [],
       recurringItems: [],
-      weeklyTargets: [],
       weekTasks: [],
     })
     expect(sent()).toMatchObject({ url: '/api/aspirations', method: 'GET' })
@@ -91,7 +90,6 @@ describe('getAspiration', () => {
       goals: [],
       milestones: [],
       recurringItems: [],
-      weeklyTargets: [],
       weekTasks: [],
       activeCount: 2,
     })

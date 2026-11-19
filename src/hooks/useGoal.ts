@@ -118,7 +118,7 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
     if (!target) return
     saveOptimistically(
       (before) => withTarget(before, target, today),
-      () => setWeeklyTarget(goalId, target.amount, target.unit),
+      () => setWeeklyTarget(goalId, target.sessions, target.unit),
     )
   }
 

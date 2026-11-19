@@ -4,7 +4,7 @@
 // with progress. Also the push-out rule for moving a milestone's date.
 // Nothing here paces or warns: a passed date reads like any other.
 import { addDays, fromLocalDay, mondayOfDay, toLocalDay } from '../api/dates.ts'
-import type { Aspiration, Goal, GoalDetail, GoalType, Milestone, MilestoneStatus } from '../api/types.ts'
+import type { Aspiration, Goal, GoalDetail, GoalType, Milestone, MilestoneStatus, WeeklyTargetInput } from '../api/types.ts'
 import { milestoneCount } from './aspirations.ts'
 
 export type Header = {
@@ -115,12 +115,12 @@ export function goalPage(detail: GoalDetail, today: string): GoalPage {
   const base = { header: header(detail), ...(started && { started }), timeline: timeline(detail) }
 
   if (goal.status === 'reached' || goal.status === 'ended') {
-    if (!goal.endedAt) throw new Error(`Goal ${goal.id} is ${goal.status} but has no endedAt`)
+    if (!goal.endedOn) throw new Error(`Goal ${goal.id} is ${goal.status} but has no endedOn`)
     if (goal.status === 'ended') return { kind: 'ended', ...base, achievement: achievementLine(detail) }
     return {
       kind: 'reached',
       ...base,
-      reachedLine: `Reached ${dayLabel(goal.endedAt, today)}`,
+      reachedLine: `Reached ${dayLabel(goal.endedOn, today)}`,
       ...(detail.aspiration && { whatsNext: `What’s next for ${detail.aspiration.name}?` }),
     }
   }
@@ -160,7 +160,7 @@ export function achievementLine(detail: GoalDetail): string {
 // quitting goal's milestone later moves every later dated milestone not yet
 // hit by the same number of days. Nothing goes past the deadline, moving
 // earlier pulls nothing in, and a one-off goal's steps move on their own.
-export function pushedDates(goal: Goal, milestones: Milestone[], movedId: string, newDate: string): Milestone[] {
+export function pushedDates(goal: Pick<Goal, 'id' | 'type' | 'deadline'>, milestones: Milestone[], movedId: string, newDate: string): Milestone[] {
   const movedIndex = milestones.findIndex((milestone) => milestone.id === movedId)
   if (movedIndex === -1) throw new Error(`No milestone ${movedId} on goal ${goal.id}`)
   const capped = (day: string) => (goal.deadline && day > goal.deadline ? goal.deadline : day)
@@ -177,37 +177,36 @@ export function pushedDates(goal: Goal, milestones: Milestone[], movedId: string
   })
 }
 
+// A goal's start and deadline; a sheet's date range leaves the deadline out when there's none.
+export type GoalSpan = { startDate: string; deadline?: string | null }
+
 // What the target and add-milestone sheets hold: text as typed.
-export type TargetDraft = { amount: string; unit: string }
+export type TargetDraft = { sessions: string; unit: string }
 export type MilestoneDraft = { measurableLine: string; targetDate: string } // '' for no date
 
-export function targetDraft({ weeklyTarget }: GoalDetail): TargetDraft {
-  return weeklyTarget ? { amount: String(weeklyTarget.amount), unit: weeklyTarget.unit } : { amount: '', unit: '' }
+export function targetDraft({ goal: { weeklyTarget } }: GoalDetail): TargetDraft {
+  return weeklyTarget ? { sessions: String(weeklyTarget.sessions), unit: weeklyTarget.unit } : { sessions: '', unit: '' }
 }
 
-// A whole number of at least 1 and a unit, or nothing to save.
-export function parsedTarget(draft: TargetDraft): { amount: number; unit: string } | undefined {
-  const amount = draft.amount.trim()
+// A count target: a whole number of at least 1 and a unit, or nothing to save.
+export function parsedTarget(draft: TargetDraft): WeeklyTargetInput | undefined {
+  const sessions = draft.sessions.trim()
   const unit = draft.unit.trim()
-  if (!/^\d+$/.test(amount) || Number(amount) < 1 || !unit) return undefined
-  return { amount: Number(amount), unit }
+  if (!/^\d+$/.test(sessions) || Number(sessions) < 1 || !unit) return undefined
+  return { kind: 'count', sessions: Number(sessions), amount: null, unit }
 }
 
 // The goal with its new target, from this week's Monday, as the API saves it.
-export function withTarget(detail: GoalDetail, target: { amount: number; unit: string }, today: string): GoalDetail {
-  const effectiveFrom = mondayOfDay(today)
-  const existing = detail.weeklyTarget?.effectiveFrom === effectiveFrom ? detail.weeklyTarget : undefined
-  return {
-    ...detail,
-    weeklyTarget: { id: existing?.id ?? 'pending', goalId: detail.goal.id, ...target, effectiveFrom },
-  }
+export function withTarget(detail: GoalDetail, target: WeeklyTargetInput, today: string): GoalDetail {
+  const weeklyTarget = { ...target, amount: target.amount ?? null, effectiveFrom: mondayOfDay(today) }
+  return { ...detail, goal: { ...detail.goal, weeklyTarget } }
 }
 
 // A line and an optional date from the goal's start to its deadline, or
 // nothing to save.
 export function parsedMilestone(
   draft: MilestoneDraft,
-  goal: Pick<Goal, 'startDate' | 'deadline'>,
+  goal: GoalSpan,
 ): { measurableLine: string; targetDate?: string } | undefined {
   const measurableLine = draft.measurableLine.trim()
   const targetDate = draft.targetDate || undefined
@@ -217,7 +216,7 @@ export function parsedMilestone(
 }
 
 // A milestone's date can't come before the goal started or after its deadline.
-export function isWithinGoal(day: string, goal: Pick<Goal, 'startDate' | 'deadline'>): boolean {
+export function isWithinGoal(day: string, goal: GoalSpan): boolean {
   return day >= goal.startDate && (!goal.deadline || day <= goal.deadline)
 }
 
@@ -268,7 +267,7 @@ export function withReopened(detail: GoalDetail, milestoneId: string, changes: R
 export function parsedReopen(
   mode: 'move' | 'adjust',
   draft: MilestoneDraft,
-  goal: Pick<Goal, 'startDate' | 'deadline'>,
+  goal: GoalSpan,
 ): ReopenChanges | undefined {
   const targetDate = draft.targetDate || undefined
   if (targetDate && !isWithinGoal(targetDate, goal)) return undefined
@@ -474,11 +473,11 @@ export function nextMilestone(milestones: Milestone[]): Milestone | undefined {
   return milestones.find((milestone) => milestone.status !== 'hit')
 }
 
-function targetSection({ goal, weeklyTarget }: GoalDetail): TargetSection | undefined {
+function targetSection({ goal, goal: { weeklyTarget } }: GoalDetail): TargetSection | undefined {
   if (goal.type === 'quitting') return { kind: 'note', line: `Since ${shortDate(goal.startDate)}` }
   if (goal.type === 'oneOff') return goal.deadline ? { kind: 'note', line: `Deadline: ${shortDate(goal.deadline)}` } : undefined
   if (!weeklyTarget) return { kind: 'weekly', line: 'No weekly target yet', action: 'Set' }
-  return { kind: 'weekly', line: `${weeklyTarget.amount} ${weeklyTarget.unit}`, action: 'Edit' }
+  return { kind: 'weekly', line: `${weeklyTarget.sessions} ${weeklyTarget.unit}`, action: 'Edit' }
 }
 
 function nextCheckIn({ goal, milestones }: GoalDetail): NextCheckIn {
