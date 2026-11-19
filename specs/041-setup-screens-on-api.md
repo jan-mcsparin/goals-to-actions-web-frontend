@@ -57,10 +57,10 @@ This takes in #33 (each check-in its own record) in full, and the data shape of 
 
 ## Success criteria
 
-- [ ] Every acceptance criterion on #41, and on #33, is met.
-- [ ] The three screens and the goal form work fully on the real API with the switch on, and on mock with it off, looking as they do now.
-- [ ] No hand-written goal, target or milestone type is left in `types.ts`.
-- [ ] `npm test`, `npm run lint`, `npm run build` pass.
+- [x] Every acceptance criterion on #41, and on #33, is met.
+- [x] The three screens and the goal form work fully on the real API with the switch on, and on mock with it off, looking as they do now.
+- [x] No hand-written goal, target or milestone type is left in `types.ts`.
+- [x] `npm test`, `npm run lint`, `npm run build` pass.
 
 ## Settled with Jan, 2026-11-18
 
@@ -73,3 +73,9 @@ This takes in #33 (each check-in its own record) in full, and the data shape of 
 ## Assumed
 
 6. **The tab's bars use the target in force this week**, but `goal.weeklyTarget` is the latest one, which can start next week once next week is open (ADR-009). *Assumed:* until #42 the bars are empty in real mode, so this is settled there.
+
+## Checked, 2026-11-18
+
+In a desktop browser at phone width, against a local API (`npm run dev:real`, Chrome DevTools), on a new building goal under an aspiration: add the goal with a target, change the target (15 can't be saved), add two milestones, check in not yet, keep, move (the API pushes the later dated milestone by the same weeks), adjust, check in hit, pause and resume, end and go again, reached and reopen, then not yet and hit on the goal's own line. Each reached the API at its own route and stayed after a reload. The tab and the aspiration's page list the goal with its count. With the API off, Reopen and a new goal from the Add sheet show "Couldn't save that. Try again." and keep what was shown or typed, and the tab shows its load message; the target and add-milestone rollbacks are covered by `useGoal`'s tests, since the goal was reached and couldn't be reopened offline.
+
+On the phone (Jan, `dev:real`): the same screens and the buttons at the foot of a goal's page work as tapped.

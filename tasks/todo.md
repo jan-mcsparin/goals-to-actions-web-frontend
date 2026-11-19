@@ -196,12 +196,12 @@ From the review of Task 5:
 Open the PR, and tick #41's and #33's criteria.
 
 **Acceptance criteria:**
-- [ ] Every action in the spec's manual list is kept after a reload.
-- [ ] Any finding is either fixed or filed as an issue in project #2.
+- [x] Every action in the spec's manual list is kept after a reload.
+- [x] Any finding is either fixed or filed as an issue in project #2.
 
 **Verification:**
-- [ ] `npm test && npm run lint && npm run build`
-- [ ] The spec's Checked section is filled in.
+- [x] `npm test && npm run lint && npm run build`
+- [x] The spec's Checked section is filled in.
 
 **Dependencies:** Task 7
 
@@ -210,5 +210,5 @@ Open the PR, and tick #41's and #33's criteria.
 **Scope:** S
 
 ## Checkpoint 3
-- [ ] Every success criterion in spec 041 is met.
-- [ ] PR open: closes #41 and #33, part of #32.
+- [x] Every success criterion in spec 041 is met.
+- [x] PR open: closes #41 and #33, part of #32.
