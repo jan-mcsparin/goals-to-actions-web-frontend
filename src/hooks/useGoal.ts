@@ -148,6 +148,7 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
   async function saveThenReload(save: () => Promise<unknown>) {
     if (waiting.current) return
     waiting.current = true
+    ++lastSave.current // a save still on its way shows nothing over this one
     setMessage(undefined)
     setJustHit(undefined)
     try {

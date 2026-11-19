@@ -154,7 +154,8 @@ export async function checkIn(
   const milestone = milestoneId === null ? undefined : findMilestone(milestoneId)
   if (milestone && milestone.goalId !== goalId) throw new Error(`${milestoneId} isn't one of ${goalId}'s`)
   if (milestone?.status === 'hit') throw new Error(`${milestoneId} is already hit`)
-  if (milestone ? goal.type !== 'oneOff' && milestone !== next : next) throw new Error(`${milestoneId ?? goalId} isn't next`)
+  if (milestone && goal.type !== 'oneOff' && milestone !== next) throw new Error(`${milestoneId} isn't next`)
+  if (!milestone && next) throw new Error(`${goalId} has milestones still to hit`)
 
   const today = toLocalDay(new Date())
   if (milestone) milestone.status = outcome
@@ -213,7 +214,7 @@ export async function resumeGoal(goalId: string): Promise<Goal> {
     for (const task of store.tasks) {
       if (task.goalId === goalId && task.weekOf === weekOf && task.status === 'skipped') moveToBank(task)
     }
-    goal.status = 'active'
+    goal.status = 'active' // a paused goal has no end date to clear
   })
 }
 

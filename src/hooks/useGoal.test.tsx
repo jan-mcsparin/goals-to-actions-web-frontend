@@ -15,7 +15,7 @@ import {
   updateMilestone,
 } from '../api/client.ts'
 import { resetStore, store } from '../api/mockStore.ts'
-import type { Goal } from '../api/types.ts'
+import type { Goal, GoalDetail } from '../api/types.ts'
 import type { CurrentPage } from '../domain/goalDetail.ts'
 import { useGoal } from './useGoal.ts'
 
@@ -336,6 +336,21 @@ describe('useGoal, pause and end', () => {
     expect(result.current.page?.kind).toBe('current')
     expect(reopenGoal).toHaveBeenCalledWith('goal-strong')
     expect(resumeGoal).not.toHaveBeenCalled()
+  })
+
+  // On the real API a check-in's page can come back after a pause that
+  // followed it, and it was read before the pause.
+  it('shows no page from an earlier save over a pause that came after it', async () => {
+    const { result } = await loaded()
+    const beforePause = await getGoal('goal-strong')
+    let checkInDone: (page: GoalDetail) => void = () => {}
+    vi.mocked(checkIn).mockImplementationOnce(() => new Promise((resolve) => (checkInDone = resolve)))
+
+    act(() => result.current.checkIn('ms-strong-2', 'hit', ''))
+    await act(() => result.current.pause())
+    await act(async () => checkInDone(beforePause))
+
+    expect(result.current.page?.header.kindLine).toBe('Building · Paused')
   })
 
   it('leaves the page as it was, with the message, when a save fails', async () => {

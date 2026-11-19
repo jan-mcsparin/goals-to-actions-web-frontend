@@ -773,6 +773,15 @@ describe('checkIn', () => {
     expect(milestoneById('ms-garage-5').status).toBe('hit')
   })
 
+  // The API refuses every check-in on a one-off goal until #31; the mock
+  // takes its own line once every step is done, as the screen offers it.
+  it("reaches a one-off goal with a hit on its own line once every step is done", async () => {
+    await expect(checkIn('goal-garage', null, 'hit')).rejects.toThrow()
+    hitEvery('goal-garage')
+
+    await expect(checkIn('goal-garage', null, 'hit')).resolves.toMatchObject({ goal: { status: 'reached' } })
+  })
+
   it("reaches the goal with a hit on its own line once every milestone is hit, keeping the check-in", async () => {
     hitEvery('goal-strong')
 
