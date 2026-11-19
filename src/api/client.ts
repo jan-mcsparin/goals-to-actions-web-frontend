@@ -549,13 +549,13 @@ function milestonesOf(goalId: string): StoredMilestone[] {
 }
 
 // As the API sends one: numbered in the goal's order, with its latest
-// check-in's result while it's hit or not yet.
+// check-in's result while it's hit or not yet. A hit is always a milestone's
+// last check-in, so the newest is the one.
 function milestoneOut(milestone: StoredMilestone): Milestone {
   const { goalId, ...fields } = milestone
   const position = milestonesOf(goalId).indexOf(milestone) + 1
   if (milestone.status === 'upcoming') return { ...fields, position, result: null }
-  const own = store.checkIns.filter((checkIn) => checkIn.milestoneId === milestone.id)
-  const latest = own.findLast((checkIn) => checkIn.outcome === 'hit') ?? newest(own)
+  const latest = newest(store.checkIns.filter((checkIn) => checkIn.milestoneId === milestone.id))
   return { ...fields, position, result: latest?.result ?? null }
 }
 
