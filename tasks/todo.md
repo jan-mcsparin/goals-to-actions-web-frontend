@@ -137,10 +137,16 @@ Test dates are fixed to Wednesday 11 Nov 2026. Every API task runs the API repo'
 
 `useGoal` and `useAdd` call these. The page that comes back replaces the optimistic one. Resume picks its function from the goal's status.
 
+Also from the review of tasks 3 and 4:
+- **A weekly target is 1 to 14 sessions,** as the API allows (`WeeklyTargetInput`, `le=14`). `parsedTarget` returns nothing above 14, so the Target sheet and the Goal form can't save it. The mock's `checkedTarget` and `setWeeklyTarget` refuse it. The client test that keeps a target of 30 becomes one that refuses 15. The seven-task stand-in cap stays.
+- **`useGoal.setTarget` shows the goal that comes back,** so a change waiting for next week (ADR-009) shows its own week, not this Monday's.
+- **`milestoneCount` in `domain/goalDetail.ts` is gone** (Task 5 reads the page's `progress`).
+
 **Acceptance criteria:**
 - [ ] Each mock function enforces the API's rule: only Next can be checked in, and resume, reopen and go again each work only from their own status.
 - [ ] Checking in Hit on the goal's line is one call, and the goal shows reached.
 - [ ] Screens and their tests don't change.
+- [ ] A target above 14 sessions can't be saved from the sheet or the form, and the mock refuses it.
 
 **Verification:**
 - [ ] `npm test && npm run lint && npm run build`
