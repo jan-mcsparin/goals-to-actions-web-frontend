@@ -19,7 +19,7 @@ This takes in #33 (each check-in its own record) in full, and the data shape of 
 ### Accepted in real mode until later issues
 
 - **This week's bars, recurring items and Keep life running stay empty.** They need tasks and recurring items (#42).
-- **A one-off goal has no steps.** The API refuses milestones on a one-off goal, because steps are tasks (#31, after the API's `tasks-week`). Adding a step shows the usual failed-save message.
+- **A one-off goal has no steps.** The API refuses milestones on a one-off goal, because steps are tasks (#31, after the API's `tasks-week`). Adding a step shows the usual failed-save message. Its own line can't be checked in either (the API refuses check-ins on a one-off goal with a 409); End goal → I reached it marks it done.
 - **A new building goal gets no bank tasks.** The mock's stand-in (shared decision 12) stays mock-only.
 - **`slipped` arrives but shows nothing.** The "This one slipped" card is #36.
 - **The Add sheet's Task and Recurring forms can't save under a goal or aspiration.** Their pickers list the API's goals and aspirations, but tasks and recurring items are still saved by the mock, which doesn't know those ids. The save shows the usual failed-save message; with None picked it works (#42).
