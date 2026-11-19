@@ -19,7 +19,7 @@ The mock's recurring item becomes the API's `RecurringItem`: a `schedule` (weekl
 
 - [x] Task 1: Word the repeat from a schedule
 - [x] Task 2: Use the generated RecurringItem everywhere
-- [ ] Task 3: Check the screens at iPhone width
+- [x] Task 3: Check the screens at iPhone width
 
 Checkpoint after task 2: build, lint and tests pass.
 

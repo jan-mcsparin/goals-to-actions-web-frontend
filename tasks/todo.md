@@ -51,7 +51,7 @@ Test dates are fixed to Wednesday 11 Nov 2026.
 **Description:** A Sonnet agent with the browser looks at the running dev server: Keep life running, an aspiration's page, Today's fixed-day items, and adding a recurring item of each kind.
 
 **Acceptance criteria:**
-- [ ] The repeat text reads as before on each screen, and a new item shows up with its repeat.
+- [x] The repeat text reads as before on each screen, and a new item shows up with its repeat.
 
 **Dependencies:** 2
 
