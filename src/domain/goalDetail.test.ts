@@ -593,9 +593,10 @@ describe('the target form', () => {
     expect(targetDraft(detail({ weeklyTarget: null }))).toEqual({ sessions: '', unit: '' })
   })
 
-  it('takes a whole number of at least 1 and a unit, trimmed', () => {
+  it('takes a whole number from 1 to 14 and a unit, trimmed', () => {
     expect(parsedTarget({ sessions: ' 4 ', unit: ' gym visits ' })).toEqual({ kind: 'count', sessions: 4, amount: null, unit: 'gym visits' })
-    for (const sessions of ['0', '-1', '2.5', 'three', '']) {
+    expect(parsedTarget({ sessions: '14', unit: 'runs' })?.sessions).toBe(14)
+    for (const sessions of ['0', '-1', '2.5', 'three', '', '15']) {
       expect(parsedTarget({ sessions, unit: 'runs' })).toBeUndefined()
     }
     expect(parsedTarget({ sessions: '3', unit: '  ' })).toBeUndefined()
@@ -650,6 +651,29 @@ describe('checking in, shown at once', () => {
     expect(notYet.latest).toEqual(detail().latest)
     expect(milestoneRows(current(hit)).find((row) => row.next)?.milestoneId).toBe('m3')
     expect(current(notYet).notYet?.milestoneId).toBe('m2')
+  })
+
+  // Every milestone hit, so the goal's own line is Next.
+  const allHit = () =>
+    detail({
+      milestones: [milestone('m1', 'hit', { result: 'Bench 150', checkedInOn: '2026-11-02' }), milestone('m2', 'hit')],
+    })
+
+  it("reaches the goal when its own line is hit, and keeps the result as Latest", () => {
+    const hit = withCheckIn(allHit(), null, 'hit', ' Bench 175 ', TODAY)
+
+    expect(hit.goal).toMatchObject({ status: 'reached', endedOn: TODAY })
+    expect(hit.progress).toEqual({ hit: 3, of: 3 })
+    expect(hit.latest).toEqual({ result: 'Bench 175', checkedInOn: TODAY })
+    expect(hit.milestones).toEqual(allHit().milestones)
+  })
+
+  it("keeps a not yet on the goal's own line as Latest, changing nothing else", () => {
+    const notYet = withCheckIn(allHit(), null, 'notYet', 'Bench 170', TODAY)
+    const blank = withCheckIn(allHit(), null, 'notYet', ' ', TODAY)
+
+    expect(notYet).toEqual({ ...allHit(), latest: { result: 'Bench 170', checkedInOn: TODAY } })
+    expect(blank).toEqual(allHit())
   })
 
   it('says what was hit, or which step is done', () => {

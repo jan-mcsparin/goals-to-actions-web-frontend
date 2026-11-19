@@ -190,11 +190,14 @@ export function targetDraft({ goal: { weeklyTarget } }: GoalDetail): TargetDraft
   return weeklyTarget ? { sessions: String(weeklyTarget.sessions), unit: weeklyTarget.unit } : { sessions: '', unit: '' }
 }
 
-// A count target: a whole number of at least 1 and a unit, or nothing to save.
+// The most sessions a week the API takes.
+export const MOST_SESSIONS = 14
+
+// A count target: a whole number from 1 to 14 and a unit, or nothing to save.
 export function parsedTarget(draft: TargetDraft): WeeklyTargetInput | undefined {
   const sessions = draft.sessions.trim()
   const unit = draft.unit.trim()
-  if (!/^\d+$/.test(sessions) || Number(sessions) < 1 || !unit) return undefined
+  if (!/^\d+$/.test(sessions) || Number(sessions) < 1 || Number(sessions) > MOST_SESSIONS || !unit) return undefined
   return { kind: 'count', sessions: Number(sessions), amount: null, unit }
 }
 
@@ -240,21 +243,28 @@ export function withMilestone(
   return { ...detail, milestones: [...detail.milestones, added], progress }
 }
 
-// The page with a milestone checked in today, as the API saves it: the
-// milestone takes the result, a hit counts, and a result is the latest.
+// The page with a check-in today, as the API saves it: a result is the
+// latest, and a hit counts. Without a milestone it's the goal's own line,
+// and a hit there reaches the goal.
 export function withCheckIn(
   detail: GoalDetail,
-  milestoneId: string,
+  milestoneId: string | null,
   outcome: 'hit' | 'notYet',
   result: string,
   today: string,
 ): GoalDetail {
   const trimmed = result.trim() || null
+  const latest = trimmed ? { result: trimmed, checkedInOn: today } : detail.latest
+  if (!milestoneId) {
+    if (outcome === 'notYet') return { ...detail, latest }
+    const reached = { ...detail.goal, status: 'reached' as const, endedOn: today, slipped: false }
+    return { ...detail, goal: reached, progress: { ...detail.progress, hit: detail.progress.of }, latest }
+  }
   const changed = withMilestoneChanged(detail, milestoneId, (milestone) => ({ ...milestone, status: outcome, result: trimmed }))
   return {
     ...changed,
     progress: outcome === 'hit' ? { ...detail.progress, hit: detail.progress.hit + 1 } : detail.progress,
-    latest: trimmed ? { result: trimmed, checkedInOn: today } : detail.latest,
+    latest,
   }
 }
 

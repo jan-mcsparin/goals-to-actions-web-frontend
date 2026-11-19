@@ -146,14 +146,14 @@ From the review of Task 5:
 - **A check-in on the goal's own line is kept, as the API keeps it.** `checkIn(goalId, null, outcome, result)` adds the check-in row; a hit also marks the goal reached; a result, hit or not yet, becomes Latest. `useGoal.checkIn` no longer calls `endGoal` for a hit or drops a not yet. It updates the page at once (Latest, and the count and reached state for a hit), then shows the page that comes back.
 
 **Acceptance criteria:**
-- [ ] Each mock function enforces the API's rule: only Next can be checked in, and resume, reopen and go again each work only from their own status.
-- [ ] Checking in Hit on the goal's line is one call, and the goal shows reached.
-- [ ] Screens and their tests don't change.
-- [ ] A target above 14 sessions can't be saved from the sheet or the form, and the mock refuses it.
-- [ ] Checking in on the goal's own line keeps the check-in: its result shows as Latest, hit or not yet.
+- [x] Each mock function enforces the API's rule: only Next can be checked in, and resume, reopen and go again each work only from their own status.
+- [x] Checking in Hit on the goal's line is one call, and the goal shows reached.
+- [x] Screens and their tests don't change.
+- [x] A target above 14 sessions can't be saved from the sheet or the form, and the mock refuses it.
+- [x] Checking in on the goal's own line keeps the check-in: its result shows as Latest, hit or not yet.
 
 **Verification:**
-- [ ] `npm test && npm run lint && npm run build`
+- [x] `npm test && npm run lint && npm run build`
 
 **Dependencies:** Tasks 4, 5
 

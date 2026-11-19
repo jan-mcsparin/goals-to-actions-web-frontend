@@ -74,8 +74,11 @@ export type NewTask = {
   onToday?: boolean
 }
 
-// What the Add sheet sends to addGoal. A building goal sends its target too.
+// What the Add sheet sends to createGoal. A building goal sends its target too.
 export type NewGoal = Schemas['NewGoal']
+
+// What Move the date and Adjust the milestone send: the line and date, whole.
+export type MilestoneEdit = Schemas['MilestoneEdit']
 
 // What the Add sheet sends to addAspiration. It goes last in priority.
 export type NewAspiration = Schemas['AspirationInput']

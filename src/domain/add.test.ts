@@ -245,6 +245,7 @@ describe('goalReady', () => {
     ['a unit without a number', { sessions: '', unit: 'lifting sessions' }],
     ['zero', { sessions: '0', unit: 'lifting sessions' }],
     ['a fraction', { sessions: '2.5', unit: 'lifting sessions' }],
+    ['more than 14', { sessions: '15', unit: 'lifting sessions' }],
   ])('is not ready with a weekly target of %s', (_, target) => {
     expect(goalReady(draftWith({ target }), TODAY)).toBe(false)
   })

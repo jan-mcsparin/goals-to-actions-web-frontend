@@ -128,7 +128,7 @@ export function goalReady(draft: GoalDraft, today: string): boolean {
   return !draft.deadline || isWithinGoal(draft.deadline, { startDate })
 }
 
-// What the Add sheet sends to addGoal: only what the goal's type shows. A new
+// What the Add sheet sends to createGoal: only what the goal's type shows. A new
 // aspiration is left out; useAdd saves it first and sends its id.
 export function goalInput(draft: GoalDraft & { type: GoalType }, today: string): NewGoal {
   const input: NewGoal = { ...goalParts(draft), type: draft.type }

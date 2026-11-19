@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addAspiration, addGoal, addTask, getAspirations, getBank, getDay, getGoal } from '../api/client.ts'
+import { addAspiration, addTask, createGoal, getAspirations, getBank, getDay, getGoal } from '../api/client.ts'
 import { resetStore, store } from '../api/mockStore.ts'
 import type { Task } from '../api/types.ts'
 import { NEW_ASPIRATION } from '../domain/add.ts'
@@ -11,7 +11,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
   return {
     ...actual,
     addAspiration: vi.fn(actual.addAspiration),
-    addGoal: vi.fn(actual.addGoal),
+    createGoal: vi.fn(actual.createGoal),
     addTask: vi.fn(actual.addTask),
     getAspirations: vi.fn(actual.getAspirations),
   }
@@ -28,7 +28,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers()
   vi.mocked(addTask).mockClear()
-  vi.mocked(addGoal).mockClear()
+  vi.mocked(createGoal).mockClear()
   vi.mocked(addAspiration).mockClear()
 })
 
@@ -245,7 +245,7 @@ describe('useAdd on the Goal tab', () => {
   })
 
   it("selects the new aspiration when the goal then fails, so trying again doesn't make a second", async () => {
-    vi.mocked(addGoal).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(createGoal).mockRejectedValueOnce(new Error('offline'))
     const { result, onSaved } = onGoalTab()
     await waitFor(() => expect(result.current.aspirations.length).toBeGreaterThan(0))
     act(() => result.current.editGoal({ ...BE_STRONG, aspirationId: NEW_ASPIRATION, newAspirationName: 'Be generous' }))
@@ -266,7 +266,7 @@ describe('useAdd on the Goal tab', () => {
   })
 
   it('lets the screen behind reload once the new aspiration saves, even if the goal then fails', async () => {
-    vi.mocked(addGoal).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(createGoal).mockRejectedValueOnce(new Error('offline'))
     const { result, onChanged } = onGoalTab()
     act(() => result.current.editGoal({ ...BE_STRONG, aspirationId: NEW_ASPIRATION, newAspirationName: 'Be generous' }))
 
@@ -277,7 +277,7 @@ describe('useAdd on the Goal tab', () => {
   })
 
   it("leaves a failed save's message behind on its own tab", async () => {
-    vi.mocked(addGoal).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(createGoal).mockRejectedValueOnce(new Error('offline'))
     const { result } = onGoalTab()
     act(() => result.current.editGoal(BE_STRONG))
     await act(async () => result.current.save())

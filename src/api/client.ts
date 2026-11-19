@@ -3,7 +3,7 @@
 // API instead (realAspirations.ts), with the same signatures.
 import { mondayOf, toLocalDay } from './dates.ts'
 import { taskWeek } from '../domain/add.ts'
-import { isWithinGoal, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
+import { isWithinGoal, MOST_SESSIONS, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
 import { isIntensity } from '../domain/settings.ts'
 import { NotFoundError } from './errors.ts'
 import { newDeviceId } from './ids.ts'
@@ -19,9 +19,11 @@ import type {
   DayPlan,
   Goal,
   GoalDetail,
+  GoalStatus,
   Intensity,
   ListedGoal,
   Milestone,
+  MilestoneEdit,
   NewAspiration,
   NewGoal,
   NewRecurringItem,
@@ -111,80 +113,65 @@ export async function getGoal(goalId: string): Promise<GoalDetail> {
 
 // A count target, from this week. A second change in the same week updates
 // that week's row, so earlier weeks keep the target they had.
-export async function setWeeklyTarget(goalId: string, sessions: number, unit: string): Promise<WeeklyTarget> {
+export async function setWeeklyTarget(goalId: string, target: WeeklyTargetInput): Promise<Goal> {
   const goal = findCurrentGoal(goalId)
-  if (goal.type !== 'building') throw new Error(`${goalId} is not a building goal`)
-  if (!Number.isInteger(sessions) || sessions < 1) throw new Error('A weekly target is a whole number, at least 1')
-  const trimmedUnit = unit.trim()
-  if (!trimmedUnit) throw new Error('A weekly target needs a unit')
+  const checked = checkedTarget(goal.type, target)
 
   const weekOf = thisWeek()
-  let row = store.weeklyTargets.find((candidate) => candidate.goalId === goalId && candidate.effectiveFrom === weekOf)
-  if (!row) {
-    row = { goalId, kind: 'count', sessions, amount: null, unit: trimmedUnit, effectiveFrom: weekOf }
-    store.weeklyTargets.push(row)
-  }
-  row.sessions = sessions
-  row.unit = trimmedUnit
-  return structuredClone(latestTarget(goalId)!)
+  const row = store.weeklyTargets.find((candidate) => candidate.goalId === goalId && candidate.effectiveFrom === weekOf)
+  if (row) Object.assign(row, checked)
+  else store.weeklyTargets.push({ goalId, ...checked, effectiveFrom: weekOf })
+  return structuredClone(goalOut(goal))
 }
 
 // Goes after the goal's last milestone, upcoming, never past the deadline.
 export async function addMilestone(
   goalId: string,
   milestone: { measurableLine: string; targetDate?: string },
-): Promise<Milestone> {
+): Promise<GoalDetail> {
   const goal = findCurrentGoal(goalId)
   const measurableLine = milestone.measurableLine.trim()
   if (!measurableLine) throw new Error('A milestone needs a measurable line')
   const { targetDate } = milestone
   if (targetDate && !isWithinGoal(targetDate, goal)) throw new Error("A milestone's date must fall between the goal's start and its deadline")
 
-  const added: StoredMilestone = { id: newId('ms'), goalId, measurableLine, status: 'upcoming', targetDate: targetDate ?? null }
-  store.milestones.push(added)
-  return structuredClone(milestoneOut(added))
+  store.milestones.push({ id: newDeviceId(), goalId, measurableLine, status: 'upcoming', targetDate: targetDate ?? null })
+  return getGoal(goalId)
 }
 
 // Hit or not yet, kept as a check-in dated today with the result. A building
-// or quitting goal's milestones are checked in in order, so only Next can be;
-// a one-off goal's steps can be done in any order.
-export async function checkInMilestone(
-  milestoneId: string,
+// or quitting goal's milestones are checked in in order, so only Next can be,
+// and the goal's own line (no milestone) once every milestone is hit: a hit
+// there reaches the goal. A one-off goal's steps can be done in any order.
+export async function checkIn(
+  goalId: string,
+  milestoneId: string | null,
   outcome: 'hit' | 'notYet',
   result?: string,
-): Promise<Milestone> {
-  const milestone = findMilestone(milestoneId)
-  const goal = findCurrentGoal(milestone.goalId)
-  if (milestone.status === 'hit') throw new Error(`${milestoneId} is already hit`)
-  if (goal.type !== 'oneOff' && nextMilestone(milestonesOf(goal.id)) !== milestone) {
-    throw new Error(`${milestoneId} isn't next`)
-  }
+): Promise<GoalDetail> {
+  const goal = findCurrentGoal(goalId)
+  const next = nextMilestone(milestonesOf(goalId))
+  const milestone = milestoneId === null ? undefined : findMilestone(milestoneId)
+  if (milestone && milestone.goalId !== goalId) throw new Error(`${milestoneId} isn't one of ${goalId}'s`)
+  if (milestone?.status === 'hit') throw new Error(`${milestoneId} is already hit`)
+  if (milestone ? goal.type !== 'oneOff' && milestone !== next : next) throw new Error(`${milestoneId ?? goalId} isn't next`)
 
-  milestone.status = outcome
-  store.checkIns.push({
-    id: newDeviceId(),
-    goalId: goal.id,
-    milestoneId,
-    outcome,
-    result: result?.trim() || null,
-    checkedInOn: toLocalDay(new Date()),
-  })
-  return structuredClone(milestoneOut(milestone))
+  const today = toLocalDay(new Date())
+  if (milestone) milestone.status = outcome
+  else if (outcome === 'hit') Object.assign(goal, { status: 'reached', endedOn: today })
+  store.checkIns.push({ id: newDeviceId(), goalId, milestoneId, outcome, result: result?.trim() || null, checkedInOn: today })
+  return getGoal(goalId)
 }
 
-// A not-yet milestone back to upcoming: keep the date (no changes), move it,
-// or adjust its line and date. A later date pushes the ones after it out.
-// Returns the goal's milestones, since several can move. Its check-ins stay.
-export async function reopenMilestone(
-  milestoneId: string,
-  changes: { measurableLine?: string; targetDate?: string } = {},
-): Promise<Milestone[]> {
+// Move the date and Adjust the milestone: the line and date, sent whole. A
+// not-yet milestone goes back to upcoming; a hit one stays hit. A later date
+// pushes the ones after it out. Its check-ins stay.
+export async function updateMilestone(milestoneId: string, edit: MilestoneEdit): Promise<GoalDetail> {
   const milestone = findMilestone(milestoneId)
   const goal = findCurrentGoal(milestone.goalId)
-  if (milestone.status !== 'notYet') throw new Error(`${milestoneId} isn't marked not yet`)
-  const measurableLine = changes.measurableLine?.trim()
-  if (measurableLine === '') throw new Error('A milestone needs a measurable line')
-  const { targetDate } = changes
+  const measurableLine = edit.measurableLine.trim()
+  if (!measurableLine) throw new Error('A milestone needs a measurable line')
+  const targetDate = edit.targetDate ?? null
   if (targetDate && !isWithinGoal(targetDate, goal)) {
     throw new Error("A milestone's date must fall between the goal's start and its deadline")
   }
@@ -193,9 +180,20 @@ export async function reopenMilestone(
     const moved = pushedDates(goal, milestonesOf(goal.id), milestoneId, targetDate)
     for (const row of moved) findMilestone(row.id).targetDate = row.targetDate
   }
-  if (measurableLine) milestone.measurableLine = measurableLine
+  milestone.targetDate = targetDate
+  milestone.measurableLine = measurableLine
+  if (milestone.status === 'notYet') milestone.status = 'upcoming'
+  return getGoal(goal.id)
+}
+
+// Keep the date: a not-yet milestone back to upcoming. An upcoming one stays
+// as it is; a hit one can't be kept.
+export async function keepMilestone(milestoneId: string): Promise<GoalDetail> {
+  const milestone = findMilestone(milestoneId)
+  findCurrentGoal(milestone.goalId)
+  if (milestone.status === 'hit') throw new Error(`${milestoneId} is already hit`)
   milestone.status = 'upcoming'
-  return structuredClone(milestonesOf(goal.id).map(milestoneOut))
+  return getGoal(milestone.goalId)
 }
 
 // Its not-done tasks this week are set aside (skipped), keeping their day,
@@ -207,32 +205,36 @@ export async function pauseGoal(goalId: string): Promise<Goal> {
   return structuredClone(goalOut(goal))
 }
 
-// Active again. From paused, its set-aside tasks this week go back to the
-// bank; from ended (Go again) or reached (Reopen, after reaching it by
-// mistake), the end date goes. Allowed under a retired aspiration: the goal
-// keeps it.
+// Active again, from paused: its set-aside tasks this week go back to the
+// bank. Allowed under a retired aspiration: the goal keeps it.
 export async function resumeGoal(goalId: string): Promise<Goal> {
-  const goal = findGoal(goalId)
-  if (goal.status === 'paused') {
+  return changeStatus(goalId, ['paused'], 'active', (goal) => {
     const weekOf = thisWeek()
     for (const task of store.tasks) {
       if (task.goalId === goalId && task.weekOf === weekOf && task.status === 'skipped') moveToBank(task)
     }
-  } else if (goal.status === 'ended' || goal.status === 'reached') {
-    goal.endedOn = null
-  } else {
-    throw new Error(`${goalId} is ${goal.status}`)
-  }
-  goal.status = 'active'
-  return structuredClone(goalOut(goal))
+    goal.status = 'active'
+  })
 }
 
-// Reached or ended today. Its tasks stay as they are.
-export async function endGoal(goalId: string, outcome: 'reached' | 'ended'): Promise<Goal> {
-  const goal = findCurrentGoal(goalId)
-  goal.status = outcome
-  goal.endedOn = toLocalDay(new Date())
-  return structuredClone(goalOut(goal))
+// Active again after reaching it by mistake; the end date goes.
+export async function reopenGoal(goalId: string): Promise<Goal> {
+  return changeStatus(goalId, ['reached'], 'active', comeBack)
+}
+
+// The same goal, active again after ending it; the end date goes.
+export async function goAgain(goalId: string): Promise<Goal> {
+  return changeStatus(goalId, ['ended'], 'active', comeBack)
+}
+
+// Ended for now, today. Its tasks stay as they are.
+export async function endGoal(goalId: string): Promise<Goal> {
+  return changeStatus(goalId, ['active', 'paused'], 'ended', (goal) => finish(goal, 'ended'))
+}
+
+// Reached today, as a hit on the goal's own line does. Its tasks stay as they are.
+export async function markGoalReached(goalId: string): Promise<Goal> {
+  return changeStatus(goalId, ['active', 'paused'], 'reached', (goal) => finish(goal, 'reached'))
 }
 
 // A blank why is null; anything not given stays as it was.
@@ -352,9 +354,10 @@ export async function addTask(task: NewTask): Promise<Task> {
 // weekly target can't flood the bank.
 const MOST_STAND_IN_TASKS = 7
 
-// Everything is checked before anything is stored. A weekly target's tasks
-// stand in for the planner, so the new goal can be followed into the week.
-export async function addGoal(goal: NewGoal): Promise<Goal> {
+// Its id is made here, on the device. Everything is checked before anything
+// is stored. A weekly target's tasks stand in for the planner, so the new
+// goal can be followed into the week.
+export async function createGoal(goal: NewGoal): Promise<Goal> {
   const label = goal.label.trim()
   const measurableLine = goal.measurableLine.trim()
   if (!label || !measurableLine) throw new Error('A goal needs a label and a measurable line')
@@ -364,7 +367,7 @@ export async function addGoal(goal: NewGoal): Promise<Goal> {
   const target = goal.weeklyTarget && checkedTarget(goal.type, goal.weeklyTarget)
 
   const added: StoredGoal = {
-    id: newId('goal'),
+    id: newDeviceId(),
     label,
     measurableLine,
     type: goal.type,
@@ -577,9 +580,32 @@ function newest(checkIns: StoredCheckIn[]): StoredCheckIn | undefined {
 function checkedTarget(type: Goal['type'], target: WeeklyTargetInput): Omit<WeeklyTarget, 'effectiveFrom'> {
   if (type !== 'building') throw new Error('Only a building goal has a weekly target')
   const unit = target.unit.trim()
-  if (!Number.isInteger(target.sessions) || target.sessions < 1) throw new Error('A weekly target is a whole number, at least 1')
+  if (!Number.isInteger(target.sessions) || target.sessions < 1 || target.sessions > MOST_SESSIONS) {
+    throw new Error(`A weekly target is a whole number from 1 to ${MOST_SESSIONS}`)
+  }
   if (!unit) throw new Error('A weekly target needs a unit')
   return { kind: target.kind, sessions: target.sessions, amount: target.amount ?? null, unit }
+}
+
+// As the API: each change is allowed from its own statuses, and sent again
+// (the goal already there) returns the goal unchanged.
+function changeStatus(goalId: string, from: GoalStatus[], to: GoalStatus, change: (goal: StoredGoal) => void): Goal {
+  const goal = findGoal(goalId)
+  if (goal.status !== to) {
+    if (!from.includes(goal.status)) throw new Error(`${goalId} is ${goal.status}`)
+    change(goal)
+  }
+  return structuredClone(goalOut(goal))
+}
+
+function finish(goal: StoredGoal, outcome: 'reached' | 'ended') {
+  goal.status = outcome
+  goal.endedOn = toLocalDay(new Date())
+}
+
+function comeBack(goal: StoredGoal) {
+  goal.status = 'active'
+  goal.endedOn = null
 }
 
 // Active or paused: a reached or ended goal can't be changed.
