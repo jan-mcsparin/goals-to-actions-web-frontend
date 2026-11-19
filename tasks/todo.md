@@ -54,8 +54,8 @@ Test dates are fixed to Wednesday 11 Nov 2026. Every API task runs the API repo'
 **Scope:** M
 
 ## Checkpoint 1
-- [ ] API PR reviewed and merged.
-- [ ] In the front end, `npm run api:types` regenerates, the suite is still green, and nothing else is changed.
+- [x] API PR reviewed and merged.
+- [x] In the front end, `npm run api:types` regenerates, the suite is still green, and nothing else is changed.
 
 # PR 2, front end: `setup-screens-on-api` (closes #41, #33; part of #32)
 

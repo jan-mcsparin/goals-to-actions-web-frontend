@@ -403,6 +403,19 @@ export interface components {
             ids: string[];
         };
         /**
+         * AspirationRef
+         * @description The aspiration a goal is under, named on its page.
+         */
+        AspirationRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
          * ErrorMessage
          * @description FastAPI's error shape, for the errors the API raises itself.
          */
@@ -476,13 +489,14 @@ export interface components {
         /** GoalList */
         GoalList: {
             /** Goals */
-            goals: components["schemas"]["Goal"][];
+            goals: components["schemas"]["ListedGoal"][];
         };
         /**
          * GoalPage
          * @description Everything a goal's page reads.
          */
         GoalPage: {
+            aspiration: components["schemas"]["AspirationRef"] | null;
             goal: components["schemas"]["Goal"];
             latest: components["schemas"]["LatestResult"] | null;
             /**
@@ -518,6 +532,54 @@ export interface components {
             /** Result */
             result: string;
         };
+        /** ListedGoal */
+        ListedGoal: {
+            /** Aspirationid */
+            aspirationId: string | null;
+            /** Baseline */
+            baseline: string | null;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Deadline */
+            deadline: string | null;
+            /** Endedon */
+            endedOn: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /** Measurableline */
+            measurableLine: string;
+            progress: components["schemas"]["Progress"];
+            /**
+             * Slipped
+             * @description Active, with its deadline before today.
+             */
+            slipped: boolean;
+            /**
+             * Startdate
+             * Format: date
+             */
+            startDate: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "paused" | "reached" | "ended";
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "building" | "quitting" | "oneOff";
+            /** @description The latest target. Its effectiveFrom is after this week when a change waits for next week. Empty for quitting and one-off goals. */
+            weeklyTarget: components["schemas"]["WeeklyTarget"] | null;
+        };
         /** Milestone */
         Milestone: {
             /**
@@ -529,6 +591,11 @@ export interface components {
             measurableLine: string;
             /** Position */
             position: number;
+            /**
+             * Result
+             * @description Its hit check-in's result. Empty until it's hit.
+             */
+            result: string | null;
             /**
              * Status
              * @enum {string}
