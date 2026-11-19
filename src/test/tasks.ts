@@ -21,6 +21,8 @@ export function aTask(id: string, fields: Partial<Task> = {}): Task {
     plannedDay: null,
     placedByHand: false,
     carriedOver: 0,
+    atClose: null,
+    stillMatters: false,
     ...fields,
   }
 }

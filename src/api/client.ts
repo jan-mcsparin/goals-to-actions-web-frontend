@@ -529,6 +529,8 @@ function newStoredTask(fields: Pick<StoredTask, 'title' | 'origin'> & Partial<St
     plannedDay: null,
     placedByHand: false,
     carriedOver: 0,
+    atClose: null,
+    stillMatters: false,
     setAside: false,
     ...fields,
   }
