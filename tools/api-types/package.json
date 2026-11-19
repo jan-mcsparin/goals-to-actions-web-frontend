@@ -1,0 +1,9 @@
+{
+  "name": "api-types",
+  "private": true,
+  "description": "Generates src/api/openapi.ts from the API's openapi.json. Kept apart from the app because openapi-typescript needs TypeScript's JS API, which TypeScript 7.0 doesn't ship.",
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}

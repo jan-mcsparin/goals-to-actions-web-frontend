@@ -320,7 +320,7 @@ describe('AddSheet on the Aspiration tab', () => {
 
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
-    expect(store.aspirations.find((row) => row.name === 'Be generous')?.why).toBeUndefined()
+    expect(store.aspirations.find((row) => row.name === 'Be generous')?.why).toBeNull()
     expect(onChanged).toHaveBeenCalledTimes(1)
     expect(onSaved).not.toHaveBeenCalled()
     expect(screen.getByText('Saved.')).toBeDefined()

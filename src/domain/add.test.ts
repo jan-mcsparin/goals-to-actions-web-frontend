@@ -284,11 +284,13 @@ describe('aspirationReady', () => {
 
 describe('aspirationChoices', () => {
   it('offers the active aspirations only, in priority order', () => {
-    const aspiration = (id: string, name: string, priority?: number): Aspiration => ({
+    const aspiration = (id: string, name: string, position?: number): Aspiration => ({
       id,
       name,
-      priority,
-      status: priority ? 'active' : 'retired',
+      why: null,
+      position: position ?? null,
+      retiredOn: position ? null : '2026-10-15',
+      status: position ? 'active' : 'retired',
       createdAt: '2026-10-01T09:00:00Z',
     })
     const aspirations = [aspiration('a2', 'Keep a calm home', 2), aspiration('a3', 'Speak Spanish'), aspiration('a1', 'Be fit', 1)]

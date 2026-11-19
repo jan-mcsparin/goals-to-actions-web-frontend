@@ -70,8 +70,8 @@ describe('mock data contents', () => {
 
   it('has two active aspirations and a retired one, each with a goal', () => {
     expect(data.aspirations.map((aspiration) => aspiration.status)).toEqual(['active', 'active', 'retired'])
-    expect(data.aspirations.find((aspiration) => aspiration.status === 'retired')?.retiredAt).toBeDefined()
-    expect(data.aspirations.find((aspiration) => aspiration.name === 'Keep a calm home')?.why).toBeUndefined()
+    expect(data.aspirations.find((aspiration) => aspiration.status === 'retired')?.retiredOn).toBeDefined()
+    expect(data.aspirations.find((aspiration) => aspiration.name === 'Keep a calm home')?.why).toBeNull()
     for (const aspiration of data.aspirations) {
       expect(data.goals.some((goal) => goal.aspirationId === aspiration.id)).toBe(true)
     }
@@ -80,8 +80,8 @@ describe('mock data contents', () => {
   it('numbers active aspirations 1, 2, … in priority order and gives retired ones no priority', () => {
     const active = data.aspirations.filter((aspiration) => aspiration.status === 'active')
     const retired = data.aspirations.filter((aspiration) => aspiration.status === 'retired')
-    expect(active.map((aspiration) => aspiration.priority).sort()).toEqual([1, 2])
-    expect(retired.every((aspiration) => aspiration.priority === undefined)).toBe(true)
+    expect(active.map((aspiration) => aspiration.position).sort()).toEqual([1, 2])
+    expect(retired.every((aspiration) => aspiration.position === null)).toBe(true)
   })
 
   it('gives Be strong a baseline, a weekly target and five milestones', () => {

@@ -343,7 +343,7 @@ describe('useAdd on the Aspiration tab', () => {
     await act(async () => result.current.save())
 
     const aspiration = store.aspirations.find((row) => row.name === 'Be generous')!
-    expect(aspiration.why).toBeUndefined()
+    expect(aspiration.why).toBeNull()
     expect(onSaved).not.toHaveBeenCalled()
     expect(onChanged).toHaveBeenCalledTimes(1)
     expect(result.current.savedAspiration).toEqual({ id: aspiration.id, label: 'Be generous' })

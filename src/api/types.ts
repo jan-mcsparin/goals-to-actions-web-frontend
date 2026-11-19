@@ -1,19 +1,15 @@
-// Hand-written for the click-through. Replaced by types generated from the
-// API's OpenAPI schema once it exists; shapes follow ../docs/data-model.md.
+// The API's types where it has defined them, from the generated openapi.ts
+// (`npm run api:types`); the rest are hand-written for the click-through until
+// their screens move to the API, and follow ../docs/data-model.md.
 // Days are local 'YYYY-MM-DD' strings; instants are full ISO timestamps.
+import type { components } from './openapi.ts'
 
-export type AspirationStatus = 'active' | 'retired'
+type Schemas = components['schemas']
 
-export type Aspiration = {
-  id: string
-  name: string
-  why?: string
-  // Active aspirations only, numbered 1, 2, … with no gaps: it's the position.
-  priority?: number
-  status: AspirationStatus
-  createdAt: string
-  retiredAt?: string
-}
+// Empty fields are null. Only active aspirations have a position (1, 2, …
+// with no gaps); only retired ones have retiredOn, a day.
+export type Aspiration = Schemas['Aspiration']
+export type AspirationStatus = Aspiration['status']
 
 export type GoalType = 'building' | 'quitting' | 'oneOff'
 export type GoalStatus = 'active' | 'paused' | 'reached' | 'ended'
@@ -109,7 +105,7 @@ export type NewGoal = {
 }
 
 // What the Add sheet sends to addAspiration. It goes last in priority.
-export type NewAspiration = { name: string; why?: string }
+export type NewAspiration = Schemas['AspirationInput']
 
 // What the Add sheet sends to addRecurringItem. Without an aspiration it
 // belongs to Keep life running.

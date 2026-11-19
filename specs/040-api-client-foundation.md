@@ -1,6 +1,6 @@
 # Spec: API client foundation (#40)
 
-Status: draft 2026-11-13; finalised when its plan is written, after the API's `aspirations` slice is built. Issue: [#40](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/40). Module `api-client-foundation` in the [map](README.md). Depends on the API's [`aspirations`](../../api/specs/aspirations.md) spec.
+Status: built 2026-11-18; plan in [`../tasks/plan.md`](../tasks/plan.md), the API map's decisions 6 to 11 marked in the API repo. Issue: [#40](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/40). Module `api-client-foundation` in the [map](README.md). Depends on the API's [`aspirations`](../../api/specs/aspirations.md) spec.
 
 ## Objective
 
@@ -22,13 +22,15 @@ References: [the API map](../../api/specs/README.md) (shared decisions 6 to 12),
 
 With the switch on real, screens that aren't wired yet still show mock data, and it won't line up with the real aspirations (the mock goals belong to mock aspirations). That is accepted: real mode is for proving the path until #41.
 
+The API has no read for one aspiration and no combined read for the tab. In real mode both are built from `listAspirations`: the page picks its aspiration by id (missing is `NotFoundError`) and counts the active ones, and goals, milestones, recurring items, targets and tasks come back empty until #41.
+
 ## Scope
 
 **In:**
 
 - A script that regenerates the types, and the generated file under `src/api/`.
 - `src/api/`: the real implementations of the aspiration functions beside the mock ones; the choice between them in one place; a small request helper (base URL, time zone header, JSON, errors).
-- A device-made id for a new aspiration (`crypto.randomUUID()`), in both mock and real.
+- A device-made id for a new aspiration (a v4 UUID from `crypto.getRandomValues`, since browsers leave `crypto.randomUUID` out on the plain-http dev server the phone opens), in both mock and real.
 - Reaching a local API from the dev server, and from the phone on the same network.
 - `README.md`: running against a local API. `CLAUDE.md`: the generated file and the switch.
 
@@ -56,11 +58,11 @@ With the switch on real, screens that aren't wired yet still show mock data, and
 
 ## Success criteria
 
-- [ ] Every acceptance criterion on #40 is met.
-- [ ] Types regenerate with one command and the result is committed.
-- [ ] The Aspirations tab works fully on the real API with the switch on, and on mock with it off.
-- [ ] Each of the API's assumed decisions 6 to 11 is marked confirmed, or changed, in the API map.
-- [ ] `npm test`, `npm run lint`, `npm run build` pass.
+- [x] Every acceptance criterion on #40 is met.
+- [x] Types regenerate with one command and the result is committed.
+- [x] The Aspirations tab works fully on the real API with the switch on, and on mock with it off.
+- [x] Each of the API's assumed decisions 6 to 11 is marked confirmed, or changed, in the API map.
+- [x] `npm test`, `npm run lint`, `npm run build` pass.
 
 ## Settled with Jan, 2026-11-13
 
@@ -68,7 +70,17 @@ With the switch on real, screens that aren't wired yet still show mock data, and
 2. **The schema is a file the API repo commits** (`openapi.json`, added by the API's `aspirations` slice). Types are regenerated from it without starting the API.
 3. **A proxy in the Vite dev server** (`/api` to the local API) reaches the API in development, from the laptop and the phone. It passes the path on as it is: the API serves its routes under `/api` (ADR-011, API issue #20), so a request looks the same here and through CloudFront. There is no CORS: hosted, the front end and the API share one origin.
 
-## Open questions
+## Settled with Jan, 2026-11-18
 
-1. **The tab's read is bigger than the API's.** `getAspirations` returns counts and goals alongside the aspirations; the API's `listAspirations` returns aspirations alone until `goals-targets`. In real mode the tab shows each aspiration with no goals until #41. Is that fine for the proof?
-2. **The switch.** A build-time setting (`VITE_API=real`), so nothing about it ships in the app. Or something tappable in Settings for trying both on the phone. I'd use the build-time setting.
+4. **Aspirations only.** Only `Aspiration` and its input come from the generated types now. Goals, weekly targets and milestones stay hand-written until #41, which wires their screens; the comments on #40 about the goals and milestones slices are for #41.
+5. **The tab and the page read from the list in real mode** (see Objective). Each aspiration shows with no goals until #41.
+6. **The client functions keep their signatures.** `moveAspiration(id, 'up' | 'down')` stays; the real one reads the order, swaps, and posts every active id, one call at a time. `addAspiration` makes the id itself. Hooks and screens don't change.
+7. **The switch is a build-time setting,** `VITE_API=real` (`npm run dev:real`). Nothing about it ships in the app.
+
+## Checked, 2026-11-18
+
+In a desktop browser at phone width, against a local API (`npm run dev:real`, Chrome DevTools): list, add, edit, move up and down, retire with each choice, and bring back all reach the API with `X-Time-Zone`, and stay after a reload. A missing aspiration goes back quietly. Offline, a save rolls back with "Couldn't save that. Try again." and the tab shows its load message. With curl through the dev proxy: the same create twice makes one aspiration, a repeated retire or bring back changes nothing, a short reorder is a 409.
+
+Still for the phone: the app over plain http on the local network (the device id path without `randomUUID`), and the tab bar's "Aspirations" label, which sits close to the right edge in the browser.
+
+Found on the way and filed: two moves in the same instant leave the page on a stale order (#17, a real tap can't do it); a dismissed load failure leaves the tab empty, and a screen reads the aspirations two or three times (#43).

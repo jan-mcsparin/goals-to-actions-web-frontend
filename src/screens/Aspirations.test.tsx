@@ -131,7 +131,7 @@ describe('Aspirations', () => {
   it('says "No goals yet." on a card with no goals', async () => {
     vi.mocked(getAspirations).mockResolvedValueOnce({
       ...NOTHING,
-      aspirations: [{ id: 'asp-new', name: 'Be a builder', priority: 1, status: 'active', createdAt: '2026-11-10T09:00:00Z' }],
+      aspirations: [{ id: 'asp-new', name: 'Be a builder', why: null, position: 1, status: 'active', createdAt: '2026-11-10T09:00:00Z', retiredOn: null }],
     })
     renderTab()
 
