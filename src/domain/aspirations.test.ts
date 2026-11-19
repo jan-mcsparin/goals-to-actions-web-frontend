@@ -77,7 +77,7 @@ function overviewOf({ goals = [], milestones = [], weeklyTargets, ...parts }: Ov
 }
 
 function listedGoal(id: string, hit: number, of: number, extra: Partial<Goal> = {}): ListedGoal {
-  return { ...goal(id, extra), progress: { hit, of } }
+  return { ...goal(id, extra), progress: { hit, of }, weekProgress: null }
 }
 
 describe('aspirationCards', () => {

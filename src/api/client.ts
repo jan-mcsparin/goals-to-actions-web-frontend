@@ -110,6 +110,9 @@ export async function getGoal(goalId: string): Promise<GoalDetail> {
     aspiration: aspiration ? { id: aspiration.id, name: aspiration.name } : null,
     milestones: milestonesOf(goalId).map(milestoneOut),
     progress: progressOf(goal),
+    // Not counted by the mock: no screen reads them until #31 and #42.
+    weekProgress: null,
+    steps: [],
     latest: latestResult(goalId),
   })
 }
@@ -517,7 +520,7 @@ function goalOut(goal: StoredGoal): Goal {
 // As listGoals sends it: "2 of 6" is milestones hit plus the goal itself. A
 // reached goal counts complete: milestones never checked in were passed on the way.
 function listedGoal(goal: StoredGoal): ListedGoal {
-  return { ...goalOut(goal), progress: progressOf(goal) }
+  return { ...goalOut(goal), progress: progressOf(goal), weekProgress: null }
 }
 
 function progressOf(goal: StoredGoal): ListedGoal['progress'] {
