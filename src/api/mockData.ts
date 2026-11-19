@@ -488,6 +488,8 @@ function storedTask(fields: TaskFields): StoredTask {
     plannedDay: null,
     placedByHand: false,
     carriedOver: 0,
+    atClose: null,
+    stillMatters: false,
     setAside: false,
     ...fields,
   }
