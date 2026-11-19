@@ -684,7 +684,8 @@ export interface components {
         };
         /**
          * Progress
-         * @description "2 of 6": the goal's milestones plus one for the goal, which counts once reached.
+         * @description "2 of 6": the goal's milestones plus one for the goal. A reached goal counts complete:
+         *     milestones never checked in were passed on the way.
          */
         Progress: {
             /** Hit */
