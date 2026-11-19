@@ -11,6 +11,7 @@ import {
   swapTask,
   uncheckTask,
 } from '../api/client.ts'
+import { toLocalDay } from '../api/dates.ts'
 import type { Bank, DayPlan, Task } from '../api/types.ts'
 import {
   bankRows,
@@ -87,7 +88,7 @@ export function useDay(date: string, today: string): UseDay {
     if (!before) return
 
     const undoing = isDone(before)
-    replaceTask(undoing ? uncheckedOff(before) : checkedOff(before, new Date().toISOString()))
+    replaceTask(undoing ? uncheckedOff(before) : checkedOff(before, new Date().toISOString(), toLocalDay(new Date())))
     setMessage(undefined)
     const isLatest = startRequest(taskId)
 

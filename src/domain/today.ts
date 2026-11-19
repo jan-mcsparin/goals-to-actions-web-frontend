@@ -91,13 +91,13 @@ export function bankRows(bank: Bank): TaskRow[] {
   return bank.tasks.map((task) => rowFor(task, sublineFor(task, bank)))
 }
 
-// Skipped tasks have gone back to the bank, so they're no longer part of today.
+// A task that went back to the bank is no longer part of today.
 function visibleTasks(plan: DayPlan): Task[] {
   return plan.tasks.filter((task) => isOnDay(task))
 }
 
 function isMaintenance(task: Task): boolean {
-  return task.goalId === undefined
+  return task.goalId === null
 }
 
 // Timed tasks anchor the day in time order; untimed ones follow in plan order.

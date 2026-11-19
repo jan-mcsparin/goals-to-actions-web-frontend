@@ -34,9 +34,9 @@ Test dates are fixed to Wednesday 11 Nov 2026, or to a Sunday evening where a te
 **Description:** `types.ts` names `Task` from `openapi.ts`. `mockData.ts` stores `StoredTask` (the `Task` plus `setAside`) and the client returns the API's shape. `domain/tasks.ts` reads the new fields. Pausing a goal, ending it or turning an item off sets its tasks aside; resuming returns them to this week's bank. A new goal's stand-in sessions are `origin: 'weeklyTarget'`.
 
 **Acceptance criteria:**
-- [ ] `TaskStatus`, `weekOf` and `rolloverCount` are gone from the task type, and "skipped" is "set aside" everywhere in code.
-- [ ] Today, Week, the bank, Upkeep and the aspiration pages show what they did before.
-- [ ] Mock data and tests updated; the pause and resume tests pass with only the field names changed.
+- [x] `TaskStatus`, `weekOf` and `rolloverCount` are gone from the task type, and "skipped" is "set aside" everywhere in code.
+- [x] Today, Week, the bank, Upkeep and the aspiration pages show what they did before.
+- [x] Mock data and tests updated; the pause and resume tests pass with only the field names changed.
 
 **Verification:** `npm test && npm run lint && npm run build`.
 

@@ -35,9 +35,15 @@ import {
   updateAspiration,
   updateMilestone,
 } from './client.ts'
-import type { StoredWeeklyTarget } from './mockData.ts'
+import type { StoredTask, StoredWeeklyTarget } from './mockData.ts'
 import { resetStore, store } from './mockStore.ts'
-import type { Goal, ListedGoal, NewRecurringItem, WeeklyTargetInput } from './types.ts'
+import type { Goal, ListedGoal, NewRecurringItem, Task, WeeklyTargetInput } from './types.ts'
+import { aTask, whereIs } from '../test/tasks.ts'
+
+// A task as the mock stores it.
+function aStoredTask(id: string, fields: Partial<StoredTask> = {}): StoredTask {
+  return { ...aTask(id, fields), setAside: false, ...fields }
+}
 
 // Wednesday 11 Nov 2026, 9 a.m. local time.
 const WEDNESDAY = new Date(2026, 10, 11, 9, 0)
@@ -134,7 +140,7 @@ describe('checkOffTask', () => {
   it('marks the task done with a completion time and returns it', async () => {
     const task = await checkOffTask('task-lift-today')
 
-    expect(task.status).toBe('done')
+    expect(whereIs(task)).toBe('done')
     expect(task.completedAt).toBe(WEDNESDAY.toISOString())
   })
 
@@ -148,7 +154,7 @@ describe('checkOffTask', () => {
     await checkOffTask('task-laundry')
 
     const { tasks } = await getDay(WEDNESDAY_DAY)
-    expect(tasks.find((task) => task.id === 'task-laundry')?.status).toBe('done')
+    expect(statusIn(tasks, 'task-laundry')).toBe('done')
   })
 
   it('is undone by resetStore', async () => {
@@ -156,7 +162,7 @@ describe('checkOffTask', () => {
     resetStore()
 
     const { tasks } = await getDay(WEDNESDAY_DAY)
-    expect(tasks.find((task) => task.id === 'task-laundry')?.status).toBe('planned')
+    expect(statusIn(tasks, 'task-laundry')).toBe('planned')
   })
 
   it('rejects an unknown task id', async () => {
@@ -165,10 +171,10 @@ describe('checkOffTask', () => {
 
   it('returns a copy, so changing it does not change the store', async () => {
     const task = await checkOffTask('task-laundry')
-    task.status = 'skipped'
+    task.state = 'open'
 
     const { tasks } = await getDay(WEDNESDAY_DAY)
-    expect(tasks.find((t) => t.id === 'task-laundry')?.status).toBe('done')
+    expect(tasks.find((t) => t.id === 'task-laundry')?.state).toBe('done')
   })
 })
 
@@ -178,9 +184,9 @@ describe('uncheckTask', () => {
 
     const task = await uncheckTask('task-lift-today')
 
-    expect(task.status).toBe('planned')
-    expect(task.completedAt).toBeUndefined()
-    expect(task.valueLogged).toBeUndefined()
+    expect(whereIs(task)).toBe('planned')
+    expect(task.completedAt).toBeNull()
+    expect(task.valueLogged).toBeNull()
   })
 
   it('is reflected in the next getDay', async () => {
@@ -188,7 +194,7 @@ describe('uncheckTask', () => {
     await uncheckTask('task-laundry')
 
     const { tasks } = await getDay(WEDNESDAY_DAY)
-    expect(tasks.find((task) => task.id === 'task-laundry')?.status).toBe('planned')
+    expect(statusIn(tasks, 'task-laundry')).toBe('planned')
   })
 
   it('rejects an unknown task id', async () => {
@@ -200,8 +206,9 @@ describe('uncheckTask', () => {
   })
 })
 
-function statusIn(tasks: { id: string; status: string }[], taskId: string) {
-  return tasks.find((task) => task.id === taskId)?.status
+function statusIn(tasks: Task[], taskId: string) {
+  const task = tasks.find((candidate) => candidate.id === taskId)
+  return task && whereIs(task)
 }
 
 describe('getBank', () => {
@@ -227,9 +234,9 @@ describe('skipTask', () => {
   it('sends a planned task back to the bank without counting a rollover', async () => {
     const task = await skipTask('task-laundry')
 
-    expect(task.status).toBe('inBank')
-    expect(task.plannedDay).toBeUndefined()
-    expect(task.rolloverCount).toBe(0)
+    expect(whereIs(task)).toBe('inBank')
+    expect(task.plannedDay).toBeNull()
+    expect(task.carriedOver).toBe(0)
   })
 
   it('is reflected in the next getDay and getBank', async () => {
@@ -255,7 +262,7 @@ describe('pullFromBank', () => {
   it('plans a bank task for today', async () => {
     const task = await pullFromBank('task-lift-bank')
 
-    expect(task.status).toBe('planned')
+    expect(whereIs(task)).toBe('planned')
     expect(task.plannedDay).toBe('2026-11-11')
   })
 
@@ -279,10 +286,10 @@ describe('swapTask', () => {
   it('sends one task to the bank and plans the other for today, each keeping its own time', async () => {
     const { skipped, placed } = await swapTask('task-lift-today', 'task-lift-bank')
 
-    expect(skipped).toMatchObject({ id: 'task-lift-today', status: 'inBank', timeOfDay: { kind: 'at', time: '18:00' } })
-    expect(skipped.plannedDay).toBeUndefined()
-    expect(placed).toMatchObject({ id: 'task-lift-bank', status: 'planned', plannedDay: '2026-11-11' })
-    expect(placed.timeOfDay).toBeUndefined()
+    expect(skipped).toMatchObject({ id: 'task-lift-today', plannedDay: null, timeOfDay: { kind: 'at', time: '18:00' } })
+    expect(skipped.plannedDay).toBeNull()
+    expect(placed).toMatchObject({ id: 'task-lift-bank', state: 'open', plannedDay: '2026-11-11' })
+    expect(placed.timeOfDay).toBeNull()
   })
 
   it.each([
@@ -303,7 +310,7 @@ describe('placing tasks on a given day', () => {
   it('pulls a bank task onto the given day, marked as placed by hand', async () => {
     const task = await pullFromBank('task-lift-bank', '2026-11-13')
 
-    expect(task).toMatchObject({ status: 'planned', plannedDay: '2026-11-13', placedByHand: true })
+    expect(task).toMatchObject({ state: 'open', plannedDay: '2026-11-13', placedByHand: true })
     expect((await getDay('2026-11-13')).tasks.map((t) => t.id)).toContain('task-lift-bank')
   })
 
@@ -324,7 +331,7 @@ describe('placing tasks on a given day', () => {
     const { skipped, placed } = await swapTask('task-dentist', 'task-lift-bank')
 
     expect(placed).toMatchObject({ plannedDay: '2026-11-12', placedByHand: true })
-    expect(skipped.placedByHand).toBeUndefined()
+    expect(skipped.placedByHand).toBe(false)
   })
 
   it('forgets placedByHand when a task goes back to the bank', async () => {
@@ -332,7 +339,7 @@ describe('placing tasks on a given day', () => {
 
     const task = await skipTask('task-lift-bank')
 
-    expect(task.placedByHand).toBeUndefined()
+    expect(task.placedByHand).toBe(false)
   })
 })
 
@@ -341,12 +348,12 @@ describe('getWeek', () => {
     const week = await getWeek()
 
     expect(week.weekOf).toBe('2026-11-09')
-    const statuses = new Map(week.tasks.map((task) => [task.id, task.status]))
+    const statuses = new Map(week.tasks.map((task) => [task.id, whereIs(task)]))
     expect(statuses.get('task-lift-mon')).toBe('done')
     expect(statuses.get('task-lift-today')).toBe('planned')
     expect(statuses.get('task-lift-bank')).toBe('inBank')
     expect(statuses.get('task-groceries')).toBe('planned')
-    expect(week.tasks.every((task) => task.weekOf === '2026-11-09')).toBe(true)
+    expect(week.tasks.every((task) => task.week === '2026-11-09')).toBe(true)
   })
 
   it('includes the goals, aspirations and recurring items the tasks reference', async () => {
@@ -385,7 +392,7 @@ describe('getWeek', () => {
     await pullFromBank('task-lift-bank', '2026-11-14')
 
     const lift = (await getWeek()).tasks.find((task) => task.id === 'task-lift-bank')
-    expect(lift).toMatchObject({ status: 'planned', plannedDay: '2026-11-14', placedByHand: true })
+    expect(lift).toMatchObject({ state: 'open', plannedDay: '2026-11-14', placedByHand: true })
   })
 
   it('returns copies, so changing them does not change the store', async () => {
@@ -444,18 +451,13 @@ describe('getAspirations', () => {
   })
 
   it("returns this week's tasks that belong to a goal, and no others", async () => {
-    store.tasks.push({
-      id: 'task-lift-next-week',
-      title: 'Lift: squat day',
-      status: 'inBank',
-      weekOf: '2026-11-16',
-      goalId: 'goal-strong',
-      rolloverCount: 0,
-    })
+    store.tasks.push(
+      aStoredTask('task-lift-next-week', { title: 'Lift: squat day', week: '2026-11-16', goalId: 'goal-strong' }),
+    )
 
     const { weekTasks } = await getAspirations()
 
-    expect(weekTasks.every((task) => task.goalId !== undefined && task.weekOf === '2026-11-09')).toBe(true)
+    expect(weekTasks.every((task) => task.goalId !== null && task.week === '2026-11-09')).toBe(true)
     expect(ids(weekTasks)).toContain('task-run-mon')
     expect(ids(weekTasks)).not.toContain('task-groceries')
   })
@@ -501,7 +503,7 @@ describe('getAspiration', () => {
     expect(
       weekTasks.every((task) => ['goal-strong', 'goal-endurance', 'goal-look-good', 'goal-5k'].includes(task.goalId!)),
     ).toBe(true)
-    expect(weekTasks.every((task) => task.weekOf === '2026-11-09')).toBe(true)
+    expect(weekTasks.every((task) => task.week === '2026-11-09')).toBe(true)
   })
 
   it('counts the active aspirations', async () => {
@@ -895,9 +897,9 @@ describe('pauseGoal and resumeGoal', () => {
     const paused = await pauseGoal('goal-strong')
 
     expect(paused.status).toBe('paused')
-    expect(task('task-lift-today')).toMatchObject({ status: 'skipped', plannedDay: WEDNESDAY_DAY })
-    expect(task('task-lift-bank').status).toBe('skipped')
-    expect(task('task-lift-mon').status).toBe('done')
+    expect(task('task-lift-today')).toMatchObject({ setAside: true, plannedDay: WEDNESDAY_DAY })
+    expect(whereIs(task('task-lift-bank'))).toBe('setAside')
+    expect(whereIs(task('task-lift-mon'))).toBe('done')
     expect(ids((await getDay(WEDNESDAY_DAY)).tasks)).not.toContain('task-lift-today')
     expect(ids((await getBank()).tasks)).not.toContain('task-lift-bank')
     expect((await getWeek()).goals.find((goal) => goal.id === 'goal-strong')?.status).toBe('paused')
@@ -911,13 +913,13 @@ describe('pauseGoal and resumeGoal', () => {
 
     expect(resumed.status).toBe('active')
     for (const id of ['task-lift-today', 'task-lift-bank']) {
-      expect(task(id).status).toBe('inBank')
-      expect(task(id)).not.toHaveProperty('plannedDay')
-      expect(task(id)).not.toHaveProperty('placedByHand')
+      expect(whereIs(task(id))).toBe('inBank')
+      expect(task(id).plannedDay).toBeNull()
+      expect(task(id).placedByHand).toBe(false)
     }
     expect(ids((await getBank()).tasks)).toEqual(expect.arrayContaining(['task-lift-bank', 'task-lift-today']))
-    expect(task('task-run-bank').status).toBe('skipped')
-    expect(task('task-lift-mon').status).toBe('done')
+    expect(whereIs(task('task-run-bank'))).toBe('setAside')
+    expect(whereIs(task('task-lift-mon'))).toBe('done')
   })
 
   it('resumes a goal whose aspiration is retired, keeping the aspiration', async () => {
@@ -952,8 +954,8 @@ describe('endGoal and markGoalReached', () => {
     const reached = await markGoalReached('goal-strong')
 
     expect(reached).toMatchObject({ status: 'reached', endedOn: WEDNESDAY_DAY })
-    expect(task('task-lift-today').status).toBe('planned')
-    expect(task('task-lift-bank').status).toBe('inBank')
+    expect(whereIs(task('task-lift-today'))).toBe('planned')
+    expect(whereIs(task('task-lift-bank'))).toBe('inBank')
   })
 
   it('ends it for now, from active or paused', async () => {
@@ -993,7 +995,7 @@ describe('reopenGoal and goAgain', () => {
     const again = await goAgain('goal-strong')
 
     expect(again).toMatchObject({ status: 'active', endedOn: null })
-    expect(task('task-lift-today').status).toBe('planned')
+    expect(whereIs(task('task-lift-today'))).toBe('planned')
   })
 
   it('each works only from its own status', async () => {
@@ -1078,19 +1080,20 @@ describe('moveAspiration', () => {
 
 describe('retireAspiration', () => {
   const goalStatus = (id: string) => store.goals.find((goal) => goal.id === id)?.status
-  const taskStatus = (id: string) => store.tasks.find((task) => task.id === id)?.status
+  const taskStatus = (id: string) => {
+    const task = store.tasks.find((candidate) => candidate.id === id)
+    return task && whereIs(task)
+  }
 
   function addStretchOnThursday() {
-    store.tasks.push({
-      id: 'task-stretch-thu',
-      title: 'Stretch',
-      status: 'planned',
-      weekOf: '2026-11-09',
-      plannedDay: '2026-11-12',
-      recurringItemId: 'rec-stretch',
-      rolloverCount: 0,
-      placedByHand: true,
-    })
+    store.tasks.push(
+      aStoredTask('task-stretch-thu', {
+        title: 'Stretch',
+        plannedDay: '2026-11-12',
+        recurringItemId: 'rec-stretch',
+        placedByHand: true,
+      }),
+    )
   }
 
   it('retires it with the day, takes away its priority and moves the ones below up', async () => {
@@ -1119,10 +1122,10 @@ describe('retireAspiration', () => {
     await retireAspiration('asp-fit', 'pause')
 
     expect(['task-lift-today', 'task-lift-bank', 'task-run-bank', 'task-stretch-thu'].map(taskStatus)).toEqual([
-      'skipped',
-      'skipped',
-      'skipped',
-      'skipped',
+      'setAside',
+      'setAside',
+      'setAside',
+      'setAside',
     ])
     expect(store.tasks.find((task) => task.id === 'task-stretch-thu')?.plannedDay).toBe('2026-11-12')
     expect(['task-lift-mon', 'task-run-mon'].map(taskStatus)).toEqual(['done', 'done'])
@@ -1130,14 +1133,9 @@ describe('retireAspiration', () => {
   })
 
   it("with pause, leaves its goals' tasks in other weeks alone", async () => {
-    store.tasks.push({
-      id: 'task-lift-next-week',
-      title: 'Lift: squat day',
-      status: 'inBank',
-      weekOf: '2026-11-16',
-      goalId: 'goal-strong',
-      rolloverCount: 0,
-    })
+    store.tasks.push(
+      aStoredTask('task-lift-next-week', { title: 'Lift: squat day', week: '2026-11-16', goalId: 'goal-strong' }),
+    )
 
     await retireAspiration('asp-fit', 'pause')
 
@@ -1154,7 +1152,7 @@ describe('retireAspiration', () => {
     expect(ids((await getBank()).tasks)).toEqual(['task-dentist', 'task-garage-shelves'])
     const week = await getWeek()
     expect(week.goals.filter((goal) => goal.status === 'active' && goal.weeklyTarget)).toEqual([])
-    expect(week.tasks.filter((task) => task.status === 'planned' || task.status === 'inBank').map((task) => task.goalId)).not.toContain(
+    expect(week.tasks.filter((task) => task.state === 'open').map((task) => task.goalId)).not.toContain(
       'goal-strong',
     )
     expect(ids((await getUpkeep()).tasks)).not.toContain('task-stretch-thu')
@@ -1251,8 +1249,11 @@ describe('getUpkeep', () => {
   })
 
   it('includes later weeks and leaves out earlier ones', async () => {
-    const loose = { title: 'Renew the insurance', status: 'inBank' as const, rolloverCount: 0 }
-    store.tasks.push({ ...loose, id: 'task-next-week', weekOf: '2026-11-16' }, { ...loose, id: 'task-last-week', weekOf: '2026-11-02' })
+    const loose = { title: 'Renew the insurance' }
+    store.tasks.push(
+      aStoredTask('task-next-week', { ...loose, week: '2026-11-16' }),
+      aStoredTask('task-last-week', { ...loose, week: '2026-11-02' }),
+    )
 
     const taskIds = ids((await getUpkeep()).tasks)
 
@@ -1279,8 +1280,6 @@ function expectConsistentStore() {
   const aspirationIds = new Set(store.aspirations.map((aspiration) => aspiration.id))
   for (const task of store.tasks) {
     if (task.goalId) expect(goalIds).toContain(task.goalId)
-    if (task.status === 'inBank') expect(task.plannedDay).toBeUndefined()
-    if (task.status === 'planned') expect(task.plannedDay).toBeDefined()
   }
   for (const goal of store.goals) if (goal.aspirationId) expect(aspirationIds).toContain(goal.aspirationId)
   for (const target of store.weeklyTargets) expect(goalIds).toContain(target.goalId)
@@ -1292,9 +1291,9 @@ describe('addTask', () => {
   it("stores a task with only a title in this week's bank", async () => {
     const task = await addTask({ title: '  Fill out my ballot  ' })
 
-    expect(task).toMatchObject({ title: 'Fill out my ballot', status: 'inBank', weekOf: '2026-11-09', rolloverCount: 0 })
-    expect(task.plannedDay).toBeUndefined()
-    expect(task.placedByHand).toBeUndefined()
+    expect(task).toMatchObject({ title: 'Fill out my ballot', plannedDay: null, week: '2026-11-09', carriedOver: 0 })
+    expect(task.plannedDay).toBeNull()
+    expect(task.placedByHand).toBe(false)
     expect(ids((await getBank()).tasks)).toContain(task.id)
     expectConsistentStore()
   })
@@ -1314,7 +1313,7 @@ describe('addTask', () => {
   it("leaves a task due next week out of this week's bank and week", async () => {
     const task = await addTask({ title: 'Renew passport', dueDate: '2026-11-18' })
 
-    expect(task).toMatchObject({ status: 'inBank', weekOf: '2026-11-16' })
+    expect(task).toMatchObject({ plannedDay: null, week: '2026-11-16' })
     expect(ids((await getBank()).tasks)).not.toContain(task.id)
     expect(ids((await getWeek()).tasks)).not.toContain(task.id)
     expectConsistentStore()
@@ -1323,14 +1322,14 @@ describe('addTask', () => {
   it('puts a task due across the year end in that week', async () => {
     const task = await addTask({ title: 'File taxes', dueDate: '2027-01-02' })
 
-    expect(task.weekOf).toBe('2026-12-28')
+    expect(task.week).toBe('2026-12-28')
     expect(ids((await getBank()).tasks)).not.toContain(task.id)
   })
 
   it('puts a task on today, placed by hand, whatever its due date', async () => {
     const task = await addTask({ title: 'Call the vet', dueDate: '2026-11-25', onToday: true })
 
-    expect(task).toMatchObject({ status: 'planned', plannedDay: WEDNESDAY_DAY, weekOf: '2026-11-09', placedByHand: true })
+    expect(task).toMatchObject({ plannedDay: WEDNESDAY_DAY, week: '2026-11-09', placedByHand: true })
     const today = (await getDay(WEDNESDAY_DAY)).tasks.find((row) => row.id === task.id)
     expect(today?.placedByHand).toBe(true)
     expect(ids((await getBank()).tasks)).not.toContain(task.id)
@@ -1406,7 +1405,7 @@ describe('createGoal', () => {
     })
     const tasks = week.tasks.filter((task) => task.goalId === goal.id)
     expect(tasks).toHaveLength(3)
-    expect(tasks.every((task) => task.title === 'Be strong 2' && task.status === 'inBank' && task.rolloverCount === 0)).toBe(true)
+    expect(tasks.every((task) => task.title === 'Be strong 2' && whereIs(task) === 'inBank' && task.carriedOver === 0)).toBe(true)
     expect(new Set(tasks.map((task) => task.id)).size).toBe(3)
     expect(ids((await getBank()).tasks)).toEqual(expect.arrayContaining(ids(tasks)))
     expectConsistentStore()

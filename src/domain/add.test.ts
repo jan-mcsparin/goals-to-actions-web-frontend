@@ -58,19 +58,19 @@ describe('taskWeek', () => {
 
 describe('taskConfirmation', () => {
   it('confirms a task on today', () => {
-    expect(taskConfirmation({ status: 'planned', weekOf: THIS_MONDAY }, WEDNESDAY)).toBe('Added to today.')
+    expect(taskConfirmation({ state: 'open', plannedDay: WEDNESDAY, week: THIS_MONDAY }, WEDNESDAY)).toBe('Added to today.')
   })
 
   it("confirms a task in this week's bank", () => {
-    expect(taskConfirmation({ status: 'inBank', weekOf: THIS_MONDAY }, WEDNESDAY)).toBe("Added to this week's bank.")
+    expect(taskConfirmation({ state: 'open', plannedDay: null, week: THIS_MONDAY }, WEDNESDAY)).toBe("Added to this week's bank.")
   })
 
   it('confirms a task waiting for a later week', () => {
-    expect(taskConfirmation({ status: 'inBank', weekOf: '2026-11-23' }, WEDNESDAY)).toBe('Saved for the week of Nov 23.')
+    expect(taskConfirmation({ state: 'open', plannedDay: null, week: '2026-11-23' }, WEDNESDAY)).toBe('Saved for the week of Nov 23.')
   })
 
   it('names the year of a later week in another year', () => {
-    expect(taskConfirmation({ status: 'inBank', weekOf: '2027-01-04' }, WEDNESDAY)).toBe(
+    expect(taskConfirmation({ state: 'open', plannedDay: null, week: '2027-01-04' }, WEDNESDAY)).toBe(
       'Saved for the week of Jan 4, 2027.',
     )
   })

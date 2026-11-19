@@ -29,7 +29,7 @@ Rolling over and lapsing happen on the server (ADR-008); #35's rules are built a
 PR `tasks-as-api` (closes #30):
 
 - [x] Task 1: Read task state through one module
-- [ ] Task 2: Use the generated Task everywhere
+- [x] Task 2: Use the generated Task everywhere
 - [ ] Task 3: Plan functions take the API's names and the week
 
 Checkpoint after task 3: build, lint and tests pass, and the screens look as they did at iPhone width.

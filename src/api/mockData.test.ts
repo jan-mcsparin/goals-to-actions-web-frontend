@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildMockData } from './mockData.ts'
 import { isFixedDay } from '../domain/recurring.ts'
+import { whereIs } from '../test/tasks.ts'
 
 const MONDAY = new Date(2026, 10, 9, 9)
 const WEDNESDAY = new Date(2026, 10, 11, 9)
@@ -45,17 +46,17 @@ describe.each([
 
   it("puts every task in the current week, which starts on a Monday", () => {
     for (const task of data.tasks) {
-      expect(task.weekOf).toBe('2026-11-09')
+      expect(task.week).toBe('2026-11-09')
       if (task.plannedDay) {
         expect(task.plannedDay >= '2026-11-09' && task.plannedDay <= '2026-11-15').toBe(true)
       }
     }
   })
 
-  it('leaves bank tasks without a day and gives planned and done tasks one', () => {
+  it('gives every done task a day, and sets none aside', () => {
     for (const task of data.tasks) {
-      if (task.status === 'inBank') expect(task.plannedDay).toBeUndefined()
-      if (task.status === 'planned' || task.status === 'done') expect(task.plannedDay).toBeDefined()
+      if (task.state === 'done') expect(task.plannedDay).not.toBeNull()
+      expect(task.setAside).toBe(false)
     }
   })
 })
@@ -104,9 +105,9 @@ describe('mock data contents', () => {
   it('gives Have endurance two runs a week, one done on Monday and one in the bank', () => {
     const runs = data.tasks.filter((task) => task.goalId === 'goal-endurance')
     expect(data.weeklyTargets.find((target) => target.goalId === 'goal-endurance')?.sessions).toBe(2)
-    expect(runs.map((task) => [task.status, task.plannedDay])).toEqual([
+    expect(runs.map((task) => [whereIs(task), task.plannedDay])).toEqual([
       ['done', '2026-11-09'],
-      ['inBank', undefined],
+      ['inBank', null],
     ])
     expect(hitCount('goal-endurance')).toEqual([2, 3])
   })
@@ -137,9 +138,9 @@ describe('mock data contents', () => {
   })
 
   it('has done, bank and rolled-over tasks', () => {
-    expect(data.tasks.some((task) => task.status === 'done')).toBe(true)
-    expect(data.tasks.filter((task) => task.status === 'inBank').length).toBeGreaterThanOrEqual(2)
-    expect(data.tasks.some((task) => task.rolloverCount >= 2)).toBe(true)
+    expect(data.tasks.some((task) => task.state === 'done')).toBe(true)
+    expect(data.tasks.filter((task) => whereIs(task) === 'inBank').length).toBeGreaterThanOrEqual(2)
+    expect(data.tasks.some((task) => task.carriedOver >= 2)).toBe(true)
   })
 
   it('starts at normal intensity with weeks starting Monday', () => {

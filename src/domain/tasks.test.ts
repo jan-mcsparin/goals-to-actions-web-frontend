@@ -1,75 +1,90 @@
 import { describe, expect, it } from 'vitest'
-import type { Task } from '../api/types'
-import { checkedOff, isDone, isInBank, isOnDay, isPlanned, placedOnDay, uncheckedOff, weekOf } from './tasks'
+import { aTask } from '../test/tasks'
+import {
+  checkedOff,
+  inTheBank,
+  isDone,
+  isInBank,
+  isOnDay,
+  isPlanned,
+  placedOnDay,
+  uncheckedOff,
+  weekOf,
+} from './tasks'
 
-const base: Task = { id: 't1', title: 'Run', status: 'inBank', weekOf: '2026-11-09', rolloverCount: 0 }
-const planned: Task = { ...base, status: 'planned', plannedDay: '2026-11-11' }
-const done: Task = { ...planned, status: 'done', completedAt: '2026-11-11T09:00:00Z', valueLogged: 3 }
-const setAside: Task = { ...planned, status: 'skipped' }
+const planned = aTask('t1', { plannedDay: '2026-11-11' })
+const banked = aTask('t1')
+const done = aTask('t1', {
+  state: 'done',
+  plannedDay: '2026-11-11',
+  completedAt: '2026-11-11T09:00:00Z',
+  completedOn: '2026-11-11',
+  valueLogged: 3,
+})
+const dropped = aTask('t1', { state: 'dropped', plannedDay: '2026-11-11' })
 
 describe('isInBank', () => {
-  it('is true only for a task with no day', () => {
-    expect(isInBank(base)).toBe(true)
-    expect([planned, done, setAside].some(isInBank)).toBe(false)
+  it('is true only for an open task with no day', () => {
+    expect(isInBank(banked)).toBe(true)
+    expect([planned, done, dropped].some(isInBank)).toBe(false)
   })
 })
 
 describe('isDone', () => {
   it('is true only for a done task', () => {
     expect(isDone(done)).toBe(true)
-    expect([base, planned, setAside].some(isDone)).toBe(false)
+    expect([banked, planned, dropped].some(isDone)).toBe(false)
   })
 })
 
 describe('isPlanned', () => {
-  it('is true for an open task on a day, not a done, banked or set-aside one', () => {
+  it('is true for an open task on a day, not a done, banked or closed one', () => {
     expect(isPlanned(planned)).toBe(true)
-    expect([base, done, setAside].some(isPlanned)).toBe(false)
+    expect([banked, done, dropped].some(isPlanned)).toBe(false)
   })
 })
 
 describe('isOnDay', () => {
-  it('counts open and done tasks on a day, and never a set-aside or banked one', () => {
+  it('counts open and done tasks on a day, and never a banked or closed one', () => {
     expect(isOnDay(planned)).toBe(true)
     expect(isOnDay(done)).toBe(true)
-    expect(isOnDay(base)).toBe(false)
-    expect(isOnDay(setAside)).toBe(false)
+    expect(isOnDay(banked)).toBe(false)
+    expect(isOnDay(dropped)).toBe(false)
   })
 
   it('matches one day when given', () => {
     expect(isOnDay(planned, '2026-11-11')).toBe(true)
     expect(isOnDay(planned, '2026-11-12')).toBe(false)
-    expect(isOnDay(setAside, '2026-11-11')).toBe(false)
+    expect(isOnDay(banked, '2026-11-11')).toBe(false)
   })
 })
 
 describe('weekOf', () => {
-  it('is the week the task is in', () => {
-    expect(weekOf(base)).toBe('2026-11-09')
+  it('is the week the task is in, or none while it waits', () => {
+    expect(weekOf(banked)).toBe('2026-11-09')
+    expect(weekOf(aTask('t2', { week: null }))).toBeNull()
   })
 })
 
-describe('placedOnDay', () => {
-  it('puts the task on the day, by hand', () => {
-    expect(placedOnDay(base, '2026-11-12')).toEqual({
-      ...base,
-      status: 'planned',
-      plannedDay: '2026-11-12',
-      placedByHand: true,
-    })
+describe('placedOnDay and inTheBank', () => {
+  it('puts the task on the day, by hand, and takes it off again', () => {
+    const placed = placedOnDay(banked, '2026-11-12')
+    expect(placed).toEqual({ ...banked, plannedDay: '2026-11-12', placedByHand: true })
+    expect(inTheBank(placed)).toEqual(banked)
   })
 })
 
 describe('checkedOff and uncheckedOff', () => {
-  it('checks a task off at a moment', () => {
-    expect(checkedOff(planned, '2026-11-11T10:00:00Z')).toEqual({
+  it('checks a task off at a moment, for a day', () => {
+    expect(checkedOff(planned, '2026-11-11T10:00:00Z', '2026-11-11')).toEqual({
       ...planned,
-      status: 'done',
+      state: 'done',
       completedAt: '2026-11-11T10:00:00Z',
+      completedOn: '2026-11-11',
     })
   })
 
   it('unchecks a done task, clearing what the check-off recorded', () => {
-    expect(uncheckedOff(done)).toEqual({ ...planned })
+    expect(uncheckedOff(done)).toEqual(planned)
   })
 })

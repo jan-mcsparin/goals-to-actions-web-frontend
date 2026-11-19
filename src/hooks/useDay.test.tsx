@@ -6,6 +6,7 @@ import { resetStore } from '../api/mockStore.ts'
 import type { DayPlan, Task } from '../api/types.ts'
 import { DataRevision } from './dataRevision.ts'
 import { useDay, type UseDay } from './useDay.ts'
+import { aTask, whereIs } from '../test/tasks.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
@@ -43,9 +44,8 @@ function deferred<T>() {
 }
 
 function statusOf(state: UseDay, taskId: string) {
-  return state.day?.sections
-    .flatMap((section) => section.rows)
-    .find((row) => row.task.id === taskId)?.task.status
+  const task = state.day?.sections.flatMap((section) => section.rows).find((row) => row.task.id === taskId)?.task
+  return task && whereIs(task)
 }
 
 async function renderLoaded() {
@@ -54,8 +54,12 @@ async function renderLoaded() {
   return hook
 }
 
-function laundry(status: Task['status']): Task {
-  return { id: 'task-laundry', title: 'Laundry', status, weekOf: '2026-11-09', plannedDay: '2026-11-11', rolloverCount: 0 }
+function laundry(state: 'planned' | 'done'): Task {
+  return aTask('task-laundry', {
+    title: 'Laundry',
+    state: state === 'done' ? 'done' : 'open',
+    plannedDay: '2026-11-11',
+  })
 }
 
 describe('useDay toggleDone', () => {

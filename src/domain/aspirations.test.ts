@@ -18,6 +18,7 @@ import {
   upkeepLine,
   weekCount,
 } from './aspirations.ts'
+import { aTask } from '../test/tasks.ts'
 
 const WEEK_OF = '2026-11-09'
 
@@ -43,15 +44,16 @@ function target(goalId: string, sessions: number): TargetFor {
   return countTarget(goalId, sessions)
 }
 
-function tasks(goalId: string, ...statuses: Task['status'][]): Task[] {
-  return statuses.map((status, index) => ({
-    id: `${goalId}-task-${index}`,
-    title: 'A session',
-    status,
-    weekOf: WEEK_OF,
-    goalId,
-    rolloverCount: 0,
-  }))
+function tasks(goalId: string, ...kinds: ('done' | 'planned' | 'inBank')[]): Task[] {
+  return kinds.map((kind, index) =>
+    aTask(`${goalId}-task-${index}`, {
+      title: 'A session',
+      state: kind === 'done' ? 'done' : 'open',
+      week: WEEK_OF,
+      plannedDay: kind === 'inBank' ? null : WEEK_OF,
+      goalId,
+    }),
+  )
 }
 
 function recurring(name: string, aspirationId: string | null = null, active = true): RecurringItem {

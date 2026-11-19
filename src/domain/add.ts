@@ -15,9 +15,10 @@ export function taskWeek(dueDate: string | undefined, today: string): string {
   return dueWeek > thisWeek ? dueWeek : thisWeek
 }
 
-export function taskConfirmation(task: Pick<Task, 'status' | 'weekOf'>, today: string): string {
+export function taskConfirmation(task: Pick<Task, 'state' | 'plannedDay' | 'week'>, today: string): string {
   if (isPlanned(task)) return 'Added to today.'
-  if (weekOf(task) > mondayOfDay(today)) return `Saved for the week of ${dayLabel(weekOf(task), today)}.`
+  const week = weekOf(task)
+  if (week !== null && week > mondayOfDay(today)) return `Saved for the week of ${dayLabel(week, today)}.`
   return "Added to this week's bank."
 }
 

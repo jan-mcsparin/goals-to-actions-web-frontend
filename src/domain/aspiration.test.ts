@@ -17,6 +17,7 @@ import {
   type ActivePage,
   type RetiredPage,
 } from './aspiration.ts'
+import { aTask } from '../test/tasks.ts'
 
 // Wednesday 11 Nov 2026.
 const TODAY = '2026-11-11'
@@ -48,15 +49,16 @@ function target(goalId: string, sessions: number, unit = 'sessions'): TargetFor 
   return countTarget(goalId, sessions, unit)
 }
 
-function tasks(goalId: string, ...statuses: Task['status'][]): Task[] {
-  return statuses.map((status, index) => ({
-    id: `${goalId}-task-${index}`,
-    title: 'A session',
-    status,
-    weekOf: WEEK_OF,
-    goalId,
-    rolloverCount: 0,
-  }))
+function tasks(goalId: string, ...kinds: ('done' | 'planned' | 'inBank')[]): Task[] {
+  return kinds.map((kind, index) =>
+    aTask(`${goalId}-task-${index}`, {
+      title: 'A session',
+      state: kind === 'done' ? 'done' : 'open',
+      week: WEEK_OF,
+      plannedDay: kind === 'inBank' ? null : WEEK_OF,
+      goalId,
+    }),
+  )
 }
 
 function recurring(name: string, active = true): RecurringItem {

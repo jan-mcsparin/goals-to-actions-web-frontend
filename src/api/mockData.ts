@@ -32,6 +32,10 @@ export type StoredCheckIn = {
   checkedInOn: string
 }
 
+// A task as the mock stores it: the API's, plus whether it's set aside. The API sends a
+// set-aside task with no week, like one that's waiting, and the mock needs to tell them apart.
+export type StoredTask = Task & { setAside: boolean }
+
 export type MockData = {
   aspirations: Aspiration[]
   goals: StoredGoal[]
@@ -39,7 +43,7 @@ export type MockData = {
   checkIns: StoredCheckIn[]
   weeklyTargets: StoredWeeklyTarget[]
   recurringItems: RecurringItem[]
-  tasks: Task[]
+  tasks: StoredTask[]
   settings: Settings
 }
 
@@ -273,228 +277,187 @@ export function buildMockData(today: Date): MockData {
     },
   ]
 
-  const tasks: Task[] = [
+  const taskRows: TaskFields[] = [
     {
       id: 'task-lift-mon',
       title: 'Lift: squat day',
-      status: 'done',
-      weekOf,
+      state: 'done',
+      week: weekOf,
       plannedDay: day(0),
       goalId: 'goal-strong',
-      rolloverCount: 0,
       completedAt: atTime(monday, 18, 40),
     },
     {
       id: 'task-run-mon',
       title: 'Run: easy 5k',
-      status: 'done',
-      weekOf,
+      state: 'done',
+      week: weekOf,
       plannedDay: day(0),
       goalId: 'goal-endurance',
-      rolloverCount: 0,
       completedAt: atTime(monday, 7, 10),
     },
     {
       id: 'task-trash',
       title: 'Take out the trash',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: day(1),
       timeOfDay: { kind: 'by', time: '07:00' },
       recurringItemId: 'rec-trash',
-      rolloverCount: 0,
     },
     {
       id: 'task-move-car',
       title: 'Move the car for street sweeping',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: todayDay,
       timeOfDay: { kind: 'by', time: '07:00' },
-      rolloverCount: 0,
     },
     {
       id: 'task-lift-today',
       title: 'Lift: bench day',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: todayDay,
       timeOfDay: { kind: 'at', time: '18:00' },
       goalId: 'goal-strong',
-      rolloverCount: 0,
     },
     {
       id: 'task-laundry',
       title: 'Laundry',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: todayDay,
       recurringItemId: 'rec-laundry',
-      rolloverCount: 0,
     },
     {
       id: 'task-ballot',
       title: 'Fill out my ballot',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: todayDay,
       dueDate: toLocalDay(addDays(today, 2)),
-      rolloverCount: 0,
     },
     {
       id: 'task-plan-mon',
       title: 'Plan the week',
-      status: 'done',
-      weekOf,
+      state: 'done',
+      week: weekOf,
       plannedDay: day(0),
-      rolloverCount: 0,
       completedAt: atTime(monday, 8, 15),
     },
     {
       id: 'task-groceries',
       title: 'Groceries',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: day(3),
-      rolloverCount: 0,
     },
     // A busy Thursday, for checking long lists, scrolling and row menus.
     {
       id: 'task-plants',
       title: 'Water the plants',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: day(3),
       timeOfDay: { kind: 'by', time: '08:00' },
-      rolloverCount: 0,
     },
     {
       id: 'task-dentist-appt',
       title: 'Dentist appointment',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: day(3),
       timeOfDay: { kind: 'at', time: '10:30' },
-      rolloverCount: 0,
     },
     {
       id: 'task-library',
       title: 'Return library books',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: day(3),
-      rolloverCount: 0,
     },
     {
       id: 'task-plumber',
       title: 'Call the plumber about the kitchen sink',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: day(3),
-      rolloverCount: 0,
     },
     {
       id: 'task-dry-cleaning',
       title: 'Pick up dry cleaning',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: day(3),
       timeOfDay: { kind: 'by', time: '17:00' },
-      rolloverCount: 0,
     },
     {
       id: 'task-donate-bikes',
       title: 'Donate the old bikes',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: day(3),
       goalId: 'goal-garage',
-      rolloverCount: 0,
     },
     {
       id: 'task-sweep-garage',
       title: 'Sweep the garage floor',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: day(3),
       goalId: 'goal-garage',
-      rolloverCount: 0,
     },
     {
       id: 'task-lease',
       title: 'Reply to the landlord about renewing the lease before the end of the month',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: day(3),
-      rolloverCount: 0,
     },
     {
       id: 'task-backup',
       title: 'Back up the laptop',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: day(3),
-      rolloverCount: 0,
     },
     {
       id: 'task-meal-prep',
       title: 'Meal prep for the weekend',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: day(3),
       timeOfDay: { kind: 'at', time: '19:00' },
-      rolloverCount: 0,
     },
     {
       id: 'task-dump',
       title: 'Haul boxes to the dump',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: day(4),
       goalId: 'goal-garage',
-      rolloverCount: 0,
       placedByHand: true,
     },
     {
       id: 'task-bathroom',
       title: 'Clean the bathroom',
-      status: 'planned',
-      weekOf,
+      week: weekOf,
       plannedDay: day(5),
-      rolloverCount: 0,
     },
     {
       id: 'task-lift-bank',
       title: 'Lift: deadlift day',
-      status: 'inBank',
-      weekOf,
+      plannedDay: null,
+      week: weekOf,
       goalId: 'goal-strong',
-      rolloverCount: 0,
     },
     {
       id: 'task-garage-shelves',
       title: 'Sort the garage shelves',
-      status: 'inBank',
-      weekOf,
+      plannedDay: null,
+      week: weekOf,
       goalId: 'goal-garage',
-      rolloverCount: 0,
     },
     {
       id: 'task-dentist',
       title: 'Call the dentist',
-      status: 'inBank',
-      weekOf,
-      rolloverCount: 2,
+      plannedDay: null,
+      week: weekOf,
+      carriedOver: 2,
     },
     {
       id: 'task-run-bank',
       title: 'Run: intervals',
-      status: 'inBank',
-      weekOf,
+      plannedDay: null,
+      week: weekOf,
       goalId: 'goal-endurance',
-      rolloverCount: 0,
     },
   ]
+  const tasks = taskRows.map(storedTask)
 
   const settings: Settings = {
     intensity: 'normal',
@@ -503,6 +466,31 @@ export function buildMockData(today: Date): MockData {
   }
 
   return { aspirations, goals, milestones, checkIns, weeklyTargets, recurringItems, tasks, settings }
+}
+
+type TaskFields = Pick<StoredTask, 'id' | 'title'> & Partial<StoredTask>
+
+// A task as the API sends it: open, in this week's bank, until the fields say otherwise.
+function storedTask(fields: TaskFields): StoredTask {
+  const state = fields.state ?? 'open'
+  return {
+    origin: fields.goalId ? 'weeklyTarget' : fields.recurringItemId ? 'recurringItem' : 'byHand',
+    state,
+    goalId: null,
+    goalLabel: null,
+    recurringItemId: null,
+    dueDate: null,
+    timeOfDay: null,
+    valueLogged: null,
+    completedAt: null,
+    completedOn: state === 'done' ? (fields.plannedDay ?? null) : null,
+    week: null,
+    plannedDay: null,
+    placedByHand: false,
+    carriedOver: 0,
+    setAside: false,
+    ...fields,
+  }
 }
 
 type GoalFields = Pick<StoredGoal, 'id' | 'label' | 'measurableLine' | 'type' | 'status' | 'startDate'> &

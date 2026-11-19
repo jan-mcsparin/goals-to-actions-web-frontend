@@ -5,6 +5,7 @@ import { checkOffTask, getBank, getDay, pullFromBank } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { Bank } from '../api/types.ts'
 import { Day } from './Day.tsx'
+import { aTask } from '../test/tasks.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
@@ -45,7 +46,7 @@ function deferred<T>() {
 
 const ONE_TASK_BANK: Bank = {
   weekOf: '2026-11-09',
-  tasks: [{ id: 'task-dentist', title: 'Call the dentist', status: 'inBank', weekOf: '2026-11-09', rolloverCount: 2 }],
+  tasks: [aTask('task-dentist', { title: 'Call the dentist', carriedOver: 2 })],
   goals: [],
   aspirations: [],
   recurringItems: [],

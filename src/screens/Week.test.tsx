@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getWeek, pullFromBank } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import { Week } from './Week.tsx'
+import { isInBank } from '../domain/tasks.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
@@ -193,7 +194,7 @@ describe('Week', () => {
   it('says so when the bank is empty', async () => {
     const actual = await vi.importActual<typeof import('../api/client.ts')>('../api/client.ts')
     const week = await actual.getWeek()
-    vi.mocked(getWeek).mockResolvedValueOnce({ ...week, tasks: week.tasks.filter((task) => task.status !== 'inBank') })
+    vi.mocked(getWeek).mockResolvedValueOnce({ ...week, tasks: week.tasks.filter((task) => !isInBank(task)) })
     render(<Week today={WEDNESDAY_DAY} onOpenDay={() => {}} />)
 
     const bank = await screen.findByRole('region', { name: 'Bank' })

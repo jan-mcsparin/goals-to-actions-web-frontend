@@ -104,7 +104,7 @@ function daysOf(weekOf: string): string[] {
 }
 
 function isPlannedOnOrAfter(task: Task, today: string): boolean {
-  return isPlanned(task) && task.plannedDay !== undefined && task.plannedDay >= today
+  return isPlanned(task) && task.plannedDay !== null && task.plannedDay >= today
 }
 
 function progressRow(goal: Goal, plan: WeekPlan, pacing: Pacing): ProgressRow {
