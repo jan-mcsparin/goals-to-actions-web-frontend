@@ -85,6 +85,8 @@ function detail({ weeklyTarget, milestones = DEFAULT_MILESTONES, ...extra }: Det
       result: row.status === 'upcoming' ? null : (row.result ?? null),
     })),
     progress: { hit, of },
+    weekProgress: null,
+    steps: [],
     latest: latest ? { result: latest.result!, checkedInOn: latest.checkedInOn! } : null,
     ...extra,
     aspiration: 'aspiration' in extra ? (extra.aspiration ?? null) : BE_FIT,

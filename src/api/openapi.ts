@@ -349,6 +349,159 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tasks/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Add Task */
+        put: operations["addTask"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Task */
+        patch: operations["updateTask"];
+        trace?: never;
+    };
+    "/api/tasks/{task_id}/bank": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move Task To Bank
+         * @description Back to the bank: the day is cleared, and nothing else changes.
+         */
+        post: operations["moveTaskToBank"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{task_id}/check-off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check Off Task */
+        post: operations["checkOffTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{task_id}/drop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Drop Task
+         * @description "I decided not to do this": the answer No to "Still matter?". Not a delete.
+         */
+        post: operations["dropTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{task_id}/place": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Place Task
+         * @description Onto a day, placed by hand. Pulling a task from the bank to today is this.
+         */
+        post: operations["placeTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{task_id}/swap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Swap Tasks
+         * @description This task goes to the bank, and the bank task takes the day.
+         */
+        post: operations["swapTasks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{task_id}/uncheck": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Uncheck Task
+         * @description The task goes back where its row was, on its day or in its bank, or gets the ending
+         *     its week gave it if that week has closed.
+         */
+        post: operations["uncheckTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/weeks/{week}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Week */
+        get: operations["getWeek"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -414,6 +567,30 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+        };
+        /**
+         * CheckOff
+         * @description What the phone saw when the task was checked off. Its day wins, even for a week that
+         *     has since closed.
+         */
+        CheckOff: {
+            /**
+             * Completedat
+             * Format: date-time
+             * @description The moment, as the phone recorded it.
+             */
+            completedAt: string;
+            /**
+             * Completedon
+             * Format: date
+             * @description The day it counts for, as the phone saw it: 12:30 a.m. is the new day.
+             */
+            completedOn: string;
+            /**
+             * Valuelogged
+             * @description Miles, minutes: counts towards an amount target.
+             */
+            valueLogged?: number | null;
         };
         /**
          * ErrorMessage
@@ -504,7 +681,15 @@ export interface components {
              * @description In the order they're checked in.
              */
             milestones: components["schemas"]["Milestone"][];
+            /** @description Milestones hit, or a one-off goal's steps done. */
             progress: components["schemas"]["Progress"];
+            /**
+             * Steps
+             * @description A one-off goal's tasks, done and not, in the order added; dropped ones left out. Empty for other goals.
+             */
+            steps: components["schemas"]["Task"][];
+            /** @description This week against its target. Empty without a target this week. */
+            weekProgress: components["schemas"]["WeekProgress"] | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -556,6 +741,7 @@ export interface components {
             label: string;
             /** Measurableline */
             measurableLine: string;
+            /** @description Milestones hit, or a one-off goal's steps done, as on the goal's page. */
             progress: components["schemas"]["Progress"];
             /**
              * Slipped
@@ -577,6 +763,8 @@ export interface components {
              * @enum {string}
              */
             type: "building" | "quitting" | "oneOff";
+            /** @description This week against its target. Empty without a target this week. */
+            weekProgress: components["schemas"]["WeekProgress"] | null;
             /** @description The latest target. Its effectiveFrom is after this week when a change waits for next week. Empty for quitting and one-off goals. */
             weeklyTarget: components["schemas"]["WeeklyTarget"] | null;
         };
@@ -683,6 +871,41 @@ export interface components {
             targetDate?: string | null;
         };
         /**
+         * NewTask
+         * @description A task added by hand. `day` is where the phone put it; with none, it goes to the bank.
+         */
+        NewTask: {
+            /**
+             * Day
+             * @description A day to put it on, placed by hand. A day no longer allowed (a past day, or one outside the open weeks) saves it in the current week's bank instead.
+             */
+            day?: string | null;
+            /** Duedate */
+            dueDate?: string | null;
+            /** Goalid */
+            goalId?: string | null;
+            timeOfDay?: components["schemas"]["TimeOfDay"] | null;
+            /** Title */
+            title: string;
+        };
+        /**
+         * Placing
+         * @description Onto a day, placed by hand, in the week the change was made in.
+         */
+        Placing: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /**
+             * Week
+             * Format: date
+             * @description The week the change was made in. Refused once the task has left it.
+             */
+            week: string;
+        };
+        /**
          * Progress
          * @description "2 of 6": the goal's milestones plus one for the goal. A reached goal counts complete:
          *     milestones never checked in were passed on the way.
@@ -705,6 +928,121 @@ export interface components {
              */
             itsWork: "pause" | "keep";
         };
+        /**
+         * Swap
+         * @description The task in the route goes to the bank; the bank task goes onto the day.
+         */
+        Swap: {
+            /**
+             * Banktaskid
+             * Format: uuid
+             */
+            bankTaskId: string;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /**
+             * Week
+             * Format: date
+             * @description The week the change was made in. Refused once either task has left it.
+             */
+            week: string;
+        };
+        /** Swapped */
+        Swapped: {
+            placed: components["schemas"]["Task"];
+            toBank: components["schemas"]["Task"];
+        };
+        /** Task */
+        Task: {
+            /**
+             * Carriedover
+             * @description How many weeks it rolled over before this one.
+             */
+            carriedOver: number;
+            /** Completedat */
+            completedAt: string | null;
+            /** Completedon */
+            completedOn: string | null;
+            /** Duedate */
+            dueDate: string | null;
+            /** Goalid */
+            goalId: string | null;
+            /** Goallabel */
+            goalLabel: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Origin
+             * @enum {string}
+             */
+            origin: "byHand" | "weeklyTarget" | "recurringItem";
+            /** Placedbyhand */
+            placedByHand: boolean;
+            /**
+             * Plannedday
+             * @description Empty in the bank.
+             */
+            plannedDay: string | null;
+            /** Recurringitemid */
+            recurringItemId: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "open" | "done" | "dropped" | "lapsed";
+            timeOfDay: components["schemas"]["TimeOfDay"] | null;
+            /** Title */
+            title: string;
+            /** Valuelogged */
+            valueLogged: number | null;
+            /**
+             * Week
+             * @description The week of its row in play, or of its done row. Empty while it waits (the upcoming list, a one-off goal's waiting steps) or is set aside.
+             */
+            week: string | null;
+        };
+        /**
+         * TaskEdit
+         * @description Sent whole on every edit. Where the task is doesn't change.
+         */
+        TaskEdit: {
+            /** Duedate */
+            dueDate?: string | null;
+            timeOfDay?: components["schemas"]["TimeOfDay"] | null;
+            /** Title */
+            title: string;
+        };
+        /**
+         * TimeOfDay
+         * @description "By 6 p.m." or "at 6 p.m.", wherever the phone is.
+         */
+        TimeOfDay: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "by" | "at";
+            /**
+             * Time
+             * @description HH:MM, 24-hour.
+             */
+            time: string;
+        };
+        /** ToBank */
+        ToBank: {
+            /**
+             * Week
+             * Format: date
+             * @description The week the change was made in. Refused once the task has left it.
+             */
+            week: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -717,6 +1055,61 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /**
+         * Week
+         * @description The plan read (ADR-010). The phone keeps it and draws Today, any day and the bank
+         *     from it.
+         */
+        Week: {
+            /**
+             * Goals
+             * @description Every active building goal with a target that week, and its progress.
+             */
+            goals: components["schemas"]["WeekGoal"][];
+            /** Iscurrent */
+            isCurrent: boolean;
+            /**
+             * Nextweekopen
+             * @description Next week has been opened (from Sunday evening).
+             */
+            nextWeekOpen: boolean;
+            /**
+             * Tasks
+             * @description On a day, then in the bank; with no outcome or done. Set-aside rows aren't shown.
+             */
+            tasks: components["schemas"]["Task"][];
+            /**
+             * Week
+             * Format: date
+             */
+            week: string;
+        };
+        /**
+         * WeekGoal
+         * @description A bar on Week: a goal's target that week and how far along it is.
+         */
+        WeekGoal: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            progress: components["schemas"]["WeekProgress"];
+            weeklyTarget: components["schemas"]["WeeklyTarget"];
+        };
+        /**
+         * WeekProgress
+         * @description This week against a building goal's target: tasks done out of sessions (count), or
+         *     the values logged out of the amount (amount).
+         */
+        WeekProgress: {
+            /** Done */
+            done: number;
+            /** Of */
+            of: number;
         };
         /** WeeklyTarget */
         WeeklyTarget: {
@@ -1821,6 +2214,456 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    addTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-time-zone": string;
+            };
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewTask"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description The rules don't allow this change. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskEdit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    moveTaskToBank: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ToBank"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description The rules don't allow this change. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    checkOffTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-time-zone": string;
+            };
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckOff"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description The rules don't allow this change. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dropTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description The rules don't allow this change. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    placeTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-time-zone": string;
+            };
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Placing"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description The rules don't allow this change. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    swapTasks: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-time-zone": string;
+            };
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Swap"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Swapped"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description The rules don't allow this change. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    uncheckTask: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-time-zone": string;
+            };
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description The rules don't allow this change. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getWeek: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-time-zone": string;
+            };
+            path: {
+                week: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Week"];
                 };
             };
             /** @description Validation Error */

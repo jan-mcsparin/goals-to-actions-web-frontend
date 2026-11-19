@@ -38,6 +38,6 @@ export function listed(goals: Goal[], milestones: MilestoneFor[] = []): ListedGo
     const own = milestones.filter((milestone) => milestone.goalId === goal.id)
     const of = own.length + 1
     const hit = goal.status === 'reached' ? of : own.filter((milestone) => milestone.status === 'hit').length
-    return { ...goal, progress: { hit, of } }
+    return { ...goal, progress: { hit, of }, weekProgress: null }
   })
 }
