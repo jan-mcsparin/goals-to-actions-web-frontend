@@ -31,6 +31,10 @@ export type MilestoneStatus = Milestone['status']
 export type WeeklyTarget = Schemas['WeeklyTarget']
 export type WeeklyTargetInput = Schemas['WeeklyTargetInput']
 
+// Weekly on a weekday, monthly on a day from the 1st to the 28th, or flexible:
+// 1 to 6 times a week, or once every two weeks or once a month.
+export type Schedule = Schemas['RecurringItem']['schedule']
+
 export type RecurringItem = {
   id: string
   name: string

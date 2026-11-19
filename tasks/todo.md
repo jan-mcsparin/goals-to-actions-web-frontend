@@ -15,8 +15,8 @@ Test dates are fixed to Wednesday 11 Nov 2026.
 **Description:** `domain/recurring.ts`: `repeatText(schedule)` and `isFixedDay(schedule)`, taking the generated `Schedule`. Nothing uses them yet.
 
 **Acceptance criteria:**
-- [ ] "Every Tuesday", "Monthly on the 1st", "Once a week", "3 times a week", "Every two weeks", "Once a month", including 11th to 13th ordinals.
-- [ ] Weekly and monthly are fixed-day; flexible isn't.
+- [x] "Every Tuesday", "Monthly on the 1st", "Once a week", "3 times a week", "Every two weeks", "Once a month", including 11th to 13th ordinals.
+- [x] Weekly and monthly are fixed-day; flexible isn't.
 
 **Verification:** `npx vitest run src/domain/recurring.test.ts`; build, lint.
 
