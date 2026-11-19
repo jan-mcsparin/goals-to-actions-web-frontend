@@ -61,6 +61,6 @@ export const markGoalReached = statusChange('mark-reached')
 export const reopenGoal = statusChange('reopen')
 export const goAgain = statusChange('go-again')
 
-function statusChange(route: string) {
+function statusChange(route: 'pause' | 'resume' | 'end' | 'mark-reached' | 'reopen' | 'go-again') {
   return (goalId: string): Promise<Goal> => request('POST', `/goals/${goalId}/${route}`)
 }
