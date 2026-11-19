@@ -1,214 +1,60 @@
-# Tasks: Setup screens on the API (#41)
+# Tasks: Recurring items get a structured schedule (#34)
 
-Plan: [`plan.md`](plan.md). Spec: [`../specs/041-setup-screens-on-api.md`](../specs/041-setup-screens-on-api.md).
+Plan: [`plan.md`](plan.md). Issue: #34.
 
-Every front-end task:
+Every task:
 1. `nvm use` (Node 24).
 2. Write the tests first.
 3. Run `npm test && npm run lint && npm run build`.
 4. Make one commit.
 
-Test dates are fixed to Wednesday 11 Nov 2026. Every API task runs the API repo's four checks (`ruff check`, `ruff format --check`, `mypy`, `pytest`).
+Test dates are fixed to Wednesday 11 Nov 2026.
 
-### Task 1: Settle spec 041
+### Task 1: Word the repeat from a schedule
 
-**Description:** Add plan decision 5 (each milestone's `result`) to the spec, beside decisions 1 and 4, and mark the spec approved. Open question 5 stays an assumption, handed to #42.
+**Description:** `domain/recurring.ts`: `repeatText(schedule)` and `isFixedDay(schedule)`, taking the generated `Schedule`. Nothing uses them yet.
 
 **Acceptance criteria:**
-- [x] The spec lists decisions 1 to 5, and its status is approved, 2026-11-18.
+- [ ] "Every Tuesday", "Monthly on the 1st", "Once a week", "3 times a week", "Every two weeks", "Once a month", including 11th to 13th ordinals.
+- [ ] Weekly and monthly are fixed-day; flexible isn't.
 
-**Verification:**
-- [x] Read the spec against `plan.md`.
+**Verification:** `npx vitest run src/domain/recurring.test.ts`; build, lint.
 
 **Dependencies:** None
 
-**Files:** `specs/041-setup-screens-on-api.md`
+**Files:** `src/domain/recurring.ts`, `src/domain/recurring.test.ts`
 
 **Scope:** XS
 
-# PR 1, API repo: `goal-reads-for-the-screens`
+### Task 2: Use the generated RecurringItem everywhere
 
-### Task 2: Progress on listed goals, aspiration and results on the goal page
-
-**Description:** Open an API issue and add it to project #2 with a Status (API #26; PR #27). Then:
-- `listGoals` returns each goal with `progress`.
-- `getGoal` and every milestone write return `aspiration: { id, name } | null`.
-- Each milestone carries `result`, from its latest hit check-in.
-- One function holds the progress rule.
-- Regenerate `openapi.json` and update the two slice specs.
+**Description:** `types.ts` names `RecurringItem`, `NewRecurringItem` and `Schedule` from `openapi.ts`. Mock data and `addRecurringItem` store items the API's way (`createdAt`, `fromGoalId: null`, `active: true`); retire with "keep" sets items' `aspirationId` to null. The form's options read back as a `Schedule`; `recurringInput` sends `schedule` and `startsOn` (today). Upkeep, the aspiration page and Today word or mark items through `domain/recurring.ts`. `RepeatChoice`, `repeatRuleText` and `nextDue` go.
 
 **Acceptance criteria:**
-- [x] `listGoals` counts are the same as `getGoal`'s for every goal: none, some hit, reached, and a deleted milestone left out.
-- [x] A goal with no aspiration has `aspiration: null`. A retired aspiration is still named.
-- [x] A milestone's `result` is its latest hit check-in's result. It is `null` after "not yet" only, and `null` for a hit with no result.
-- [x] `listGoals` is one query for the counts, not one per goal.
+- [ ] `repeatRule`, `fixedDay` and `nextDue` appear nowhere outside `openapi.ts`.
+- [ ] The form offers the same choices and saves a schedule and today's `startsOn`.
+- [ ] Every screen shows the same repeat text and fixed-day mark as before; mock data and tests updated.
 
-**Verification:**
-- [x] Four checks pass. `test_contract.py` still guards camelCase.
-- [x] `git diff openapi.json` shows only the new fields.
+**Verification:** `npm test && npm run lint && npm run build`.
 
-**Dependencies:** Task 1
+**Dependencies:** 1
 
-**Files:** `db/queries/milestones.sql` (+ generated `app/db/`), `app/goals/{routes,models}.py`, `app/milestones/{page,models}.py`, `tests/test_goals.py`, `tests/test_milestones.py`, `openapi.json`, `specs/{goals-targets,milestones-check-ins}.md`
+**Files:** `src/api/types.ts`, `src/api/mockData.ts`, `src/api/client.ts`, `src/domain/add.ts`, `src/domain/upkeep.ts`, `src/domain/aspiration.ts`, `src/domain/aspirations.ts`, `src/domain/today.ts`, their tests, `src/components/AddSheet.test.tsx`, `src/domain/week.test.ts`
 
-**Scope:** M
+**Scope:** L (mechanical)
 
-## Checkpoint 1
-- [x] API PR reviewed and merged.
-- [x] In the front end, `npm run api:types` regenerates, the suite is still green, and nothing else is changed.
+## Checkpoint
+- [ ] Build, lint and tests pass.
 
-# PR 2, front end: `setup-screens-on-api` (closes #41, #33; part of #32)
+### Task 3: Check the screens at iPhone width
 
-### Task 3: Goals and weekly targets on the generated types
-
-**Description:**
-- `Goal`, `WeeklyTarget` and `NewGoal` come from `openapi.ts`.
-- In the mock: `endedAt` becomes `endedOn`; `lastReviewedAt` goes; the goal gains `slipped`; empty fields become `null`; the target moves inside the goal (`kind`, `sessions`, `amount`, `unit`, `effectiveFrom`).
-- The overview, detail and goal-detail types drop `weeklyTargets`.
-- The domain, `useGoal`, `useAdd` and the form read the new shape. Count targets only.
+**Description:** A Sonnet agent with the browser looks at the running dev server: Keep life running, an aspiration's page, Today's fixed-day items, and adding a recurring item of each kind.
 
 **Acceptance criteria:**
-- [x] No hand-written goal or target type is left in `types.ts`.
-- [x] Every screen looks as it did. The Target sheet and Goal form still say "3 sessions".
-- [x] Any assertion changed beyond a name or fixture is listed in the commit message.
+- [ ] The repeat text reads as before on each screen, and a new item shows up with its repeat.
 
-**Verification:**
-- [x] `npm test && npm run lint && npm run build`
-- [x] Renaming a field in `mockData.ts` fails the build.
+**Dependencies:** 2
 
-**Dependencies:** Checkpoint 1
+**Files:** none
 
-**Files:** `src/api/{types,mockData,client}.ts`, `src/domain/{aspirations,aspiration,goalDetail,week,today,add}.ts`, `src/hooks/{useGoal,useAdd}.ts`, and their tests
-
-**Scope:** L. It's mechanical, but if it passes ~10 source files, split weekly targets into their own task.
-
-### Task 4: Tab and aspiration page counts from each goal's progress
-
-**Description:**
-- `AspirationsOverview` and `AspirationDetail` hold `ListedGoal[]`, and lose their `milestones` arrays.
-- The mock works out `progress` with the API's rule.
-- `milestoneCount` and `goalProgress` read `goal.progress`.
-
-**Acceptance criteria:**
-- [x] "2 of 5" and "Step 3 of 6" read the same as before on the tab and the aspiration page, for active, paused, reached and one-off goals.
-- [x] The mock's progress equals what its goal page gives. (Checked in Task 5, when the goal page got `progress`.)
-
-**Verification:**
-- [x] `npm test && npm run lint && npm run build`
-
-**Dependencies:** Task 3
-
-**Files:** `src/api/{types,client}.ts`, `src/domain/{aspirations,aspiration}.ts`, their tests
-
-**Scope:** M
-
-### Task 5: The goal page is the API's page; check-ins are records (#33)
-
-**Description:**
-- `getGoal` returns `GoalPage`: the goal, milestones (`position`, `result`), `progress`, `latest` and `aspiration`.
-- `Milestone` is generated, so `checkedInOn` goes.
-- The mock stores check-ins as rows, and works out `latest` and each milestone's `result` from them.
-- `domain/goalDetail.ts` reads `latest`, `progress` and `aspiration` from the page.
-
-**Acceptance criteria:**
-- [x] Every acceptance criterion on #33 is met.
-- [x] "Latest:", "Hit · …" and the goal's aspiration link read as before.
-- [x] Keep, move and adjust after "not yet" leave every check-in row in place.
-- [x] The page's `progress` equals the listed goal's (from Task 4).
-
-**Verification:**
-- [x] `npm test && npm run lint && npm run build`
-
-**Dependencies:** Task 3
-
-**Files:** `src/api/{types,mockData,client}.ts`, `src/domain/goalDetail.ts`, `src/hooks/useGoal.ts`, their tests
-
-**Scope:** M
-
-### Task 6: Client functions one per API operation
-
-**Description:** In the mock, these replace the old functions:
-- `createGoal`: device id, with the target in the same call.
-- `endGoal` and `markGoalReached`.
-- `resumeGoal`, `reopenGoal` and `goAgain`.
-- `setWeeklyTarget(goalId, target)`, which returns the goal.
-- `addMilestone`, `updateMilestone` and `keepMilestone`, each returning the page.
-- `checkIn(goalId, milestoneId | null, outcome, result)`, which returns the page. A hit on the goal's line reaches the goal.
-
-`useGoal` and `useAdd` call these. The page that comes back replaces the optimistic one. Resume picks its function from the goal's status.
-
-Also from the review of tasks 3 and 4:
-- **A weekly target is 1 to 14 sessions,** as the API allows (`WeeklyTargetInput`, `le=14`). `parsedTarget` returns nothing above 14, so the Target sheet and the Goal form can't save it. The mock's `checkedTarget` and `setWeeklyTarget` refuse it. The client test that keeps a target of 30 becomes one that refuses 15. The seven-task stand-in cap stays.
-- **`useGoal.setTarget` shows the goal that comes back,** so a change waiting for next week (ADR-009) shows its own week, not this Monday's.
-- **`milestoneCount` in `domain/goalDetail.ts` is gone** (Task 5 reads the page's `progress`).
-
-From the review of Task 5:
-- **A check-in on the goal's own line is kept, as the API keeps it.** `checkIn(goalId, null, outcome, result)` adds the check-in row; a hit also marks the goal reached; a result, hit or not yet, becomes Latest. `useGoal.checkIn` no longer calls `endGoal` for a hit or drops a not yet. It updates the page at once (Latest, and the count and reached state for a hit), then shows the page that comes back.
-
-**Acceptance criteria:**
-- [x] Each mock function enforces the API's rule: only Next can be checked in, and resume, reopen and go again each work only from their own status.
-- [x] Checking in Hit on the goal's line is one call, and the goal shows reached.
-- [x] Screens and their tests don't change.
-- [x] A target above 14 sessions can't be saved from the sheet or the form, and the mock refuses it.
-- [x] Checking in on the goal's own line keeps the check-in: its result shows as Latest, hit or not yet.
-
-**Verification:**
-- [x] `npm test && npm run lint && npm run build`
-
-**Dependencies:** Tasks 4, 5
-
-**Files:** `src/api/client.ts`, `src/hooks/{useGoal,useAdd}.ts`, `src/domain/goalDetail.ts`, their tests
-
-**Scope:** M
-
-## Checkpoint 2
-- [x] The suite is green on mock.
-- [x] At phone width, the tab, an aspiration, a building goal, a one-off goal and the Add sheet look as they did on `main`.
-
-### Task 7: Real goal and milestone functions behind the switch
-
-**Description:**
-- Add `src/api/realGoals.ts`, with each of Task 6's functions and `getGoal` sent to its route.
-- The real `getAspirations` and `getAspiration` add `listGoals`, filtered per aspiration.
-- `client.ts` branches on `realApi`.
-
-**Acceptance criteria:**
-- [x] Each real function sends the right method, path and body (stubbed `fetch`).
-- [x] With the switch on, no mock goal or milestone reaches the three screens.
-
-**Verification:**
-- [x] `npm test && npm run lint && npm run build`
-
-**Dependencies:** Task 6
-
-**Files:** `src/api/{realGoals,realGoals.test,realAspirations,realAspirations.test,client}.ts`
-
-**Scope:** M
-
-### Task 8: Check against a local API, and docs
-
-**Description:** Use `npm run dev:real` at phone width, then on the phone. Try each action from the spec's manual list, and reload after each. Then turn the API off and check that failed saves are reported. Record the results in the spec. Update:
-- `CLAUDE.md` (which types are generated now, and `realGoals.ts`)
-- the specs index (041 done)
-- `../docs/` wherever a described behaviour moved
-- the API map's note on decision 11
-
-Open the PR, and tick #41's and #33's criteria.
-
-**Acceptance criteria:**
-- [x] Every action in the spec's manual list is kept after a reload.
-- [x] Any finding is either fixed or filed as an issue in project #2.
-
-**Verification:**
-- [x] `npm test && npm run lint && npm run build`
-- [x] The spec's Checked section is filled in.
-
-**Dependencies:** Task 7
-
-**Files:** `specs/041-setup-screens-on-api.md`, `specs/README.md`, `CLAUDE.md`, `../api/specs/README.md`, docs as needed
-
-**Scope:** S
-
-## Checkpoint 3
-- [x] Every success criterion in spec 041 is met.
-- [x] PR open: closes #41 and #33, part of #32.
+**Scope:** XS
