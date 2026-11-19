@@ -377,7 +377,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Create Recurring Item */
+        /**
+         * Create Recurring Item
+         * @description Adds the item, with the tasks each open week is due.
+         */
         put: operations["createRecurringItem"];
         post?: never;
         delete?: never;
@@ -421,6 +424,26 @@ export interface paths {
          * @description Its set-aside tasks return to the bank of their week, if that week is still open.
          */
         post: operations["turnOnRecurringItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/upcoming": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Upcoming
+         * @description Open tasks with a due date and no row yet: they join a week's bank when it opens.
+         */
+        get: operations["getUpcoming"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -522,6 +545,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tasks/{task_id}/still-matters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Answer Still Matters
+         * @description The answer to "Still matter?": keep it, put it on a day, or drop it. Drop is the same
+         *     as `dropTask`.
+         */
+        post: operations["answerStillMatters"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tasks/{task_id}/swap": {
         parameters: {
             query?: never;
@@ -574,6 +618,27 @@ export interface paths {
         get: operations["getWeek"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/weeks/{week}/wrap-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Wrap Up Week
+         * @description Closes the current week early, once next week is open, and returns the new current
+         *     week. Sent again, it returns the current week as it is.
+         */
+        post: operations["wrapUpWeek"];
         delete?: never;
         options?: never;
         head?: never;
@@ -669,6 +734,14 @@ export interface components {
              * @description Miles, minutes: counts towards an amount target.
              */
             valueLogged?: number | null;
+        };
+        /** DropIt */
+        DropIt: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            answer: "drop";
         };
         /**
          * ErrorMessage
@@ -799,6 +872,14 @@ export interface components {
              * @constant
              */
             status: "ok";
+        };
+        /** KeepIt */
+        KeepIt: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            answer: "keep";
         };
         /**
          * LatestResult
@@ -1115,6 +1196,28 @@ export interface components {
             itsWork: "pause" | "keep";
         };
         /**
+         * ScheduleIt
+         * @description Onto a day, placed by hand, as `placeTask` does.
+         */
+        ScheduleIt: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            answer: "schedule";
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /**
+             * Week
+             * Format: date
+             * @description The week the change was made in. Refused once the task has left it.
+             */
+            week: string;
+        };
+        /**
          * Swap
          * @description The task in the route goes to the bank; the bank task goes onto the day.
          */
@@ -1143,6 +1246,11 @@ export interface components {
         };
         /** Task */
         Task: {
+            /**
+             * Atclose
+             * @description What closing its week does to it if it's still unfinished: it carries over to next week's bank, or ends with the week. Empty when it's done, closed, set aside or has no row in play. The wrap-up sheet reads this.
+             */
+            atClose: ("carriesOver" | "ends") | null;
             /**
              * Carriedover
              * @description How many weeks it rolled over before this one.
@@ -1182,6 +1290,11 @@ export interface components {
              * @enum {string}
              */
             state: "open" | "done" | "dropped" | "lapsed";
+            /**
+             * Stillmatters
+             * @description Ask "Still matter?": added by hand or a fixed-day recurring task, open, and rolled over twice since it was last answered.
+             */
+            stillMatters: boolean;
             timeOfDay: components["schemas"]["TimeOfDay"] | null;
             /** Title */
             title: string;
@@ -1228,6 +1341,14 @@ export interface components {
              * @description The week the change was made in. Refused once the task has left it.
              */
             week: string;
+        };
+        /** Upcoming */
+        Upcoming: {
+            /**
+             * Tasks
+             * @description Open tasks with a due date and no row yet, by due date.
+             */
+            tasks: components["schemas"]["Task"][];
         };
         /** ValidationError */
         ValidationError: {
@@ -2452,7 +2573,9 @@ export interface operations {
     createRecurringItem: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "x-time-zone": string;
+            };
             path: {
                 item_id: string;
             };
@@ -2635,6 +2758,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getUpcoming: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Upcoming"];
                 };
             };
         };
@@ -2950,6 +3093,61 @@ export interface operations {
             };
         };
     };
+    answerStillMatters: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-time-zone": string;
+            };
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KeepIt"] | components["schemas"]["ScheduleIt"] | components["schemas"]["DropIt"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description The rules don't allow this change. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     swapTasks: {
         parameters: {
             query?: never;
@@ -3076,6 +3274,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Week"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wrapUpWeek: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-time-zone": string;
+            };
+            path: {
+                week: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Week"];
+                };
+            };
+            /** @description The rules don't allow this change. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
                 };
             };
             /** @description Validation Error */
