@@ -5,15 +5,19 @@
 import { useCallback, useRef, useState } from 'react'
 import {
   addMilestone as saveMilestone,
-  checkInMilestone,
+  checkIn as saveCheckIn,
   endGoal,
   getGoal,
+  goAgain,
+  keepMilestone,
+  markGoalReached,
   pauseGoal,
-  reopenMilestone,
+  reopenGoal,
   resumeGoal,
   setWeeklyTarget,
+  updateMilestone,
 } from '../api/client.ts'
-import type { GoalDetail } from '../api/types.ts'
+import type { Goal, GoalDetail } from '../api/types.ts'
 import {
   backLabel,
   canCondense,
@@ -82,6 +86,7 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
   const [expanded, setExpanded] = useState(() => readTimelineExpanded(goalId))
   const [justHit, setJustHit] = useState<string>()
   const pendingCount = useRef(0)
+  const lastSave = useRef(0)
   const waiting = useRef(false)
 
   function showAll(next: boolean) {
@@ -89,17 +94,20 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
     saveTimelineExpanded(goalId, next)
   }
 
-  // Shows the change, then saves it. If the save fails, the goal is loaded
-  // again from the API and the message shows, whichever save it was.
+  // Shows the change, then saves it, then shows what the save returned. Only
+  // the latest save is shown, so a slow first save can't flash over a quick
+  // second one. If a save fails, the goal is loaded again from the API and
+  // the message shows, whichever save it was.
   function saveOptimistically<T>(
     change: (before: GoalDetail) => GoalDetail,
     save: () => Promise<T>,
-    settle?: (shown: GoalDetail, saved: T) => GoalDetail,
+    settle: (shown: GoalDetail, saved: T) => GoalDetail,
   ) {
+    const thisSave = ++lastSave.current
     setDetail((before) => before && change(before))
     setMessage(undefined)
     save()
-      .then((saved) => settle && setDetail((shown) => shown && settle(shown, saved)))
+      .then((saved) => thisSave === lastSave.current && setDetail((shown) => shown && settle(shown, saved)))
       .catch(() => {
         setJustHit(undefined)
         setMessage(SAVE_FAILED)
@@ -111,14 +119,15 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
       })
   }
 
-  // What's shown already matches what's saved, so nothing settles afterwards:
-  // a slow first save can't flash over a quick second one.
+  // The goal that comes back has the target as saved, so a change waiting
+  // for next week (ADR-009) shows its own week.
   function setTarget(draft: TargetDraft) {
     const target = parsedTarget(draft)
     if (!target) return
     saveOptimistically(
       (before) => withTarget(before, target, today),
-      () => setWeeklyTarget(goalId, target.amount, target.unit),
+      () => setWeeklyTarget(goalId, target),
+      (shown, goal: Goal) => ({ ...shown, goal }),
     )
   }
 
@@ -127,9 +136,9 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
     if (!milestone) return
     const pendingId = `pending-${++pendingCount.current}`
     saveOptimistically(
-      (before) => withMilestone(before, { id: pendingId, goalId, status: 'upcoming', ...milestone }),
+      (before) => withMilestone(before, pendingId, milestone),
       () => saveMilestone(goalId, milestone),
-      (shown, saved) => ({ ...shown, milestones: shown.milestones.map((row) => (row.id === pendingId ? saved : row)) }),
+      showPage,
     )
   }
 
@@ -139,6 +148,7 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
   async function saveThenReload(save: () => Promise<unknown>) {
     if (waiting.current) return
     waiting.current = true
+    ++lastSave.current // a save still on its way shows nothing over this one
     setMessage(undefined)
     setJustHit(undefined)
     try {
@@ -151,28 +161,44 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
     }
   }
 
-  // Without a milestoneId it's the goal itself: Hit it reaches the goal,
-  // exactly as End goal → I reached it does; Not yet changes nothing.
+  // Without a milestoneId it's the goal's own line: a hit reaches the goal.
+  // Either way the check-in is kept, and its result is the latest.
   function checkIn(milestoneId: string | undefined, outcome: 'hit' | 'notYet', result: string) {
     if (!detail) return
-    if (!milestoneId) {
-      if (outcome === 'hit') void saveThenReload(() => endGoal(goalId, 'reached'))
-      return
-    }
-    setJustHit(outcome === 'hit' ? hitLine(detail, milestoneId) : undefined)
+    setJustHit(milestoneId && outcome === 'hit' ? hitLine(detail, milestoneId) : undefined)
     saveOptimistically(
-      (before) => withCheckIn(before, milestoneId, outcome, result, today),
-      () => checkInMilestone(milestoneId, outcome, result),
+      (before) => withCheckIn(before, milestoneId ?? null, outcome, result, today),
+      () => saveCheckIn(goalId, milestoneId ?? null, outcome, result),
+      showPage,
     )
   }
 
+  // Keep the date sends nothing but the milestone; Move and Adjust send its
+  // line and date whole, each as it was unless changed.
   function reopen(milestoneId: string, changes: ReopenChanges) {
+    const milestone = detail?.milestones.find((row) => row.id === milestoneId)
+    if (!milestone) return
     setJustHit(undefined)
+    const edited = changes.measurableLine !== undefined || changes.targetDate !== undefined
     saveOptimistically(
       (before) => withReopened(before, milestoneId, changes),
-      () => reopenMilestone(milestoneId, changes),
-      (shown, milestones) => ({ ...shown, milestones }),
+      () =>
+        edited
+          ? updateMilestone(milestoneId, {
+              measurableLine: changes.measurableLine ?? milestone.measurableLine,
+              targetDate: changes.targetDate ?? milestone.targetDate,
+            })
+          : keepMilestone(milestoneId),
+      showPage,
     )
+  }
+
+  // Each way back is its own route: resume from paused, reopen from reached,
+  // go again from ended.
+  function comeBack(): Promise<Goal> {
+    if (detail?.goal.status === 'reached') return reopenGoal(goalId)
+    if (detail?.goal.status === 'ended') return goAgain(goalId)
+    return resumeGoal(goalId)
   }
 
   const page = detail && goalPage(detail, today)
@@ -192,9 +218,14 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
     checkIn,
     reopen,
     pause: () => saveThenReload(() => pauseGoal(goalId)),
-    resume: () => saveThenReload(() => resumeGoal(goalId)),
-    end: (outcome) => saveThenReload(() => endGoal(goalId, outcome)),
+    resume: () => saveThenReload(comeBack),
+    end: (outcome) => saveThenReload(() => (outcome === 'reached' ? markGoalReached(goalId) : endGoal(goalId))),
   }
+}
+
+// A milestone or check-in write returns the whole page.
+function showPage(_shown: GoalDetail, page: GoalDetail): GoalDetail {
+  return page
 }
 
 function shownTimeline({ timeline }: GoalPage, expanded: boolean): ShownTimeline {

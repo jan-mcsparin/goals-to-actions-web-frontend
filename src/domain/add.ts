@@ -98,7 +98,7 @@ export function emptyGoalDraft(): GoalDraft {
     aspirationId: '',
     newAspirationName: '',
     baseline: '',
-    target: { amount: '', unit: '' },
+    target: { sessions: '', unit: '' },
     startDate: '',
     deadline: '',
   }
@@ -128,7 +128,7 @@ export function goalReady(draft: GoalDraft, today: string): boolean {
   return !draft.deadline || isWithinGoal(draft.deadline, { startDate })
 }
 
-// What the Add sheet sends to addGoal: only what the goal's type shows. A new
+// What the Add sheet sends to createGoal: only what the goal's type shows. A new
 // aspiration is left out; useAdd saves it first and sends its id.
 export function goalInput(draft: GoalDraft & { type: GoalType }, today: string): NewGoal {
   const input: NewGoal = { ...goalParts(draft), type: draft.type }
@@ -147,7 +147,7 @@ export function goalConfirmation(type: GoalType): string {
 }
 
 function targetBlankOrWhole(target: TargetDraft): boolean {
-  const blank = !target.amount.trim() && !target.unit.trim()
+  const blank = !target.sessions.trim() && !target.unit.trim()
   return blank || parsedTarget(target) !== undefined
 }
 

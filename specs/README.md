@@ -15,6 +15,7 @@ One spec per issue, numbered like the issue. This file is the index and the map 
 | [006 Add sheet](006-add-sheet.md) | #6 |
 | [007 Settings screen](007-settings-screen.md) | #7 |
 | [040 API client foundation](040-api-client-foundation.md) | #40 |
+| [041 Setup screens on the API](041-setup-screens-on-api.md) | #41 |
 
 ## Remaining (drafted 2026-11-10)
 
@@ -35,7 +36,7 @@ The API is built in twelve slices ([its map](../../api/specs/README.md)). After 
 | Module id | Spec | Issue | Responsibility | Comes after API slice |
 |---|---|---|---|---|
 | `api-client-foundation` | [040](040-api-client-foundation.md) | #40 | Generated types, the mock/real switch, the Aspirations tab on real data (done) | `aspirations` |
-| `setup-screens-on-api` | written then | #41 | Aspirations, aspiration and goal screens | `milestones-check-ins` |
+| `setup-screens-on-api` | [041](041-setup-screens-on-api.md) | #41 | Aspirations, aspiration and goal screens, and the Add sheet's goal form, on real data (done) | `milestones-check-ins` |
 | `plan-screens-on-api` | written then | #42 | Today, Week and the bank; planning rules leave `domain/` (ADR-008) | `planner` |
 | `api-by-default` | written then | #43 | Settings, the stored plan, the offline queue; real becomes the default | `settings-sync` |
 

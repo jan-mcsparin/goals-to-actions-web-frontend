@@ -317,7 +317,7 @@ describe('Aspiration, active', () => {
     await vi.waitFor(() => expect(onRetired).toHaveBeenCalled())
     const strong = store.goals.find((goal) => goal.id === 'goal-strong')
     expect(strong?.status).toBe('active')
-    expect(strong?.aspirationId).toBeUndefined()
+    expect(strong?.aspirationId).toBeNull()
   })
 
   it('changes nothing on Cancel', async () => {

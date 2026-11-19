@@ -1,129 +1,214 @@
-# Tasks: API client foundation (#40)
+# Tasks: Setup screens on the API (#41)
 
-Plan: [`plan.md`](plan.md). Spec: [`../specs/040-api-client-foundation.md`](../specs/040-api-client-foundation.md).
+Plan: [`plan.md`](plan.md). Spec: [`../specs/041-setup-screens-on-api.md`](../specs/041-setup-screens-on-api.md).
 
-Every task: `nvm use` (Node 24), write tests first, then `npm test && npm run lint && npm run build`, then one commit. Test dates are fixed to Wednesday 11 Nov 2026. New test files call `resetStore()` in `beforeEach`; files that stub `fetch` restore it in `afterEach`.
+Every front-end task:
+1. `nvm use` (Node 24).
+2. Write the tests first.
+3. Run `npm test && npm run lint && npm run build`.
+4. Make one commit.
 
-# PR: `api-client-foundation` (closes #40)
+Test dates are fixed to Wednesday 11 Nov 2026. Every API task runs the API repo's four checks (`ruff check`, `ruff format --check`, `mypy`, `pytest`).
 
-### Task 1: Settle spec 040
+### Task 1: Settle spec 041
 
-**Description:** Close both open questions (plan decisions 2 and 4) and add plan decisions 1 and 3 to the spec. Correct the id line in the spec: `getRandomValues`, not `randomUUID`. Mark the spec approved.
+**Description:** Add plan decision 5 (each milestone's `result`) to the spec, beside decisions 1 and 4, and mark the spec approved. Open question 5 stays an assumption, handed to #42.
 
 **Acceptance criteria:**
-- [x] No open questions left; each decision is in the section it changes.
-- [x] Status reads approved, dated 2026-11-18.
+- [x] The spec lists decisions 1 to 5, and its status is approved, 2026-11-18.
 
 **Verification:**
-- [x] Read through against `plan.md`; `npm test && npm run lint && npm run build` still pass
+- [x] Read the spec against `plan.md`.
 
 **Dependencies:** None
 
-**Files:** `specs/040-api-client-foundation.md`
+**Files:** `specs/041-setup-screens-on-api.md`
 
 **Scope:** XS
 
-### Task 2: Generated types, and the mock's aspirations on them
+# PR 1, API repo: `goal-reads-for-the-screens`
 
-**Description:** Add `openapi-typescript` (pinned) and `npm run api:types`, which writes `src/api/openapi.ts` from `../api/openapi.json`. Exclude it from oxlint. `types.ts` takes `Aspiration` and `NewAspiration` from it. The mock data, the mock client, `domain/` and `useAspiration` follow: `priority` becomes `position`, `retiredAt` becomes `retiredOn` (a day), and empty fields are `null`. Tests change in fixtures and field names only.
+### Task 2: Progress on listed goals, aspiration and results on the goal page
+
+**Description:** Open an API issue and add it to project #2 with a Status (API #26; PR #27). Then:
+- `listGoals` returns each goal with `progress`.
+- `getGoal` and every milestone write return `aspiration: { id, name } | null`.
+- Each milestone carries `result`, from its latest hit check-in.
+- One function holds the progress rule.
+- Regenerate `openapi.json` and update the two slice specs.
 
 **Acceptance criteria:**
-- [x] `npm run api:types` regenerates the file, and running it again changes nothing.
-- [x] Changing a field of an aspiration in `mockData.ts` to the old name fails `npm run build`.
-- [x] The full suite passes on mock. Any assertion that had to change, beyond a name or fixture, is listed in the commit message.
+- [x] `listGoals` counts are the same as `getGoal`'s for every goal: none, some hit, reached, and a deleted milestone left out.
+- [x] A goal with no aspiration has `aspiration: null`. A retired aspiration is still named.
+- [x] A milestone's `result` is its latest hit check-in's result. It is `null` after "not yet" only, and `null` for a hit with no result.
+- [x] `listGoals` is one query for the counts, not one per goal.
 
 **Verification:**
-- [x] `npm test && npm run lint && npm run build`; `git diff --stat` shows only the files named below
+- [x] Four checks pass. `test_contract.py` still guards camelCase.
+- [x] `git diff openapi.json` shows only the new fields.
 
 **Dependencies:** Task 1
 
-**Files:** `package.json`, `package-lock.json`, `src/api/openapi.ts`, `src/api/types.ts`, `src/api/mockData.ts`, `src/api/client.ts`, `src/domain/{aspiration,aspirations,add,today}.ts`, `src/hooks/useAspiration.ts`, and their tests
-
-**Scope:** L, but mechanical: one rename across files, with no new behaviour. It isn't split, because no half of it compiles.
-
-### Task 3: Device ids and the request helper
-
-**Description:** `src/api/ids.ts` has `newDeviceId()`, a v4 UUID made with `crypto.getRandomValues`. `src/api/errors.ts` gets `NotFoundError`, which `client.ts` re-exports. `src/api/request.ts` has `request(method, path, body?)` as in the plan. The mock's `addAspiration` uses `newDeviceId()`.
-
-**Acceptance criteria:**
-- [x] `newDeviceId()` matches the v4 UUID pattern and works with `crypto.randomUUID` removed.
-- [x] `request` sends `X-Time-Zone` and JSON to `/api/…`; a 404 throws `NotFoundError`; a 500, a 409 and a rejected `fetch` each throw an error that isn't `NotFoundError`; a camelCase body goes out and comes back unchanged.
-- [x] A new mock aspiration has a UUID id; `useLoaded` and the existing tests still import `NotFoundError` from `client.ts`.
-
-**Verification:**
-- [x] `npm test`: new `ids.test.ts` and `request.test.ts`; `client.test.ts`
-
-**Dependencies:** None (can go before or after Task 2)
-
-**Files:** `src/api/ids.ts`, `src/api/errors.ts`, `src/api/request.ts`, `src/api/client.ts`, tests
-
-**Scope:** S
-
-## Checkpoint 1
-- [x] Tests, lint and build pass on mock
-- [x] The click-through is unchanged in the browser: Aspirations tab, an aspiration's page, Add an aspiration (checked in real mode in the browser; mock by the unchanged suite)
-
-### Task 4: The real aspiration functions
-
-**Description:** `src/api/realAspirations.ts` implements the seven functions over `request`, as in the plan: `getAspirations` and `getAspiration` from `listAspirations`; `addAspiration` as a PUT with a device id; `updateAspiration` sending both fields; `moveAspiration` chained (read, swap, post the order); `retireAspiration` with `{ itsWork }`; `bringBackAspiration`.
-
-**Acceptance criteria:**
-- [x] Each function calls the right method and path with the right body, against a stubbed `fetch`, and returns the shape its mock twin returns.
-- [x] `getAspiration` for an id not in the list throws `NotFoundError`; `moveAspiration` posts every active id with the two swapped, and two calls made together post orders built on each other.
-- [x] `updateAspiration` without both fields throws before any request; a blank why goes out as `null`.
-
-**Verification:**
-- [x] `npm test`: new `realAspirations.test.ts`
-
-**Dependencies:** Tasks 2, 3
-
-**Files:** `src/api/realAspirations.ts`, `src/api/realAspirations.test.ts`
+**Files:** `db/queries/milestones.sql` (+ generated `app/db/`), `app/goals/{routes,models}.py`, `app/milestones/{page,models}.py`, `tests/test_goals.py`, `tests/test_milestones.py`, `openapi.json`, `specs/{goals-targets,milestones-check-ins}.md`
 
 **Scope:** M
 
-### Task 5: The switch and the dev proxy
+## Checkpoint 1
+- [x] API PR reviewed and merged.
+- [x] In the front end, `npm run api:types` regenerates, the suite is still green, and nothing else is changed.
 
-**Description:** `src/api/mode.ts` reads `VITE_API`. The seven aspiration functions in `client.ts` hand off to the real ones when it's `real`. `vite.config.ts` proxies `/api` to `API_URL` (default `http://localhost:8000`). `package.json` gets `dev:real`. `vite-env.d.ts` types `VITE_API`.
+# PR 2, front end: `setup-screens-on-api` (closes #41, #33; part of #32)
+
+### Task 3: Goals and weekly targets on the generated types
+
+**Description:**
+- `Goal`, `WeeklyTarget` and `NewGoal` come from `openapi.ts`.
+- In the mock: `endedAt` becomes `endedOn`; `lastReviewedAt` goes; the goal gains `slipped`; empty fields become `null`; the target moves inside the goal (`kind`, `sessions`, `amount`, `unit`, `effectiveFrom`).
+- The overview, detail and goal-detail types drop `weeklyTargets`.
+- The domain, `useGoal`, `useAdd` and the form read the new shape. Count targets only.
 
 **Acceptance criteria:**
-- [x] Without `VITE_API`, nothing calls `fetch` (the existing suite with `fetch` stubbed to fail).
-- [x] With `VITE_API=real`, `getAspirations` reaches `fetch` at `/api/aspirations`, and `getDay` still answers from the mock.
-- [x] `/api/health` and `/api/aspirations` answer through the dev server's proxy while the API runs (checked 2026-11-18).
+- [x] No hand-written goal or target type is left in `types.ts`.
+- [x] Every screen looks as it did. The Target sheet and Goal form still say "3 sessions".
+- [x] Any assertion changed beyond a name or fixture is listed in the commit message.
 
 **Verification:**
-- [x] `npm test`: new `mode` test in `client.test.ts`; `curl localhost:5173/api/health` with the API running
+- [x] `npm test && npm run lint && npm run build`
+- [x] Renaming a field in `mockData.ts` fails the build.
 
-**Dependencies:** Task 4
+**Dependencies:** Checkpoint 1
 
-**Files:** `src/api/mode.ts`, `src/api/client.ts`, `src/api/client.test.ts`, `vite.config.ts`, `package.json`, `src/vite-env.d.ts`
+**Files:** `src/api/{types,mockData,client}.ts`, `src/domain/{aspirations,aspiration,goalDetail,week,today,add}.ts`, `src/hooks/{useGoal,useAdd}.ts`, and their tests
+
+**Scope:** L. It's mechanical, but if it passes ~10 source files, split weekly targets into their own task.
+
+### Task 4: Tab and aspiration page counts from each goal's progress
+
+**Description:**
+- `AspirationsOverview` and `AspirationDetail` hold `ListedGoal[]`, and lose their `milestones` arrays.
+- The mock works out `progress` with the API's rule.
+- `milestoneCount` and `goalProgress` read `goal.progress`.
+
+**Acceptance criteria:**
+- [x] "2 of 5" and "Step 3 of 6" read the same as before on the tab and the aspiration page, for active, paused, reached and one-off goals.
+- [x] The mock's progress equals what its goal page gives. (Checked in Task 5, when the goal page got `progress`.)
+
+**Verification:**
+- [x] `npm test && npm run lint && npm run build`
+
+**Dependencies:** Task 3
+
+**Files:** `src/api/{types,client}.ts`, `src/domain/{aspirations,aspiration}.ts`, their tests
+
+**Scope:** M
+
+### Task 5: The goal page is the API's page; check-ins are records (#33)
+
+**Description:**
+- `getGoal` returns `GoalPage`: the goal, milestones (`position`, `result`), `progress`, `latest` and `aspiration`.
+- `Milestone` is generated, so `checkedInOn` goes.
+- The mock stores check-ins as rows, and works out `latest` and each milestone's `result` from them.
+- `domain/goalDetail.ts` reads `latest`, `progress` and `aspiration` from the page.
+
+**Acceptance criteria:**
+- [x] Every acceptance criterion on #33 is met.
+- [x] "Latest:", "Hit · …" and the goal's aspiration link read as before.
+- [x] Keep, move and adjust after "not yet" leave every check-in row in place.
+- [x] The page's `progress` equals the listed goal's (from Task 4).
+
+**Verification:**
+- [x] `npm test && npm run lint && npm run build`
+
+**Dependencies:** Task 3
+
+**Files:** `src/api/{types,mockData,client}.ts`, `src/domain/goalDetail.ts`, `src/hooks/useGoal.ts`, their tests
+
+**Scope:** M
+
+### Task 6: Client functions one per API operation
+
+**Description:** In the mock, these replace the old functions:
+- `createGoal`: device id, with the target in the same call.
+- `endGoal` and `markGoalReached`.
+- `resumeGoal`, `reopenGoal` and `goAgain`.
+- `setWeeklyTarget(goalId, target)`, which returns the goal.
+- `addMilestone`, `updateMilestone` and `keepMilestone`, each returning the page.
+- `checkIn(goalId, milestoneId | null, outcome, result)`, which returns the page. A hit on the goal's line reaches the goal.
+
+`useGoal` and `useAdd` call these. The page that comes back replaces the optimistic one. Resume picks its function from the goal's status.
+
+Also from the review of tasks 3 and 4:
+- **A weekly target is 1 to 14 sessions,** as the API allows (`WeeklyTargetInput`, `le=14`). `parsedTarget` returns nothing above 14, so the Target sheet and the Goal form can't save it. The mock's `checkedTarget` and `setWeeklyTarget` refuse it. The client test that keeps a target of 30 becomes one that refuses 15. The seven-task stand-in cap stays.
+- **`useGoal.setTarget` shows the goal that comes back,** so a change waiting for next week (ADR-009) shows its own week, not this Monday's.
+- **`milestoneCount` in `domain/goalDetail.ts` is gone** (Task 5 reads the page's `progress`).
+
+From the review of Task 5:
+- **A check-in on the goal's own line is kept, as the API keeps it.** `checkIn(goalId, null, outcome, result)` adds the check-in row; a hit also marks the goal reached; a result, hit or not yet, becomes Latest. `useGoal.checkIn` no longer calls `endGoal` for a hit or drops a not yet. It updates the page at once (Latest, and the count and reached state for a hit), then shows the page that comes back.
+
+**Acceptance criteria:**
+- [x] Each mock function enforces the API's rule: only Next can be checked in, and resume, reopen and go again each work only from their own status.
+- [x] Checking in Hit on the goal's line is one call, and the goal shows reached.
+- [x] Screens and their tests don't change.
+- [x] A target above 14 sessions can't be saved from the sheet or the form, and the mock refuses it.
+- [x] Checking in on the goal's own line keeps the check-in: its result shows as Latest, hit or not yet.
+
+**Verification:**
+- [x] `npm test && npm run lint && npm run build`
+
+**Dependencies:** Tasks 4, 5
+
+**Files:** `src/api/client.ts`, `src/hooks/{useGoal,useAdd}.ts`, `src/domain/goalDetail.ts`, their tests
 
 **Scope:** M
 
 ## Checkpoint 2
-- [x] Tests, lint and build pass
-- [x] Against a local API, in Chrome at phone width (`npm run dev:real`); the phone over the local network is left for the PR: list, add, edit the name and why, move up and down, retire with each choice, bring back. Each one is still there after a reload, and `/api/docs` agrees.
-- [x] A create sent twice with the same id (curl with the id from a real add) makes one aspiration
-- [x] With the API unreachable (emulated offline): the tab shows its load message; a save on the page rolls back with "Couldn't save that. Try again."; an aspiration id that isn't there goes back quietly
-- [x] Results recorded for the PR
+- [x] The suite is green on mock.
+- [x] At phone width, the tab, an aspiration, a building goal, a one-off goal and the Add sheet look as they did on `main`.
 
-### Task 6: Docs
+### Task 7: Real goal and milestone functions behind the switch
 
-**Description:** README: running against a local API (start the API, `npm run dev:real`, `-- --host` for the phone, `API_URL`, `npm run api:types` after each API slice). CLAUDE.md: the generated file is never edited, and how the switch works; `types.ts` is part generated now. Spec 040 marked built; `specs/README.md` moves 040 to Done. API repo, on its own branch and PR: shared decisions 6 to 11 marked confirmed from the front end, or changed, with what the wiring found.
+**Description:**
+- Add `src/api/realGoals.ts`, with each of Task 6's functions and `getGoal` sent to its route.
+- The real `getAspirations` and `getAspiration` add `listGoals`, filtered per aspiration.
+- `client.ts` branches on `realApi`.
 
 **Acceptance criteria:**
-- [x] Someone with both repos side by side can run the front end on the real API from the README alone.
-- [x] `specs/README.md` lists 040 under Done; the API map says what #40 confirmed.
+- [x] Each real function sends the right method, path and body (stubbed `fetch`).
+- [x] With the switch on, no mock goal or milestone reaches the three screens.
 
 **Verification:**
-- [x] `npm test && npm run lint && npm run build`; read-through of both diffs
+- [x] `npm test && npm run lint && npm run build`
 
-**Dependencies:** Checkpoint 2
+**Dependencies:** Task 6
 
-**Files:** `README.md`, `CLAUDE.md`, `specs/040-api-client-foundation.md`, `specs/README.md`, `../api/specs/README.md`
+**Files:** `src/api/{realGoals,realGoals.test,realAspirations,realAspirations.test,client}.ts`
+
+**Scope:** M
+
+### Task 8: Check against a local API, and docs
+
+**Description:** Use `npm run dev:real` at phone width, then on the phone. Try each action from the spec's manual list, and reload after each. Then turn the API off and check that failed saves are reported. Record the results in the spec. Update:
+- `CLAUDE.md` (which types are generated now, and `realGoals.ts`)
+- the specs index (041 done)
+- `../docs/` wherever a described behaviour moved
+- the API map's note on decision 11
+
+Open the PR, and tick #41's and #33's criteria.
+
+**Acceptance criteria:**
+- [x] Every action in the spec's manual list is kept after a reload.
+- [x] Any finding is either fixed or filed as an issue in project #2.
+
+**Verification:**
+- [x] `npm test && npm run lint && npm run build`
+- [x] The spec's Checked section is filled in.
+
+**Dependencies:** Task 7
+
+**Files:** `specs/041-setup-screens-on-api.md`, `specs/README.md`, `CLAUDE.md`, `../api/specs/README.md`, docs as needed
 
 **Scope:** S
 
 ## Checkpoint 3
-- [x] Tests, lint and build pass
-- [x] Every success criterion in spec 040 and every acceptance criterion on #40 met
-- [x] PR opened (#49), closing #40, with the API-repo PR (goals-to-actions-api#25) linked; the phone checks are listed in it
+- [x] Every success criterion in spec 041 is met.
+- [x] PR open: closes #41 and #33, part of #32.

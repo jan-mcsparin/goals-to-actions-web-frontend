@@ -3,8 +3,8 @@
 // place in priority; a retired one only what it has seen and what it paused.
 // Nothing here paces or warns.
 import { fromLocalDay, mondayOfDay } from '../api/dates.ts'
-import type { Aspiration, AspirationDetail, Goal, RecurringItem } from '../api/types.ts'
-import { goalProgress, milestoneCount, weekCount } from './aspirations.ts'
+import type { Aspiration, AspirationDetail, Goal, ListedGoal, RecurringItem } from '../api/types.ts'
+import { goalProgress, weekCount } from './aspirations.ts'
 import { dayLabel } from './goalDetail.ts'
 import { daysLeft, daysLeftLabel } from './week.ts'
 
@@ -148,14 +148,15 @@ export function historyLine(detail: AspirationDetail, today: string): string {
   return parts.length ? `Since ${since}: ${parts.join(', ')}.` : `Since ${since}.`
 }
 
-function goalCard(goal: Goal, detail: AspirationDetail): GoalCard {
+function goalCard(goal: ListedGoal, detail: AspirationDetail): GoalCard {
   const weekLine = weekLineFor(goal, detail)
   return {
     goalId: goal.id,
     label: goal.label,
     measurableLine: goal.measurableLine,
-    progress: goalProgress(goal, detail),
-    ...milestoneCount(goal, detail),
+    progress: goalProgress(goal),
+    reached: goal.progress.hit,
+    total: goal.progress.of,
     ...(weekLine && { weekLine }),
   }
 }
@@ -163,10 +164,10 @@ function goalCard(goal: Goal, detail: AspirationDetail): GoalCard {
 // Building goals only, while active. Done isn't capped, as on Week.
 function weekLineFor(goal: Goal, detail: AspirationDetail): string | undefined {
   if (goal.type !== 'building' || goal.status !== 'active') return undefined
-  const target = detail.weeklyTargets.find((candidate) => candidate.goalId === goal.id)
+  const target = goal.weeklyTarget
   if (!target) return 'No weekly target yet'
   const done = detail.weekTasks.filter((task) => task.goalId === goal.id && task.status === 'done').length
-  return `This week: ${done} of ${target.amount} ${target.unit}`
+  return `This week: ${done} of ${target.sessions} ${target.unit}`
 }
 
 function recurringRow(item: RecurringItem, paused: boolean): RecurringRow {

@@ -4,8 +4,7 @@
 // with progress. Also the push-out rule for moving a milestone's date.
 // Nothing here paces or warns: a passed date reads like any other.
 import { addDays, fromLocalDay, mondayOfDay, toLocalDay } from '../api/dates.ts'
-import type { Aspiration, Goal, GoalDetail, GoalType, Milestone, MilestoneStatus } from '../api/types.ts'
-import { milestoneCount } from './aspirations.ts'
+import type { AspirationRef, Goal, GoalDetail, GoalType, Milestone, MilestoneStatus, WeeklyTargetInput } from '../api/types.ts'
 
 export type Header = {
   goalId: string
@@ -115,12 +114,12 @@ export function goalPage(detail: GoalDetail, today: string): GoalPage {
   const base = { header: header(detail), ...(started && { started }), timeline: timeline(detail) }
 
   if (goal.status === 'reached' || goal.status === 'ended') {
-    if (!goal.endedAt) throw new Error(`Goal ${goal.id} is ${goal.status} but has no endedAt`)
+    if (!goal.endedOn) throw new Error(`Goal ${goal.id} is ${goal.status} but has no endedOn`)
     if (goal.status === 'ended') return { kind: 'ended', ...base, achievement: achievementLine(detail) }
     return {
       kind: 'reached',
       ...base,
-      reachedLine: `Reached ${dayLabel(goal.endedAt, today)}`,
+      reachedLine: `Reached ${dayLabel(goal.endedOn, today)}`,
       ...(detail.aspiration && { whatsNext: `What’s next for ${detail.aspiration.name}?` }),
     }
   }
@@ -146,21 +145,21 @@ export function weekLabel(startDate: string, targetDate: string | undefined): st
 }
 
 // "Wk 9", or "No date".
-function weekOnly(startDate: string, targetDate: string | undefined): string {
+function weekOnly(startDate: string, targetDate: string | null): string {
   return targetDate ? `Wk ${weekNumber(startDate, targetDate)}` : 'No date'
 }
 
-// "2 of 6 milestones hit", "2 of 6 steps done". The goal counts as the last.
-export function achievementLine(detail: GoalDetail): string {
-  const { reached, total } = milestoneCount(detail.goal, detail)
-  return detail.goal.type === 'oneOff' ? `${reached} of ${total} steps done` : `${reached} of ${total} milestones hit`
+// "2 of 6 milestones hit", "2 of 6 steps done". The API's count: the goal is
+// the last, and a reached goal is complete.
+export function achievementLine({ goal, progress: { hit, of } }: GoalDetail): string {
+  return goal.type === 'oneOff' ? `${hit} of ${of} steps done` : `${hit} of ${of} milestones hit`
 }
 
 // The goal's milestones after one is given a new date. Moving a building or
 // quitting goal's milestone later moves every later dated milestone not yet
 // hit by the same number of days. Nothing goes past the deadline, moving
 // earlier pulls nothing in, and a one-off goal's steps move on their own.
-export function pushedDates(goal: Goal, milestones: Milestone[], movedId: string, newDate: string): Milestone[] {
+export function pushedDates<M extends MilestoneDates>(goal: Pick<Goal, 'id' | 'type' | 'deadline'>, milestones: M[], movedId: string, newDate: string): M[] {
   const movedIndex = milestones.findIndex((milestone) => milestone.id === movedId)
   if (movedIndex === -1) throw new Error(`No milestone ${movedId} on goal ${goal.id}`)
   const capped = (day: string) => (goal.deadline && day > goal.deadline ? goal.deadline : day)
@@ -177,37 +176,42 @@ export function pushedDates(goal: Goal, milestones: Milestone[], movedId: string
   })
 }
 
+// What the push-out rule reads of a milestone, so the mock's stored rows fit too.
+type MilestoneDates = Pick<Milestone, 'id' | 'status'> & { targetDate?: string | null }
+
+// A goal's start and deadline; a sheet's date range leaves the deadline out when there's none.
+export type GoalSpan = { startDate: string; deadline?: string | null }
+
 // What the target and add-milestone sheets hold: text as typed.
-export type TargetDraft = { amount: string; unit: string }
+export type TargetDraft = { sessions: string; unit: string }
 export type MilestoneDraft = { measurableLine: string; targetDate: string } // '' for no date
 
-export function targetDraft({ weeklyTarget }: GoalDetail): TargetDraft {
-  return weeklyTarget ? { amount: String(weeklyTarget.amount), unit: weeklyTarget.unit } : { amount: '', unit: '' }
+export function targetDraft({ goal: { weeklyTarget } }: GoalDetail): TargetDraft {
+  return weeklyTarget ? { sessions: String(weeklyTarget.sessions), unit: weeklyTarget.unit } : { sessions: '', unit: '' }
 }
 
-// A whole number of at least 1 and a unit, or nothing to save.
-export function parsedTarget(draft: TargetDraft): { amount: number; unit: string } | undefined {
-  const amount = draft.amount.trim()
+// The most sessions a week the API takes.
+export const MOST_SESSIONS = 14
+
+// A count target: a whole number from 1 to 14 and a unit, or nothing to save.
+export function parsedTarget(draft: TargetDraft): WeeklyTargetInput | undefined {
+  const sessions = draft.sessions.trim()
   const unit = draft.unit.trim()
-  if (!/^\d+$/.test(amount) || Number(amount) < 1 || !unit) return undefined
-  return { amount: Number(amount), unit }
+  if (!/^\d+$/.test(sessions) || Number(sessions) < 1 || Number(sessions) > MOST_SESSIONS || !unit) return undefined
+  return { kind: 'count', sessions: Number(sessions), amount: null, unit }
 }
 
 // The goal with its new target, from this week's Monday, as the API saves it.
-export function withTarget(detail: GoalDetail, target: { amount: number; unit: string }, today: string): GoalDetail {
-  const effectiveFrom = mondayOfDay(today)
-  const existing = detail.weeklyTarget?.effectiveFrom === effectiveFrom ? detail.weeklyTarget : undefined
-  return {
-    ...detail,
-    weeklyTarget: { id: existing?.id ?? 'pending', goalId: detail.goal.id, ...target, effectiveFrom },
-  }
+export function withTarget(detail: GoalDetail, target: WeeklyTargetInput, today: string): GoalDetail {
+  const weeklyTarget = { ...target, amount: target.amount ?? null, effectiveFrom: mondayOfDay(today) }
+  return { ...detail, goal: { ...detail.goal, weeklyTarget } }
 }
 
 // A line and an optional date from the goal's start to its deadline, or
 // nothing to save.
 export function parsedMilestone(
   draft: MilestoneDraft,
-  goal: Pick<Goal, 'startDate' | 'deadline'>,
+  goal: GoalSpan,
 ): { measurableLine: string; targetDate?: string } | undefined {
   const measurableLine = draft.measurableLine.trim()
   const targetDate = draft.targetDate || undefined
@@ -217,27 +221,51 @@ export function parsedMilestone(
 }
 
 // A milestone's date can't come before the goal started or after its deadline.
-export function isWithinGoal(day: string, goal: Pick<Goal, 'startDate' | 'deadline'>): boolean {
+export function isWithinGoal(day: string, goal: GoalSpan): boolean {
   return day >= goal.startDate && (!goal.deadline || day <= goal.deadline)
 }
 
-export function withMilestone(detail: GoalDetail, milestone: Milestone): GoalDetail {
-  return { ...detail, milestones: [...detail.milestones, milestone] }
+// The page with a new milestone last, upcoming, as the API saves it.
+export function withMilestone(
+  detail: GoalDetail,
+  id: string,
+  milestone: { measurableLine: string; targetDate?: string },
+): GoalDetail {
+  const added: Milestone = {
+    id,
+    position: detail.milestones.length + 1,
+    measurableLine: milestone.measurableLine,
+    targetDate: milestone.targetDate ?? null,
+    status: 'upcoming',
+    result: null,
+  }
+  const progress = { ...detail.progress, of: detail.progress.of + 1 }
+  return { ...detail, milestones: [...detail.milestones, added], progress }
 }
 
-// The goal with a milestone checked in today, as the API saves it.
+// The page with a check-in today, as the API saves it: a result is the
+// latest, and a hit counts. Without a milestone it's the goal's own line,
+// and a hit there reaches the goal.
 export function withCheckIn(
   detail: GoalDetail,
-  milestoneId: string,
+  milestoneId: string | null,
   outcome: 'hit' | 'notYet',
   result: string,
   today: string,
 ): GoalDetail {
-  const trimmed = result.trim()
-  return withMilestoneChanged(detail, milestoneId, (milestone) => {
-    const { result: _old, ...rest } = milestone
-    return { ...rest, status: outcome, checkedInOn: today, ...(trimmed && { result: trimmed }) }
-  })
+  const trimmed = result.trim() || null
+  const latest = trimmed ? { result: trimmed, checkedInOn: today } : detail.latest
+  if (!milestoneId) {
+    if (outcome === 'notYet') return { ...detail, latest }
+    const reached = { ...detail.goal, status: 'reached' as const, endedOn: today, slipped: false }
+    return { ...detail, goal: reached, progress: { ...detail.progress, hit: detail.progress.of }, latest }
+  }
+  const changed = withMilestoneChanged(detail, milestoneId, (milestone) => ({ ...milestone, status: outcome, result: trimmed }))
+  return {
+    ...changed,
+    progress: outcome === 'hit' ? { ...detail.progress, hit: detail.progress.hit + 1 } : detail.progress,
+    latest,
+  }
 }
 
 // "Milestone hit: Bench 155, …", or "Step done: …" on a one-off goal.
@@ -259,6 +287,7 @@ export function withReopened(detail: GoalDetail, milestoneId: string, changes: R
   return withMilestoneChanged(moved, milestoneId, (milestone) => ({
     ...milestone,
     status: 'upcoming',
+    result: null,
     ...(measurableLine && { measurableLine }),
   }))
 }
@@ -268,7 +297,7 @@ export function withReopened(detail: GoalDetail, milestoneId: string, changes: R
 export function parsedReopen(
   mode: 'move' | 'adjust',
   draft: MilestoneDraft,
-  goal: Pick<Goal, 'startDate' | 'deadline'>,
+  goal: GoalSpan,
 ): ReopenChanges | undefined {
   const targetDate = draft.targetDate || undefined
   if (targetDate && !isWithinGoal(targetDate, goal)) return undefined
@@ -299,7 +328,7 @@ function withMilestoneChanged(
 // was opened from while it's still the goal's own.
 export function backLabel(
   from: { screen: 'aspirations' } | { screen: 'aspiration'; aspirationId: string },
-  aspiration: Aspiration | undefined,
+  aspiration: AspirationRef | null | undefined,
 ): string | undefined {
   if (from.screen === 'aspirations') return 'Aspirations'
   return aspiration?.id === from.aspirationId ? aspiration.name : undefined
@@ -393,23 +422,13 @@ function header({ goal, aspiration }: GoalDetail): Header {
 
 const TYPE_LABELS: Record<GoalType, string> = { building: 'Building', quitting: 'Quitting', oneOff: 'One-off' }
 
-function startedLines({ goal, milestones }: GoalDetail): Started | undefined {
+// Latest is the API's: the goal's newest check-in with a result.
+function startedLines({ goal, latest }: GoalDetail): Started | undefined {
   if (!goal.baseline) return undefined
-  const latest = latestResult(milestones)
   return {
     startedAt: `Started at: ${goal.baseline}`,
-    ...(latest && { latest: `Latest: ${latest.result} · ${shortDate(latest.checkedInOn!)}` }),
+    ...(latest && { latest: `Latest: ${latest.result} · ${shortDate(latest.checkedInOn)}` }),
   }
-}
-
-// The most recent check-in with a result; on the same day, the later milestone.
-function latestResult(milestones: Milestone[]): Milestone | undefined {
-  return milestones
-    .filter((milestone) => milestone.result && milestone.checkedInOn)
-    .reduce<Milestone | undefined>(
-      (latest, milestone) => (!latest || milestone.checkedInOn! >= latest.checkedInOn! ? milestone : latest),
-      undefined,
-    )
 }
 
 function timeline(detail: GoalDetail): Timeline {
@@ -417,7 +436,7 @@ function timeline(detail: GoalDetail): Timeline {
   const oneOff = goal.type === 'oneOff'
   const current = goal.status === 'active' || goal.status === 'paused'
   const next = current ? nextMilestone(milestones) : undefined
-  const { reached, total } = milestoneCount(goal, detail)
+  const { hit: reached, of: total } = detail.progress
 
   const start: StartRow = { kind: 'start', when: shortDate(goal.startDate), ...(goal.baseline && { baseline: goal.baseline }) }
   const rows = milestones.map((milestone): MilestoneRow => {
@@ -470,15 +489,15 @@ function statusLine({ status, result }: Milestone): string {
 }
 
 // Not yet stays next: nothing is passed over until it's hit.
-export function nextMilestone(milestones: Milestone[]): Milestone | undefined {
+export function nextMilestone<M extends Pick<Milestone, 'status'>>(milestones: M[]): M | undefined {
   return milestones.find((milestone) => milestone.status !== 'hit')
 }
 
-function targetSection({ goal, weeklyTarget }: GoalDetail): TargetSection | undefined {
+function targetSection({ goal, goal: { weeklyTarget } }: GoalDetail): TargetSection | undefined {
   if (goal.type === 'quitting') return { kind: 'note', line: `Since ${shortDate(goal.startDate)}` }
   if (goal.type === 'oneOff') return goal.deadline ? { kind: 'note', line: `Deadline: ${shortDate(goal.deadline)}` } : undefined
   if (!weeklyTarget) return { kind: 'weekly', line: 'No weekly target yet', action: 'Set' }
-  return { kind: 'weekly', line: `${weeklyTarget.amount} ${weeklyTarget.unit}`, action: 'Edit' }
+  return { kind: 'weekly', line: `${weeklyTarget.sessions} ${weeklyTarget.unit}`, action: 'Edit' }
 }
 
 function nextCheckIn({ goal, milestones }: GoalDetail): NextCheckIn {

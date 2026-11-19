@@ -41,9 +41,7 @@ function renderTab() {
 const NOTHING: AspirationsOverview = {
   aspirations: [],
   goals: [],
-  milestones: [],
   recurringItems: [],
-  weeklyTargets: [],
   weekTasks: [],
 }
 

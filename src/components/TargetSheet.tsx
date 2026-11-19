@@ -36,28 +36,28 @@ type TargetFormProps = {
 }
 
 function TargetForm({ initial, onSave, onCancel }: TargetFormProps) {
-  const [amount, setAmount] = useState(initial.amount)
+  const [sessions, setSessions] = useState(initial.sessions)
   const [unit, setUnit] = useState(initial.unit)
-  const amountId = useId()
+  const sessionsId = useId()
   const unitId = useId()
-  const canSave = parsedTarget({ amount, unit }) !== undefined
+  const canSave = parsedTarget({ sessions, unit }) !== undefined
 
   return (
     <form
       className="edit-form"
       onSubmit={(event) => {
         event.preventDefault()
-        if (canSave) onSave({ amount, unit })
+        if (canSave) onSave({ sessions, unit })
       }}
     >
-      <label htmlFor={amountId}>Amount</label>
+      <label htmlFor={sessionsId}>Amount</label>
       <input
-        id={amountId}
-        value={amount}
+        id={sessionsId}
+        value={sessions}
         inputMode="numeric"
         autoComplete="off"
         required
-        onChange={(event) => setAmount(event.target.value)}
+        onChange={(event) => setSessions(event.target.value)}
       />
 
       <label htmlFor={unitId}>Unit</label>

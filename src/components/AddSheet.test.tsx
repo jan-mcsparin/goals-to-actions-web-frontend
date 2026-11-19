@@ -248,7 +248,7 @@ describe('AddSheet on the Goal tab', () => {
 
     const goal = store.goals.find((row) => row.label === 'Be strong 2')!
     expect(goal).toMatchObject({ measurableLine: 'bench 185', aspirationId: 'asp-fit', baseline: 'bench 165', deadline: '2027-06-01' })
-    expect(store.weeklyTargets.find((target) => target.goalId === goal.id)).toMatchObject({ amount: 3, unit: 'lifting sessions' })
+    expect(store.weeklyTargets.find((target) => target.goalId === goal.id)).toMatchObject({ sessions: 3, unit: 'lifting sessions' })
     expect(onSaved).toHaveBeenCalledWith("Saved. Add milestones when you're ready.", {
       screen: 'goal',
       goalId: goal.id,

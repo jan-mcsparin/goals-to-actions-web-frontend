@@ -1,27 +1,30 @@
 // The aspiration functions of api/client.ts, on the real API. Same signatures
 // as the mock ones, so hooks and screens don't know which they got.
 //
-// The API has no read for one aspiration or for the whole tab yet, so both are
-// built from the list, and goals and the rest come back empty until the goal
-// screens move to the API (#41).
+// The API has no read for one aspiration or for the whole tab, so both are
+// built from the aspiration and goal lists. Recurring items and this week's
+// tasks come back empty until their screens move to the API (#42).
 import { NotFoundError } from './errors.ts'
 import { newDeviceId } from './ids.ts'
 import type { components } from './openapi.ts'
+import { listGoals } from './realGoals.ts'
 import { request } from './request.ts'
 import type { Aspiration, AspirationDetail, AspirationsOverview, NewAspiration } from './types.ts'
 
 type AspirationList = components['schemas']['AspirationList']
 
-const NOTHING_ELSE = { goals: [], milestones: [], recurringItems: [], weeklyTargets: [], weekTasks: [] }
+const NOTHING_ELSE = { recurringItems: [], weekTasks: [] }
 
 export async function getAspirations(): Promise<AspirationsOverview> {
-  return { aspirations: await listAspirations(), ...NOTHING_ELSE }
+  const [aspirations, goals] = await Promise.all([listAspirations(), listGoals()])
+  return { aspirations, goals, ...NOTHING_ELSE }
 }
 
 export async function getAspiration(aspirationId: string): Promise<AspirationDetail> {
-  const aspirations = await listAspirations()
+  const [aspirations, goals] = await Promise.all([listAspirations(), listGoals()])
   return {
     aspiration: findIn(aspirations, aspirationId),
+    goals: goals.filter((goal) => goal.aspirationId === aspirationId),
     ...NOTHING_ELSE,
     activeCount: inOrder(aspirations).length,
   }

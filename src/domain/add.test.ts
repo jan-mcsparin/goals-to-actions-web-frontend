@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { GOAL_DEFAULTS } from '../test/goals.ts'
 import type { Aspiration, Goal } from '../api/types.ts'
 import {
   aspirationChoices,
@@ -130,6 +131,7 @@ describe('taskInput', () => {
 describe('goalChoices', () => {
   it('offers the active goals only, by label', () => {
     const goal = (id: string, label: string, status: Goal['status']): Goal => ({
+      ...GOAL_DEFAULTS,
       id,
       label,
       measurableLine: '-',
@@ -201,7 +203,7 @@ describe('emptyGoalDraft', () => {
       aspirationId: '',
       newAspirationName: '',
       baseline: '',
-      target: { amount: '', unit: '' },
+      target: { sessions: '', unit: '' },
       startDate: '',
       deadline: '',
     })
@@ -235,20 +237,21 @@ describe('goalReady', () => {
   })
 
   it('is ready with a whole weekly target and a unit', () => {
-    expect(goalReady(draftWith({ target: { amount: '3', unit: 'lifting sessions' } }), TODAY)).toBe(true)
+    expect(goalReady(draftWith({ target: { sessions: '3', unit: 'lifting sessions' } }), TODAY)).toBe(true)
   })
 
   it.each([
-    ['a number without a unit', { amount: '3', unit: '' }],
-    ['a unit without a number', { amount: '', unit: 'lifting sessions' }],
-    ['zero', { amount: '0', unit: 'lifting sessions' }],
-    ['a fraction', { amount: '2.5', unit: 'lifting sessions' }],
+    ['a number without a unit', { sessions: '3', unit: '' }],
+    ['a unit without a number', { sessions: '', unit: 'lifting sessions' }],
+    ['zero', { sessions: '0', unit: 'lifting sessions' }],
+    ['a fraction', { sessions: '2.5', unit: 'lifting sessions' }],
+    ['more than 14', { sessions: '15', unit: 'lifting sessions' }],
   ])('is not ready with a weekly target of %s', (_, target) => {
     expect(goalReady(draftWith({ target }), TODAY)).toBe(false)
   })
 
   it("ignores a half-typed target on a goal that isn't building, since it isn't shown", () => {
-    expect(goalReady(draftWith({ type: 'oneOff', target: { amount: '3', unit: '' } }), TODAY)).toBe(true)
+    expect(goalReady(draftWith({ type: 'oneOff', target: { sessions: '3', unit: '' } }), TODAY)).toBe(true)
   })
 
   it('is ready with a deadline on or after today', () => {
@@ -322,7 +325,7 @@ describe('goalInput', () => {
       aspirationId: 'asp-fit',
       baseline: ' bench 155 ',
       deadline: '2027-06-01',
-      target: { amount: ' 3 ', unit: ' lifting sessions ' },
+      target: { sessions: ' 3 ', unit: ' lifting sessions ' },
     }
 
     expect(goalInput(draft, TODAY)).toEqual({
@@ -332,7 +335,7 @@ describe('goalInput', () => {
       aspirationId: 'asp-fit',
       baseline: 'bench 155',
       deadline: '2027-06-01',
-      weeklyTarget: { amount: 3, unit: 'lifting sessions' },
+      weeklyTarget: { kind: 'count', sessions: 3, amount: null, unit: 'lifting sessions' },
     })
   })
 
@@ -341,7 +344,7 @@ describe('goalInput', () => {
   })
 
   it("leaves out a target and start date a goal's type doesn't show", () => {
-    const draft = { ...building, type: 'oneOff' as const, target: { amount: '3', unit: 'sessions' }, startDate: '2026-11-20' }
+    const draft = { ...building, type: 'oneOff' as const, target: { sessions: '3', unit: 'sessions' }, startDate: '2026-11-20' }
 
     expect(goalInput(draft, TODAY)).toEqual({ label: 'Be strong', measurableLine: 'bench 175', type: 'oneOff' })
   })

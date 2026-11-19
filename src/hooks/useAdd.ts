@@ -6,7 +6,7 @@
 // tells onChanged, so the screen behind can reload. A save that fails keeps
 // the sheet open with a calm message. Rules come from domain/add.ts.
 import { useEffect, useRef, useState } from 'react'
-import { addAspiration, addGoal, addRecurringItem, addTask, getAspirations } from '../api/client.ts'
+import { addAspiration, addRecurringItem, addTask, createGoal, getAspirations } from '../api/client.ts'
 import type { Goal } from '../api/types.ts'
 import {
   aspirationChoices,
@@ -161,7 +161,7 @@ export function useAdd(origin: AddOrigin, today: string, { onSaved, onChanged }:
       setGoal((previous) => ({ ...previous, aspirationId: added.id, newAspirationName: '' }))
       onChanged()
     }
-    return addGoal(goalInput({ ...goal, type: goal.type!, aspirationId }, today))
+    return createGoal(goalInput({ ...goal, type: goal.type!, aspirationId }, today))
   }
 
   async function saveAspiration() {

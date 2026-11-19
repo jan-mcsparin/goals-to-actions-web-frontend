@@ -11,11 +11,33 @@ import type {
   WeeklyTarget,
 } from './types.ts'
 
+// A goal as the mock stores it. slipped and weeklyTarget are worked out when
+// it's read, as the API does.
+export type StoredGoal = Omit<Goal, 'slipped' | 'weeklyTarget'>
+
+// Each change is a row; a goal's weeklyTarget is its latest.
+export type StoredWeeklyTarget = WeeklyTarget & { goalId: string }
+
+// Kept in the goal's order. position and result are worked out when read.
+export type StoredMilestone = Omit<Milestone, 'position' | 'result'> & { goalId: string }
+
+// Every check-in is kept (#33); a milestone's result and the goal's Latest
+// are read from them. milestoneId is null for the goal's own line.
+export type StoredCheckIn = {
+  id: string
+  goalId: string
+  milestoneId: string | null
+  outcome: 'hit' | 'notYet'
+  result: string | null
+  checkedInOn: string
+}
+
 export type MockData = {
   aspirations: Aspiration[]
-  goals: Goal[]
-  milestones: Milestone[]
-  weeklyTargets: WeeklyTarget[]
+  goals: StoredGoal[]
+  milestones: StoredMilestone[]
+  checkIns: StoredCheckIn[]
+  weeklyTargets: StoredWeeklyTarget[]
   recurringItems: RecurringItem[]
   tasks: Task[]
   settings: Settings
@@ -57,8 +79,8 @@ export function buildMockData(today: Date): MockData {
     },
   ]
 
-  const goals: Goal[] = [
-    {
+  const goals: StoredGoal[] = [
+    storedGoal({
       id: 'goal-strong',
       label: 'Be strong',
       measurableLine: 'Bench 175, squat 350, deadlift 400',
@@ -67,8 +89,8 @@ export function buildMockData(today: Date): MockData {
       status: 'active',
       startDate: '2026-10-05',
       aspirationId: 'asp-fit',
-    },
-    {
+    }),
+    storedGoal({
       id: 'goal-garage',
       label: 'Clear out the garage',
       measurableLine: 'The car fits in the garage',
@@ -77,8 +99,8 @@ export function buildMockData(today: Date): MockData {
       startDate: '2026-11-02',
       deadline: toLocalDay(addDays(monday, 25)),
       aspirationId: 'asp-home',
-    },
-    {
+    }),
+    storedGoal({
       id: 'goal-endurance',
       label: 'Have endurance',
       measurableLine: 'Run 10k in under 50 minutes',
@@ -87,8 +109,8 @@ export function buildMockData(today: Date): MockData {
       status: 'active',
       startDate: '2026-10-12',
       aspirationId: 'asp-fit',
-    },
-    {
+    }),
+    storedGoal({
       id: 'goal-look-good',
       label: 'Look good',
       measurableLine: 'Body fat at 15%',
@@ -97,18 +119,18 @@ export function buildMockData(today: Date): MockData {
       status: 'active',
       startDate: '2026-10-12',
       aspirationId: 'asp-fit',
-    },
-    {
+    }),
+    storedGoal({
       id: 'goal-5k',
       label: 'Run a 5k',
       measurableLine: 'Finish a 5k without walking',
       type: 'building',
       status: 'reached',
       startDate: '2026-08-03',
-      endedAt: '2026-10-10',
+      endedOn: '2026-10-10',
       aspirationId: 'asp-fit',
-    },
-    {
+    }),
+    storedGoal({
       id: 'goal-cook',
       label: 'Cook at home',
       measurableLine: 'Cook dinner at home 5 nights a week',
@@ -116,8 +138,8 @@ export function buildMockData(today: Date): MockData {
       status: 'paused',
       startDate: '2026-10-05',
       aspirationId: 'asp-home',
-    },
-    {
+    }),
+    storedGoal({
       id: 'goal-passport',
       label: 'Renew my passport',
       measurableLine: 'New passport in hand',
@@ -125,46 +147,42 @@ export function buildMockData(today: Date): MockData {
       status: 'active',
       startDate: '2026-11-02',
       deadline: toLocalDay(addDays(monday, 40)),
-    },
-    {
+    }),
+    storedGoal({
       id: 'goal-taxes',
       label: 'File my taxes',
       measurableLine: 'Return filed and accepted',
       type: 'oneOff',
       status: 'reached',
       startDate: '2026-02-01',
-      endedAt: '2026-04-06',
-    },
-    {
+      endedOn: '2026-04-06',
+    }),
+    storedGoal({
       id: 'goal-spanish-a2',
       label: 'Hold a conversation',
       measurableLine: 'Pass the A2 exam',
       type: 'building',
       status: 'reached',
       startDate: '2026-03-02',
-      endedAt: '2026-08-20',
+      endedOn: '2026-08-20',
       aspirationId: 'asp-spanish',
-    },
+    }),
   ]
 
-  const milestones: Milestone[] = [
+  const milestones: StoredMilestone[] = [
     {
       id: 'ms-strong-1',
       goalId: 'goal-strong',
       measurableLine: 'Bench 150, squat 285, deadlift 325',
       status: 'hit',
-      result: 'Bench 150, squat 290, deadlift 330',
       targetDate: '2026-11-02',
-      checkedInOn: '2026-11-02',
     },
     {
       id: 'ms-strong-2',
       goalId: 'goal-strong',
       measurableLine: 'Bench 155, squat 300, deadlift 345',
       status: 'notYet',
-      result: 'Bench 152, squat 300, deadlift 340',
       targetDate: day(-3),
-      checkedInOn: day(-3),
     },
     {
       id: 'ms-strong-3',
@@ -188,21 +206,18 @@ export function buildMockData(today: Date): MockData {
     upcoming('ms-garage-5', 'goal-garage', 'Put up the shelves'),
   ]
 
-  const weeklyTargets: WeeklyTarget[] = [
-    {
-      id: 'wt-strong',
-      goalId: 'goal-strong',
-      amount: 3,
-      unit: 'lifting sessions',
-      effectiveFrom: '2026-10-05',
-    },
-    {
-      id: 'wt-endurance',
-      goalId: 'goal-endurance',
-      amount: 2,
-      unit: 'runs',
-      effectiveFrom: '2026-10-12',
-    },
+  // One for each milestone that's hit or not yet, on its date.
+  const checkIns: StoredCheckIn[] = [
+    checkIn('ms-strong-1', 'goal-strong', 'hit', '2026-11-02', 'Bench 150, squat 290, deadlift 330'),
+    checkIn('ms-strong-2', 'goal-strong', 'notYet', day(-3), 'Bench 152, squat 300, deadlift 340'),
+    ...milestones
+      .filter((milestone) => milestone.status === 'hit' && milestone.goalId !== 'goal-strong')
+      .map((milestone) => checkIn(milestone.id, milestone.goalId, 'hit', milestone.targetDate!)),
+  ]
+
+  const weeklyTargets: StoredWeeklyTarget[] = [
+    countTarget('goal-strong', 3, 'lifting sessions', '2026-10-05'),
+    countTarget('goal-endurance', 2, 'runs', '2026-10-12'),
   ]
 
   const recurringItems: RecurringItem[] = [
@@ -481,15 +496,43 @@ export function buildMockData(today: Date): MockData {
     weekStartsOn: 'monday',
   }
 
-  return { aspirations, goals, milestones, weeklyTargets, recurringItems, tasks, settings }
+  return { aspirations, goals, milestones, checkIns, weeklyTargets, recurringItems, tasks, settings }
 }
 
-function hit(id: string, goalId: string, measurableLine: string, on: string): Milestone {
-  return { id, goalId, measurableLine, status: 'hit', targetDate: on, checkedInOn: on }
+type GoalFields = Pick<StoredGoal, 'id' | 'label' | 'measurableLine' | 'type' | 'status' | 'startDate'> &
+  Partial<StoredGoal>
+
+function storedGoal(fields: GoalFields): StoredGoal {
+  return {
+    aspirationId: null,
+    baseline: null,
+    deadline: null,
+    endedOn: null,
+    createdAt: `${fields.startDate}T12:00:00.000Z`,
+    ...fields,
+  }
 }
 
-function upcoming(id: string, goalId: string, measurableLine: string): Milestone {
-  return { id, goalId, measurableLine, status: 'upcoming' }
+function countTarget(goalId: string, sessions: number, unit: string, effectiveFrom: string): StoredWeeklyTarget {
+  return { goalId, kind: 'count', sessions, amount: null, unit, effectiveFrom }
+}
+
+function hit(id: string, goalId: string, measurableLine: string, on: string): StoredMilestone {
+  return { id, goalId, measurableLine, status: 'hit', targetDate: on }
+}
+
+function upcoming(id: string, goalId: string, measurableLine: string): StoredMilestone {
+  return { id, goalId, measurableLine, status: 'upcoming', targetDate: null }
+}
+
+function checkIn(
+  milestoneId: string,
+  goalId: string,
+  outcome: StoredCheckIn['outcome'],
+  checkedInOn: string,
+  result: string | null = null,
+): StoredCheckIn {
+  return { id: `ci-${milestoneId}-${outcome}`, goalId, milestoneId, outcome, result, checkedInOn }
 }
 
 function atTime(day: Date, hours: number, minutes: number): string {
