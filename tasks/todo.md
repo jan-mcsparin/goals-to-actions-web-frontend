@@ -162,8 +162,8 @@ From the review of Task 5:
 **Scope:** M
 
 ## Checkpoint 2
-- [ ] The suite is green on mock.
-- [ ] At phone width, the tab, an aspiration, a building goal, a one-off goal and the Add sheet look as they did on `main`.
+- [x] The suite is green on mock.
+- [x] At phone width, the tab, an aspiration, a building goal, a one-off goal and the Add sheet look as they did on `main`.
 
 ### Task 7: Real goal and milestone functions behind the switch
 
