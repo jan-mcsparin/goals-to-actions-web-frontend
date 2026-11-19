@@ -51,9 +51,9 @@ Test dates are fixed to Wednesday 11 Nov 2026, or to a Sunday evening where a te
 **Description:** `skipTask` becomes `moveTaskToBank(taskId, week)`, `pullFromBank` becomes `placeTask(taskId, week, day)`, and `swapTask` becomes `swapTasks(taskId, { week, bankTaskId, day })`, returning `{ toBank, placed }`. A plan edit made in a week the task has left is refused, as the API's 409. The hooks and their callers follow.
 
 **Acceptance criteria:**
-- [ ] The client's plan functions have the API's operation names and bodies.
-- [ ] A move sent with the wrong week is refused and changes nothing.
-- [ ] Today, a day opened from Week and the bank behave as before.
+- [x] The client's plan functions have the API's operation names and bodies.
+- [x] A move sent with the wrong week is refused and changes nothing.
+- [x] Today, a day opened from Week and the bank behave as before.
 
 **Verification:** `npm test && npm run lint && npm run build`.
 

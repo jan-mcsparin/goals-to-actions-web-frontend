@@ -9,7 +9,7 @@ import {
   getGoal,
   getUpkeep,
   getWeek,
-  pullFromBank,
+  placeTask,
   updateAspiration,
 } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
@@ -32,7 +32,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     getAspiration: vi.fn(actual.getAspiration),
     getUpkeep: vi.fn(actual.getUpkeep),
     getGoal: vi.fn(actual.getGoal),
-    pullFromBank: vi.fn(actual.pullFromBank),
+    placeTask: vi.fn(actual.placeTask),
   }
 })
 
@@ -131,7 +131,7 @@ describe('useWeek after a failed save', () => {
   it('keeps the save message through a reload, since the reload does not redo the save', async () => {
     const hook = renderWithRevision(() => useWeek(TODAY))
     await waitFor(() => expect(hook.result.current.week).toBeDefined())
-    vi.mocked(pullFromBank).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(placeTask).mockRejectedValueOnce(new Error('offline'))
     await act(async () => hook.result.current.place(hook.result.current.week!.bank[0].id, TODAY))
     expect(hook.result.current.message).toBe("Couldn't save that. Try again.")
     const reloaded = await getWeek()

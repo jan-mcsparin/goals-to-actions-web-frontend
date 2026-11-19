@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { checkOffTask, getBank, getDay, pullFromBank } from '../api/client.ts'
+import { checkOffTask, getBank, getDay, placeTask } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { Bank } from '../api/types.ts'
 import { Day } from './Day.tsx'
@@ -14,9 +14,9 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     checkOffTask: vi.fn(actual.checkOffTask),
     getDay: vi.fn(actual.getDay),
     getBank: vi.fn(actual.getBank),
-    pullFromBank: vi.fn(actual.pullFromBank),
-    skipTask: vi.fn(actual.skipTask),
-    swapTask: vi.fn(actual.swapTask),
+    placeTask: vi.fn(actual.placeTask),
+    moveTaskToBank: vi.fn(actual.moveTaskToBank),
+    swapTasks: vi.fn(actual.swapTasks),
   }
 })
 
@@ -197,7 +197,7 @@ describe('Day', () => {
       'Lift: deadlift day',
     ])
     expect(screen.getByText('0 of 5 done')).toBeDefined()
-    expect(pullFromBank).toHaveBeenCalledWith('task-lift-bank', WEDNESDAY_DAY)
+    expect(placeTask).toHaveBeenCalledWith('task-lift-bank', '2026-11-09', WEDNESDAY_DAY)
   })
 
   it('says so when the bank is empty, and closes', async () => {
@@ -221,7 +221,7 @@ describe('Day', () => {
   })
 
   it('closes the bank on a tap off it, leaving today as it was', async () => {
-    vi.mocked(pullFromBank).mockClear()
+    vi.mocked(placeTask).mockClear()
     const user = userEvent.setup()
     render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
     await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
@@ -233,7 +233,7 @@ describe('Day', () => {
 
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.getByText('0 of 4 done')).toBeDefined()
-    expect(pullFromBank).not.toHaveBeenCalled()
+    expect(placeTask).not.toHaveBeenCalled()
   })
 
   it('sends a task back to the bank from its menu', async () => {
@@ -389,7 +389,7 @@ describe('Day', () => {
     await user.click(await within(sheet).findByRole('button', { name: 'Lift: deadlift day' }))
 
     expect(screen.getByRole('checkbox', { name: 'Lift: deadlift day' })).toBeDefined()
-    expect(pullFromBank).toHaveBeenCalledWith('task-lift-bank', '2026-11-13')
+    expect(placeTask).toHaveBeenCalledWith('task-lift-bank', '2026-11-09', '2026-11-13')
   })
 
   it('lets you check off a task on another day', async () => {

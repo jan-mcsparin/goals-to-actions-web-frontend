@@ -6,9 +6,9 @@ import {
   checkOffTask,
   getBank,
   getDay,
-  pullFromBank,
-  skipTask,
-  swapTask,
+  moveTaskToBank,
+  placeTask,
+  swapTasks,
   uncheckTask,
 } from '../api/client.ts'
 import { toLocalDay } from '../api/dates.ts'
@@ -25,7 +25,7 @@ import {
 import { readTodayView, saveTodayView, type TodayViewMode } from '../storage/viewPreference.ts'
 import { withTaskReplaced } from './planUpdates.ts'
 import { useLoaded } from './useLoaded.ts'
-import { checkedOff, isDone, placedOnDay, uncheckedOff } from '../domain/tasks'
+import { checkedOff, isDone, placedOnDay, uncheckedOff, weekOf } from '../domain/tasks'
 
 const LOAD_FAILED = "Couldn't load today. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
@@ -120,12 +120,15 @@ export function useDay(date: string, today: string): UseDay {
     const task = bank?.tasks.find((candidate) => candidate.id === bankTaskId)
     if (!bank || !plan || !task) return
 
+    const week = weekOf(task)
+    if (week === null) return
+
     const placed = placedOnDay(task, plan.date)
     setPlan((previous) => previous && withTaskAppended(withRecordsFrom(previous, bank), placed))
     setBank((previous) => previous && bankWithout(previous, bankTaskId))
     setMessage(undefined)
 
-    pullFromBank(bankTaskId, plan.date)
+    placeTask(bankTaskId, week, plan.date)
       .then(replaceTask)
       .catch(() => {
         setPlan((previous) => previous && withoutTask(previous, bankTaskId))
@@ -134,16 +137,17 @@ export function useDay(date: string, today: string): UseDay {
       })
   }
 
-  // Shown as "Back to bank"; the API calls it skipping.
   function sendToBank(taskId: string) {
     const index = plan?.tasks.findIndex((task) => task.id === taskId) ?? -1
     if (!plan || index === -1) return
     const before = plan.tasks[index]
+    const week = weekOf(before)
+    if (week === null) return
 
     setPlan((previous) => previous && withoutTask(previous, taskId))
     setMessage(undefined)
 
-    skipTask(taskId).catch(() => {
+    moveTaskToBank(taskId, week).catch(() => {
       setPlan((previous) => previous && withTaskAt(previous, before, index))
       setMessage(SAVE_FAILED)
     })
@@ -154,13 +158,15 @@ export function useDay(date: string, today: string): UseDay {
     const before = plan?.tasks.find((task) => task.id === taskId)
     const bankTask = bank?.tasks.find((task) => task.id === bankTaskId)
     if (!plan || !bank || !before || !bankTask) return
+    const week = weekOf(before)
+    if (week === null) return
 
     const placed = placedOnDay(bankTask, plan.date)
     setPlan((previous) => previous && withTaskReplaced(withRecordsFrom(previous, bank), taskId, placed))
     setBank((previous) => previous && bankWithout(previous, bankTaskId))
     setMessage(undefined)
 
-    swapTask(taskId, bankTaskId)
+    swapTasks(taskId, { week, bankTaskId, day: plan.date })
       .then((saved) => replaceTask(saved.placed))
       .catch(() => {
         setPlan((previous) => previous && withTaskReplaced(previous, bankTaskId, before))

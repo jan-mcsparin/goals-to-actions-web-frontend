@@ -23,14 +23,14 @@ import {
   moveAspiration,
   NotFoundError,
   pauseGoal,
-  pullFromBank,
+  placeTask,
   reopenGoal,
   resumeGoal,
   retireAspiration,
   setIntensity,
   setWeeklyTarget,
-  skipTask,
-  swapTask,
+  moveTaskToBank,
+  swapTasks,
   uncheckTask,
   updateAspiration,
   updateMilestone,
@@ -230,9 +230,12 @@ describe('getBank', () => {
   })
 })
 
-describe('skipTask', () => {
+const THIS_WEEK = '2026-11-09'
+const NEXT_WEEK = '2026-11-16'
+
+describe('moveTaskToBank', () => {
   it('sends a planned task back to the bank without counting a rollover', async () => {
-    const task = await skipTask('task-laundry')
+    const task = await moveTaskToBank('task-laundry', THIS_WEEK)
 
     expect(whereIs(task)).toBe('inBank')
     expect(task.plannedDay).toBeNull()
@@ -240,56 +243,84 @@ describe('skipTask', () => {
   })
 
   it('is reflected in the next getDay and getBank', async () => {
-    await skipTask('task-laundry')
+    await moveTaskToBank('task-laundry', THIS_WEEK)
 
     expect(statusIn((await getDay(WEDNESDAY_DAY)).tasks, 'task-laundry')).toBeUndefined()
     expect(statusIn((await getBank()).tasks, 'task-laundry')).toBe('inBank')
   })
 
   it('rejects an unknown task id', async () => {
-    await expect(skipTask('no-such-task')).rejects.toThrow('no-such-task')
+    await expect(moveTaskToBank('no-such-task', THIS_WEEK)).rejects.toThrow('no-such-task')
   })
 
   it('rejects a task that is not planned', async () => {
     await checkOffTask('task-laundry')
 
-    await expect(skipTask('task-laundry')).rejects.toThrow('not planned')
-    await expect(skipTask('task-lift-bank')).rejects.toThrow('not planned')
+    await expect(moveTaskToBank('task-laundry', THIS_WEEK)).rejects.toThrow('not planned')
+    await expect(moveTaskToBank('task-lift-bank', THIS_WEEK)).rejects.toThrow('not planned')
+  })
+
+  it('refuses a week the task has left, and changes nothing', async () => {
+    await expect(moveTaskToBank('task-laundry', NEXT_WEEK)).rejects.toThrow('another week')
+
+    expect(statusIn((await getDay(WEDNESDAY_DAY)).tasks, 'task-laundry')).toBe('planned')
   })
 })
 
-describe('pullFromBank', () => {
-  it('plans a bank task for today', async () => {
-    const task = await pullFromBank('task-lift-bank')
+describe('placeTask', () => {
+  it('plans a bank task for a day, marked as placed by hand', async () => {
+    const task = await placeTask('task-lift-bank', THIS_WEEK, '2026-11-13')
 
-    expect(whereIs(task)).toBe('planned')
-    expect(task.plannedDay).toBe('2026-11-11')
+    expect(task).toMatchObject({ state: 'open', plannedDay: '2026-11-13', placedByHand: true })
+    expect((await getDay('2026-11-13')).tasks.map((t) => t.id)).toContain('task-lift-bank')
   })
 
   it('is reflected in the next getDay and getBank', async () => {
-    await pullFromBank('task-lift-bank')
+    await placeTask('task-lift-bank', THIS_WEEK, WEDNESDAY_DAY)
 
     expect(statusIn((await getDay(WEDNESDAY_DAY)).tasks, 'task-lift-bank')).toBe('planned')
     expect(statusIn((await getBank()).tasks, 'task-lift-bank')).toBeUndefined()
   })
 
   it('rejects an unknown task id', async () => {
-    await expect(pullFromBank('no-such-task')).rejects.toThrow('no-such-task')
+    await expect(placeTask('no-such-task', THIS_WEEK, WEDNESDAY_DAY)).rejects.toThrow('no-such-task')
   })
 
   it('rejects a task that is not in the bank', async () => {
-    await expect(pullFromBank('task-laundry')).rejects.toThrow('not in the bank')
+    await expect(placeTask('task-laundry', THIS_WEEK, WEDNESDAY_DAY)).rejects.toThrow('not in the bank')
+  })
+
+  it('refuses a past day, and a day outside the week', async () => {
+    await expect(placeTask('task-lift-bank', THIS_WEEK, '2026-11-10')).rejects.toThrow("Can't place a task on a past day")
+    await expect(placeTask('task-lift-bank', THIS_WEEK, '2026-11-16')).rejects.toThrow('in its own week')
+    expect(statusIn((await getBank()).tasks, 'task-lift-bank')).toBe('inBank')
+  })
+
+  it('refuses a week the task is not in, and changes nothing', async () => {
+    await expect(placeTask('task-lift-bank', NEXT_WEEK, '2026-11-17')).rejects.toThrow('another week')
+
+    expect(statusIn((await getBank()).tasks, 'task-lift-bank')).toBe('inBank')
   })
 })
 
-describe('swapTask', () => {
-  it('sends one task to the bank and plans the other for today, each keeping its own time', async () => {
-    const { skipped, placed } = await swapTask('task-lift-today', 'task-lift-bank')
+describe('swapTasks', () => {
+  const swap = { week: THIS_WEEK, bankTaskId: 'task-lift-bank', day: WEDNESDAY_DAY }
 
-    expect(skipped).toMatchObject({ id: 'task-lift-today', plannedDay: null, timeOfDay: { kind: 'at', time: '18:00' } })
-    expect(skipped.plannedDay).toBeNull()
+  it('sends one task to the bank and plans the other for the day, each keeping its own time', async () => {
+    const { toBank, placed } = await swapTasks('task-lift-today', swap)
+
+    expect(toBank).toMatchObject({ id: 'task-lift-today', plannedDay: null, timeOfDay: { kind: 'at', time: '18:00' } })
     expect(placed).toMatchObject({ id: 'task-lift-bank', state: 'open', plannedDay: '2026-11-11' })
     expect(placed.timeOfDay).toBeNull()
+  })
+
+  it('puts the bank task on the day given, by hand, and the other back as not by hand', async () => {
+    await placeTask('task-dentist', THIS_WEEK, '2026-11-12')
+
+    const { toBank, placed } = await swapTasks('task-dentist', { ...swap, day: '2026-11-12' })
+
+    expect(placed).toMatchObject({ plannedDay: '2026-11-12', placedByHand: true })
+    expect(toBank.placedByHand).toBe(false)
   })
 
   it.each([
@@ -299,45 +330,26 @@ describe('swapTask', () => {
   ])('changes nothing when either side is invalid (%s, %s)', async (taskId, bankTaskId) => {
     const before = await getDay(WEDNESDAY_DAY)
 
-    await expect(swapTask(taskId, bankTaskId)).rejects.toThrow()
+    await expect(swapTasks(taskId, { ...swap, bankTaskId })).rejects.toThrow()
 
     expect(await getDay(WEDNESDAY_DAY)).toEqual(before)
     expect(statusIn((await getBank()).tasks, 'task-lift-bank')).toBe('inBank')
   })
+
+  it('refuses a week the tasks have left, and changes nothing', async () => {
+    const before = await getDay(WEDNESDAY_DAY)
+
+    await expect(swapTasks('task-lift-today', { ...swap, week: NEXT_WEEK })).rejects.toThrow('another week')
+
+    expect(await getDay(WEDNESDAY_DAY)).toEqual(before)
+  })
 })
 
-describe('placing tasks on a given day', () => {
-  it('pulls a bank task onto the given day, marked as placed by hand', async () => {
-    const task = await pullFromBank('task-lift-bank', '2026-11-13')
-
-    expect(task).toMatchObject({ state: 'open', plannedDay: '2026-11-13', placedByHand: true })
-    expect((await getDay('2026-11-13')).tasks.map((t) => t.id)).toContain('task-lift-bank')
-  })
-
-  it('pulls onto today when no day is given, still marked as placed by hand', async () => {
-    const task = await pullFromBank('task-lift-bank')
-
-    expect(task).toMatchObject({ plannedDay: '2026-11-11', placedByHand: true })
-  })
-
-  it('refuses a past day', async () => {
-    await expect(pullFromBank('task-lift-bank', '2026-11-10')).rejects.toThrow("Can't place a task on a past day")
-    expect(statusIn((await getBank()).tasks, 'task-lift-bank')).toBe('inBank')
-  })
-
-  it("puts a swapped-in task on the swapped task's day, not today", async () => {
-    await pullFromBank('task-dentist', '2026-11-12')
-
-    const { skipped, placed } = await swapTask('task-dentist', 'task-lift-bank')
-
-    expect(placed).toMatchObject({ plannedDay: '2026-11-12', placedByHand: true })
-    expect(skipped.placedByHand).toBe(false)
-  })
-
+describe('moving a placed task', () => {
   it('forgets placedByHand when a task goes back to the bank', async () => {
-    await pullFromBank('task-lift-bank', '2026-11-12')
+    await placeTask('task-lift-bank', THIS_WEEK, '2026-11-12')
 
-    const task = await skipTask('task-lift-bank')
+    const task = await moveTaskToBank('task-lift-bank', THIS_WEEK)
 
     expect(task.placedByHand).toBe(false)
   })
@@ -389,7 +401,7 @@ describe('getWeek', () => {
   })
 
   it('reflects changes made through the other functions', async () => {
-    await pullFromBank('task-lift-bank', '2026-11-14')
+    await placeTask('task-lift-bank', THIS_WEEK, '2026-11-14')
 
     const lift = (await getWeek()).tasks.find((task) => task.id === 'task-lift-bank')
     expect(lift).toMatchObject({ state: 'open', plannedDay: '2026-11-14', placedByHand: true })

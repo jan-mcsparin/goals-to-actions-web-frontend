@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addTask, checkOffTask, getDay, pullFromBank, skipTask, swapTask, uncheckTask } from '../api/client.ts'
+import { addTask, checkOffTask, getDay, placeTask, moveTaskToBank, swapTasks, uncheckTask } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { DayPlan, Task } from '../api/types.ts'
 import { DataRevision } from './dataRevision.ts'
@@ -15,9 +15,9 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     getDay: vi.fn(actual.getDay),
     checkOffTask: vi.fn(actual.checkOffTask),
     uncheckTask: vi.fn(actual.uncheckTask),
-    pullFromBank: vi.fn(actual.pullFromBank),
-    skipTask: vi.fn(actual.skipTask),
-    swapTask: vi.fn(actual.swapTask),
+    placeTask: vi.fn(actual.placeTask),
+    moveTaskToBank: vi.fn(actual.moveTaskToBank),
+    swapTasks: vi.fn(actual.swapTasks),
   }
 })
 
@@ -135,7 +135,7 @@ describe('useDay toggleDone, overlapping saves', () => {
 describe('useDay pull', () => {
   it('adds the bank task to today at once, with its goal', async () => {
     const save = deferred<Task>()
-    vi.mocked(pullFromBank).mockReturnValueOnce(save.promise)
+    vi.mocked(placeTask).mockReturnValueOnce(save.promise)
     const { result } = await renderLoaded()
     await act(async () => result.current.loadBank())
 
@@ -150,7 +150,7 @@ describe('useDay pull', () => {
   })
 
   it('puts the task back in the bank and says so calmly when the save fails', async () => {
-    vi.mocked(pullFromBank).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(placeTask).mockRejectedValueOnce(new Error('offline'))
     const { result } = await renderLoaded()
     await act(async () => result.current.loadBank())
 
@@ -168,7 +168,7 @@ function taskIdsInOrder(state: UseDay) {
 
 describe('useDay sendToBank', () => {
   it('takes the task off today at once', async () => {
-    vi.mocked(skipTask).mockReturnValueOnce(new Promise(() => {}))
+    vi.mocked(moveTaskToBank).mockReturnValueOnce(new Promise(() => {}))
     const { result } = await renderLoaded()
 
     act(() => result.current.sendToBank('task-laundry'))
@@ -177,8 +177,17 @@ describe('useDay sendToBank', () => {
     expect(result.current.day?.progress).toEqual({ done: 0, total: 3 })
   })
 
+  it('sends the week the change was made in', async () => {
+    vi.mocked(moveTaskToBank).mockReturnValueOnce(new Promise(() => {}))
+    const { result } = await renderLoaded()
+
+    act(() => result.current.sendToBank('task-laundry'))
+
+    expect(moveTaskToBank).toHaveBeenCalledWith('task-laundry', '2026-11-09')
+  })
+
   it('puts the task back in its place and says so calmly when the save fails', async () => {
-    vi.mocked(skipTask).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(moveTaskToBank).mockRejectedValueOnce(new Error('offline'))
     const { result } = await renderLoaded()
     const before = taskIdsInOrder(result.current)
 
@@ -191,7 +200,7 @@ describe('useDay sendToBank', () => {
 
 describe('useDay swap', () => {
   it('puts the bank task in the swapped task\'s place at once', async () => {
-    vi.mocked(swapTask).mockReturnValueOnce(new Promise(() => {}))
+    vi.mocked(swapTasks).mockReturnValueOnce(new Promise(() => {}))
     const { result } = await renderLoaded()
     await act(async () => result.current.loadBank())
     const before = taskIdsInOrder(result.current)
@@ -204,8 +213,22 @@ describe('useDay swap', () => {
     expect(result.current.bankRows?.map((row) => row.task.id)).not.toContain('task-dentist')
   })
 
+  it('sends the week and the day the bank task takes', async () => {
+    vi.mocked(swapTasks).mockReturnValueOnce(new Promise(() => {}))
+    const { result } = await renderLoaded()
+    await act(async () => result.current.loadBank())
+
+    act(() => result.current.swap('task-laundry', 'task-dentist'))
+
+    expect(swapTasks).toHaveBeenCalledWith('task-laundry', {
+      week: '2026-11-09',
+      bankTaskId: 'task-dentist',
+      day: '2026-11-11',
+    })
+  })
+
   it('undoes both sides and says so calmly when the save fails', async () => {
-    vi.mocked(swapTask).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(swapTasks).mockRejectedValueOnce(new Error('offline'))
     const { result } = await renderLoaded()
     await act(async () => result.current.loadBank())
     const before = taskIdsInOrder(result.current)
@@ -226,7 +249,7 @@ describe('useDay on another day', () => {
 
     await act(async () => hook.result.current.pull('task-lift-bank'))
 
-    expect(pullFromBank).toHaveBeenCalledWith('task-lift-bank', '2026-11-12')
+    expect(placeTask).toHaveBeenCalledWith('task-lift-bank', '2026-11-09', '2026-11-12')
     const row = hook.result.current.day?.sections
       .flatMap((section) => section.rows)
       .find((candidate) => candidate.task.id === 'task-lift-bank')

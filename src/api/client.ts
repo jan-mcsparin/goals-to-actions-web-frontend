@@ -2,7 +2,7 @@
 // except that with the switch on real (mode.ts) the aspiration and goal ones
 // call the API instead (realAspirations.ts, realGoals.ts), with the same
 // signatures.
-import { mondayOf, toLocalDay } from './dates.ts'
+import { fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
 import { taskWeek } from '../domain/add.ts'
 import { checkedOff, inTheBank, isInBank, isPlanned, placedOnDay, uncheckedOff } from '../domain/tasks.ts'
 import { isWithinGoal, MOST_SESSIONS, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
@@ -455,29 +455,47 @@ export async function addRecurringItem(item: NewRecurringItem): Promise<Recurrin
   return structuredClone(added)
 }
 
-// Skipping sends a task back to the bank. It isn't a rollover, so the count stays.
-export async function skipTask(taskId: string): Promise<Task> {
+// Back to the bank, in the week the change was made in; the day is cleared and the rollover
+// count stays. Refused once the task has left that week, as the API does (a 409).
+export async function moveTaskToBank(taskId: string, week: string): Promise<Task> {
   const task = findPlannedTask(taskId)
+  checkWeek(task, week)
   replaceTask(task, inTheBank(task))
   return taskOut(task)
 }
 
-export async function pullFromBank(bankTaskId: string, day = toLocalDay(new Date())): Promise<Task> {
-  if (day < toLocalDay(new Date())) throw new Error("Can't place a task on a past day")
-  const task = findBankTask(bankTaskId)
+// Onto a day of its week, placed by hand.
+export async function placeTask(taskId: string, week: string, day: string): Promise<Task> {
+  const task = findBankTask(taskId)
+  checkWeek(task, week)
+  checkDay(day, week)
   replaceTask(task, placedOnDay(task, day))
   return taskOut(task)
 }
 
 // Both tasks are checked before either changes, so a bad ID changes nothing.
-// The bank task goes onto the swapped task's day.
-export async function swapTask(taskId: string, bankTaskId: string): Promise<{ skipped: Task; placed: Task }> {
-  const skipped = findPlannedTask(taskId)
+// The bank task goes onto the given day, and the other goes to the bank.
+export async function swapTasks(
+  taskId: string,
+  { week, bankTaskId, day }: { week: string; bankTaskId: string; day: string },
+): Promise<{ toBank: Task; placed: Task }> {
+  const toBank = findPlannedTask(taskId)
   const placed = findBankTask(bankTaskId)
-  const day = skipped.plannedDay!
-  replaceTask(skipped, inTheBank(skipped))
+  checkWeek(toBank, week)
+  checkWeek(placed, week)
+  checkDay(day, week)
+  replaceTask(toBank, inTheBank(toBank))
   replaceTask(placed, placedOnDay(placed, day))
-  return { skipped: taskOut(skipped), placed: taskOut(placed) }
+  return { toBank: taskOut(toBank), placed: taskOut(placed) }
+}
+
+function checkWeek(task: Task, week: string) {
+  if (task.week !== week) throw new Error(`Task ${task.id} has moved on to another week`)
+}
+
+function checkDay(day: string, week: string) {
+  if (day < toLocalDay(new Date())) throw new Error("Can't place a task on a past day")
+  if (toLocalDay(mondayOf(fromLocalDay(day))) !== week) throw new Error("A task goes on a day in its own week")
 }
 
 // The mock keeps one object per task, so a change made on a copy is put back on it.

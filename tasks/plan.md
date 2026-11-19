@@ -30,7 +30,7 @@ PR `tasks-as-api` (closes #30):
 
 - [x] Task 1: Read task state through one module
 - [x] Task 2: Use the generated Task everywhere
-- [ ] Task 3: Plan functions take the API's names and the week
+- [x] Task 3: Plan functions take the API's names and the week
 
 Checkpoint after task 3: build, lint and tests pass, and the screens look as they did at iPhone width.
 
