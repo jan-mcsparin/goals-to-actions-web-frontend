@@ -33,7 +33,7 @@ import {
 } from './client.ts'
 import type { StoredWeeklyTarget } from './mockData.ts'
 import { resetStore, store } from './mockStore.ts'
-import type { Goal, WeeklyTargetInput } from './types.ts'
+import type { Goal, ListedGoal, WeeklyTargetInput } from './types.ts'
 
 // Wednesday 11 Nov 2026, 9 a.m. local time.
 const WEDNESDAY = new Date(2026, 10, 11, 9, 0)
@@ -46,6 +46,10 @@ function ids(records: { id: string }[]) {
 // Each goal that has a weekly target, with its sessions, in the order given.
 function targetsOf(goals: Goal[]): [string, number][] {
   return goals.flatMap((goal) => (goal.weeklyTarget ? [[goal.id, goal.weeklyTarget.sessions] as [string, number]] : []))
+}
+
+function progressOf(goals: ListedGoal[]): Record<string, ListedGoal['progress']> {
+  return Object.fromEntries(goals.map((goal) => [goal.id, goal.progress]))
 }
 
 // A stored target row, as setWeeklyTarget writes one.
@@ -397,17 +401,22 @@ describe('getAspirations', () => {
     expect(overview.goals).toHaveLength(store.goals.length)
   })
 
-  it("returns the goals' milestones in each goal's order", async () => {
-    const { milestones } = await getAspirations()
+  // As the API counts it: milestones hit, plus the goal itself, which a
+  // reached goal fills (milestones never checked in were passed on the way).
+  it('gives each goal its progress, a reached goal complete', async () => {
+    store.milestones.push({ id: 'ms-5k-1', goalId: 'goal-5k', measurableLine: 'Run 3k', status: 'upcoming' })
 
-    expect(milestones.filter((milestone) => milestone.goalId === 'goal-strong').map((milestone) => milestone.id)).toEqual([
-      'ms-strong-1',
-      'ms-strong-2',
-      'ms-strong-3',
-      'ms-strong-4',
-      'ms-strong-5',
-    ])
-    expect(milestones).toHaveLength(store.milestones.length)
+    const { goals } = await getAspirations()
+
+    expect(progressOf(goals)).toMatchObject({
+      'goal-strong': { hit: 1, of: 6 },
+      'goal-endurance': { hit: 2, of: 4 },
+      'goal-look-good': { hit: 0, of: 3 },
+      'goal-garage': { hit: 3, of: 6 },
+      'goal-5k': { hit: 2, of: 2 },
+      'goal-taxes': { hit: 1, of: 1 },
+      'goal-cook': { hit: 0, of: 1 },
+    })
   })
 
   it('returns only active recurring items', async () => {
@@ -459,19 +468,17 @@ describe('getAspirations', () => {
 })
 
 describe('getAspiration', () => {
-  it('returns the aspiration with its goals of every status and their milestones in order', async () => {
+  it('returns the aspiration with its goals of every status, each with its progress', async () => {
     const detail = await getAspiration('asp-fit')
 
     expect(detail.aspiration).toMatchObject({ id: 'asp-fit', name: 'Be fit', position: 1 })
     expect(ids(detail.goals)).toEqual(['goal-5k', 'goal-endurance', 'goal-look-good', 'goal-strong'])
-    expect(detail.milestones.filter((milestone) => milestone.goalId === 'goal-strong').map((milestone) => milestone.id)).toEqual([
-      'ms-strong-1',
-      'ms-strong-2',
-      'ms-strong-3',
-      'ms-strong-4',
-      'ms-strong-5',
-    ])
-    expect(detail.milestones.every((milestone) => ['goal-strong', 'goal-endurance', 'goal-look-good'].includes(milestone.goalId))).toBe(true)
+    expect(progressOf(detail.goals)).toEqual({
+      'goal-strong': { hit: 1, of: 6 },
+      'goal-endurance': { hit: 2, of: 4 },
+      'goal-look-good': { hit: 0, of: 3 },
+      'goal-5k': { hit: 1, of: 1 },
+    })
   })
 
   it('returns its recurring items, active or not', async () => {

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { countTarget, GOAL_DEFAULTS, type TargetFor, withTargets } from '../test/goals.ts'
+import { countTarget, GOAL_DEFAULTS, listed, type TargetFor, withTargets } from '../test/goals.ts'
 import type {
   Aspiration,
   AspirationsOverview,
   Goal,
+  ListedGoal,
   Milestone,
-  MilestoneStatus,
   RecurringItem,
   Task,
 } from '../api/types.ts'
@@ -40,15 +40,6 @@ function goal(id: string, extra: Partial<Goal> = {}): Goal {
   }
 }
 
-function milestones(goalId: string, ...statuses: MilestoneStatus[]): Milestone[] {
-  return statuses.map((status, index) => ({
-    id: `${goalId}-ms-${index}`,
-    goalId,
-    measurableLine: `Milestone ${index + 1}`,
-    status,
-  }))
-}
-
 function target(goalId: string, sessions: number): TargetFor {
   return countTarget(goalId, sessions)
 }
@@ -68,16 +59,26 @@ function recurring(name: string, aspirationId?: string, active = true): Recurrin
   return { id: `rec-${name}`, name, repeatRule: 'Once a week', fixedDay: false, active, nextDue: '2026-11-15', aspirationId }
 }
 
-// Targets are given per goal and put on their goals.
-function overviewOf({ weeklyTargets, ...parts }: Partial<AspirationsOverview> & { weeklyTargets?: TargetFor[] }): AspirationsOverview {
+// Targets and milestones are given per goal; each goal gets its target and
+// the progress the API would send.
+type OverviewParts = Partial<Omit<AspirationsOverview, 'goals'>> & {
+  goals?: Goal[]
+  milestones?: Milestone[]
+  weeklyTargets?: TargetFor[]
+}
+
+function overviewOf({ goals = [], milestones = [], weeklyTargets, ...parts }: OverviewParts): AspirationsOverview {
   return {
     aspirations: [aspiration('fit', 1)],
-    milestones: [],
     recurringItems: [],
     weekTasks: [],
     ...parts,
-    goals: withTargets(parts.goals ?? [], weeklyTargets),
+    goals: listed(withTargets(goals, weeklyTargets), milestones),
   }
+}
+
+function listedGoal(id: string, hit: number, of: number, extra: Partial<Goal> = {}): ListedGoal {
+  return { ...goal(id, extra), progress: { hit, of } }
 }
 
 describe('aspirationCards', () => {
@@ -160,51 +161,24 @@ describe('goalProgress', () => {
     expect(progressLabel('oneOff', 3, 6)).toBe('Step 3 of 6')
   })
 
-  it('counts the goal itself as the final milestone', () => {
-    const strong = goal('strong')
-    const overview = { milestones: milestones('strong', 'hit', 'notYet', 'upcoming', 'upcoming', 'upcoming') }
-
-    expect(goalProgress(strong, overview)).toBe('Milestone 1 of 6')
-  })
-
-  it('reads 0 of 1 with no milestones, and 1 of 1 once the goal is reached', () => {
-    expect(goalProgress(goal('look-good'), { milestones: [] })).toBe('Milestone 0 of 1')
-    expect(goalProgress(goal('garage', { type: 'oneOff' }), { milestones: [] })).toBe('Step 0 of 1')
-    expect(goalProgress(goal('5k', { status: 'reached' }), { milestones: [] })).toBe('Milestone 1 of 1')
-  })
-
-  it('counts every milestone and the goal once a goal with milestones is reached', () => {
-    const overview = { milestones: milestones('5k', 'hit', 'hit') }
-
-    expect(goalProgress(goal('5k', { status: 'reached' }), overview)).toBe('Milestone 3 of 3')
-  })
-
-  it('counts a reached goal complete, even with milestones never checked in', () => {
-    const overview = { milestones: milestones('5k', 'hit', 'upcoming', 'notYet') }
-
-    expect(goalProgress(goal('5k', { status: 'reached' }), overview)).toBe('Milestone 4 of 4')
-  })
-
-  it("only counts the goal's own milestones", () => {
-    const overview = { milestones: [...milestones('strong', 'hit'), ...milestones('endurance', 'hit', 'hit')] }
-
-    expect(goalProgress(goal('strong'), overview)).toBe('Milestone 1 of 2')
+  // How the count is made (the goal as the final milestone, a reached goal
+  // complete) is the API's, and tested there and in the mock client.
+  it("reads the goal's progress as the API counts it", () => {
+    expect(goalProgress(listedGoal('strong', 1, 6))).toBe('Milestone 1 of 6')
+    expect(goalProgress(listedGoal('look-good', 0, 1))).toBe('Milestone 0 of 1')
+    expect(goalProgress(listedGoal('5k', 4, 4, { status: 'reached' }))).toBe('Milestone 4 of 4')
   })
 
   it('adds the deadline to a one-off goal, and to no other type', () => {
-    const overview = { milestones: milestones('garage', 'hit', 'hit', 'hit', 'upcoming', 'upcoming') }
-
-    expect(goalProgress(goal('garage', { type: 'oneOff', deadline: '2026-12-15' }), overview)).toBe(
+    expect(goalProgress(listedGoal('garage', 3, 6, { type: 'oneOff', deadline: '2026-12-15' }))).toBe(
       'Step 3 of 6 · by Dec 15',
     )
-    expect(goalProgress(goal('garage', { type: 'oneOff' }), overview)).toBe('Step 3 of 6')
-    expect(goalProgress(goal('garage', { deadline: '2026-12-15' }), overview)).toBe('Milestone 3 of 6')
+    expect(goalProgress(listedGoal('garage', 3, 6, { type: 'oneOff' }))).toBe('Step 3 of 6')
+    expect(goalProgress(listedGoal('garage', 3, 6, { deadline: '2026-12-15' }))).toBe('Milestone 3 of 6')
   })
 
   it('reads Paused in place of the count', () => {
-    const overview = { milestones: milestones('cook', 'hit') }
-
-    expect(goalProgress(goal('cook', { status: 'paused' }), overview)).toBe('Paused')
+    expect(goalProgress(listedGoal('cook', 1, 2, { status: 'paused' }))).toBe('Paused')
   })
 })
 

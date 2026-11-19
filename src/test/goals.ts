@@ -1,6 +1,6 @@
 // Goal fixtures for tests: the fields the API sends empty, and weekly targets
-// given per goal, as the older fixtures did.
-import type { Goal, WeeklyTarget } from '../api/types.ts'
+// and milestones given per goal, as the older fixtures did.
+import type { Goal, ListedGoal, Milestone, WeeklyTarget } from '../api/types.ts'
 
 export const GOAL_DEFAULTS = {
   aspirationId: null,
@@ -25,5 +25,16 @@ export function withTargets(goals: Goal[], targets: TargetFor[] = []): Goal[] {
     if (!found) return goal
     const { goalId: _goalId, ...weeklyTarget } = found
     return { ...goal, weeklyTarget }
+  })
+}
+
+// Each goal as listGoals sends it, its progress counted from the milestones
+// given, as the API counts it: hits plus the goal, which a reached goal fills.
+export function listed(goals: Goal[], milestones: Milestone[] = []): ListedGoal[] {
+  return goals.map((goal) => {
+    const own = milestones.filter((milestone) => milestone.goalId === goal.id)
+    const of = own.length + 1
+    const hit = goal.status === 'reached' ? of : own.filter((milestone) => milestone.status === 'hit').length
+    return { ...goal, progress: { hit, of } }
   })
 }

@@ -3,7 +3,7 @@
 // aspiration, the Keep life running count and the retired aspirations.
 // Nothing here paces or warns.
 import { fromLocalDay } from '../api/dates.ts'
-import type { Aspiration, AspirationsOverview, Goal, GoalType } from '../api/types.ts'
+import type { Aspiration, AspirationsOverview, Goal, GoalType, ListedGoal } from '../api/types.ts'
 
 export type GoalRow = {
   goalId: string
@@ -66,24 +66,12 @@ export function progressLabel(type: GoalType, hit: number, total: number): strin
   return `${type === 'oneOff' ? 'Step' : 'Milestone'} ${hit} of ${total}`
 }
 
-// "Milestone 1 of 6", "Step 3 of 6 · by Dec 15", or "Paused".
-export function goalProgress(goal: Goal, overview: Pick<AspirationsOverview, 'milestones'>): string {
+// "Milestone 1 of 6", "Step 3 of 6 · by Dec 15", or "Paused". The count is
+// the API's (progress), a reached goal already complete.
+export function goalProgress(goal: ListedGoal): string {
   if (goal.status === 'paused') return 'Paused'
-  const { reached, total } = milestoneCount(goal, overview)
-  const label = progressLabel(goal.type, reached, total)
+  const label = progressLabel(goal.type, goal.progress.hit, goal.progress.of)
   return goal.type === 'oneOff' && goal.deadline ? `${label} · by ${shortDate(goal.deadline)}` : label
-}
-
-// Milestones hit, plus the goal itself (the last milestone). A reached goal
-// counts complete: milestones never checked in were passed on the way.
-export function milestoneCount(
-  goal: Goal,
-  overview: Pick<AspirationsOverview, 'milestones'>,
-): { reached: number; total: number } {
-  const milestones = overview.milestones.filter((milestone) => milestone.goalId === goal.id)
-  const total = milestones.length + 1
-  if (goal.status === 'reached') return { reached: total, total }
-  return { reached: milestones.filter((milestone) => milestone.status === 'hit').length, total }
 }
 
 // Sessions done against the week's targets, across the aspiration's active
@@ -120,8 +108,8 @@ export function otherGoals(overview: AspirationsOverview): OtherGoals | undefine
   )
   if (loose.length === 0) return undefined
   return {
-    goals: loose.filter(isCurrent).map((goal) => rowFor(goal, overview)),
-    past: loose.filter((goal) => !isCurrent(goal)).map((goal) => rowFor(goal, overview)),
+    goals: loose.filter(isCurrent).map((goal) => rowFor(goal)),
+    past: loose.filter((goal) => !isCurrent(goal)).map((goal) => rowFor(goal)),
   }
 }
 
@@ -146,13 +134,13 @@ function cardFor(aspiration: Aspiration, overview: AspirationsOverview): Aspirat
     ...(week && { week }),
     goals: overview.goals
       .filter((goal) => goal.aspirationId === aspiration.id && isCurrent(goal))
-      .map((goal) => rowFor(goal, overview)),
+      .map((goal) => rowFor(goal)),
     recurringLine: recurringLine(aspiration.id, overview),
   }
 }
 
-function rowFor(goal: Goal, overview: AspirationsOverview): GoalRow {
-  return { goalId: goal.id, label: goal.label, progress: goalProgress(goal, overview) }
+function rowFor(goal: ListedGoal): GoalRow {
+  return { goalId: goal.id, label: goal.label, progress: goalProgress(goal) }
 }
 
 function recurringLine(aspirationId: string, overview: AspirationsOverview): string {

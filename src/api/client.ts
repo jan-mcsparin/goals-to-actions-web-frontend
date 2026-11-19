@@ -20,6 +20,7 @@ import type {
   Goal,
   GoalDetail,
   Intensity,
+  ListedGoal,
   Milestone,
   NewAspiration,
   NewGoal,
@@ -74,8 +75,7 @@ export async function getAspirations(): Promise<AspirationsOverview> {
   const weekOf = thisWeek()
   return structuredClone({
     aspirations: store.aspirations,
-    goals: store.goals.map(goalOut),
-    milestones: store.milestones,
+    goals: store.goals.map(listedGoal),
     recurringItems: store.recurringItems.filter((item) => item.active),
     weekTasks: store.tasks.filter((task) => task.weekOf === weekOf && task.goalId !== undefined),
   })
@@ -89,8 +89,7 @@ export async function getAspiration(aspirationId: string): Promise<AspirationDet
   const goalIds = new Set(goals.map((goal) => goal.id))
   return structuredClone({
     aspiration,
-    goals: goals.map(goalOut),
-    milestones: store.milestones.filter((milestone) => goalIds.has(milestone.goalId)),
+    goals: goals.map(listedGoal),
     recurringItems: store.recurringItems.filter((item) => item.aspirationId === aspirationId),
     weekTasks: store.tasks.filter((task) => task.weekOf === weekOf && task.goalId !== undefined && goalIds.has(task.goalId)),
     activeCount: activeAspirations().length,
@@ -487,6 +486,15 @@ function thisWeek(): string {
 function goalOut(goal: StoredGoal): Goal {
   const slipped = goal.status === 'active' && goal.deadline !== null && goal.deadline < toLocalDay(new Date())
   return { ...goal, slipped, weeklyTarget: latestTarget(goal.id) ?? null }
+}
+
+// As listGoals sends it: "2 of 6" is milestones hit plus the goal itself. A
+// reached goal counts complete: milestones never checked in were passed on the way.
+function listedGoal(goal: StoredGoal): ListedGoal {
+  const milestones = milestonesOf(goal.id)
+  const of = milestones.length + 1
+  const hit = goal.status === 'reached' ? of : milestones.filter((milestone) => milestone.status === 'hit').length
+  return { ...goalOut(goal), progress: { hit, of } }
 }
 
 // A target change adds a row, or updates this week's; the latest is the one shown.

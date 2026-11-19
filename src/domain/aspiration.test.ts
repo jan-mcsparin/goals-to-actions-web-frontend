@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countTarget, GOAL_DEFAULTS, type TargetFor, withTargets } from '../test/goals.ts'
+import { countTarget, GOAL_DEFAULTS, listed, type TargetFor, withTargets } from '../test/goals.ts'
 import type {
   Aspiration,
   AspirationDetail,
@@ -64,18 +64,22 @@ function recurring(name: string, active = true): RecurringItem {
   return { id: `rec-${name}`, name, repeatRule: 'Once a week', fixedDay: false, active, nextDue: '2026-11-15', aspirationId: 'fit' }
 }
 
-// Targets are given per goal and put on their goals.
-type DetailParts = Partial<AspirationDetail> & { weeklyTargets?: TargetFor[] }
+// Targets and milestones are given per goal; each goal gets its target and
+// the progress the API would send.
+type DetailParts = Partial<Omit<AspirationDetail, 'goals'>> & {
+  goals?: Goal[]
+  milestones?: Milestone[]
+  weeklyTargets?: TargetFor[]
+}
 
-function detailOf({ weeklyTargets, ...parts }: DetailParts): AspirationDetail {
+function detailOf({ goals = [], milestones = [], weeklyTargets, ...parts }: DetailParts): AspirationDetail {
   return {
     aspiration: aspiration(),
-    milestones: [],
     recurringItems: [],
     weekTasks: [],
     activeCount: 1,
     ...parts,
-    goals: withTargets(parts.goals ?? [], weeklyTargets),
+    goals: listed(withTargets(goals, weeklyTargets), milestones),
   }
 }
 

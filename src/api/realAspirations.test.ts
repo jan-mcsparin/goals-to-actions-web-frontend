@@ -73,7 +73,6 @@ describe('getAspirations', () => {
     expect(await getAspirations()).toEqual({
       aspirations: [FIT, SPANISH],
       goals: [],
-      milestones: [],
       recurringItems: [],
       weekTasks: [],
     })
@@ -88,7 +87,6 @@ describe('getAspiration', () => {
     expect(await getAspiration('home')).toEqual({
       aspiration: HOME,
       goals: [],
-      milestones: [],
       recurringItems: [],
       weekTasks: [],
       activeCount: 2,

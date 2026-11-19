@@ -5,7 +5,6 @@
 // Nothing here paces or warns: a passed date reads like any other.
 import { addDays, fromLocalDay, mondayOfDay, toLocalDay } from '../api/dates.ts'
 import type { Aspiration, Goal, GoalDetail, GoalType, Milestone, MilestoneStatus, WeeklyTargetInput } from '../api/types.ts'
-import { milestoneCount } from './aspirations.ts'
 
 export type Header = {
   goalId: string
@@ -150,9 +149,17 @@ function weekOnly(startDate: string, targetDate: string | undefined): string {
   return targetDate ? `Wk ${weekNumber(startDate, targetDate)}` : 'No date'
 }
 
+// Milestones hit, plus the goal itself (the last milestone). A reached goal
+// counts complete: milestones never checked in were passed on the way.
+function milestoneCount({ goal, milestones }: GoalDetail): { reached: number; total: number } {
+  const total = milestones.length + 1
+  if (goal.status === 'reached') return { reached: total, total }
+  return { reached: milestones.filter((milestone) => milestone.status === 'hit').length, total }
+}
+
 // "2 of 6 milestones hit", "2 of 6 steps done". The goal counts as the last.
 export function achievementLine(detail: GoalDetail): string {
-  const { reached, total } = milestoneCount(detail.goal, detail)
+  const { reached, total } = milestoneCount(detail)
   return detail.goal.type === 'oneOff' ? `${reached} of ${total} steps done` : `${reached} of ${total} milestones hit`
 }
 
@@ -416,7 +423,7 @@ function timeline(detail: GoalDetail): Timeline {
   const oneOff = goal.type === 'oneOff'
   const current = goal.status === 'active' || goal.status === 'paused'
   const next = current ? nextMilestone(milestones) : undefined
-  const { reached, total } = milestoneCount(goal, detail)
+  const { reached, total } = milestoneCount(detail)
 
   const start: StartRow = { kind: 'start', when: shortDate(goal.startDate), ...(goal.baseline && { baseline: goal.baseline }) }
   const rows = milestones.map((milestone): MilestoneRow => {

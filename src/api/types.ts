@@ -17,6 +17,10 @@ export type Goal = Schemas['Goal']
 export type GoalType = Goal['type']
 export type GoalStatus = Goal['status']
 
+// A goal as listGoals sends it, with "2 of 6": milestones hit plus the goal
+// itself, which a reached goal fills.
+export type ListedGoal = Schemas['ListedGoal']
+
 export type MilestoneStatus = 'upcoming' | 'hit' | 'notYet'
 
 export type Milestone = {
@@ -133,8 +137,7 @@ export type Bank = {
 // counting are left to domain/aspirations.ts.
 export type AspirationsOverview = {
   aspirations: Aspiration[] // active and retired
-  goals: Goal[] // every status
-  milestones: Milestone[] // for those goals, in each goal's order
+  goals: ListedGoal[] // every status
   recurringItems: RecurringItem[] // active ones
   weekTasks: Task[] // this week's tasks that belong to a goal
 }
@@ -142,8 +145,7 @@ export type AspirationsOverview = {
 // One aspiration's page, as records. Laid out by domain/aspiration.ts.
 export type AspirationDetail = {
   aspiration: Aspiration
-  goals: Goal[] // its goals, every status
-  milestones: Milestone[] // for those goals, in each goal's order
+  goals: ListedGoal[] // its goals, every status
   recurringItems: RecurringItem[] // its items, active or not
   weekTasks: Task[] // this week's tasks for its goals
   activeCount: number // active aspirations, for "1st of 3"
