@@ -2,7 +2,7 @@
 // "Monthly on the 1st", "3 times a week". The API sends only the fields.
 import type { Schedule } from '../api/types.ts'
 
-type Weekday = Extract<Schedule, { kind: 'weekly' }>['weekday']
+export type Weekday = Extract<Schedule, { kind: 'weekly' }>['weekday']
 
 export function repeatText(schedule: Schedule): string {
   switch (schedule.kind) {

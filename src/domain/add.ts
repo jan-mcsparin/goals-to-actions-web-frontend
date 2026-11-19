@@ -4,7 +4,7 @@
 import { mondayOfDay } from '../api/dates.ts'
 import type { Aspiration, Goal, GoalType, NewGoal, NewRecurringItem, NewTask, Schedule, Task } from '../api/types.ts'
 import { dayLabel, isWithinGoal, parsedTarget, type TargetDraft } from './goalDetail.ts'
-import { ordinal, repeatText, weekdayName } from './recurring.ts'
+import { ordinal, repeatText, weekdayName, type Weekday } from './recurring.ts'
 
 // This week's Monday, or the Monday of the due date's week when that's later.
 export function taskWeek(dueDate: string | undefined, today: string): string {
@@ -160,12 +160,8 @@ export function aspirationReady(draft: AspirationDraft): boolean {
 
 // The Recurring tab's pickers. Each option's value names a schedule
 // ("weekly:tuesday", "monthly:1", "flexible:3:week"), read back by
-// scheduleOf; its label is how that schedule reads.
+// scheduleOf.
 export type RepeatOption = { value: string; label: string }
-
-function repeatOption(schedule: Schedule): RepeatOption {
-  return { value: optionValue(schedule), label: repeatText(schedule) }
-}
 
 function optionValue(schedule: Schedule): string {
   switch (schedule.kind) {
@@ -178,20 +174,15 @@ function optionValue(schedule: Schedule): string {
   }
 }
 
-// Weeks start Monday, so Sunday comes last. Labelled by the day alone, under
-// "Every week on".
-const WEEKDAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
+// Weeks start Monday, so Sunday comes last.
+const WEEKDAYS: Weekday[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
-export const WEEKDAY_OPTIONS: RepeatOption[] = WEEKDAYS.map((weekday) => ({
-  value: optionValue({ kind: 'weekly', weekday }),
-  label: weekdayName(weekday),
-}))
+const WEEKLY_SCHEDULES: Schedule[] = WEEKDAYS.map((weekday) => ({ kind: 'weekly', weekday }))
 
-// Labelled "1st" to "28th", under "Every month on the".
-export const MONTH_DAY_OPTIONS: RepeatOption[] = Array.from({ length: 28 }, (_, index) => ({
-  value: optionValue({ kind: 'monthly', dayOfMonth: index + 1 }),
-  label: ordinal(index + 1),
-}))
+// Up to the 28th, so every month has the day.
+const MONTH_DAYS = Array.from({ length: 28 }, (_, index) => index + 1)
+
+const MONTHLY_SCHEDULES: Schedule[] = MONTH_DAYS.map((dayOfMonth) => ({ kind: 'monthly', dayOfMonth }))
 
 const FLEXIBLE_SCHEDULES: Schedule[] = [
   ...[1, 2, 3, 4, 5, 6].map((times) => ({ kind: 'flexible', times, period: 'week' }) as const),
@@ -199,16 +190,33 @@ const FLEXIBLE_SCHEDULES: Schedule[] = [
   { kind: 'flexible', times: 1, period: 'month' },
 ]
 
-export const FLEXIBLE_OPTIONS: RepeatOption[] = FLEXIBLE_SCHEDULES.map(repeatOption)
+// Labelled by the day alone, under "Every week on".
+export const WEEKDAY_OPTIONS: RepeatOption[] = WEEKDAYS.map((weekday) => ({
+  value: optionValue({ kind: 'weekly', weekday }),
+  label: weekdayName(weekday),
+}))
+
+// Labelled "1st" to "28th", under "Every month on the".
+export const MONTH_DAY_OPTIONS: RepeatOption[] = MONTH_DAYS.map((dayOfMonth) => ({
+  value: optionValue({ kind: 'monthly', dayOfMonth }),
+  label: ordinal(dayOfMonth),
+}))
+
+// Labelled as the schedule reads: "3 times a week".
+export const FLEXIBLE_OPTIONS: RepeatOption[] = FLEXIBLE_SCHEDULES.map((schedule) => ({
+  value: optionValue(schedule),
+  label: repeatText(schedule),
+}))
+
+const SCHEDULES_BY_VALUE = new Map(
+  [...WEEKLY_SCHEDULES, ...MONTHLY_SCHEDULES, ...FLEXIBLE_SCHEDULES].map((schedule) => [optionValue(schedule), schedule]),
+)
 
 // An option's value back as the schedule it stands for.
 export function scheduleOf(value: string): Schedule {
-  const option = [...WEEKDAY_OPTIONS, ...MONTH_DAY_OPTIONS, ...FLEXIBLE_OPTIONS].find((candidate) => candidate.value === value)
-  if (!option) throw new Error(`Unknown repeat: ${value}`)
-  const [kind, first, second] = value.split(':')
-  if (kind === 'weekly') return { kind, weekday: first as (typeof WEEKDAYS)[number] }
-  if (kind === 'monthly') return { kind, dayOfMonth: Number(first) }
-  return { kind: 'flexible', times: Number(first), period: second as 'week' | 'twoWeeks' | 'month' }
+  const schedule = SCHEDULES_BY_VALUE.get(value)
+  if (!schedule) throw new Error(`Unknown repeat: ${value}`)
+  return { ...schedule }
 }
 
 export function recurringReady(draft: { name: string }): boolean {
