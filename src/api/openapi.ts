@@ -349,6 +349,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/recurring-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Recurring Items
+         * @description Every item, on and off, oldest first. One with no aspiration is in Keep life running.
+         */
+        get: operations["listRecurringItems"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recurring-items/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Create Recurring Item */
+        put: operations["createRecurringItem"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Recurring Item */
+        patch: operations["updateRecurringItem"];
+        trace?: never;
+    };
+    "/api/recurring-items/{item_id}/turn-off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn Off Recurring Item
+         * @description Its open tasks leave the days and the bank in every open week, until it's turned on.
+         */
+        post: operations["turnOffRecurringItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recurring-items/{item_id}/turn-on": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn On Recurring Item
+         * @description Its set-aside tasks return to the bank of their week, if that week is still open.
+         */
+        post: operations["turnOnRecurringItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tasks/{task_id}": {
         parameters: {
             query?: never;
@@ -600,6 +678,24 @@ export interface components {
             /** Detail */
             detail: string;
         };
+        /**
+         * FlexibleSchedule
+         * @description Some time in each period: 1 to 6 times a week, or once every two weeks or a month.
+         */
+        FlexibleSchedule: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "flexible";
+            /**
+             * Period
+             * @enum {string}
+             */
+            period: "week" | "twoWeeks" | "month";
+            /** Times */
+            times: number;
+        };
         /** Goal */
         Goal: {
             /** Aspirationid */
@@ -811,6 +907,19 @@ export interface components {
             ids: string[];
         };
         /**
+         * MonthlySchedule
+         * @description Every month on a day, up to the 28th so every month has it: "Monthly on the 1st".
+         */
+        MonthlySchedule: {
+            /** Dayofmonth */
+            dayOfMonth: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "monthly";
+        };
+        /**
          * NewCheckIn
          * @description A check-in against Next: the first milestone that isn't hit, or the goal's own line
          *     (`milestoneId` empty) once every milestone is hit. Dated today where the phone is.
@@ -870,6 +979,25 @@ export interface components {
             /** Targetdate */
             targetDate?: string | null;
         };
+        /** NewRecurringItem */
+        NewRecurringItem: {
+            /** Aspirationid */
+            aspirationId?: string | null;
+            /**
+             * Fromgoalid
+             * @description Set when a reached goal's practice is kept going.
+             */
+            fromGoalId?: string | null;
+            /** Name */
+            name: string;
+            /** Schedule */
+            schedule: components["schemas"]["WeeklySchedule"] | components["schemas"]["MonthlySchedule"] | components["schemas"]["FlexibleSchedule"];
+            /**
+             * Startson
+             * Format: date
+             */
+            startsOn: string;
+        };
         /**
          * NewTask
          * @description A task added by hand. `day` is where the phone put it; with none, it goes to the bank.
@@ -915,6 +1043,64 @@ export interface components {
             hit: number;
             /** Of */
             of: number;
+        };
+        /** RecurringItem */
+        RecurringItem: {
+            /** Active */
+            active: boolean;
+            /**
+             * Aspirationid
+             * @description Planned as goal work under this aspiration. Empty: maintenance, in Keep life running.
+             */
+            aspirationId: string | null;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Fromgoalid
+             * @description The reached goal whose practice this keeps.
+             */
+            fromGoalId: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Schedule */
+            schedule: components["schemas"]["WeeklySchedule"] | components["schemas"]["MonthlySchedule"] | components["schemas"]["FlexibleSchedule"];
+            /**
+             * Startson
+             * Format: date
+             * @description The first day it can be due. It also anchors a two-week period.
+             */
+            startsOn: string;
+        };
+        /**
+         * RecurringItemEdit
+         * @description Sent whole on every edit. The goal it came from, and whether it's on, don't change
+         *     here.
+         */
+        RecurringItemEdit: {
+            /** Aspirationid */
+            aspirationId?: string | null;
+            /** Name */
+            name: string;
+            /** Schedule */
+            schedule: components["schemas"]["WeeklySchedule"] | components["schemas"]["MonthlySchedule"] | components["schemas"]["FlexibleSchedule"];
+            /**
+             * Startson
+             * Format: date
+             */
+            startsOn: string;
+        };
+        /** RecurringItemList */
+        RecurringItemList: {
+            /** Recurringitems */
+            recurringItems: components["schemas"]["RecurringItem"][];
         };
         /**
          * Retirement
@@ -1110,6 +1296,22 @@ export interface components {
             done: number;
             /** Of */
             of: number;
+        };
+        /**
+         * WeeklySchedule
+         * @description Every week on a weekday: "Every Tuesday".
+         */
+        WeeklySchedule: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "weekly";
+            /**
+             * Weekday
+             * @enum {string}
+             */
+            weekday: "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
         };
         /** WeeklyTarget */
         WeeklyTarget: {
@@ -2209,6 +2411,216 @@ export interface operations {
             };
             /** @description The rules don't allow this change. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listRecurringItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringItemList"];
+                };
+            };
+        };
+    };
+    createRecurringItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewRecurringItem"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringItem"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description The rules don't allow this change. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateRecurringItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecurringItemEdit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringItem"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description The rules don't allow this change. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnOffRecurringItem: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-time-zone": string;
+            };
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringItem"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    turnOnRecurringItem: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-time-zone": string;
+            };
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringItem"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
