@@ -1,6 +1,6 @@
 # Spec: Setup screens on the API (#41)
 
-Status: draft, 2026-11-18. Issue: [#41](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/41). Module `setup-screens-on-api` in the [map](README.md). Depends on the API's [`goals-targets`](../../api/specs/goals-targets.md) and [`milestones-check-ins`](../../api/specs/milestones-check-ins.md) slices, and on a small API change (decisions 1 and 4 below).
+Status: approved 2026-11-18; plan in [`../tasks/plan.md`](../tasks/plan.md). Issue: [#41](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/41). Module `setup-screens-on-api` in the [map](README.md). Depends on the API's [`goals-targets`](../../api/specs/goals-targets.md) and [`milestones-check-ins`](../../api/specs/milestones-check-ins.md) slices, and on a small API change (decisions 1, 4 and 5 below).
 
 ## Objective
 
@@ -11,7 +11,7 @@ This takes in #33 (each check-in its own record) in full, and the data shape of 
 ### What exists afterwards
 
 1. **Goals, weekly targets and milestones come from the generated types.** The hand-written `Goal`, `Milestone`, `WeeklyTarget`, `NewGoal` and `GoalDetail` go. The mock is reshaped to match: `endedOn`, not `endedAt`; no `lastReviewedAt`; `slipped`; the target inside the goal; a milestone's `position`; empty fields `null`.
-2. **Check-ins are records** (#33). A milestone has no `result` or `checkedInOn`. The goal's page shows `latest` and `progress` from the page read. Keep, move or adjust after "not yet" leaves the history alone.
+2. **Check-ins are records** (#33). A milestone has no `checkedInOn`; its `result` is read from its latest hit check-in (decision 5). The goal's page shows `latest` and `progress` from the page read. Keep, move or adjust after "not yet" leaves the history alone.
 3. **One client function per API operation**, the same in mock and real: `createGoal`, `endGoal`, `markGoalReached`, `pauseGoal`, `resumeGoal`, `reopenGoal`, `goAgain`, `setWeeklyTarget`, `addMilestone`, `updateMilestone`, `keepMilestone`, `checkIn`. Each milestone and check-in write returns the goal's page, so `useGoal` shows the response instead of reloading. A hit on the goal's own line marks the goal reached on the server (and in the mock), so the hook no longer makes a second call.
 4. **The tab and an aspiration's page read goals from `listGoals`**, with each goal's `progress` (decision 1). Counts like "2 of 5" come from it, not from milestone rows.
 5. **The Add sheet's goal form creates goals on the API** with a device-made id and, for a building goal, its count target.
@@ -30,7 +30,7 @@ This takes in #33 (each check-in its own record) in full, and the data shape of 
 - `src/api/`: the generated types for goals, targets, milestones and check-ins; the real goal and milestone functions beside the aspiration ones; the mock reshaped to the same types and rules (check-ins kept as rows; only Next can be checked in; moving a date later pushes later dated milestones out, capped at the deadline).
 - `domain/aspirations.ts`, `domain/aspiration.ts` and `domain/goalDetail.ts` read the new shapes. Counts come from `progress`, latest from `latest`, a target's number from `sessions`.
 - `hooks/useGoal.ts` and `hooks/useAdd.ts` call the new functions.
-- Types regenerated after the API change in decisions 1 and 4.
+- Types regenerated after the API change in decisions 1, 4 and 5.
 - `CLAUDE.md` (which types are generated) and `../docs/` wherever a described behaviour moves.
 
 **Out (later):**
@@ -51,7 +51,7 @@ This takes in #33 (each check-in its own record) in full, and the data shape of 
 ## Boundaries
 
 - **Always:** screens call `api/` functions only; mock is the default; test, lint and build before each commit.
-- **Ask first:** any new dependency; any further API change beyond decisions 1 and 4; reaching into #32's or #31's UI.
+- **Ask first:** any new dependency; any further API change beyond decisions 1, 4 and 5; reaching into #32's or #31's UI.
 - **Never:** hand-write or edit an API type; call `fetch` outside `api/request.ts`; map field names by hand.
 
 ## Success criteria
@@ -67,7 +67,8 @@ This takes in #33 (each check-in its own record) in full, and the data shape of 
 2. **#33 is taken in whole, #32 as data shape only.** Targets are count targets in the UI; `kind` is always `count` from the form.
 3. **Client functions follow the API one for one**, in mock and real. Hooks change; screens shouldn't.
 4. **The goal's page read names its aspiration.** The same API change adds `aspiration: { id, name } | null` to the goal page, for "Be fit ›" and "What's next for Be fit?".
+5. **Each milestone on the goal page carries `result`:** the result of its latest hit check-in, or `null`. The timeline keeps showing "Hit · Bench 150". Same API change.
 
-## Open questions
+## Assumed
 
-5. **The tab's bars use the target in force this week**, but `goal.weeklyTarget` is the latest one, which can start next week once next week is open (ADR-009). *Assumed:* until #42 the bars are empty in real mode, so this is settled there.
+6. **The tab's bars use the target in force this week**, but `goal.weeklyTarget` is the latest one, which can start next week once next week is open (ADR-009). *Assumed:* until #42 the bars are empty in real mode, so this is settled there.
