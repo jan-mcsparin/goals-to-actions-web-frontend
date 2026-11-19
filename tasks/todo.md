@@ -31,9 +31,9 @@ Test dates are fixed to Wednesday 11 Nov 2026.
 **Description:** `types.ts` names `RecurringItem`, `NewRecurringItem` and `Schedule` from `openapi.ts`. Mock data and `addRecurringItem` store items the API's way (`createdAt`, `fromGoalId: null`, `active: true`); retire with "keep" sets items' `aspirationId` to null. The form's options read back as a `Schedule`; `recurringInput` sends `schedule` and `startsOn` (today). Upkeep, the aspiration page and Today word or mark items through `domain/recurring.ts`. `RepeatChoice`, `repeatRuleText` and `nextDue` go.
 
 **Acceptance criteria:**
-- [ ] `repeatRule`, `fixedDay` and `nextDue` appear nowhere outside `openapi.ts`.
-- [ ] The form offers the same choices and saves a schedule and today's `startsOn`.
-- [ ] Every screen shows the same repeat text and fixed-day mark as before; mock data and tests updated.
+- [x] `repeatRule`, `fixedDay` and `nextDue` appear nowhere outside `openapi.ts` as item fields (the form's own Fixed day toggle keeps its name).
+- [x] The form offers the same choices and saves a schedule and today's `startsOn`.
+- [x] Every screen shows the same repeat text and fixed-day mark as before; mock data and tests updated.
 
 **Verification:** `npm test && npm run lint && npm run build`.
 
@@ -44,7 +44,7 @@ Test dates are fixed to Wednesday 11 Nov 2026.
 **Scope:** L (mechanical)
 
 ## Checkpoint
-- [ ] Build, lint and tests pass.
+- [x] Build, lint and tests pass.
 
 ### Task 3: Check the screens at iPhone width
 

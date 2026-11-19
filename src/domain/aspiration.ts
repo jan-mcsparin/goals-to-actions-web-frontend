@@ -7,6 +7,7 @@ import type { Aspiration, AspirationDetail, Goal, ListedGoal, RecurringItem } fr
 import { goalProgress, weekCount } from './aspirations.ts'
 import { dayLabel } from './goalDetail.ts'
 import { daysLeft, daysLeftLabel } from './week.ts'
+import { repeatText } from './recurring.ts'
 
 export type GoalCard = {
   goalId: string
@@ -21,7 +22,7 @@ export type GoalCard = {
 export type RecurringRow = {
   itemId: string
   name: string
-  repeatRule: string
+  repeat: string
   paused: boolean
 }
 
@@ -171,7 +172,7 @@ function weekLineFor(goal: Goal, detail: AspirationDetail): string | undefined {
 }
 
 function recurringRow(item: RecurringItem, paused: boolean): RecurringRow {
-  return { itemId: item.id, name: item.name, repeatRule: item.repeatRule, paused }
+  return { itemId: item.id, name: item.name, repeat: repeatText(item.schedule), paused }
 }
 
 function pastGoalRow(goal: Goal): PastGoalRow {

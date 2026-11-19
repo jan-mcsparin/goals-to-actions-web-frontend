@@ -35,15 +35,9 @@ export type WeeklyTargetInput = Schemas['WeeklyTargetInput']
 // 1 to 6 times a week, or once every two weeks or once a month.
 export type Schedule = Schemas['RecurringItem']['schedule']
 
-export type RecurringItem = {
-  id: string
-  name: string
-  repeatRule: string
-  fixedDay: boolean
-  active: boolean
-  nextDue: string
-  aspirationId?: string
-}
+// Planned as goal work under its aspiration; with none (null), maintenance in
+// Keep life running. startsOn is the first day it can be due.
+export type RecurringItem = Schemas['RecurringItem']
 
 export type TaskStatus = 'inBank' | 'planned' | 'done' | 'skipped'
 
@@ -89,13 +83,7 @@ export type NewAspiration = Schemas['AspirationInput']
 
 // What the Add sheet sends to addRecurringItem. Without an aspiration it
 // belongs to Keep life running.
-export type NewRecurringItem = {
-  name: string
-  repeatRule: string
-  fixedDay: boolean
-  nextDue: string
-  aspirationId?: string
-}
+export type NewRecurringItem = Schemas['NewRecurringItem']
 
 export type Intensity = 'easingOff' | 'normal' | 'goingHard'
 

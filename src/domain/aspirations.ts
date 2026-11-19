@@ -115,7 +115,7 @@ export function otherGoals(overview: AspirationsOverview): OtherGoals | undefine
 
 // The recurring items under no aspiration, as the Keep life running row says it.
 export function upkeepLine(overview: Pick<AspirationsOverview, 'recurringItems'>): string {
-  const count = overview.recurringItems.filter((item) => item.active && item.aspirationId === undefined).length
+  const count = overview.recurringItems.filter((item) => item.active && item.aspirationId === null).length
   return count === 0 ? 'No recurring items' : `${count} recurring`
 }
 

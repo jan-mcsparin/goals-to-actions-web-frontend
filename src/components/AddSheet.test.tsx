@@ -6,6 +6,7 @@ import { addRecurringItem, addTask, getAspirations, getBank, getDay } from '../a
 import { resetStore, store } from '../api/mockStore.ts'
 import type { AddOrigin, OnSaved } from '../hooks/useAdd.ts'
 import { AddSheet } from './AddSheet.tsx'
+import { isFixedDay, repeatText } from '../domain/recurring.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
@@ -361,7 +362,7 @@ describe('AddSheet on the Recurring tab', () => {
 
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Recurring' }))
     expect(screen.getByRole('button', { name: 'Fixed day' }).getAttribute('aria-pressed')).toBe('true')
-    expect(screen.getByRole('combobox', { name: 'Day' })).toHaveProperty('value', 'weekday:1')
+    expect(screen.getByRole('combobox', { name: 'Day' })).toHaveProperty('value', 'weekly:monday')
     expect(screen.queryByRole('combobox', { name: 'How often' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true)
     await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Water the plants')
@@ -369,19 +370,21 @@ describe('AddSheet on the Recurring tab', () => {
   })
 
   it.each([
-    ['Tuesday', 'Every Tuesday', '2026-11-17'],
-    ['Wednesday', 'Every Wednesday', '2026-11-11'],
-    ['1st', 'Monthly on the 1st', '2026-12-01'],
-    ['28th', 'Monthly on the 28th', '2026-11-28'],
-  ])('saves the fixed day %s as "%s", next due %s', async (day, rule, due) => {
+    ['Tuesday', 'Every Tuesday'],
+    ['Wednesday', 'Every Wednesday'],
+    ['1st', 'Monthly on the 1st'],
+    ['28th', 'Monthly on the 28th'],
+  ])('saves the fixed day %s as "%s", due from today', async (day, text) => {
     const { user, onSaved } = await openRecurringTab()
     await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Water the plants')
     await user.selectOptions(screen.getByRole('combobox', { name: 'Day' }), day)
 
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
-    expect(savedItem('Water the plants')).toMatchObject({ repeatRule: rule, fixedDay: true, nextDue: due, active: true })
-    expect(savedItem('Water the plants')?.aspirationId).toBeUndefined()
+    const item = savedItem('Water the plants')!
+    expect(repeatText(item.schedule)).toBe(text)
+    expect(isFixedDay(item.schedule)).toBe(true)
+    expect(item).toMatchObject({ startsOn: TODAY, active: true, aspirationId: null })
     expect(onSaved).toHaveBeenCalledWith("Added. It will show up in the plan when it's next due.")
     expect(screen.queryByRole('dialog')).toBeNull()
   })
@@ -395,16 +398,19 @@ describe('AddSheet on the Recurring tab', () => {
     '6 times a week',
     'Every two weeks',
     'Once a month',
-  ])('saves the flexible choice "%s", due today', async (rule) => {
+  ])('saves the flexible choice "%s", due from today', async (text) => {
     const { user } = await openRecurringTab()
     await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Water the plants')
     await user.click(screen.getByRole('button', { name: 'Flexible' }))
     expect(screen.queryByRole('combobox', { name: 'Day' })).toBeNull()
-    await user.selectOptions(screen.getByRole('combobox', { name: 'How often' }), rule)
+    await user.selectOptions(screen.getByRole('combobox', { name: 'How often' }), text)
 
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
-    expect(savedItem('Water the plants')).toMatchObject({ repeatRule: rule, fixedDay: false, nextDue: TODAY })
+    const item = savedItem('Water the plants')!
+    expect(repeatText(item.schedule)).toBe(text)
+    expect(isFixedDay(item.schedule)).toBe(false)
+    expect(item.startsOn).toBe(TODAY)
   })
 
   it('saves under the aspiration picked', async () => {
@@ -438,7 +444,7 @@ describe('AddSheet on the Recurring tab', () => {
     expect(onSaved).not.toHaveBeenCalled()
     expect(screen.getByRole('status').textContent).toBe("Couldn't save that. Try again.")
     expect(screen.getByRole('textbox', { name: 'Name' })).toHaveProperty('value', 'Water the plants')
-    expect(screen.getByRole('combobox', { name: 'Day' })).toHaveProperty('value', 'monthDay:1')
+    expect(screen.getByRole('combobox', { name: 'Day' })).toHaveProperty('value', 'monthly:1')
     expect(savedItem('Water the plants')).toBeUndefined()
   })
 
@@ -452,6 +458,6 @@ describe('AddSheet on the Recurring tab', () => {
     await user.click(screen.getByRole('button', { name: 'Fixed day' }))
 
     expect(screen.getByRole('textbox', { name: 'Name' })).toHaveProperty('value', 'Water the plants')
-    expect(screen.getByRole('combobox', { name: 'Day' })).toHaveProperty('value', 'monthDay:1')
+    expect(screen.getByRole('combobox', { name: 'Day' })).toHaveProperty('value', 'monthly:1')
   })
 })

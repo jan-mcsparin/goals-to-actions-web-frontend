@@ -33,10 +33,12 @@ const reading: Goal = { ...strong, id: 'goal-read', label: 'Read more', aspirati
 const trash: RecurringItem = {
   id: 'rec-trash',
   name: 'Take out the trash',
-  repeatRule: 'Every Tuesday',
-  fixedDay: true,
+  aspirationId: null,
+  fromGoalId: null,
+  schedule: { kind: 'weekly', weekday: 'tuesday' },
+  startsOn: '2026-10-01',
   active: true,
-  nextDue: '2026-11-10',
+  createdAt: '2026-10-01T09:00:00Z',
 }
 const lifting = countTarget('goal-strong', 3, 'lifting sessions')
 

@@ -3,11 +3,12 @@
 // where each one sits.
 import { fromLocalDay, mondayOfDay } from '../api/dates.ts'
 import type { Task, Upkeep } from '../api/types.ts'
+import { repeatText } from './recurring.ts'
 
 export type RecurringRow = {
   id: string
   name: string
-  repeatRule: string
+  repeat: string
 }
 
 export type TodoRow = {
@@ -24,7 +25,7 @@ export type UpkeepView = {
 
 export function upkeepView(upkeep: Upkeep, today: string): UpkeepView {
   return {
-    recurring: upkeep.recurringItems.map(({ id, name, repeatRule }) => ({ id, name, repeatRule })),
+    recurring: upkeep.recurringItems.map(({ id, name, schedule }) => ({ id, name, repeat: repeatText(schedule) })),
     todo: inPlanOrder(upkeep.tasks).map((task) => ({
       taskId: task.id,
       title: task.title,

@@ -260,7 +260,7 @@ function RecurringSection({ rows }: { rows: RecurringRow[] }) {
         {rows.map((row) => (
           <li key={row.itemId}>
             <span>{row.name}</span>
-            <span className="aspiration-row-detail">{row.paused ? 'Paused' : row.repeatRule}</span>
+            <span className="aspiration-row-detail">{row.paused ? 'Paused' : row.repeat}</span>
           </li>
         ))}
       </ul>
