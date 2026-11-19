@@ -30,7 +30,7 @@ Test dates are fixed to Wednesday 11 Nov 2026. Every API task runs the API repo'
 
 ### Task 2: Progress on listed goals, aspiration and results on the goal page
 
-**Description:** Open an API issue and add it to project #2 with a Status. Then:
+**Description:** Open an API issue and add it to project #2 with a Status (API #26; PR #27). Then:
 - `listGoals` returns each goal with `progress`.
 - `getGoal` and every milestone write return `aspiration: { id, name } | null`.
 - Each milestone carries `result`, from its latest hit check-in.
@@ -38,14 +38,14 @@ Test dates are fixed to Wednesday 11 Nov 2026. Every API task runs the API repo'
 - Regenerate `openapi.json` and update the two slice specs.
 
 **Acceptance criteria:**
-- [ ] `listGoals` counts are the same as `getGoal`'s for every goal: none, some hit, reached, and a deleted milestone left out.
-- [ ] A goal with no aspiration has `aspiration: null`. A retired aspiration is still named.
-- [ ] A milestone's `result` is its latest hit check-in's result. It is `null` after "not yet" only, and `null` for a hit with no result.
-- [ ] `listGoals` is one query for the counts, not one per goal.
+- [x] `listGoals` counts are the same as `getGoal`'s for every goal: none, some hit, reached, and a deleted milestone left out.
+- [x] A goal with no aspiration has `aspiration: null`. A retired aspiration is still named.
+- [x] A milestone's `result` is its latest hit check-in's result. It is `null` after "not yet" only, and `null` for a hit with no result.
+- [x] `listGoals` is one query for the counts, not one per goal.
 
 **Verification:**
-- [ ] Four checks pass. `test_contract.py` still guards camelCase.
-- [ ] `git diff openapi.json` shows only the new fields.
+- [x] Four checks pass. `test_contract.py` still guards camelCase.
+- [x] `git diff openapi.json` shows only the new fields.
 
 **Dependencies:** Task 1
 
