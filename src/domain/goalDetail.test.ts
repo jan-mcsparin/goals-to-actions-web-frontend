@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { countTarget, GOAL_DEFAULTS } from '../test/goals.ts'
-import type { Aspiration, Goal, GoalDetail, Milestone, MilestoneStatus, WeeklyTarget } from '../api/types.ts'
+import type { AspirationRef, Goal, GoalDetail, Milestone, MilestoneStatus, WeeklyTarget } from '../api/types.ts'
 import {
   achievementLine,
   backLabel,
@@ -48,26 +48,54 @@ function goal(extra: Partial<Goal> = {}): Goal {
   }
 }
 
-const BE_FIT: Aspiration = { id: 'fit', name: 'Be fit', why: null, position: 1, status: 'active', createdAt: '2026-10-01T09:00:00Z', retiredOn: null }
+const BE_FIT: AspirationRef = { id: 'fit', name: 'Be fit' }
 
-function milestone(id: string, status: MilestoneStatus, extra: Partial<Milestone> = {}): Milestone {
-  return { id, goalId: 'strong', measurableLine: `Line ${id}`, status, ...extra }
+// A milestone as a fixture gives it: its check-in day, if any, stands in for
+// the check-in record the page's Latest is read from.
+type FixtureMilestone = Pick<Milestone, 'id' | 'measurableLine' | 'status'> & {
+  targetDate?: string
+  result?: string
+  checkedInOn?: string
 }
 
-// The goal's target can be given here, as the page's own field once was.
-function detail({ weeklyTarget, ...extra }: Partial<GoalDetail> & { weeklyTarget?: WeeklyTarget | null } = {}): GoalDetail {
+function milestone(id: string, status: MilestoneStatus, extra: Partial<FixtureMilestone> = {}): FixtureMilestone {
+  return { id, measurableLine: `Line ${id}`, status, ...extra }
+}
+
+type DetailParts = Partial<Omit<GoalDetail, 'milestones'>> & {
+  milestones?: FixtureMilestone[]
+  weeklyTarget?: WeeklyTarget | null // the goal's, as the page's own field once was
+}
+
+// The API's page for these milestones: numbered, with progress (a reached
+// goal complete) and Latest worked out as the API does, unless given.
+function detail({ weeklyTarget, milestones = DEFAULT_MILESTONES, ...extra }: DetailParts = {}): GoalDetail {
   const shown = extra.goal ?? goal()
+  const of = milestones.length + 1
+  const hit = shown.status === 'reached' ? of : milestones.filter((row) => row.status === 'hit').length
+  const latest = milestones
+    .filter((row) => row.result && row.checkedInOn)
+    .reduce<FixtureMilestone | undefined>((newest, row) => (!newest || row.checkedInOn! >= newest.checkedInOn! ? row : newest), undefined)
   return {
     goal: weeklyTarget === undefined ? shown : { ...shown, weeklyTarget },
-    aspiration: BE_FIT,
-    milestones: [
-      milestone('m1', 'hit', { result: 'Bench 150, squat 290, deadlift 330', targetDate: '2026-11-02', checkedInOn: '2026-11-02' }),
-      milestone('m2', 'upcoming', { targetDate: '2026-11-30' }),
-      milestone('m3', 'upcoming'),
-    ],
+    milestones: milestones.map(({ checkedInOn: _day, ...row }, index) => ({
+      ...row,
+      position: index + 1,
+      targetDate: row.targetDate ?? null,
+      result: row.status === 'upcoming' ? null : (row.result ?? null),
+    })),
+    progress: { hit, of },
+    latest: latest ? { result: latest.result!, checkedInOn: latest.checkedInOn! } : null,
     ...extra,
+    aspiration: 'aspiration' in extra ? (extra.aspiration ?? null) : BE_FIT,
   }
 }
+
+const DEFAULT_MILESTONES = [
+  milestone('m1', 'hit', { result: 'Bench 150, squat 290, deadlift 330', targetDate: '2026-11-02', checkedInOn: '2026-11-02' }),
+  milestone('m2', 'upcoming', { targetDate: '2026-11-30' }),
+  milestone('m3', 'upcoming'),
+]
 
 function current(input: GoalDetail): CurrentPage {
   const page = goalPage(input, TODAY)
@@ -354,7 +382,7 @@ describe('pushedDates', () => {
     milestone('m5', 'upcoming', { targetDate: '2026-12-28' }),
   ]
 
-  function datesOf(milestones: Milestone[]) {
+  function datesOf(milestones: { targetDate?: string | null }[]) {
     return milestones.map((row) => row.targetDate)
   }
 
@@ -603,7 +631,7 @@ describe('the add milestone form', () => {
   })
 
   it('adds the milestone last, at once', () => {
-    const added = withMilestone(detail(), { id: 'pending', goalId: 'strong', measurableLine: 'Bench 172', status: 'upcoming' })
+    const added = withMilestone(detail(), 'pending', { measurableLine: 'Bench 172' })
 
     expect(added.milestones.map((row) => row.id)).toEqual(['m1', 'm2', 'm3', 'pending'])
     expect(current(added).timeline.count).toBe('1 of 5 hit')
@@ -615,9 +643,11 @@ describe('checking in, shown at once', () => {
     const hit = withCheckIn(detail(), 'm2', 'hit', ' Bench 155 ', TODAY)
     const notYet = withCheckIn(detail(), 'm2', 'notYet', '  ', TODAY)
 
-    expect(hit.milestones[1]).toMatchObject({ status: 'hit', result: 'Bench 155', checkedInOn: TODAY })
-    expect(notYet.milestones[1]).toMatchObject({ status: 'notYet', checkedInOn: TODAY })
-    expect(notYet.milestones[1]).not.toHaveProperty('result')
+    expect(hit.milestones[1]).toMatchObject({ status: 'hit', result: 'Bench 155' })
+    expect(hit.latest).toEqual({ result: 'Bench 155', checkedInOn: TODAY })
+    expect(hit.progress).toEqual({ hit: 2, of: 4 })
+    expect(notYet.milestones[1]).toMatchObject({ status: 'notYet', result: null })
+    expect(notYet.latest).toEqual(detail().latest)
     expect(milestoneRows(current(hit)).find((row) => row.next)?.milestoneId).toBe('m3')
     expect(current(notYet).notYet?.milestoneId).toBe('m2')
   })

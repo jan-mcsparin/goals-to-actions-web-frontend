@@ -18,10 +18,25 @@ export type StoredGoal = Omit<Goal, 'slipped' | 'weeklyTarget'>
 // Each change is a row; a goal's weeklyTarget is its latest.
 export type StoredWeeklyTarget = WeeklyTarget & { goalId: string }
 
+// Kept in the goal's order. position and result are worked out when read.
+export type StoredMilestone = Omit<Milestone, 'position' | 'result'> & { goalId: string }
+
+// Every check-in is kept (#33); a milestone's result and the goal's Latest
+// are read from them. milestoneId is null for the goal's own line.
+export type StoredCheckIn = {
+  id: string
+  goalId: string
+  milestoneId: string | null
+  outcome: 'hit' | 'notYet'
+  result: string | null
+  checkedInOn: string
+}
+
 export type MockData = {
   aspirations: Aspiration[]
   goals: StoredGoal[]
-  milestones: Milestone[]
+  milestones: StoredMilestone[]
+  checkIns: StoredCheckIn[]
   weeklyTargets: StoredWeeklyTarget[]
   recurringItems: RecurringItem[]
   tasks: Task[]
@@ -154,24 +169,20 @@ export function buildMockData(today: Date): MockData {
     }),
   ]
 
-  const milestones: Milestone[] = [
+  const milestones: StoredMilestone[] = [
     {
       id: 'ms-strong-1',
       goalId: 'goal-strong',
       measurableLine: 'Bench 150, squat 285, deadlift 325',
       status: 'hit',
-      result: 'Bench 150, squat 290, deadlift 330',
       targetDate: '2026-11-02',
-      checkedInOn: '2026-11-02',
     },
     {
       id: 'ms-strong-2',
       goalId: 'goal-strong',
       measurableLine: 'Bench 155, squat 300, deadlift 345',
       status: 'notYet',
-      result: 'Bench 152, squat 300, deadlift 340',
       targetDate: day(-3),
-      checkedInOn: day(-3),
     },
     {
       id: 'ms-strong-3',
@@ -193,6 +204,15 @@ export function buildMockData(today: Date): MockData {
     hit('ms-garage-3', 'goal-garage', 'Sell the table saw', '2026-11-07'),
     upcoming('ms-garage-4', 'goal-garage', 'Donate and dump the rest'),
     upcoming('ms-garage-5', 'goal-garage', 'Put up the shelves'),
+  ]
+
+  // One for each milestone that's hit or not yet, on its date.
+  const checkIns: StoredCheckIn[] = [
+    checkIn('ms-strong-1', 'goal-strong', 'hit', '2026-11-02', 'Bench 150, squat 290, deadlift 330'),
+    checkIn('ms-strong-2', 'goal-strong', 'notYet', day(-3), 'Bench 152, squat 300, deadlift 340'),
+    ...milestones
+      .filter((milestone) => milestone.status === 'hit' && milestone.goalId !== 'goal-strong')
+      .map((milestone) => checkIn(milestone.id, milestone.goalId, 'hit', milestone.targetDate!)),
   ]
 
   const weeklyTargets: StoredWeeklyTarget[] = [
@@ -476,7 +496,7 @@ export function buildMockData(today: Date): MockData {
     weekStartsOn: 'monday',
   }
 
-  return { aspirations, goals, milestones, weeklyTargets, recurringItems, tasks, settings }
+  return { aspirations, goals, milestones, checkIns, weeklyTargets, recurringItems, tasks, settings }
 }
 
 type GoalFields = Pick<StoredGoal, 'id' | 'label' | 'measurableLine' | 'type' | 'status' | 'startDate'> &
@@ -497,12 +517,22 @@ function countTarget(goalId: string, sessions: number, unit: string, effectiveFr
   return { goalId, kind: 'count', sessions, amount: null, unit, effectiveFrom }
 }
 
-function hit(id: string, goalId: string, measurableLine: string, on: string): Milestone {
-  return { id, goalId, measurableLine, status: 'hit', targetDate: on, checkedInOn: on }
+function hit(id: string, goalId: string, measurableLine: string, on: string): StoredMilestone {
+  return { id, goalId, measurableLine, status: 'hit', targetDate: on }
 }
 
-function upcoming(id: string, goalId: string, measurableLine: string): Milestone {
-  return { id, goalId, measurableLine, status: 'upcoming' }
+function upcoming(id: string, goalId: string, measurableLine: string): StoredMilestone {
+  return { id, goalId, measurableLine, status: 'upcoming', targetDate: null }
+}
+
+function checkIn(
+  milestoneId: string,
+  goalId: string,
+  outcome: StoredCheckIn['outcome'],
+  checkedInOn: string,
+  result: string | null = null,
+): StoredCheckIn {
+  return { id: `ci-${milestoneId}-${outcome}`, goalId, milestoneId, outcome, result, checkedInOn }
 }
 
 function atTime(day: Date, hours: number, minutes: number): string {

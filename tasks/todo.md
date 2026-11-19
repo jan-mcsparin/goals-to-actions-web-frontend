@@ -91,7 +91,7 @@ Test dates are fixed to Wednesday 11 Nov 2026. Every API task runs the API repo'
 
 **Acceptance criteria:**
 - [x] "2 of 5" and "Step 3 of 6" read the same as before on the tab and the aspiration page, for active, paused, reached and one-off goals.
-- [ ] The mock's progress equals what its goal page gives. (Moved to Task 5, when the goal page gets `progress`.)
+- [x] The mock's progress equals what its goal page gives. (Checked in Task 5, when the goal page got `progress`.)
 
 **Verification:**
 - [x] `npm test && npm run lint && npm run build`
@@ -111,13 +111,13 @@ Test dates are fixed to Wednesday 11 Nov 2026. Every API task runs the API repo'
 - `domain/goalDetail.ts` reads `latest`, `progress` and `aspiration` from the page.
 
 **Acceptance criteria:**
-- [ ] Every acceptance criterion on #33 is met.
-- [ ] "Latest:", "Hit · …" and the goal's aspiration link read as before.
-- [ ] Keep, move and adjust after "not yet" leave every check-in row in place.
-- [ ] The page's `progress` equals the listed goal's (from Task 4).
+- [x] Every acceptance criterion on #33 is met.
+- [x] "Latest:", "Hit · …" and the goal's aspiration link read as before.
+- [x] Keep, move and adjust after "not yet" leave every check-in row in place.
+- [x] The page's `progress` equals the listed goal's (from Task 4).
 
 **Verification:**
-- [ ] `npm test && npm run lint && npm run build`
+- [x] `npm test && npm run lint && npm run build`
 
 **Dependencies:** Task 3
 

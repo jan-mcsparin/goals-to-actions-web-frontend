@@ -7,7 +7,7 @@ import { isWithinGoal, nextMilestone, pushedDates } from '../domain/goalDetail.t
 import { isIntensity } from '../domain/settings.ts'
 import { NotFoundError } from './errors.ts'
 import { newDeviceId } from './ids.ts'
-import type { StoredGoal } from './mockData.ts'
+import type { StoredCheckIn, StoredGoal, StoredMilestone } from './mockData.ts'
 import { store } from './mockStore.ts'
 import { realApi } from './mode.ts'
 import * as real from './realAspirations.ts'
@@ -96,12 +96,16 @@ export async function getAspiration(aspirationId: string): Promise<AspirationDet
   })
 }
 
+// As the API's page: positions and results worked out from the store.
 export async function getGoal(goalId: string): Promise<GoalDetail> {
   const goal = findGoal(goalId)
+  const aspiration = store.aspirations.find((candidate) => candidate.id === goal.aspirationId)
   return structuredClone({
     goal: goalOut(goal),
-    aspiration: store.aspirations.find((aspiration) => aspiration.id === goal.aspirationId),
-    milestones: milestonesOf(goalId),
+    aspiration: aspiration ? { id: aspiration.id, name: aspiration.name } : null,
+    milestones: milestonesOf(goalId).map(milestoneOut),
+    progress: progressOf(goal),
+    latest: latestResult(goalId),
   })
 }
 
@@ -136,15 +140,14 @@ export async function addMilestone(
   const { targetDate } = milestone
   if (targetDate && !isWithinGoal(targetDate, goal)) throw new Error("A milestone's date must fall between the goal's start and its deadline")
 
-  const added: Milestone = { id: newId('ms'), goalId, measurableLine, status: 'upcoming' }
-  if (targetDate) added.targetDate = targetDate
+  const added: StoredMilestone = { id: newId('ms'), goalId, measurableLine, status: 'upcoming', targetDate: targetDate ?? null }
   store.milestones.push(added)
-  return structuredClone(added)
+  return structuredClone(milestoneOut(added))
 }
 
-// Hit or not yet, with today and the result. A building or quitting goal's
-// milestones are checked in in order, so only Next can be; a one-off goal's
-// steps can be done in any order.
+// Hit or not yet, kept as a check-in dated today with the result. A building
+// or quitting goal's milestones are checked in in order, so only Next can be;
+// a one-off goal's steps can be done in any order.
 export async function checkInMilestone(
   milestoneId: string,
   outcome: 'hit' | 'notYet',
@@ -158,16 +161,20 @@ export async function checkInMilestone(
   }
 
   milestone.status = outcome
-  milestone.checkedInOn = toLocalDay(new Date())
-  const trimmed = result?.trim()
-  if (trimmed) milestone.result = trimmed
-  else delete milestone.result
-  return structuredClone(milestone)
+  store.checkIns.push({
+    id: newDeviceId(),
+    goalId: goal.id,
+    milestoneId,
+    outcome,
+    result: result?.trim() || null,
+    checkedInOn: toLocalDay(new Date()),
+  })
+  return structuredClone(milestoneOut(milestone))
 }
 
 // A not-yet milestone back to upcoming: keep the date (no changes), move it,
 // or adjust its line and date. A later date pushes the ones after it out.
-// Returns the goal's milestones, since several can move.
+// Returns the goal's milestones, since several can move. Its check-ins stay.
 export async function reopenMilestone(
   milestoneId: string,
   changes: { measurableLine?: string; targetDate?: string } = {},
@@ -188,7 +195,7 @@ export async function reopenMilestone(
   }
   if (measurableLine) milestone.measurableLine = measurableLine
   milestone.status = 'upcoming'
-  return structuredClone(milestonesOf(goal.id))
+  return structuredClone(milestonesOf(goal.id).map(milestoneOut))
 }
 
 // Its not-done tasks this week are set aside (skipped), keeping their day,
@@ -491,10 +498,14 @@ function goalOut(goal: StoredGoal): Goal {
 // As listGoals sends it: "2 of 6" is milestones hit plus the goal itself. A
 // reached goal counts complete: milestones never checked in were passed on the way.
 function listedGoal(goal: StoredGoal): ListedGoal {
+  return { ...goalOut(goal), progress: progressOf(goal) }
+}
+
+function progressOf(goal: StoredGoal): ListedGoal['progress'] {
   const milestones = milestonesOf(goal.id)
   const of = milestones.length + 1
   const hit = goal.status === 'reached' ? of : milestones.filter((milestone) => milestone.status === 'hit').length
-  return { ...goalOut(goal), progress: { hit, of } }
+  return { hit, of }
 }
 
 // A target change adds a row, or updates this week's; the latest is the one shown.
@@ -519,7 +530,7 @@ function findGoal(goalId: string): StoredGoal {
   return goal
 }
 
-function findMilestone(milestoneId: string): Milestone {
+function findMilestone(milestoneId: string): StoredMilestone {
   const milestone = store.milestones.find((candidate) => candidate.id === milestoneId)
   if (!milestone) throw new NotFoundError(`No milestone with id ${milestoneId}`)
   return milestone
@@ -533,8 +544,33 @@ function findActiveGoal(goalId: string): StoredGoal {
 }
 
 // In the goal's order.
-function milestonesOf(goalId: string): Milestone[] {
+function milestonesOf(goalId: string): StoredMilestone[] {
   return store.milestones.filter((milestone) => milestone.goalId === goalId)
+}
+
+// As the API sends one: numbered in the goal's order, with its latest
+// check-in's result while it's hit or not yet.
+function milestoneOut(milestone: StoredMilestone): Milestone {
+  const { goalId, ...fields } = milestone
+  const position = milestonesOf(goalId).indexOf(milestone) + 1
+  if (milestone.status === 'upcoming') return { ...fields, position, result: null }
+  const own = store.checkIns.filter((checkIn) => checkIn.milestoneId === milestone.id)
+  const latest = own.findLast((checkIn) => checkIn.outcome === 'hit') ?? newest(own)
+  return { ...fields, position, result: latest?.result ?? null }
+}
+
+// "Latest" on the goal's page: its newest check-in with a result.
+function latestResult(goalId: string): GoalDetail['latest'] {
+  const latest = newest(store.checkIns.filter((checkIn) => checkIn.goalId === goalId && checkIn.result))
+  return latest ? { result: latest.result!, checkedInOn: latest.checkedInOn } : null
+}
+
+// The latest day; on the same day, the one kept last.
+function newest(checkIns: StoredCheckIn[]): StoredCheckIn | undefined {
+  return checkIns.reduce<StoredCheckIn | undefined>(
+    (latest, checkIn) => (!latest || checkIn.checkedInOn >= latest.checkedInOn ? checkIn : latest),
+    undefined,
+  )
 }
 
 // The rule setWeeklyTarget enforces, for a new goal.

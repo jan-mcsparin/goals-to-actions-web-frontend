@@ -28,9 +28,12 @@ export function withTargets(goals: Goal[], targets: TargetFor[] = []): Goal[] {
   })
 }
 
+// A milestone given with its goal, for counting.
+export type MilestoneFor = Pick<Milestone, 'id' | 'measurableLine' | 'status'> & { goalId: string }
+
 // Each goal as listGoals sends it, its progress counted from the milestones
 // given, as the API counts it: hits plus the goal, which a reached goal fills.
-export function listed(goals: Goal[], milestones: Milestone[] = []): ListedGoal[] {
+export function listed(goals: Goal[], milestones: MilestoneFor[] = []): ListedGoal[] {
   return goals.map((goal) => {
     const own = milestones.filter((milestone) => milestone.goalId === goal.id)
     const of = own.length + 1

@@ -21,17 +21,10 @@ export type GoalStatus = Goal['status']
 // itself, which a reached goal fills.
 export type ListedGoal = Schemas['ListedGoal']
 
-export type MilestoneStatus = 'upcoming' | 'hit' | 'notYet'
-
-export type Milestone = {
-  id: string
-  goalId: string
-  measurableLine: string
-  status: MilestoneStatus
-  result?: string
-  targetDate?: string
-  checkedInOn?: string
-}
+// In the goal's order (position 1, 2, …). result is its latest check-in's,
+// hit or not yet; null while it's upcoming.
+export type Milestone = Schemas['Milestone']
+export type MilestoneStatus = Milestone['status']
 
 // A count ("3 lifting sessions") or an amount ("25 miles over 4 runs"). The
 // screens make count targets only for now (#32).
@@ -152,11 +145,10 @@ export type AspirationDetail = {
 }
 
 // One goal's page, as records. Laid out by domain/goalDetail.ts.
-export type GoalDetail = {
-  goal: Goal
-  aspiration?: Aspiration
-  milestones: Milestone[] // in order
-}
+// The API's page: the goal, its aspiration's name, its milestones, "2 of 6"
+// (a reached goal complete) and the latest check-in with a result.
+export type GoalDetail = Schemas['GoalPage']
+export type AspirationRef = Schemas['AspirationRef']
 
 // Keep life running: what has to happen but rolls up to no goal or aspiration.
 export type Upkeep = {

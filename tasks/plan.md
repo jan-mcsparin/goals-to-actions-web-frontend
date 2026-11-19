@@ -17,7 +17,7 @@ There are two PRs:
 2. **#33 goes in whole; #32 as data shape only.** The UI makes count targets only: `kind: 'count'`, with `sessions` taking the number the form has called `amount`.
 3. **One client function per API operation**, mock and real alike.
 4. **The goal page names its aspiration:** `aspiration: { id, name } | null`.
-5. **Each milestone on the goal page carries `result`:** the result of its latest hit check-in, or `null`. The timeline keeps showing "Hit · Bench 150", and #33's "nothing changes on screen" holds.
+5. **Each milestone on the goal page carries `result`:** the result of its latest check-in, hit or not yet, or `null` while it's upcoming. The timeline keeps showing "Hit · Bench 150" and "Not yet · Bench 152", the not-yet card keeps "Now: bench 152.", and #33's "nothing changes on screen" holds. (Widened from hit check-ins only during Task 5: API #30.)
 
 ## Dependency graph
 

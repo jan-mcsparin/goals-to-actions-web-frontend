@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { countTarget, GOAL_DEFAULTS, listed, type TargetFor, withTargets } from '../test/goals.ts'
+import { countTarget, GOAL_DEFAULTS, listed, type MilestoneFor, type TargetFor, withTargets } from '../test/goals.ts'
 import type {
   Aspiration,
   AspirationDetail,
   Goal,
-  Milestone,
   MilestoneStatus,
   RecurringItem,
   Task,
@@ -41,7 +40,7 @@ function goal(id: string, extra: Partial<Goal> = {}): Goal {
   }
 }
 
-function milestones(goalId: string, ...statuses: MilestoneStatus[]): Milestone[] {
+function milestones(goalId: string, ...statuses: MilestoneStatus[]): MilestoneFor[] {
   return statuses.map((status, index) => ({ id: `${goalId}-ms-${index}`, goalId, measurableLine: 'A step', status }))
 }
 
@@ -68,7 +67,7 @@ function recurring(name: string, active = true): RecurringItem {
 // the progress the API would send.
 type DetailParts = Partial<Omit<AspirationDetail, 'goals'>> & {
   goals?: Goal[]
-  milestones?: Milestone[]
+  milestones?: MilestoneFor[]
   weeklyTargets?: TargetFor[]
 }
 

@@ -127,7 +127,7 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
     if (!milestone) return
     const pendingId = `pending-${++pendingCount.current}`
     saveOptimistically(
-      (before) => withMilestone(before, { id: pendingId, goalId, status: 'upcoming', ...milestone }),
+      (before) => withMilestone(before, pendingId, milestone),
       () => saveMilestone(goalId, milestone),
       (shown, saved) => ({ ...shown, milestones: shown.milestones.map((row) => (row.id === pendingId ? saved : row)) }),
     )

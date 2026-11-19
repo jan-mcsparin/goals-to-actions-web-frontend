@@ -11,7 +11,7 @@ This takes in #33 (each check-in its own record) in full, and the data shape of 
 ### What exists afterwards
 
 1. **Goals, weekly targets and milestones come from the generated types.** The hand-written `Goal`, `Milestone`, `WeeklyTarget`, `NewGoal` and `GoalDetail` go. The mock is reshaped to match: `endedOn`, not `endedAt`; no `lastReviewedAt`; `slipped`; the target inside the goal; a milestone's `position`; empty fields `null`.
-2. **Check-ins are records** (#33). A milestone has no `checkedInOn`; its `result` is read from its latest hit check-in (decision 5). The goal's page shows `latest` and `progress` from the page read. Keep, move or adjust after "not yet" leaves the history alone.
+2. **Check-ins are records** (#33). A milestone has no `checkedInOn`; its `result` is read from its latest check-in, hit or not yet (decision 5). The goal's page shows `latest` and `progress` from the page read. Keep, move or adjust after "not yet" leaves the history alone.
 3. **One client function per API operation**, the same in mock and real: `createGoal`, `endGoal`, `markGoalReached`, `pauseGoal`, `resumeGoal`, `reopenGoal`, `goAgain`, `setWeeklyTarget`, `addMilestone`, `updateMilestone`, `keepMilestone`, `checkIn`. Each milestone and check-in write returns the goal's page, so `useGoal` shows the response instead of reloading. A hit on the goal's own line marks the goal reached on the server (and in the mock), so the hook no longer makes a second call.
 4. **The tab and an aspiration's page read goals from `listGoals`**, with each goal's `progress` (decision 1). Counts like "2 of 5" come from it, not from milestone rows.
 5. **The Add sheet's goal form creates goals on the API** with a device-made id and, for a building goal, its count target.
@@ -67,7 +67,7 @@ This takes in #33 (each check-in its own record) in full, and the data shape of 
 2. **#33 is taken in whole, #32 as data shape only.** Targets are count targets in the UI; `kind` is always `count` from the form.
 3. **Client functions follow the API one for one**, in mock and real. Hooks change; screens shouldn't.
 4. **The goal's page read names its aspiration.** The same API change adds `aspiration: { id, name } | null` to the goal page, for "Be fit ›" and "What's next for Be fit?".
-5. **Each milestone on the goal page carries `result`:** the result of its latest hit check-in, or `null`. The timeline keeps showing "Hit · Bench 150". Same API change.
+5. **Each milestone on the goal page carries `result`:** the result of its latest check-in, hit or not yet, or `null` while it's upcoming. The timeline keeps showing "Hit · Bench 150" and "Not yet · Bench 152", and the not-yet card "Now: bench 152." (API #26, widened to not-yet check-ins in API #30 on 2026-11-18.)
 
 ## Assumed
 

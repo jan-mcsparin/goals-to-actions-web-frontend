@@ -404,7 +404,7 @@ describe('getAspirations', () => {
   // As the API counts it: milestones hit, plus the goal itself, which a
   // reached goal fills (milestones never checked in were passed on the way).
   it('gives each goal its progress, a reached goal complete', async () => {
-    store.milestones.push({ id: 'ms-5k-1', goalId: 'goal-5k', measurableLine: 'Run 3k', status: 'upcoming' })
+    store.milestones.push({ id: 'ms-5k-1', goalId: 'goal-5k', measurableLine: 'Run 3k', status: 'upcoming', targetDate: null })
 
     const { goals } = await getAspirations()
 
@@ -546,6 +546,34 @@ describe('getGoal', () => {
     expect(detail.goal.weeklyTarget).toMatchObject({ sessions: 3, unit: 'lifting sessions', effectiveFrom: '2026-10-05' })
   })
 
+  // The API's page: each milestone's position and latest result (none while
+  // upcoming), progress, the latest check-in with a result, and the aspiration.
+  it("returns the API's page for a goal", async () => {
+    const detail = await getGoal('goal-strong')
+
+    expect(detail.aspiration).toEqual({ id: 'asp-fit', name: 'Be fit' })
+    expect(detail.milestones.slice(0, 3)).toEqual([
+      { id: 'ms-strong-1', position: 1, measurableLine: 'Bench 150, squat 285, deadlift 325', targetDate: '2026-11-02', status: 'hit', result: 'Bench 150, squat 290, deadlift 330' },
+      { id: 'ms-strong-2', position: 2, measurableLine: 'Bench 155, squat 300, deadlift 345', targetDate: '2026-11-06', status: 'notYet', result: 'Bench 152, squat 300, deadlift 340' },
+      { id: 'ms-strong-3', position: 3, measurableLine: 'Bench 160, squat 310, deadlift 355', targetDate: '2026-11-30', status: 'upcoming', result: null },
+    ])
+    expect(detail.progress).toEqual({ hit: 1, of: 6 })
+    expect(detail.latest).toEqual({ result: 'Bench 152, squat 300, deadlift 340', checkedInOn: '2026-11-06' })
+  })
+
+  it("gives every goal the progress the Aspirations tab lists for it", async () => {
+    const { goals } = await getAspirations()
+
+    for (const goal of goals) expect((await getGoal(goal.id)).progress).toEqual(goal.progress)
+  })
+
+  it('has no latest result before any check-in with one, and no aspiration for a loose goal', async () => {
+    const detail = await getGoal('goal-taxes')
+
+    expect(detail.latest).toBeNull()
+    expect(detail.aspiration).toBeNull()
+  })
+
   // As the API does: a change waiting for next week shows, with its effectiveFrom.
   it('returns the latest target, even one that starts next week', async () => {
     store.weeklyTargets.push(
@@ -570,7 +598,7 @@ describe('getGoal', () => {
     const detail = await getGoal('goal-taxes')
 
     expect(detail.goal.status).toBe('reached')
-    expect(detail.aspiration).toBeUndefined()
+    expect(detail.aspiration).toBeNull()
     expect(detail.milestones).toEqual([])
     expect(detail.goal.weeklyTarget).toBeNull()
   })
@@ -668,11 +696,13 @@ describe('addMilestone', () => {
   it('adds an upcoming milestone after the goal’s last one', async () => {
     const milestone = await addMilestone('goal-strong', { measurableLine: ' Bench 172 ', targetDate: '2027-02-01' })
 
-    expect(milestone).toMatchObject({
-      goalId: 'goal-strong',
+    expect(milestone).toEqual({
+      id: milestone.id,
+      position: 6,
       measurableLine: 'Bench 172',
       status: 'upcoming',
       targetDate: '2027-02-01',
+      result: null,
     })
     const { milestones } = await getGoal('goal-strong')
     expect(milestones.map((row) => row.id).at(-1)).toBe(milestone.id)
@@ -682,7 +712,7 @@ describe('addMilestone', () => {
   it('adds one with no date, and a goal’s first', async () => {
     const milestone = await addMilestone('goal-cook', { measurableLine: 'Cook 3 nights a week' })
 
-    expect(milestone.targetDate).toBeUndefined()
+    expect(milestone.targetDate).toBeNull()
     expect((await getGoal('goal-cook')).milestones.map((row) => row.id)).toEqual([milestone.id])
   })
 
@@ -704,23 +734,34 @@ describe('checkInMilestone', () => {
     return store.milestones.find((milestone) => milestone.id === id)!
   }
 
-  it('marks Next hit with today and the result, so the following one is Next', async () => {
+  it('marks Next hit with the result, so the following one is Next', async () => {
     const checked = await checkInMilestone('ms-strong-2', 'hit', ' Bench 155, squat 305, deadlift 350 ')
 
-    expect(checked).toMatchObject({
-      status: 'hit',
-      result: 'Bench 155, squat 305, deadlift 350',
-      checkedInOn: WEDNESDAY_DAY,
-    })
+    expect(checked).toMatchObject({ status: 'hit', result: 'Bench 155, squat 305, deadlift 350' })
     await expect(checkInMilestone('ms-strong-3', 'notYet')).resolves.toMatchObject({ status: 'notYet' })
   })
 
-  it('marks not yet with the result, and keeps no blank result', async () => {
+  it('marks not yet, and keeps no blank result', async () => {
     const checked = await checkInMilestone('ms-strong-2', 'notYet', '   ')
 
-    expect(checked.status).toBe('notYet')
-    expect(checked.checkedInOn).toBe(WEDNESDAY_DAY)
-    expect(checked).not.toHaveProperty('result')
+    expect(checked).toMatchObject({ status: 'notYet', result: null })
+  })
+
+  // #33: each check-in is its own record, and Latest is the newest with a result.
+  it('keeps every check-in, dated today, and moves Latest to the newest with a result', async () => {
+    const before = store.checkIns.length
+
+    await checkInMilestone('ms-strong-2', 'notYet', 'Bench 153, squat 300, deadlift 340')
+    await checkInMilestone('ms-strong-2', 'hit')
+
+    expect(store.checkIns.slice(before)).toEqual([
+      expect.objectContaining({ goalId: 'goal-strong', milestoneId: 'ms-strong-2', outcome: 'notYet', result: 'Bench 153, squat 300, deadlift 340', checkedInOn: WEDNESDAY_DAY }),
+      expect.objectContaining({ goalId: 'goal-strong', milestoneId: 'ms-strong-2', outcome: 'hit', result: null, checkedInOn: WEDNESDAY_DAY }),
+    ])
+    const detail = await getGoal('goal-strong')
+    expect(detail.latest).toEqual({ result: 'Bench 153, squat 300, deadlift 340', checkedInOn: WEDNESDAY_DAY })
+    expect(detail.milestones[1]).toMatchObject({ status: 'hit', result: null })
+    expect(detail.progress).toEqual({ hit: 2, of: 6 })
   })
 
   it('takes only Next on a building goal, but any step not done on a one-off goal', async () => {
@@ -739,7 +780,7 @@ describe('checkInMilestone', () => {
 })
 
 describe('reopenMilestone', () => {
-  function datesOf(milestones: { targetDate?: string }[]) {
+  function datesOf(milestones: { targetDate: string | null }[]) {
     return milestones.map((milestone) => milestone.targetDate)
   }
 
@@ -747,14 +788,24 @@ describe('reopenMilestone', () => {
     const milestones = await reopenMilestone('ms-strong-2')
 
     expect(milestones.map((milestone) => milestone.status)).toEqual(['hit', 'upcoming', 'upcoming', 'upcoming', 'upcoming'])
-    expect(datesOf(milestones)).toEqual(['2026-11-02', '2026-11-06', '2026-11-30', undefined, undefined])
-    expect(milestones[1].result).toBe('Bench 152, squat 300, deadlift 340')
+    expect(datesOf(milestones)).toEqual(['2026-11-02', '2026-11-06', '2026-11-30', null, null])
+    expect(milestones[1].result).toBeNull()
+  })
+
+  // #33: the not-yet check-in stays in the history; it's what moved on.
+  it('leaves the check-in history alone, whichever way it goes', async () => {
+    const history = structuredClone(store.checkIns)
+
+    await reopenMilestone('ms-strong-2', { targetDate: '2026-11-27' })
+
+    expect(store.checkIns).toEqual(history)
+    expect((await getGoal('goal-strong')).latest).toEqual({ result: 'Bench 152, squat 300, deadlift 340', checkedInOn: '2026-11-06' })
   })
 
   it('moves the date three weeks later and pushes the next one by three weeks', async () => {
     const milestones = await reopenMilestone('ms-strong-2', { targetDate: '2026-11-27' })
 
-    expect(datesOf(milestones)).toEqual(['2026-11-02', '2026-11-27', '2026-12-21', undefined, undefined])
+    expect(datesOf(milestones)).toEqual(['2026-11-02', '2026-11-27', '2026-12-21', null, null])
     expect(datesOf((await getGoal('goal-strong')).milestones)).toEqual(datesOf(milestones))
   })
 
@@ -763,7 +814,7 @@ describe('reopenMilestone', () => {
 
     const milestones = await reopenMilestone('ms-strong-2', { targetDate: '2026-11-27' })
 
-    expect(datesOf(milestones)).toEqual(['2026-11-02', '2026-11-27', '2026-12-10', undefined, undefined])
+    expect(datesOf(milestones)).toEqual(['2026-11-02', '2026-11-27', '2026-12-10', null, null])
   })
 
   it('adjusts the line, trimmed', async () => {

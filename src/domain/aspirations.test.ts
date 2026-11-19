@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { countTarget, GOAL_DEFAULTS, listed, type TargetFor, withTargets } from '../test/goals.ts'
+import { countTarget, GOAL_DEFAULTS, listed, type MilestoneFor, type TargetFor, withTargets } from '../test/goals.ts'
 import type {
   Aspiration,
   AspirationsOverview,
   Goal,
   ListedGoal,
-  Milestone,
   RecurringItem,
   Task,
 } from '../api/types.ts'
@@ -63,7 +62,7 @@ function recurring(name: string, aspirationId?: string, active = true): Recurrin
 // the progress the API would send.
 type OverviewParts = Partial<Omit<AspirationsOverview, 'goals'>> & {
   goals?: Goal[]
-  milestones?: Milestone[]
+  milestones?: MilestoneFor[]
   weeklyTargets?: TargetFor[]
 }
 
