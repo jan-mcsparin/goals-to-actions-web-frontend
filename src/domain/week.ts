@@ -3,6 +3,7 @@
 import { addDays, fromLocalDay, toLocalDay } from '../api/dates.ts'
 import type { Goal, Task, WeekPlan } from '../api/types.ts'
 import { goalSubline, goalsByPriority, inDayOrder, timeLabel } from './today.ts'
+import { isDone, isOnDay, isPlanned } from './tasks'
 
 export type Pacing = {
   done: number
@@ -53,7 +54,7 @@ export function weekProgress(plan: WeekPlan, today: string): ProgressRow[] {
     const target = goal.weeklyTarget
     if (!target || goal.type !== 'building' || goal.status !== 'active') return []
     const goalTasks = plan.tasks.filter((task) => task.goalId === goal.id)
-    const done = goalTasks.filter((task) => task.status === 'done').length
+    const done = goalTasks.filter(isDone).length
     const plannedAhead = goalTasks.filter((task) => isPlannedOnOrAfter(task, today)).length
     return [progressRow(goal, plan, { done, plannedAhead, target: target.sessions, daysLeft: left })]
   })
@@ -62,13 +63,13 @@ export function weekProgress(plan: WeekPlan, today: string): ProgressRow[] {
 export function daySummaries(plan: WeekPlan, today: string): DaySummary[] {
   return daysOf(plan.weekOf).map((date) => {
     const tasks = inDayOrder(
-      plan.tasks.filter((task) => task.plannedDay === date && (task.status === 'planned' || task.status === 'done')),
+      plan.tasks.filter((task) => isOnDay(task, date)),
     )
     return {
       date,
       weekday: fromLocalDay(date).toLocaleDateString('en-US', { weekday: 'short' }),
       summary: tasks.length ? tasks.map(summaryTitle).join(' · ') : 'Free day',
-      allDone: tasks.length > 0 && tasks.every((task) => task.status === 'done'),
+      allDone: tasks.length > 0 && tasks.every(isDone),
       isToday: date === today,
       isPast: date < today,
     }
@@ -103,7 +104,7 @@ function daysOf(weekOf: string): string[] {
 }
 
 function isPlannedOnOrAfter(task: Task, today: string): boolean {
-  return task.status === 'planned' && task.plannedDay !== undefined && task.plannedDay >= today
+  return isPlanned(task) && task.plannedDay !== undefined && task.plannedDay >= today
 }
 
 function progressRow(goal: Goal, plan: WeekPlan, pacing: Pacing): ProgressRow {

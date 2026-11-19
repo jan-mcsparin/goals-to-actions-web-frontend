@@ -14,6 +14,7 @@ import {
 } from '../domain/week.ts'
 import { withTaskReplaced } from './planUpdates.ts'
 import { useLoaded } from './useLoaded.ts'
+import { isInBank, placedOnDay } from '../domain/tasks'
 
 const LOAD_FAILED = "Couldn't load this week. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
@@ -41,7 +42,7 @@ export function useWeek(today: string): UseWeek {
     const before = plan?.tasks.find((task) => task.id === bankTaskId)
     if (!before) return
 
-    replaceTask({ ...before, status: 'planned', plannedDay: date, placedByHand: true })
+    replaceTask(placedOnDay(before, date))
     setMessage(undefined)
 
     pullFromBank(bankTaskId, date)
@@ -64,7 +65,7 @@ function viewOf(plan: WeekPlan, today: string): WeekView {
   return {
     progress: weekProgress(plan, today),
     days: daySummaries(plan, today),
-    bank: plan.tasks.filter((task) => task.status === 'inBank'),
+    bank: plan.tasks.filter(isInBank),
     pickableDays: pickableDays(plan.weekOf, today),
   }
 }

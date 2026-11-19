@@ -4,6 +4,7 @@
 // Nothing here paces or warns.
 import { fromLocalDay } from '../api/dates.ts'
 import type { Aspiration, AspirationsOverview, Goal, GoalType, ListedGoal } from '../api/types.ts'
+import { isDone } from './tasks'
 
 export type GoalRow = {
   goalId: string
@@ -85,7 +86,7 @@ export function weekCount(
     if (goal.aspirationId !== aspirationId || goal.status !== 'active' || goal.type !== 'building') return []
     const target = goal.weeklyTarget
     if (!target) return []
-    const done = overview.weekTasks.filter((task) => task.goalId === goal.id && task.status === 'done').length
+    const done = overview.weekTasks.filter((task) => task.goalId === goal.id && isDone(task)).length
     return [{ done: Math.min(done, target.sessions), total: target.sessions }]
   })
   if (counted.length === 0) return undefined

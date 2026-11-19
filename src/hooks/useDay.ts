@@ -24,6 +24,7 @@ import {
 import { readTodayView, saveTodayView, type TodayViewMode } from '../storage/viewPreference.ts'
 import { withTaskReplaced } from './planUpdates.ts'
 import { useLoaded } from './useLoaded.ts'
+import { checkedOff, isDone, placedOnDay, uncheckedOff } from '../domain/tasks'
 
 const LOAD_FAILED = "Couldn't load today. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
@@ -85,8 +86,8 @@ export function useDay(date: string, today: string): UseDay {
     const before = plan?.tasks.find((task) => task.id === taskId)
     if (!before) return
 
-    const undoing = before.status === 'done'
-    replaceTask(undoing ? asPlanned(before) : asDone(before))
+    const undoing = isDone(before)
+    replaceTask(undoing ? uncheckedOff(before) : checkedOff(before, new Date().toISOString()))
     setMessage(undefined)
     const isLatest = startRequest(taskId)
 
@@ -118,7 +119,7 @@ export function useDay(date: string, today: string): UseDay {
     const task = bank?.tasks.find((candidate) => candidate.id === bankTaskId)
     if (!bank || !plan || !task) return
 
-    const placed: Task = { ...task, status: 'planned', plannedDay: plan.date, placedByHand: true }
+    const placed = placedOnDay(task, plan.date)
     setPlan((previous) => previous && withTaskAppended(withRecordsFrom(previous, bank), placed))
     setBank((previous) => previous && bankWithout(previous, bankTaskId))
     setMessage(undefined)
@@ -153,7 +154,7 @@ export function useDay(date: string, today: string): UseDay {
     const bankTask = bank?.tasks.find((task) => task.id === bankTaskId)
     if (!plan || !bank || !before || !bankTask) return
 
-    const placed: Task = { ...bankTask, status: 'planned', plannedDay: plan.date, placedByHand: true }
+    const placed = placedOnDay(bankTask, plan.date)
     setPlan((previous) => previous && withTaskReplaced(withRecordsFrom(previous, bank), taskId, placed))
     setBank((previous) => previous && bankWithout(previous, bankTaskId))
     setMessage(undefined)
@@ -226,12 +227,4 @@ function withRecordsFrom(plan: DayPlan, bank: Bank): DayPlan {
 function unionById<T extends { id: string }>(existing: T[], incoming: T[]): T[] {
   const known = new Set(existing.map((record) => record.id))
   return [...existing, ...incoming.filter((record) => !known.has(record.id))]
-}
-
-function asDone(task: Task): Task {
-  return { ...task, status: 'done', completedAt: new Date().toISOString() }
-}
-
-function asPlanned({ completedAt: _completedAt, valueLogged: _valueLogged, ...task }: Task): Task {
-  return { ...task, status: 'planned' }
 }

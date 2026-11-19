@@ -5,6 +5,7 @@ import { mondayOfDay } from '../api/dates.ts'
 import type { Aspiration, Goal, GoalType, NewGoal, NewRecurringItem, NewTask, Schedule, Task } from '../api/types.ts'
 import { dayLabel, isWithinGoal, parsedTarget, type TargetDraft } from './goalDetail.ts'
 import { ordinal, repeatText, weekdayName, type Weekday } from './recurring.ts'
+import { isPlanned, weekOf } from './tasks'
 
 // This week's Monday, or the Monday of the due date's week when that's later.
 export function taskWeek(dueDate: string | undefined, today: string): string {
@@ -15,8 +16,8 @@ export function taskWeek(dueDate: string | undefined, today: string): string {
 }
 
 export function taskConfirmation(task: Pick<Task, 'status' | 'weekOf'>, today: string): string {
-  if (task.status === 'planned') return 'Added to today.'
-  if (task.weekOf > mondayOfDay(today)) return `Saved for the week of ${dayLabel(task.weekOf, today)}.`
+  if (isPlanned(task)) return 'Added to today.'
+  if (weekOf(task) > mondayOfDay(today)) return `Saved for the week of ${dayLabel(weekOf(task), today)}.`
   return "Added to this week's bank."
 }
 

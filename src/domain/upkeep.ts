@@ -4,6 +4,7 @@
 import { fromLocalDay, mondayOfDay } from '../api/dates.ts'
 import type { Task, Upkeep } from '../api/types.ts'
 import { repeatText } from './recurring.ts'
+import { weekOf } from './tasks'
 
 export type RecurringRow = {
   id: string
@@ -37,7 +38,7 @@ export function upkeepView(upkeep: Upkeep, today: string): UpkeepView {
 
 // "Today", "Thursday", "In the bank", or "Week of Nov 23" for a later week.
 export function whereLabel(task: Task, today: string): string {
-  if (task.weekOf > mondayOfDay(today)) return `Week of ${shortDate(task.weekOf)}`
+  if (weekOf(task) > mondayOfDay(today)) return `Week of ${shortDate(weekOf(task))}`
   if (task.plannedDay === undefined) return 'In the bank'
   if (task.plannedDay === today) return 'Today'
   return fromLocalDay(task.plannedDay).toLocaleDateString('en-US', { weekday: 'long' })
@@ -47,7 +48,7 @@ export function whereLabel(task: Task, today: string): string {
 function inPlanOrder(tasks: Task[]): Task[] {
   return [...tasks].sort(
     (a, b) =>
-      a.weekOf.localeCompare(b.weekOf) ||
+      weekOf(a).localeCompare(weekOf(b)) ||
       Number(a.plannedDay === undefined) - Number(b.plannedDay === undefined) ||
       (a.plannedDay ?? '').localeCompare(b.plannedDay ?? ''),
   )

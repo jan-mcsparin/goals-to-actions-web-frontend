@@ -14,12 +14,12 @@ Test dates are fixed to Wednesday 11 Nov 2026, or to a Sunday evening where a te
 
 ### Task 1: Read task state through one module
 
-**Description:** `domain/tasks.ts`: `isOnDay(task, day?)`, `isInBank`, `isDone`, `isSetAside`, `weekOf` and `timesCarriedOver`, over today's `Task`. Every reader in `domain/`, `hooks/`, `components/` and `api/client.ts` switches to them. Nothing else changes.
+**Description:** `domain/tasks.ts`: `isOnDay(task, day?)`, `isInBank`, `isDone`, `isPlanned`, `weekOf`, and the writers `placedOnDay`, `checkedOff`, `uncheckedOff` (`isSetAside` and `timesCarriedOver` have no reader outside the client and mock, so they wait for task 2), over today's `Task`. Every reader in `domain/`, `hooks/`, `components/` and `api/client.ts` switches to them. Nothing else changes.
 
 **Acceptance criteria:**
-- [ ] Outside `domain/tasks.ts`, `client.ts` and `mockData.ts`, nothing reads `status`, `weekOf` or `rolloverCount` (a grep in the task's notes).
-- [ ] Each helper has tests, set-aside tasks included.
-- [ ] Every existing test passes unchanged.
+- [x] Outside `domain/tasks.ts`, `client.ts` and `mockData.ts`, nothing reads `status`, `weekOf` or `rolloverCount` (a grep in the task's notes: only the Add form's `Placement` and `WeekPlan.weekOf` remain, neither a task's).
+- [x] Each helper has tests, set-aside tasks included.
+- [x] Every existing test passes unchanged.
 
 **Verification:** `npm test && npm run lint && npm run build`.
 

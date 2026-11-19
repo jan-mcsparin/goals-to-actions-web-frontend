@@ -8,6 +8,7 @@ import { goalProgress, weekCount } from './aspirations.ts'
 import { dayLabel } from './goalDetail.ts'
 import { daysLeft, daysLeftLabel } from './week.ts'
 import { repeatText } from './recurring.ts'
+import { isDone } from './tasks'
 
 export type GoalCard = {
   goalId: string
@@ -167,7 +168,7 @@ function weekLineFor(goal: Goal, detail: AspirationDetail): string | undefined {
   if (goal.type !== 'building' || goal.status !== 'active') return undefined
   const target = goal.weeklyTarget
   if (!target) return 'No weekly target yet'
-  const done = detail.weekTasks.filter((task) => task.goalId === goal.id && task.status === 'done').length
+  const done = detail.weekTasks.filter((task) => task.goalId === goal.id && isDone(task)).length
   return `This week: ${done} of ${target.sessions} ${target.unit}`
 }
 
