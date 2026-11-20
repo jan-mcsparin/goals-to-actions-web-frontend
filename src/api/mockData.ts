@@ -34,6 +34,8 @@ export type StoredCheckIn = {
 
 // A task as the mock stores it: the API's, plus whether it's set aside. The API sends a
 // set-aside task with no week, like one that's waiting, and the mock needs to tell them apart.
+// Like atClose, its aspiration and whether it's fixed to its day are stored empty and worked
+// out when it's read, as the API does.
 export type StoredTask = Task & { setAside: boolean }
 
 export type MockData = {
@@ -484,7 +486,9 @@ function storedTask(fields: TaskFields): StoredTask {
     state,
     goalId: null,
     goalLabel: null,
+    aspiration: null,
     recurringItemId: null,
+    fixedDay: false,
     dueDate: null,
     timeOfDay: null,
     valueLogged: null,

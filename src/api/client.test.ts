@@ -400,6 +400,32 @@ describe('getWeek', () => {
     expect(ids(week.aspirations)).toContain('asp-fit')
   })
 
+  it("names each task's aspiration, by its goal, with its priority", async () => {
+    const { tasks } = await getWeek()
+    const byId = new Map(tasks.map((task) => [task.id, task]))
+
+    expect(byId.get('task-lift-today')?.aspiration).toEqual({ id: 'asp-fit', name: 'Be fit', position: 1 })
+    expect(byId.get('task-groceries')?.aspiration).toBeNull()
+  })
+
+  it('names a retired aspiration with no priority', async () => {
+    const fit = store.aspirations.find((aspiration) => aspiration.id === 'asp-fit')!
+    Object.assign(fit, { status: 'retired', position: null, retiredOn: '2026-11-10' })
+
+    const lift = (await getWeek()).tasks.find((task) => task.id === 'task-lift-today')
+
+    expect(lift?.aspiration).toEqual({ id: 'asp-fit', name: 'Be fit', position: null })
+  })
+
+  it("marks a weekly or monthly item's task fixed to its day, and no other", async () => {
+    const { tasks } = await getWeek()
+    const fixed = (recurringItemId: string) => tasks.filter((task) => task.recurringItemId === recurringItemId).map((task) => task.fixedDay)
+
+    expect(fixed('rec-trash')).toEqual([true])
+    expect(fixed('rec-laundry').every((isFixed) => !isFixed)).toBe(true)
+    expect(tasks.find((task) => task.id === 'task-groceries')?.fixedDay).toBe(false)
+  })
+
   it("gives each goal its weekly target, as the API sends it", async () => {
     const { goals } = await getWeek()
 

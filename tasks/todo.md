@@ -13,23 +13,23 @@ Every front-end task:
 **Description:** API #45. Each task gains `aspiration` (`{ id, name, position } | null`, from its goal; `position` null when retired) and `fixedDay` (from a weekly or monthly recurring item); each `WeekGoal` gains `aspiration`. Added to every query that builds a task (`GetTaskView`, `ListWeekTasks`, `ListSteps`, the upcoming list), so every task response has the same shape. Its own branch and PR in `api/`.
 
 **Acceptance criteria:**
-- [ ] The week read, the upcoming list and every task write return both fields.
-- [ ] A task with no goal, or a goal with no aspiration, has `aspiration: null`; a retired aspiration has `position: null`.
-- [ ] Additive only: `test_repeats.py` and `test_queued_writes.py` still pass unchanged.
-- [ ] `openapi.json` regenerated; ruff, mypy and pytest pass.
+- [x] The week read, the upcoming list and every task write return both fields.
+- [x] A task with no goal, or a goal with no aspiration, has `aspiration: null`; a retired aspiration has `position: null`.
+- [x] Additive only: `test_repeats.py` and `test_queued_writes.py` still pass unchanged.
+- [x] `openapi.json` regenerated; ruff, mypy and pytest pass.
 
 **Files:** `db/queries/tasks.sql`, `app/db/` (sqlc), `app/tasks/models.py`, `app/tasks/week.py`, `tests/`, `openapi.json`
 
-**Dependencies:** None · **Scope:** M
+**Dependencies:** None · **Scope:** M · Done: API PR #46
 
 ### Task 1: Tasks carry their aspiration and fixed day
 
-**Description:** `npm run api:types`. The mock works out `aspiration` and `fixedDay` when it sends a task (in `taskOut`, as it does `atClose`), so `StoredTask` leaves them out and `mockData.ts`'s rows don't change. The `aTask` fixture gains both, `null` and `false`.
+**Description:** `npm run api:types`. The mock works out `aspiration` and `fixedDay` when it sends a task (in `taskOut`, as it does `atClose`); like `atClose`, they're stored empty, so `mockData.ts`'s rows don't change. The `aTask` fixture gains both, `null` and `false`.
 
 **Acceptance criteria:**
-- [ ] A goal's task names its goal's aspiration with its position; a loose task and a goal with none have `null`; a retired aspiration has `position: null`.
-- [ ] A weekly or monthly recurring item's task is `fixedDay`; a flexible one's isn't.
-- [ ] Nothing on screen changes.
+- [x] A goal's task names its goal's aspiration with its position; a loose task and a goal with none have `null`; a retired aspiration has `position: null`.
+- [x] A weekly or monthly recurring item's task is `fixedDay`; a flexible one's isn't.
+- [x] Nothing on screen changes.
 
 **Files:** `src/api/openapi.ts` (generated), `src/api/mockData.ts`, `src/api/client.ts` (+ test), `src/test/tasks.ts`
 

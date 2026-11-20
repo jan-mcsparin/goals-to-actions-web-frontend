@@ -6,6 +6,7 @@ import { addDays, fromLocalDay, mondayOf, toLocalDay, weekAfter } from './dates.
 import { taskWeek } from '../domain/add.ts'
 import { checkedOff, inTheBank, isInBank, isPlanned, placedOnDay, uncheckedOff } from '../domain/tasks.ts'
 import { isWithinGoal, MOST_SESSIONS, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
+import { isFixedDay } from '../domain/recurring.ts'
 import { isIntensity } from '../domain/settings.ts'
 import { NotFoundError, SignedOutError } from './errors.ts'
 import { newDeviceId } from './ids.ts'
@@ -558,9 +559,21 @@ function replaceTask(stored: StoredTask, next: Task) {
   Object.assign(stored, next)
 }
 
-// A task as the API sends it: without what only the mock keeps, and with what closing would do.
+// A task as the API sends it: without what only the mock keeps, and with what closing would do,
+// its goal's aspiration and whether it stays on its day.
 function taskOut({ setAside: _setAside, ...task }: StoredTask): Task {
-  return structuredClone({ ...task, atClose: atCloseOf(task) })
+  return structuredClone({ ...task, atClose: atCloseOf(task), aspiration: aspirationOf(task), fixedDay: isFixedDayTask(task) })
+}
+
+function aspirationOf(task: Pick<Task, 'goalId'>): Task['aspiration'] {
+  const goal = store.goals.find((candidate) => candidate.id === task.goalId)
+  const aspiration = store.aspirations.find((candidate) => candidate.id === goal?.aspirationId)
+  return aspiration ? { id: aspiration.id, name: aspiration.name, position: aspiration.position } : null
+}
+
+function isFixedDayTask(task: Pick<Task, 'recurringItemId'>): boolean {
+  const item = store.recurringItems.find((candidate) => candidate.id === task.recurringItemId)
+  return item !== undefined && isFixedDay(item.schedule)
 }
 
 // What closing its week does to a task that's still open: by-hand and fixed-day tasks carry
@@ -587,7 +600,9 @@ function newStoredTask(fields: Pick<StoredTask, 'title' | 'origin'> & Partial<St
     state: 'open',
     goalId: null,
     goalLabel: null,
+    aspiration: null,
     recurringItemId: null,
+    fixedDay: false,
     dueDate: null,
     timeOfDay: null,
     valueLogged: null,

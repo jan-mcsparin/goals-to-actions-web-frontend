@@ -12,7 +12,7 @@ The plan screens move to the API in two PRs. First the API's week read gains wha
 - **`getDay` and `getBank` go; `dayOf` and `bankOf` draw from the week** (ADR-010). `useDay` reads the day's week once; the bank sheet is drawn from that same week, not loaded separately. #43 then stores that document and changes nothing here.
 - **`realPlan.ts` beside `realGoals.ts`**, one function per operation; `client.ts` picks mock or real per function, as now.
 - **The tab's bars read the week's `goals[].progress`**, in mock and real. `AspirationsOverview.weekTasks` and `AspirationDetail.weekTasks` become the current week's goals. The target in force that week comes with them (041's assumed decision 6).
-- **The mock works out `aspiration` and `fixedDay` when it sends a task**, as it already does `atClose`, so its stored rows and `mockData.ts` don't change.
+- **The mock works out `aspiration` and `fixedDay` when it sends a task**, as it already does `atClose`, stored empty like `atClose`, so `mockData.ts`'s rows don't change.
 - **The mock keeps its stand-ins** for the server until #43 (spec decision 2), but builds what it returns as the API's `Week`.
 
 ## Dependency graph
@@ -36,10 +36,10 @@ API #45 (aspiration + fixedDay on tasks and week goals)
 ## Task list
 
 ### Phase 0: the API (its own PR, in `api/`)
-- [ ] Task 0: The week read names aspirations and fixed days (API #45)
+- [x] Task 0: The week read names aspirations and fixed days (API #45)
 
 ### Phase 1: the week's shape, on mock
-- [ ] Task 1: Tasks carry their aspiration and fixed day
+- [x] Task 1: Tasks carry their aspiration and fixed day
 - [ ] Task 2: The mock sends the API's `Week`
 - [ ] Task 3: Today's sections drawn from a week
 - [ ] Task 4: `useDay` reads the week
