@@ -28,7 +28,8 @@
   color: var(--muted);
 }
 
-.settings-intensity h2 {
+.settings-intensity h2,
+.settings-account h2 {
   margin: 0 0 0.5rem;
   font-size: 0.9375rem;
   font-weight: 600;
@@ -82,7 +83,8 @@
   color: var(--muted);
 }
 
-.settings-export {
+.settings-export,
+.settings-sign-out {
   width: 100%;
   border-width: 0 0 1px;
   border-style: solid;
@@ -94,7 +96,13 @@
   text-align: left;
 }
 
-.settings-export:focus-visible {
+.settings-sign-out {
+  color: var(--accent);
+  font-weight: 400;
+}
+
+.settings-export:focus-visible,
+.settings-sign-out:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
 }

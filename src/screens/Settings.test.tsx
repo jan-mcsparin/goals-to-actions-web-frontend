@@ -40,7 +40,7 @@ describe('Settings', () => {
   it('pins the way back and the heading at the top', async () => {
     const user = userEvent.setup()
     const onBack = vi.fn()
-    render(<Settings onBack={onBack} />)
+    render(<Settings onBack={onBack} onSignOut={() => {}} />)
 
     const heading = screen.getByRole('heading', { level: 1, name: 'Settings' })
     const top = heading.closest('.screen-top') as HTMLElement
@@ -51,7 +51,7 @@ describe('Settings', () => {
   })
 
   it('shows Week starts Monday and Notifications Off, neither a control', () => {
-    render(<Settings onBack={() => {}} />)
+    render(<Settings onBack={() => {}} onSignOut={() => {}} />)
 
     expect(rowValue('Week starts')?.textContent).toBe('Monday')
     expect(rowValue('Notifications')?.textContent).toBe('Off')
@@ -66,7 +66,7 @@ describe('Settings', () => {
 
 describe('Settings, intensity', () => {
   it('offers the three intensities in a row, with Normal selected at first', async () => {
-    render(<Settings onBack={() => {}} />)
+    render(<Settings onBack={() => {}} onSignOut={() => {}} />)
 
     const group = await screen.findByRole('radiogroup', { name: 'Intensity' })
     expect(within(group).getAllByRole('radio').map((radio) => radio.closest('label')?.textContent)).toEqual([
@@ -81,7 +81,7 @@ describe('Settings, intensity', () => {
 
   it('saves a tapped intensity at once', async () => {
     const user = userEvent.setup()
-    render(<Settings onBack={() => {}} />)
+    render(<Settings onBack={() => {}} onSignOut={() => {}} />)
 
     await user.click(await screen.findByRole('radio', { name: 'Going hard' }))
 
@@ -91,7 +91,7 @@ describe('Settings, intensity', () => {
 
   it('moves the choice with the arrow keys', async () => {
     const user = userEvent.setup()
-    render(<Settings onBack={() => {}} />)
+    render(<Settings onBack={() => {}} onSignOut={() => {}} />)
 
     await user.click(await screen.findByRole('radio', { name: 'Normal' }))
     await user.keyboard('{ArrowRight}')
@@ -103,7 +103,7 @@ describe('Settings, intensity', () => {
   it('goes back to the earlier choice, with a message, when the save fails', async () => {
     vi.mocked(setIntensity).mockRejectedValueOnce(new Error('offline'))
     const user = userEvent.setup()
-    render(<Settings onBack={() => {}} />)
+    render(<Settings onBack={() => {}} onSignOut={() => {}} />)
 
     await user.click(await screen.findByRole('radio', { name: 'Easing off' }))
 
@@ -116,7 +116,7 @@ describe('Settings, export', () => {
   it('says export is coming later, and says it again after it clears', async () => {
     fakeTimeouts()
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    render(<Settings onBack={() => {}} />)
+    render(<Settings onBack={() => {}} onSignOut={() => {}} />)
     const exportRow = await screen.findByRole('button', { name: 'Export my data' })
 
     await user.click(exportRow)
@@ -135,7 +135,7 @@ describe('Settings, when it can’t load', () => {
     fakeTimeouts()
     vi.mocked(getSettings).mockRejectedValueOnce(new Error('offline'))
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    render(<Settings onBack={() => {}} />)
+    render(<Settings onBack={() => {}} onSignOut={() => {}} />)
 
     const message = await screen.findByRole('status')
     expect(message.textContent).toBe("Couldn't load settings. Try again in a moment.")
@@ -149,5 +149,44 @@ describe('Settings, when it can’t load', () => {
 
     await user.click(within(message).getByRole('button'))
     expect(screen.queryByRole('status')).toBeNull()
+  })
+})
+
+describe('Settings, signing out', () => {
+  it('asks once, saying what is cleared and what stays, then signs out', async () => {
+    const onSignOut = vi.fn()
+    const user = userEvent.setup()
+    render(<Settings onBack={() => {}} onSignOut={onSignOut} />)
+
+    expect(screen.getByRole('heading', { name: 'Account' })).toBeDefined()
+    await user.click(screen.getByRole('button', { name: 'Sign out' }))
+
+    const sheet = screen.getByRole('dialog', { name: 'Sign out of this device?' })
+    expect(sheet.textContent).toContain("This clears what's stored on this device.")
+    expect(sheet.textContent).toContain('stay safe on the server')
+    expect(onSignOut).not.toHaveBeenCalled()
+
+    await user.click(within(sheet).getByRole('button', { name: 'Sign out' }))
+    expect(onSignOut).toHaveBeenCalledOnce()
+  })
+
+  it('changes nothing on Cancel', async () => {
+    const onSignOut = vi.fn()
+    const user = userEvent.setup()
+    render(<Settings onBack={() => {}} onSignOut={onSignOut} />)
+
+    await user.click(screen.getByRole('button', { name: 'Sign out' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(onSignOut).not.toHaveBeenCalled()
+  })
+
+  it('offers sign out even when settings can’t load', async () => {
+    vi.mocked(getSettings).mockRejectedValueOnce(new Error('offline'))
+    render(<Settings onBack={() => {}} onSignOut={() => {}} />)
+
+    await screen.findByRole('status')
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeDefined()
   })
 })

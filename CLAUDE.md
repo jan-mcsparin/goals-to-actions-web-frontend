@@ -15,7 +15,7 @@ src/
   domain/          plain TS: planning, pacing, rollover rules. No React imports. Unit-tested.
   storage/         On-device storage: Today's view choice and the open screen (localStorage) now; IndexedDB plan cache + offline queue later, once there's an API
   hooks/           React hooks wrapping api/, domain/ and storage/
-  screens/         Day (Today and any opened day), Week, Aspirations, Aspiration, Upkeep (Keep life running), GoalDetail, Settings; Add is a sheet
+  screens/         Day (Today and any opened day), Week, Aspirations, Aspiration, Upkeep (Keep life running), GoalDetail, Settings, SignIn (in place of the app while signed out); Add is a sheet
   components/      presentational pieces only
 ```
 

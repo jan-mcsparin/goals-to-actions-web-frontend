@@ -1,7 +1,10 @@
 // Settings: the one dial, intensity, and the few other preferences, shown.
-// Opened only when the person chooses; nothing here suggests a change.
+// Opened only when the person chooses; nothing here suggests a change. Sign
+// out sits at the bottom, under Account, and asks once.
+import { useState } from 'react'
 import { BackLink } from '../components/BackLink.tsx'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
+import { SignOutSheet } from '../components/SignOutSheet.tsx'
 import { INTENSITIES } from '../domain/settings.ts'
 import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
 import { useSettings } from '../hooks/useSettings.ts'
@@ -9,9 +12,11 @@ import './Settings.css'
 
 type SettingsProps = {
   onBack: () => void
+  onSignOut: () => void
 }
 
-export function Settings({ onBack }: SettingsProps) {
+export function Settings({ onBack, onSignOut }: SettingsProps) {
+  const [askingToSignOut, setAskingToSignOut] = useState(false)
   const { loaded, intensity, chooseIntensity, exportData, message } = useSettings()
   // With nothing loaded, the message stays.
   const shownMessage = useFleetingMessage(message, { sticky: !loaded })
@@ -69,6 +74,14 @@ export function Settings({ onBack }: SettingsProps) {
         </button>
       )}
 
+      <section className="settings-account" aria-labelledby="account-heading">
+        <h2 id="account-heading">Account</h2>
+        <button type="button" className="settings-row settings-sign-out" onClick={() => setAskingToSignOut(true)}>
+          Sign out
+        </button>
+      </section>
+
+      <SignOutSheet open={askingToSignOut} onSignOut={onSignOut} onClose={() => setAskingToSignOut(false)} />
       <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
     </main>
   )

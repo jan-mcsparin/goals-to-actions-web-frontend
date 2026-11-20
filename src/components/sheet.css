@@ -53,3 +53,8 @@
 .sheet-header h2[tabindex='-1']:focus {
   outline: none;
 }
+
+/* A sheet's own buttons, under its note. */
+.sheet-actions {
+  margin-top: 1.25rem;
+}

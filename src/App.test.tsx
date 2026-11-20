@@ -665,3 +665,17 @@ describe('signing in', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Today · Wednesday' })).toBeDefined()
   })
 })
+
+it('signs out from Settings and back in to Settings', async () => {
+  const user = userEvent.setup()
+  render(<App />)
+
+  await user.click(await screen.findByRole('button', { name: 'Aspirations' }))
+  await user.click(await screen.findByRole('button', { name: 'Settings' }))
+  await user.click(await screen.findByRole('button', { name: 'Sign out' }))
+  await user.click(within(screen.getByRole('dialog', { name: 'Sign out of this device?' })).getByRole('button', { name: 'Sign out' }))
+
+  await user.click(await screen.findByRole('button', { name: 'Sign in with Face ID' }))
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeDefined()
+})

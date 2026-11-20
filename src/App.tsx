@@ -72,7 +72,7 @@ function App() {
               onOpenSettings={() => goTo({ screen: 'settings' })}
             />
           )}
-          {current.screen === 'settings' && <Settings onBack={backToAspirations} />}
+          {current.screen === 'settings' && <Settings onBack={backToAspirations} onSignOut={session.signOut} />}
           {current.screen === 'upkeep' && <Upkeep today={today} onBack={() => goTo({ screen: 'aspirations' })} />}
           {current.screen === 'aspiration' && (
             <Aspiration
