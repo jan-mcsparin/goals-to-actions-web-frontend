@@ -79,14 +79,10 @@ export type NewAspiration = Schemas['AspirationInput']
 // belongs to Keep life running.
 export type NewRecurringItem = Schemas['NewRecurringItem']
 
-export type Intensity = 'easingOff' | 'normal' | 'goingHard'
-
 // Free time has no setting: it's whatever the intensity's task cap leaves open.
-export type Settings = {
-  intensity: Intensity
-  intensitySetOn: string
-  weekStartsOn: 'monday'
-}
+// Weeks always start Monday, so that's no setting either.
+export type Settings = Schemas['Settings']
+export type Intensity = Settings['intensity']
 
 export type DayPlan = {
   date: string

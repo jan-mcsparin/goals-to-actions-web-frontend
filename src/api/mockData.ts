@@ -469,11 +469,7 @@ export function buildMockData(today: Date): MockData {
   ]
   const tasks = taskRows.map(storedTask)
 
-  const settings: Settings = {
-    intensity: 'normal',
-    intensitySetOn: '2026-10-01',
-    weekStartsOn: 'monday',
-  }
+  const settings: Settings = { intensity: 'normal' }
 
   return { aspirations, goals, milestones, checkIns, weeklyTargets, recurringItems, tasks, settings, closedThrough: null }
 }

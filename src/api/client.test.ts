@@ -1584,8 +1584,8 @@ describe('addRecurringItem', () => {
 })
 
 describe('getSettings', () => {
-  it('starts at Normal, set on Oct 1, with weeks starting Monday', async () => {
-    expect(await getSettings()).toEqual({ intensity: 'normal', intensitySetOn: '2026-10-01', weekStartsOn: 'monday' })
+  it('starts at Normal, as the API has it: intensity only', async () => {
+    expect(await getSettings()).toEqual({ intensity: 'normal' })
   })
 
   it('returns a copy', async () => {
@@ -1597,10 +1597,10 @@ describe('getSettings', () => {
 })
 
 describe('setIntensity', () => {
-  it('sets the intensity, set today, and the next getSettings agrees', async () => {
+  it('sets the intensity, and the next getSettings agrees', async () => {
     const settings = await setIntensity('goingHard')
 
-    expect(settings).toEqual({ intensity: 'goingHard', intensitySetOn: WEDNESDAY_DAY, weekStartsOn: 'monday' })
+    expect(settings).toEqual({ intensity: 'goingHard' })
     expect(await getSettings()).toEqual(settings)
   })
 
@@ -1613,7 +1613,7 @@ describe('setIntensity', () => {
 
   it('rejects an unknown intensity and changes nothing', async () => {
     await expect(setIntensity('flatOut' as never)).rejects.toThrow()
-    expect(store.settings).toEqual({ intensity: 'normal', intensitySetOn: '2026-10-01', weekStartsOn: 'monday' })
+    expect(store.settings).toEqual({ intensity: 'normal' })
   })
 })
 

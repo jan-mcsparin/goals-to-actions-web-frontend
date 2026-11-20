@@ -394,7 +394,6 @@ export async function getSettings(): Promise<Settings> {
 export async function setIntensity(intensity: Intensity): Promise<Settings> {
   if (!isIntensity(intensity)) throw new Error(`Unknown intensity ${intensity}`)
   store.settings.intensity = intensity
-  store.settings.intensitySetOn = toLocalDay(new Date())
   return structuredClone(store.settings)
 }
 

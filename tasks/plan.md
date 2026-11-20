@@ -30,7 +30,7 @@ What's left is three small changes, all before Today, Week and the bank move to 
 
 - [x] Task 1: The check-off carries the moment it was tapped
 - [x] Task 2: Ids made on the device for recurring items and tasks
-- [ ] Task 3: Settings is the API's
+- [x] Task 3: Settings is the API's
 
 Checkpoint after task 3: build, lint and tests pass; nothing on screen has changed; PR opened.
 

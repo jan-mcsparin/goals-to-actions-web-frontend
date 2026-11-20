@@ -39,9 +39,9 @@ Every task:
 **Description:** `Settings` in `types.ts` becomes the generated `Schemas['Settings']`. `intensitySetOn` and `weekStartsOn` go from the mock data and `setIntensity`. Settings keeps its fixed "Week starts: Monday" row.
 
 **Acceptance criteria:**
-- [ ] `getSettings` returns `{ intensity }` only.
-- [ ] Settings still shows "Week starts Monday".
-- [ ] Tests updated.
+- [x] `getSettings` returns `{ intensity }` only.
+- [x] Settings still shows "Week starts Monday".
+- [x] Tests updated.
 
 **Files:** `src/api/types.ts`, `src/api/mockData.ts` (+ test), `src/api/client.ts` (+ test)
 
@@ -49,6 +49,6 @@ Every task:
 
 ### Checkpoint: the PR
 
-- [ ] Build, lint and tests pass.
-- [ ] `CLAUDE.md`'s note on `types.ts` lists settings among the generated types.
-- [ ] PR opened, closing #39.
+- [x] Build, lint and tests pass.
+- [x] `CLAUDE.md`'s note on `types.ts` lists settings among the generated types.
+- [x] PR opened, closing #39.
