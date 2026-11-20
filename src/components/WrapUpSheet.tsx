@@ -20,15 +20,17 @@ export function WrapUpSheet({ open, carriesOver, ends, onConfirm, onClose }: Wra
   const nothingLeft = carriesOver.length === 0 && ends.length === 0
 
   return (
-    <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose} {...backdropClose}>
+    <dialog ref={dialog} className="sheet wrap-up-sheet" aria-labelledby={titleId} onClose={onClose} {...backdropClose}>
       <header className="sheet-header">
         <h2 id={titleId}>Wrap up this week?</h2>
       </header>
       <div className="wrap-up">
         <p className="wrap-up-intro">Next week becomes this week. This can’t be undone.</p>
-        {nothingLeft && <p>Everything is done. Nothing to carry over.</p>}
-        <TitleList heading="Carries over to next week" titles={carriesOver} />
-        <TitleList heading="Ends with this week" titles={ends} />
+        <div className="wrap-up-lists">
+          {nothingLeft && <p>Everything is done. Nothing to carry over.</p>}
+          <TitleList heading="Carries over to next week" titles={carriesOver} />
+          <TitleList heading="Ends with this week" titles={ends} />
+        </div>
         <button type="button" className="wrap-up-confirm" onClick={onConfirm}>
           Wrap up this week
         </button>

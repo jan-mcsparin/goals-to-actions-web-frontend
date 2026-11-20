@@ -1,8 +1,24 @@
-.wrap-up {
+/* The lists scroll; the question and both buttons stay in reach. */
+.wrap-up-sheet[open] {
   display: flex;
   flex-direction: column;
+}
+
+.wrap-up {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   gap: 0.75rem;
+  min-height: 0;
   margin-top: 0.75rem;
+}
+
+.wrap-up-lists {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
   overflow-y: auto;
 }
 
