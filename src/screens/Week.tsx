@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { Task } from '../api/types.ts'
 import { DayPickerSheet } from '../components/DayPickerSheet.tsx'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import type { DaySummary, ProgressRow } from '../domain/week.ts'
 import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
+import { WrapUpSheet } from '../components/WrapUpSheet.tsx'
+import { ViewToggle, type ViewOption } from '../components/ViewToggle.tsx'
 import { useWeek } from '../hooks/useWeek.ts'
+import type { WeekViewMode } from '../storage/weekView.ts'
 import '../components/progressBar.css'
 import './Week.css'
 
@@ -14,7 +17,8 @@ type WeekProps = {
 }
 
 export function Week({ today, onOpenDay }: WeekProps) {
-  const { range, week, message, place } = useWeek(today)
+  const { title, range, week, message, view, canViewNext, setView, place, wrapUp } = useWeek(today)
+  const [wrapping, setWrapping] = useState(false)
   const [placing, setPlacing] = useState<Task>()
   // With nothing loaded, the message is all there is, so it stays.
   const shownMessage = useFleetingMessage(message, { sticky: !week })
@@ -22,7 +26,7 @@ export function Week({ today, onOpenDay }: WeekProps) {
   if (!week) {
     return (
       <main className="week" aria-busy={!message}>
-        {message && <WeekTop range={range} />}
+        {message && <WeekTop title={title} range={range} />}
         <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
       </main>
     )
@@ -30,7 +34,9 @@ export function Week({ today, onOpenDay }: WeekProps) {
 
   return (
     <main className="week">
-      <WeekTop range={range} />
+      <WeekTop title={title} range={range}>
+        {canViewNext && <ViewToggle label="Week" view={view} options={WEEK_VIEWS} onChange={setView} />}
+      </WeekTop>
 
       {week.progress.length > 0 && (
         <section className="week-section" aria-labelledby="week-progress">
@@ -70,6 +76,23 @@ export function Week({ today, onOpenDay }: WeekProps) {
         )}
       </section>
 
+      {view === 'next' && (
+        <button type="button" className="week-wrap-up" onClick={() => setWrapping(true)}>
+          Wrap up this week
+        </button>
+      )}
+
+      <WrapUpSheet
+        open={wrapping}
+        carriesOver={wrapUp.carriesOver}
+        ends={wrapUp.ends}
+        onConfirm={() => {
+          setWrapping(false)
+          wrapUp.confirm()
+        }}
+        onClose={() => setWrapping(false)}
+      />
+
       <DayPickerSheet
         open={placing !== undefined}
         taskTitle={placing?.title}
@@ -86,11 +109,17 @@ export function Week({ today, onOpenDay }: WeekProps) {
   )
 }
 
-function WeekTop({ range }: { range: string }) {
+const WEEK_VIEWS: ViewOption<WeekViewMode>[] = [
+  { view: 'this', label: 'This week' },
+  { view: 'next', label: 'Next week' },
+]
+
+function WeekTop({ title, range, children }: { title: string; range: string; children?: ReactNode }) {
   return (
     <header className="screen-top week-header">
-      <h1>This week</h1>
+      <h1>{title}</h1>
       <p className="week-range">{range}</p>
+      {children}
     </header>
   )
 }

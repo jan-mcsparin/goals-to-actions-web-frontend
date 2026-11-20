@@ -1,0 +1,69 @@
+/* The lists scroll; the question and both buttons stay in reach. */
+.wrap-up-sheet[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.wrap-up {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  margin-top: 0.75rem;
+}
+
+.wrap-up-lists {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.wrap-up p,
+.wrap-up h3,
+.wrap-up ul {
+  margin: 0;
+}
+
+.wrap-up-intro,
+.wrap-up-list h3 {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.wrap-up-list h3 {
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.wrap-up-list ul {
+  padding-left: 1.25rem;
+}
+
+.wrap-up-confirm,
+.wrap-up-cancel {
+  min-height: 2.75rem;
+  border: none;
+  border-radius: 0.5rem;
+  font: inherit;
+}
+
+.wrap-up-confirm {
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.wrap-up-cancel {
+  background: transparent;
+  color: var(--accent);
+}
+
+.wrap-up-confirm:focus-visible,
+.wrap-up-cancel:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

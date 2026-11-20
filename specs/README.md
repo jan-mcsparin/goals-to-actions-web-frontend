@@ -69,6 +69,9 @@ Assumed (say so if wrong):
 18. **Navigation stays behind `useNavigation()`.** The `Screen` union grows by `{ screen: 'aspirations' }`, `{ screen: 'aspiration'; aspirationId }`, `{ screen: 'upkeep' }`, `{ screen: 'goal'; goalId; from }` and `{ screen: 'settings' }`, each remembered like the others. `from` is what lets back from a goal return to the tab or to an aspiration. Still no router.
 19. **Each spec adds its own `api/` functions, mock data and types.** #2's tests stay as they are; #3's change only where spec 004's new mock goal adds a row.
 20. **Nothing here builds the planner.** No week is redrafted and nothing is placed on a day for the person. The one stand-in is decision 12.
+21. **Next week is a view on Week** (#46, settled 2026-11-19): from 6 p.m. on Sunday a "This week | Next week" toggle appears, remembered across reloads and gone again once next week has become the current one. Its days open like any day, but nothing in a week that hasn't started can be checked off. **Wrap up this week** sits on Next week and opens a sheet listing what carries over and what ends, from each task's `atClose`; confirming has no undo.
+22. **"Still matter?" is a card at the top of Today** (#35, settled 2026-11-19), one per marked task, with Keep, Reschedule and Drop. **Not now** waves it off for the day without answering, and it comes back tomorrow. It never shows how long a task has waited.
+23. **The mock imitates the server's answers and nothing more** (ADR-008): `atClose`, `stillMatters` and what wrap-up does are mock rules standing in for the API's, and go when Today and Week move to the API (#42). Today on mock data after a Sunday-evening wrap-up shows the new current week's days as not yet checkable until the device's date reaches them.
 
 ## Shared conventions
 

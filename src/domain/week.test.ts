@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { countTarget, GOAL_DEFAULTS, type TargetFor, withTargets } from '../test/goals.ts'
 import type { Aspiration, Goal, RecurringItem, Task, WeekPlan } from '../api/types.ts'
-import { daySummaries, pacingLine, pickableDays, weekProgress, weekRange } from './week.ts'
+import { daySummaries, pacingLine, pickableDays, weekProgress, weekRange, wrapUpLists } from './week.ts'
 import { aTask } from '../test/tasks.ts'
 
 const MONDAY = '2026-11-09'
@@ -37,7 +37,7 @@ const lifting = countTarget('goal-strong', 3, 'lifting sessions')
 
 // Targets are given per goal and put on their goals.
 function week(tasks: Task[], weeklyTargets: TargetFor[] = [lifting]): WeekPlan {
-  return { weekOf: MONDAY, tasks, goals: withTargets([strong, reading], weeklyTargets), aspirations: [fit], recurringItems: [trash] }
+  return { weekOf: MONDAY, isCurrent: true, nextWeekOpen: false, tasks, goals: withTargets([strong, reading], weeklyTargets), aspirations: [fit], recurringItems: [trash] }
 }
 
 describe('pacingLine', () => {
@@ -169,5 +169,26 @@ describe('pickableDays', () => {
 
   it('offers only Sunday on a Sunday', () => {
     expect(pickableDays(MONDAY, '2026-11-15')).toEqual([{ date: '2026-11-15', label: 'Today' }])
+  })
+})
+
+describe('wrapUpLists', () => {
+  it("sorts a week's unfinished tasks by what closing does to them, in the order given", () => {
+    const plan = week([
+      task('mow', undefined, { atClose: 'carriesOver' }),
+      task('lift', '2026-11-12', { atClose: 'ends' }),
+      task('call', '2026-11-13', { atClose: 'carriesOver' }),
+      task('run', undefined, { atClose: 'ends' }),
+      task('done', '2026-11-10', { state: 'done', atClose: null }),
+    ])
+
+    const { carriesOver, ends } = wrapUpLists(plan)
+
+    expect(carriesOver.map((item) => item.id)).toEqual(['mow', 'call'])
+    expect(ends.map((item) => item.id)).toEqual(['lift', 'run'])
+  })
+
+  it('has two empty lists when everything is done', () => {
+    expect(wrapUpLists(week([task('done', '2026-11-10', { state: 'done' })]))).toEqual({ carriesOver: [], ends: [] })
   })
 })

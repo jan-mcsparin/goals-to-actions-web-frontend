@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { BankSheet } from '../components/BankSheet.tsx'
+import { DayPickerSheet } from '../components/DayPickerSheet.tsx'
+import { StillMattersCard } from '../components/StillMattersCard.tsx'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import { TaskRow } from '../components/TaskRow.tsx'
-import { ViewToggle } from '../components/ViewToggle.tsx'
+import { ViewToggle, type ViewOption } from '../components/ViewToggle.tsx'
+import type { TodayViewMode } from '../storage/viewPreference.ts'
 import '../components/progressBar.css'
 import type { Task } from '../api/types.ts'
 import type { Section } from '../domain/today.ts'
-import { useDay } from '../hooks/useDay.ts'
+import { useDay, type StillMattersAsk } from '../hooks/useDay.ts'
 import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
 import './Day.css'
 
@@ -20,6 +23,7 @@ export function Day({ date, today, onBack }: DayProps) {
   const {
     heading,
     day,
+    asking,
     message,
     view,
     setView,
@@ -34,6 +38,7 @@ export function Day({ date, today, onBack }: DayProps) {
   // With nothing loaded, the message is all there is, so it stays.
   const shownMessage = useFleetingMessage(message, { sticky: !day })
   const [sheet, setSheet] = useState<Sheet>()
+  const [rescheduling, setRescheduling] = useState<StillMattersAsk>()
   const focusAfterSwap = useRef<string>(undefined)
 
   // After a swap the button that opened the sheet is gone, so focus goes to
@@ -70,7 +75,7 @@ export function Day({ date, today, onBack }: DayProps) {
     )
   }
 
-  const { isToday, canPlace, progress, sections } = day
+  const { isToday, canPlace, canCheckOff, progress, sections } = day
   const isEmpty = progress.total === 0
   const emptyLine = isToday ? 'Nothing planned today. The day is yours.' : 'Nothing planned. The day is yours.'
   const swapTask = canPlace
@@ -85,7 +90,18 @@ export function Day({ date, today, onBack }: DayProps) {
         progress={isEmpty ? undefined : { ...progress, label: isToday ? 'Done today' : 'Done this day' }}
       />
 
-      {!isEmpty && <ViewToggle view={view} onChange={setView} />}
+      {asking.map((ask) => (
+        <StillMattersCard
+          key={ask.task.id}
+          title={ask.task.title}
+          onKeep={ask.keep}
+          onReschedule={() => setRescheduling(ask)}
+          onDrop={ask.drop}
+          onNotNow={ask.notNow}
+        />
+      ))}
+
+      {!isEmpty && <ViewToggle label="View" view={view} options={DAY_VIEWS} onChange={setView} />}
 
       {isEmpty ? (
         <p className="today-empty">{emptyLine}</p>
@@ -96,6 +112,7 @@ export function Day({ date, today, onBack }: DayProps) {
               key={section.id}
               section={section}
               doneLabel={isToday ? 'done today' : 'done this day'}
+              canCheck={canCheckOff}
               onToggle={toggleDone}
               onSendToBank={sendToBank}
               onSwap={swapTask}
@@ -121,6 +138,17 @@ export function Day({ date, today, onBack }: DayProps) {
         message={bankMessage}
         onPick={pickFromBank}
         onClose={() => setSheet(undefined)}
+      />
+
+      <DayPickerSheet
+        open={rescheduling !== undefined}
+        taskTitle={rescheduling?.task.title}
+        days={rescheduling?.days ?? []}
+        onPick={(picked) => {
+          rescheduling?.reschedule(picked)
+          setRescheduling(undefined)
+        }}
+        onClose={() => setRescheduling(undefined)}
       />
 
       <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
@@ -155,18 +183,24 @@ function DayTop({ heading, onBack, progress }: DayTopProps) {
   )
 }
 
+const DAY_VIEWS: ViewOption<TodayViewMode>[] = [
+  { view: 'list', label: 'List' },
+  { view: 'byGoal', label: 'By goal' },
+]
+
 type Sheet = { kind: 'pull' } | { kind: 'swap'; taskId: string; taskTitle: string }
 
 type TaskGroupProps = {
   section: Section
   // Ends the card bar's label: "Be strong · Be fit done today".
   doneLabel: string
+  canCheck: boolean
   onToggle: (taskId: string) => void
   onSendToBank: (taskId: string) => void
   onSwap?: (task: Task) => void
 }
 
-function TaskGroup({ section, doneLabel, onToggle, onSendToBank, onSwap }: TaskGroupProps) {
+function TaskGroup({ section, doneLabel, canCheck, onToggle, onSendToBank, onSwap }: TaskGroupProps) {
   const headingId = `group-${section.id}`
   return (
     <section className="today-group" aria-labelledby={headingId}>
@@ -184,6 +218,7 @@ function TaskGroup({ section, doneLabel, onToggle, onSendToBank, onSwap }: TaskG
           <TaskRow
             key={row.task.id}
             row={row}
+            canCheck={canCheck}
             onToggle={() => onToggle(row.task.id)}
             onSendToBank={() => onSendToBank(row.task.id)}
             onSwap={onSwap && (() => onSwap(row.task))}

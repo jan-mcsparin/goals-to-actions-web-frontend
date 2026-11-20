@@ -41,7 +41,7 @@ const trash: RecurringItem = {
 }
 
 function plan(tasks: Task[]): DayPlan {
-  return { date: DAY, tasks, goals: [strong, prototype, reading], aspirations: [fit, builder], recurringItems: [trash] }
+  return { date: DAY, tasks, stillMatters: [], goals: [strong, prototype, reading], aspirations: [fit, builder], recurringItems: [trash] }
 }
 
 function titles(rows: { task: Task }[]) {

@@ -75,9 +75,9 @@ Test dates are fixed to Wednesday 11 Nov 2026, or to a Sunday evening where a te
 **Description:** `npm run api:types`. The mock fills `atClose` and `stillMatters`. `getWeek(week)` returns `isCurrent` and `nextWeekOpen`. From 6 p.m. on Sunday (device clock) the mock has next week open, with some tasks of its own. The mock's `wrapUpWeek` applies `atClose`. `answerStillMatters` is added to the client.
 
 **Acceptance criteria:**
-- [ ] Before 6 p.m. on Sunday, next week isn't open; from then it is, and its tasks can't be checked off.
-- [ ] After `wrapUpWeek`, "carriesOver" tasks are in next week's bank, "ends" tasks are closed, and next week is current.
-- [ ] Keep, schedule and drop change the task as the API does; mock data includes a task marked `stillMatters`.
+- [x] Before 6 p.m. on Sunday, next week isn't open; from then it is, and its tasks can't be checked off.
+- [x] After `wrapUpWeek`, "carriesOver" tasks are in next week's bank, "ends" tasks are closed, and next week is current.
+- [x] Keep, schedule and drop change the task as the API does; mock data includes a task marked `stillMatters`.
 
 **Verification:** `npm test && npm run lint && npm run build`.
 
@@ -92,9 +92,9 @@ Test dates are fixed to Wednesday 11 Nov 2026, or to a Sunday evening where a te
 **Description:** Once next week is open, Week shows a "This week | Next week" toggle. Next week shows its days, Monday to Sunday, and its bank. A task can be put on a day, sent back to the bank or swapped, but not checked off. The chosen view is remembered across reloads.
 
 **Acceptance criteria:**
-- [ ] Before 6 p.m. on Sunday, and on every other day, Week reads as it does now, with no toggle.
-- [ ] On Next week, place, back to bank and swap work, and no check-off is offered.
-- [ ] After a reload, the same view is open; with next week no longer open, it falls back to This week.
+- [x] Before 6 p.m. on Sunday, and on every other day, Week reads as it does now, with no toggle.
+- [x] On Next week, place, back to bank and swap work, and no check-off is offered.
+- [x] After a reload, the same view is open; with next week no longer open, it falls back to This week.
 
 **Verification:** `npx vitest run src/screens/Week.test.tsx src/hooks`; build, lint.
 
@@ -109,9 +109,9 @@ Test dates are fixed to Wednesday 11 Nov 2026, or to a Sunday evening where a te
 **Description:** **Wrap up this week** sits on Next week. A sheet lists what carries over and what ends with the week, from `atClose`, then confirms. After confirming, Week shows the new current week. Nothing prompts it.
 
 **Acceptance criteria:**
-- [ ] The sheet's two lists match the tasks' `atClose`; an empty list isn't shown. The wording is warm and never mentions misses.
-- [ ] Confirming calls `wrapUpWeek`; afterwards next week's tasks can be checked off and the toggle is gone. There's no undo.
-- [ ] A failed wrap-up leaves the week as it was and says so in one line.
+- [x] The sheet's two lists match the tasks' `atClose`; an empty list isn't shown. The wording is warm and never mentions misses.
+- [x] Confirming calls `wrapUpWeek`; afterwards next week's tasks can be checked off and the toggle is gone. There's no undo.
+- [x] A failed wrap-up leaves the week as it was and says so in one line.
 
 **Verification:** `npx vitest run src/components/WrapUpSheet.test.tsx src/screens/Week.test.tsx`; build, lint.
 
@@ -122,16 +122,16 @@ Test dates are fixed to Wednesday 11 Nov 2026, or to a Sunday evening where a te
 **Scope:** M
 
 ## Checkpoint: Next week
-- [ ] Next week and wrap-up click through on mock data.
+- [x] Next week and wrap-up click through on mock data (component and screen tests; the phone check is task 8).
 
 ### Task 7: The "Still matter?" card
 
 **Description:** Each task marked `stillMatters` shows a card at the top of Today: "Still matter?", with the task's title, and **Keep**, **Reschedule** (the day picker) and **Drop**. Each answer goes through `answerStillMatters`, and the card goes away. Ignoring it changes nothing.
 
 **Acceptance criteria:**
-- [ ] The card shows only for marked tasks, and only on Today.
-- [ ] Keep, Reschedule and Drop each send their answer; a failed one puts the card back and says so.
-- [ ] No shame language: no "missed", "overdue" or counts of weeks.
+- [x] The card shows only for marked tasks, and only on Today.
+- [x] Keep, Reschedule and Drop each send their answer; a failed one puts the card back and says so.
+- [x] No shame language: no "missed", "overdue" or counts of weeks.
 
 **Verification:** `npx vitest run src/components/StillMattersCard.test.tsx src/screens/Day.test.tsx`; build, lint.
 

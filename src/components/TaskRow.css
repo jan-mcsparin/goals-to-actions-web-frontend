@@ -58,3 +58,12 @@
   color: var(--muted);
   text-decoration: line-through;
 }
+
+.task-row:disabled {
+  color: inherit;
+  cursor: default;
+}
+
+.task-row:disabled .task-check {
+  display: none;
+}

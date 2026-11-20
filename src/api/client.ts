@@ -2,7 +2,7 @@
 // except that with the switch on real (mode.ts) the aspiration and goal ones
 // call the API instead (realAspirations.ts, realGoals.ts), with the same
 // signatures.
-import { fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
+import { addDays, fromLocalDay, mondayOf, toLocalDay, weekAfter } from './dates.ts'
 import { taskWeek } from '../domain/add.ts'
 import { checkedOff, inTheBank, isInBank, isPlanned, placedOnDay, uncheckedOff } from '../domain/tasks.ts'
 import { isWithinGoal, MOST_SESSIONS, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
@@ -33,6 +33,7 @@ import type {
   NewTask,
   RecurringItem,
   Settings,
+  StillMattersAnswer,
   Task,
   Upkeep,
   WeekPlan,
@@ -45,11 +46,13 @@ export { NotFoundError }
 // Set-aside tasks keep their day but don't show on it.
 export async function getDay(date: string): Promise<DayPlan> {
   const tasks = shown(store.tasks.filter((task) => task.plannedDay === date))
-  return structuredClone({ date, tasks, ...recordsReferencedBy(tasks) })
+  const stillMatters = shown(store.tasks.filter((task) => task.week === thisWeek() && task.stillMatters))
+  return structuredClone({ date, tasks, stillMatters, ...recordsReferencedBy(tasks) })
 }
 
 export async function checkOffTask(taskId: string, valueLogged?: number): Promise<Task> {
   const task = findTask(taskId)
+  if (task.week !== null && task.week > thisWeek()) throw new Error("Can't check off a task in a week that hasn't started")
   const now = new Date()
   replaceTask(task, checkedOff(task, now.toISOString(), toLocalDay(now)))
   if (valueLogged !== undefined) task.valueLogged = valueLogged
@@ -64,13 +67,60 @@ export async function uncheckTask(taskId: string): Promise<Task> {
   return taskOut(task)
 }
 
-export async function getWeek(): Promise<WeekPlan> {
-  const weekOf = thisWeek()
-  const tasks = shown(store.tasks.filter((task) => task.week === weekOf))
+// The current week, or next week once it's open. Anything else isn't there to read.
+export async function getWeek(week: string = thisWeek()): Promise<WeekPlan> {
+  const current = thisWeek()
+  const isCurrent = week === current
+  const open = nextWeekOpen()
+  if (!isCurrent && !(open && week === weekAfter(current))) throw new NotFoundError(`No week ${week}`)
+
+  const tasks = shown(store.tasks.filter((task) => task.week === week))
   const targetGoalIds = store.goals
     .filter((goal) => goal.status === 'active' && latestTarget(goal.id))
     .map((goal) => goal.id)
-  return structuredClone({ weekOf, tasks, ...recordsReferencedBy(tasks, targetGoalIds) })
+  return structuredClone({
+    weekOf: week,
+    isCurrent,
+    nextWeekOpen: open,
+    tasks,
+    ...recordsReferencedBy(tasks, targetGoalIds),
+  })
+}
+
+// Closes the current week early, once next week is open, as the API does: what carries over
+// goes to next week's bank, the rest ends, and next week becomes the current one. Sent again,
+// it changes nothing.
+export async function wrapUpWeek(week: string): Promise<WeekPlan> {
+  const current = thisWeek()
+  if (week < current) return getWeek()
+  if (week > current) throw new Error('Only the current week can be wrapped up')
+  if (!nextWeekOpen()) throw new Error('A week can be wrapped up once next week is open')
+
+  const next = weekAfter(current)
+  for (const task of store.tasks.filter((candidate) => candidate.week === week && isWaiting(candidate))) {
+    if (atCloseOf(task) === 'carriesOver') {
+      Object.assign(task, { week: next, plannedDay: null, placedByHand: false, carriedOver: task.carriedOver + 1 })
+    } else {
+      task.state = 'lapsed'
+    }
+  }
+  store.closedThrough = week
+  return getWeek()
+}
+
+// Keep it, put it on a day, or drop it. Each ends the question.
+export async function answerStillMatters(taskId: string, answer: StillMattersAnswer): Promise<Task> {
+  const task = findTask(taskId)
+  if (!task.stillMatters) throw new Error(`Task ${taskId} isn't asking`)
+  if (answer.answer === 'schedule') {
+    checkWeek(task, answer.week)
+    checkDay(answer.day, answer.week)
+    replaceTask(task, placedOnDay(task, answer.day))
+  } else if (answer.answer === 'drop') {
+    task.state = 'dropped'
+  }
+  task.stillMatters = false
+  return taskOut(task)
 }
 
 export async function getAspirations(): Promise<AspirationsOverview> {
@@ -346,8 +396,12 @@ export async function setIntensity(intensity: Intensity): Promise<Settings> {
   return structuredClone(store.settings)
 }
 
-export async function getBank(): Promise<Bank> {
-  const weekOf = thisWeek()
+// The current week's bank, or next week's once it's open.
+export async function getBank(week: string = thisWeek()): Promise<Bank> {
+  if (week !== thisWeek() && !(nextWeekOpen() && week === weekAfter(thisWeek()))) {
+    throw new NotFoundError(`No week ${week}`)
+  }
+  const weekOf = week
   const tasks = shown(store.tasks.filter((task) => isInBank(task) && !task.setAside && task.week === weekOf))
   return structuredClone({ weekOf, tasks, ...recordsReferencedBy(tasks) })
 }
@@ -503,14 +557,27 @@ function replaceTask(stored: StoredTask, next: Task) {
   Object.assign(stored, next)
 }
 
-// A task as the API sends it: without what only the mock keeps.
+// A task as the API sends it: without what only the mock keeps, and with what closing would do.
 function taskOut({ setAside: _setAside, ...task }: StoredTask): Task {
-  return structuredClone(task)
+  return structuredClone({ ...task, atClose: atCloseOf(task) })
 }
 
-// What the API would send: set-aside tasks aren't shown.
+// What closing its week does to a task that's still open: by-hand and fixed-day tasks carry
+// over; a goal's session or a flexible item's task ends with the week. The server decides this
+// (ADR-008); the mock only imitates it.
+function atCloseOf(task: Task & { setAside?: boolean }): Task['atClose'] {
+  if (task.state !== 'open' || task.setAside || task.week === null) return null
+  if (task.origin === 'byHand') return 'carriesOver'
+  if (task.origin === 'weeklyTarget') return 'ends'
+  const item = store.recurringItems.find((candidate) => candidate.id === task.recurringItemId)
+  return item?.schedule.kind === 'flexible' ? 'ends' : 'carriesOver'
+}
+
+// What the API would send: set-aside, dropped and lapsed tasks aren't shown.
 function shown(tasks: StoredTask[]): Task[] {
-  return tasks.filter((task) => !task.setAside).map(taskOut)
+  return tasks
+    .filter((task) => !task.setAside && (task.state === 'open' || task.state === 'done'))
+    .map(taskOut)
 }
 
 function newStoredTask(fields: Pick<StoredTask, 'title' | 'origin'> & Partial<StoredTask>): StoredTask {
@@ -557,8 +624,17 @@ function isWaiting(task: StoredTask): boolean {
   return task.state === 'open' && !task.setAside
 }
 
+// The later of the phone's week and the week after the last one wrapped up.
 function thisWeek(): string {
-  return toLocalDay(mondayOf(new Date()))
+  const phones = toLocalDay(mondayOf(new Date()))
+  return store.closedThrough !== null && weekAfter(store.closedThrough) > phones ? weekAfter(store.closedThrough) : phones
+}
+
+// From 6 p.m. on the current week's Sunday (ADR-009), by the device clock.
+function nextWeekOpen(): boolean {
+  const opensAt = addDays(fromLocalDay(thisWeek()), 6)
+  opensAt.setHours(18, 0, 0, 0)
+  return new Date() >= opensAt
 }
 
 // A goal as the API sends it: with its latest target, and whether it has slipped.

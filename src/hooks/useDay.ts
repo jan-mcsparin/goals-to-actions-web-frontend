@@ -3,6 +3,7 @@
 // goes back to how it was (ADR-004). Rules come from domain/today.ts.
 import { useCallback, useRef, useState } from 'react'
 import {
+  answerStillMatters,
   checkOffTask,
   getBank,
   getDay,
@@ -11,8 +12,8 @@ import {
   swapTasks,
   uncheckTask,
 } from '../api/client.ts'
-import { toLocalDay } from '../api/dates.ts'
-import type { Bank, DayPlan, Task } from '../api/types.ts'
+import { mondayOfDay, toLocalDay } from '../api/dates.ts'
+import type { Bank, DayPlan, StillMattersAnswer, Task } from '../api/types.ts'
 import {
   bankRows,
   dayHeading,
@@ -22,6 +23,8 @@ import {
   type Section,
   type TaskRow,
 } from '../domain/today.ts'
+import { pickableDays, type PickableDay } from '../domain/week.ts'
+import { readNotNow, saveNotNow } from '../storage/stillMattersNotNow.ts'
 import { readTodayView, saveTodayView, type TodayViewMode } from '../storage/viewPreference.ts'
 import { withTaskReplaced } from './planUpdates.ts'
 import { useLoaded } from './useLoaded.ts'
@@ -35,14 +38,28 @@ export type DayView = {
   isToday: boolean
   // Tasks can be placed on today and later days, not on past ones.
   canPlace: boolean
+  // A day in a week that hasn't started can't be checked off.
+  canCheckOff: boolean
   progress: { done: number; total: number }
   sections: Section[]
+}
+
+// Today's "Still matter?" card for one task, and what each answer does.
+export type StillMattersAsk = {
+  task: Task
+  days: PickableDay[]
+  keep: () => void
+  drop: () => void
+  reschedule: (day: string) => void
+  notNow: () => void
 }
 
 export type UseDay = {
   // Known without loading, so it shows even when the day can't load.
   heading: string
   day?: DayView
+  // On Today only, and only what hasn't been waved off for the day.
+  asking: StillMattersAsk[]
   message?: string
   view: TodayViewMode
   setView: (view: TodayViewMode) => void
@@ -61,6 +78,7 @@ export function useDay(date: string, today: string): UseDay {
     LOAD_FAILED,
   )
   const [view, setViewState] = useState(readTodayView)
+  const [notNow, setNotNow] = useState(() => readNotNow(today))
   const [bank, setBank] = useState<Bank>()
   const [bankFailed, setBankFailed] = useState(false)
   const latestRequest = useRef(new Map<string, number>())
@@ -109,7 +127,7 @@ export function useDay(date: string, today: string): UseDay {
     setBank(undefined)
     setBankFailed(false)
     try {
-      const loaded = await getBank()
+      const loaded = await getBank(mondayOfDay(date))
       if (load === latestBankLoad.current) setBank(loaded)
     } catch {
       if (load === latestBankLoad.current) setBankFailed(true)
@@ -135,6 +153,38 @@ export function useDay(date: string, today: string): UseDay {
         setBank((previous) => previous && bankWith(previous, task))
         setMessage(SAVE_FAILED)
       })
+  }
+
+  // The card goes at once and comes back if the save fails. A day or a drop that lands on this
+  // day's plan changes it too.
+  function answer(task: Task, reply: StillMattersAnswer) {
+    const index = plan?.stillMatters.findIndex((candidate) => candidate.id === task.id) ?? -1
+    if (!plan || index === -1) return
+    setPlan((previous) => previous && { ...previous, stillMatters: previous.stillMatters.filter((item) => item.id !== task.id) })
+    setMessage(undefined)
+
+    answerStillMatters(task.id, reply)
+      .then((saved) => setPlan((previous) => previous && landed(previous, saved)))
+      .catch(() => {
+        setPlan((previous) => previous && { ...previous, stillMatters: previous.stillMatters.toSpliced(index, 0, task) })
+        setMessage(SAVE_FAILED)
+      })
+  }
+
+  function askAbout(task: Task): StillMattersAsk {
+    const week = weekOf(task)
+    return {
+      task,
+      days: week === null ? [] : pickableDays(week, today),
+      keep: () => answer(task, { answer: 'keep' }),
+      drop: () => answer(task, { answer: 'drop' }),
+      reschedule: (day) => week !== null && answer(task, { answer: 'schedule', week, day }),
+      notNow: () => {
+        const ids = [...notNow, task.id]
+        setNotNow(ids)
+        saveNotNow(today, ids)
+      },
+    }
   }
 
   function sendToBank(taskId: string) {
@@ -178,6 +228,7 @@ export function useDay(date: string, today: string): UseDay {
   return {
     heading: dayHeading(date, today),
     day: plan && viewOf(plan, view, today),
+    asking: date === today ? (plan?.stillMatters ?? []).filter((task) => !notNow.includes(task.id)).map(askAbout) : [],
     message,
     view,
     setView,
@@ -196,9 +247,17 @@ function viewOf(plan: DayPlan, view: TodayViewMode, today: string): DayView {
   return {
     isToday: plan.date === today,
     canPlace: plan.date >= today,
+    canCheckOff: mondayOfDay(plan.date) <= mondayOfDay(today),
     progress: progress(plan),
     sections,
   }
+}
+
+// The answered task as the plan now has it: off the day if it left, on it if it landed there.
+function landed(plan: DayPlan, saved: Task): DayPlan {
+  const without = plan.tasks.filter((task) => task.id !== saved.id)
+  const here = saved.state === 'open' && saved.plannedDay === plan.date
+  return { ...plan, tasks: here ? [...without, saved] : without }
 }
 
 function withTaskAppended(plan: DayPlan, task: Task): DayPlan {

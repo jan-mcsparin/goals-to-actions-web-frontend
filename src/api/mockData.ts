@@ -45,11 +45,15 @@ export type MockData = {
   recurringItems: RecurringItem[]
   tasks: StoredTask[]
   settings: Settings
+  // The last week wrapped up early, as the API's closed_through_week: the week after it is
+  // current even on the Sunday evening before it starts.
+  closedThrough: string | null
 }
 
 export function buildMockData(today: Date): MockData {
   const monday = mondayOf(today)
   const weekOf = toLocalDay(monday)
+  const nextWeekOf = toLocalDay(addDays(monday, 7))
   const day = (offsetFromMonday: number) => toLocalDay(addDays(monday, offsetFromMonday))
   const todayDay = toLocalDay(today)
 
@@ -448,6 +452,7 @@ export function buildMockData(today: Date): MockData {
       plannedDay: null,
       week: weekOf,
       carriedOver: 2,
+      stillMatters: true,
     },
     {
       id: 'task-run-bank',
@@ -456,6 +461,11 @@ export function buildMockData(today: Date): MockData {
       week: weekOf,
       goalId: 'goal-endurance',
     },
+    // Next week, once it opens: the bank only, as ADR-013 leaves placing to the planner (#10).
+    { id: 'task-next-lift', title: 'Lift: squat day', week: nextWeekOf, goalId: 'goal-strong' },
+    { id: 'task-next-lift-2', title: 'Lift: deadlift day', week: nextWeekOf, goalId: 'goal-strong' },
+    { id: 'task-next-run', title: 'Run: easy 5k', week: nextWeekOf, goalId: 'goal-endurance' },
+    { id: 'task-next-trash', title: 'Take out the trash', week: nextWeekOf, recurringItemId: 'rec-trash' },
   ]
   const tasks = taskRows.map(storedTask)
 
@@ -465,7 +475,7 @@ export function buildMockData(today: Date): MockData {
     weekStartsOn: 'monday',
   }
 
-  return { aspirations, goals, milestones, checkIns, weeklyTargets, recurringItems, tasks, settings }
+  return { aspirations, goals, milestones, checkIns, weeklyTargets, recurringItems, tasks, settings, closedThrough: null }
 }
 
 type TaskFields = Pick<StoredTask, 'id' | 'title'> & Partial<StoredTask>

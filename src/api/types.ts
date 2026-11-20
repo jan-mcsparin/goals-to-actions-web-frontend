@@ -45,6 +45,9 @@ export type TimeOfDay = Schemas['TimeOfDay']
 // waits (the upcoming list) or is set aside.
 export type Task = Schemas['Task']
 
+// What "Still matter?" sends: keep it, put it on a day (as placeTask does), or drop it.
+export type StillMattersAnswer = Schemas['KeepIt'] | Schemas['ScheduleIt'] | Schemas['DropIt']
+
 // What the Add sheet sends to addTask. Not stored as is: the API places it.
 export type NewTask = {
   title: string
@@ -79,6 +82,8 @@ export type Settings = {
 export type DayPlan = {
   date: string
   tasks: Task[]
+  // The tasks asking "Still matter?", wherever they sit this week; Today shows them.
+  stillMatters: Task[]
   goals: Goal[]
   aspirations: Aspiration[]
   recurringItems: RecurringItem[]
@@ -86,8 +91,11 @@ export type DayPlan = {
 
 // Every task in a week (planned, done and in the bank), with what they
 // reference, and every active goal with a weekly target.
+// isCurrent and nextWeekOpen are as the API's week read sends them.
 export type WeekPlan = {
   weekOf: string
+  isCurrent: boolean
+  nextWeekOpen: boolean
   tasks: Task[]
   goals: Goal[]
   aspirations: Aspiration[]

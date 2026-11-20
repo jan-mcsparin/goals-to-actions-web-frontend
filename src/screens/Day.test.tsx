@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { checkOffTask, getBank, getDay, placeTask } from '../api/client.ts'
+import { answerStillMatters, checkOffTask, getBank, getDay, placeTask } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { Bank } from '../api/types.ts'
 import { Day } from './Day.tsx'
@@ -17,6 +17,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     placeTask: vi.fn(actual.placeTask),
     moveTaskToBank: vi.fn(actual.moveTaskToBank),
     swapTasks: vi.fn(actual.swapTasks),
+    answerStillMatters: vi.fn(actual.answerStillMatters),
   }
 })
 
@@ -449,6 +450,7 @@ describe('Day', () => {
     vi.mocked(getDay).mockResolvedValueOnce({
       date: '2026-11-11',
       tasks: [],
+      stillMatters: [],
       goals: [],
       aspirations: [],
       recurringItems: [],
@@ -460,5 +462,116 @@ describe('Day', () => {
     expect(screen.getByRole('button', { name: 'Pull from bank' })).toBeDefined()
     expect(screen.queryByRole('progressbar')).toBeNull()
     expect(screen.queryByText(/done$/)).toBeNull()
+  })
+})
+
+describe('Day in next week', () => {
+  const TUESDAY_AFTER = '2026-11-17'
+
+  beforeEach(() => {
+    vi.setSystemTime(new Date(2026, 10, 15, 18, 0))
+  })
+
+  it("can't be checked off, but its tasks can still be sent back", async () => {
+    await placeTask('task-next-lift', '2026-11-16', TUESDAY_AFTER)
+    render(<Day date={TUESDAY_AFTER} today="2026-11-15" />)
+
+    const row = await screen.findByRole('checkbox', { name: 'Lift: squat day' })
+
+    expect((row as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: /Lift: squat day/ })).toBeDefined()
+  })
+
+  it("pulls from next week's bank, not this week's", async () => {
+    render(<Day date={TUESDAY_AFTER} today="2026-11-15" />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Pull from bank' }))
+
+    const sheet = await screen.findByRole('dialog')
+
+    expect(await within(sheet).findByText('Lift: squat day')).toBeDefined()
+    expect(within(sheet).queryByText('Call the dentist')).toBeNull()
+  })
+})
+
+describe('Day, Still matter?', () => {
+  const asking = () => screen.findByRole('group', { name: 'Still matter? Call the dentist' })
+
+  it('asks at the top of Today, and not on another day', async () => {
+    const { unmount } = render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+    expect(await asking()).toBeDefined()
+    unmount()
+
+    render(<Day date="2026-11-12" today={WEDNESDAY_DAY} />)
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.queryByText('Still matter?')).toBeNull()
+  })
+
+  it('keeps it: sends the answer, and the card goes', async () => {
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+    const card = await asking()
+
+    await userEvent.click(within(card).getByRole('button', { name: 'Keep' }))
+
+    expect(answerStillMatters).toHaveBeenCalledWith('task-dentist', { answer: 'keep' })
+    expect(screen.queryByText('Still matter?')).toBeNull()
+  })
+
+  it('drops it', async () => {
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+
+    await userEvent.click(within(await asking()).getByRole('button', { name: 'Drop' }))
+
+    expect(answerStillMatters).toHaveBeenCalledWith('task-dentist', { answer: 'drop' })
+    expect(screen.queryByText('Still matter?')).toBeNull()
+  })
+
+  it('reschedules it onto a day it picks, and it shows on that day when that is today', async () => {
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+
+    await userEvent.click(within(await asking()).getByRole('button', { name: 'Reschedule' }))
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Today' }))
+
+    expect(answerStillMatters).toHaveBeenCalledWith('task-dentist', {
+      answer: 'schedule',
+      week: '2026-11-09',
+      day: WEDNESDAY_DAY,
+    })
+    expect(screen.queryByText('Still matter?')).toBeNull()
+    expect(await screen.findByText('Call the dentist')).toBeDefined()
+  })
+
+  it('puts the card back, and says so, when the answer fails', async () => {
+    vi.mocked(answerStillMatters).mockRejectedValueOnce(new Error('offline'))
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+
+    await userEvent.click(within(await asking()).getByRole('button', { name: 'Keep' }))
+
+    expect(await asking()).toBeDefined()
+    expect((await screen.findByRole('status')).textContent).toBe("Couldn't save that. Try again.")
+  })
+
+  it('hides it for the day on Not now, and changes nothing', async () => {
+    const first = render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+
+    await userEvent.click(within(await asking()).getByRole('button', { name: 'Not now' }))
+
+    expect(screen.queryByText('Still matter?')).toBeNull()
+    expect(answerStillMatters).not.toHaveBeenCalled()
+    first.unmount()
+
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+    await screen.findByRole('heading', { level: 1 })
+    expect(screen.queryByText('Still matter?')).toBeNull()
+  })
+
+  it('asks again the next day', async () => {
+    const first = render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+    await userEvent.click(within(await asking()).getByRole('button', { name: 'Not now' }))
+    first.unmount()
+
+    vi.setSystemTime(new Date(2026, 10, 12, 9, 0))
+    render(<Day date="2026-11-12" today="2026-11-12" />)
+
+    expect(await asking()).toBeDefined()
   })
 })
