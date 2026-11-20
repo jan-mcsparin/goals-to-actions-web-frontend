@@ -19,9 +19,7 @@ import type {
   Aspiration,
   AspirationDetail,
   AspirationsOverview,
-  Bank,
   CheckOff,
-  DayPlan,
   Goal,
   GoalDetail,
   GoalStatus,
@@ -45,13 +43,6 @@ import type {
 } from './types.ts'
 
 export { NotFoundError, SignedOutError }
-
-// Set-aside tasks keep their day but don't show on it.
-export async function getDay(date: string): Promise<DayPlan> {
-  const tasks = shown(store.tasks.filter((task) => task.plannedDay === date))
-  const stillMatters = shown(store.tasks.filter((task) => task.week === thisWeek() && task.stillMatters))
-  return structuredClone({ date, tasks, stillMatters, ...recordsReferencedBy(tasks) })
-}
 
 // Keeps the moment and day it's given: they're what the phone saw at the tap.
 export async function checkOffTask(taskId: string, checkOff: CheckOff): Promise<Task> {
@@ -417,16 +408,6 @@ export async function setIntensity(intensity: Intensity): Promise<Settings> {
   if (!isIntensity(intensity)) throw new Error(`Unknown intensity ${intensity}`)
   store.settings.intensity = intensity
   return structuredClone(store.settings)
-}
-
-// The current week's bank, or next week's once it's open.
-export async function getBank(week: string = thisWeek()): Promise<Bank> {
-  if (week !== thisWeek() && !(nextWeekOpen() && week === weekAfter(thisWeek()))) {
-    throw new NotFoundError(`No week ${week}`)
-  }
-  const weekOf = week
-  const tasks = shown(store.tasks.filter((task) => isInBank(task) && !task.setAside && task.week === weekOf))
-  return structuredClone({ weekOf, tasks, ...recordsReferencedBy(tasks) })
 }
 
 // In the bank of this week, or of its due week when that's later. With
@@ -850,17 +831,3 @@ function findTask(taskId: string): StoredTask {
   return task
 }
 
-// The goals, recurring items and aspirations behind these tasks, plus any
-// extra goals asked for (a goal with a weekly target but no tasks yet).
-function recordsReferencedBy(tasks: Task[], extraGoalIds: string[] = []) {
-  const goalIds = new Set([...tasks.flatMap((task) => task.goalId ?? []), ...extraGoalIds])
-  const goals = store.goals.filter((goal) => goalIds.has(goal.id)).map(goalOut)
-  const recurringItems = store.recurringItems.filter((item) =>
-    tasks.some((task) => task.recurringItemId === item.id),
-  )
-  const aspirationIds = new Set(
-    [...goals, ...recurringItems].flatMap((record) => record.aspirationId ?? []),
-  )
-  const aspirations = store.aspirations.filter((aspiration) => aspirationIds.has(aspiration.id))
-  return { goals, recurringItems, aspirations }
-}

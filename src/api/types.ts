@@ -84,31 +84,12 @@ export type NewRecurringItem = Schemas['NewRecurringItem']
 export type Settings = Schemas['Settings']
 export type Intensity = Settings['intensity']
 
-export type DayPlan = {
-  date: string
-  tasks: Task[]
-  // The tasks asking "Still matter?", wherever they sit this week; Today shows them.
-  stillMatters: Task[]
-  goals: Goal[]
-  aspirations: Aspiration[]
-  recurringItems: RecurringItem[]
-}
-
 // The plan read (ADR-010): every task in a week, on a day then in the bank, done ones
 // included; each active building goal with a target that week and its progress; each day's
 // cap and whether it's full; and the quitting goals' days (#37). Today, any day and the bank
 // are drawn from it.
 export type Week = Schemas['Week']
 export type WeekGoal = Schemas['WeekGoal']
-
-// This week's tasks not yet on a day, with what they reference (like DayPlan).
-export type Bank = {
-  weekOf: string
-  tasks: Task[]
-  goals: Goal[]
-  aspirations: Aspiration[]
-  recurringItems: RecurringItem[]
-}
 
 // Everything the Aspirations tab shows, as records. Ordering, grouping and
 // counting are left to domain/aspirations.ts.

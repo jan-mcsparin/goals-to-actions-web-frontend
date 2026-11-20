@@ -2,14 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   answerStillMatters,
   checkOffTask,
-  getBank,
-  getDay,
   getWeek,
   NotFoundError,
   placeTask,
   wrapUpWeek,
 } from './client.ts'
 import { resetStore } from './mockStore.ts'
+import { readBank, readDay } from '../test/plan.ts'
 import { checkOffAt, isInBank } from '../domain/tasks.ts'
 
 const THIS_WEEK = '2026-11-09'
@@ -63,18 +62,18 @@ describe('getWeek and next week', () => {
   it("keeps next week's tasks out of this week's bank", async () => {
     at(SUNDAY_EVENING)
 
-    const bank = await getBank()
+    const bank = await readBank()
 
     expect(bank.tasks.every((task) => task.week === THIS_WEEK)).toBe(true)
   })
 
   it("reads next week's bank once it's open, and not before", async () => {
-    await expect(getBank(NEXT_WEEK)).rejects.toThrow(NotFoundError)
+    await expect(readBank(NEXT_WEEK)).rejects.toThrow(NotFoundError)
 
     at(SUNDAY_EVENING)
-    const bank = await getBank(NEXT_WEEK)
+    const bank = await readBank(NEXT_WEEK)
 
-    expect(bank.weekOf).toBe(NEXT_WEEK)
+    expect(bank.week).toBe(NEXT_WEEK)
     expect(bank.tasks.length).toBeGreaterThan(0)
     expect(bank.tasks.every((task) => task.week === NEXT_WEEK)).toBe(true)
   })
@@ -137,11 +136,11 @@ describe('wrapUpWeek', () => {
 
 describe('answerStillMatters', () => {
   it("is listed with the day's plan, whichever day it's on", async () => {
-    const day = await getDay('2026-11-11')
+    const day = await readDay('2026-11-11')
 
     expect(day.stillMatters.map((task) => task.id)).toEqual(['task-dentist'])
     await answerStillMatters('task-dentist', { answer: 'keep' })
-    expect((await getDay('2026-11-11')).stillMatters).toEqual([])
+    expect((await readDay('2026-11-11')).stillMatters).toEqual([])
   })
 
   it('marks a task that rolled over twice', async () => {

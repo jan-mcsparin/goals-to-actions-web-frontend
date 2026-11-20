@@ -77,10 +77,10 @@ Every front-end task:
 **Description:** With nothing calling them, `getDay`, `getBank`, `DayPlan` and `Bank` go. Tests that read a day or the bank through them read the week instead.
 
 **Acceptance criteria:**
-- [ ] No `getDay`, `getBank`, `DayPlan` or `Bank` type left in `src/`.
-- [ ] The tests that used them still check the same thing, through `getWeek`.
+- [x] No `getDay`, `getBank`, `DayPlan` or `Bank` type left in `src/`.
+- [x] The tests that used them still check the same thing, through `getWeek`.
 
-**Files:** `src/api/client.ts` (+ test), `src/api/types.ts`; reads only in `src/api/nextWeek.test.ts`, `src/components/AddSheet.test.tsx`, `src/hooks/useAdd.test.tsx`, `src/hooks/dataRevision.test.tsx`
+**Files:** `src/api/client.ts` (+ test), `src/api/types.ts`; `src/test/plan.ts` (`readDay`, `readBank`: through `getWeek`, as screens draw them); reads only in `src/api/nextWeek.test.ts`, `src/components/AddSheet.test.tsx`, `src/hooks/useAdd.test.tsx`, `src/hooks/dataRevision.test.tsx`
 
 **Dependencies:** Task 4 · **Scope:** M (mechanical)
 
