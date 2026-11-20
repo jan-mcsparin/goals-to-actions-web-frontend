@@ -49,7 +49,12 @@ export interface paths {
         /** Create Aspiration */
         put: operations["createAspiration"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete Aspiration
+         * @description For a mistake: the aspiration is hidden everywhere and the ones below it move up. Its
+         *     goals and recurring items stay, with no aspiration.
+         */
+        delete: operations["deleteAspiration"];
         options?: never;
         head?: never;
         /** Update Aspiration */
@@ -139,7 +144,12 @@ export interface paths {
         /** Create Goal */
         put: operations["createGoal"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete Goal
+         * @description For a mistake: the goal is hidden everywhere, with its tasks, milestones, check-ins and
+         *     records. A recurring item continued from it stays.
+         */
+        delete: operations["deleteGoal"];
         options?: never;
         head?: never;
         /** Update Goal */
@@ -396,7 +406,12 @@ export interface paths {
         /** Add Milestone */
         put: operations["addMilestone"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete Milestone
+         * @description For a mistake: the milestone and its check-ins are hidden everywhere, and the ones after
+         *     it move up. Returns the goal's page.
+         */
+        delete: operations["deleteMilestone"];
         options?: never;
         head?: never;
         /**
@@ -460,7 +475,12 @@ export interface paths {
          */
         put: operations["createRecurringItem"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete Recurring Item
+         * @description For a mistake: the item and its open tasks are hidden everywhere. Its done tasks stay,
+         *     with no item.
+         */
+        delete: operations["deleteRecurringItem"];
         options?: never;
         head?: never;
         /** Update Recurring Item */
@@ -538,7 +558,12 @@ export interface paths {
         /** Add Task */
         put: operations["addTask"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete Task
+         * @description For a mistake: the task and its week records are hidden everywhere. Not a drop, which
+         *     stays in history.
+         */
+        delete: operations["deleteTask"];
         options?: never;
         head?: never;
         /** Update Task */
@@ -1774,6 +1799,44 @@ export interface operations {
             };
         };
     };
+    deleteAspiration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                aspiration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     updateAspiration: {
         parameters: {
             query?: never;
@@ -2069,6 +2132,44 @@ export interface operations {
             };
             /** @description The rules don't allow this change. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteGoal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                goal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2849,6 +2950,48 @@ export interface operations {
             };
         };
     };
+    deleteMilestone: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-time-zone": string;
+            };
+            path: {
+                milestone_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalPage"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     updateMilestone: {
         parameters: {
             query?: never;
@@ -3012,6 +3155,44 @@ export interface operations {
             };
             /** @description The rules don't allow this change. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteRecurringItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3224,6 +3405,44 @@ export interface operations {
             };
             /** @description The rules don't allow this change. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
