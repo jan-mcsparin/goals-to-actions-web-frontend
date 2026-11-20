@@ -561,6 +561,107 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sign-in/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Redeem Code
+         * @description Spends a one-time code; returns the options for the browser to make a passkey.
+         */
+        post: operations["redeemCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sign-in/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finish Sign In
+         * @description Checks the passkey's signature and signs this device in.
+         */
+        post: operations["finishSignIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sign-in/passkeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Passkey
+         * @description Keeps the passkey made for a redeemed code, and signs this device in.
+         */
+        post: operations["addPasskey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sign-in/sign-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign Out
+         * @description Ends this device's session on the server and clears its cookie. Without a live session
+         *     there's nothing to end, and the answer is the same.
+         */
+        post: operations["signOut"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sign-in/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Sign In
+         * @description The options for the browser to sign in with a passkey, and the challenge to send back.
+         */
+        post: operations["startSignIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tasks/upcoming": {
         parameters: {
             query?: never;
@@ -1265,6 +1366,21 @@ export interface components {
             title: string;
         };
         /**
+         * PasskeyOptions
+         * @description What the browser's passkey functions take, as JSON, and the challenge to send back.
+         */
+        PasskeyOptions: {
+            /**
+             * Challengeid
+             * Format: uuid
+             */
+            challengeId: string;
+            /** Options */
+            options: {
+                [key: string]: unknown;
+            };
+        };
+        /**
          * Placing
          * @description Onto a day, placed by hand, in the week the change was made in.
          */
@@ -1402,6 +1518,11 @@ export interface components {
             /** Recurringitems */
             recurringItems: components["schemas"]["RecurringItem"][];
         };
+        /** RedeemCode */
+        RedeemCode: {
+            /** Code */
+            code: string;
+        };
         /**
          * Retirement
          * @description What happens to the aspiration's work: its active goals pause, or keep going without
@@ -1447,6 +1568,21 @@ export interface components {
              * @enum {string}
              */
             intensity: "easingOff" | "normal" | "goingHard";
+        };
+        /**
+         * SignedChallenge
+         * @description The browser's `PublicKeyCredential` as JSON, for the challenge it signed.
+         */
+        SignedChallenge: {
+            /**
+             * Challengeid
+             * Format: uuid
+             */
+            challengeId: string;
+            /** Credential */
+            credential: {
+                [key: string]: unknown;
+            };
         };
         /**
          * Swap
@@ -3451,6 +3587,166 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    redeemCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RedeemCode"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyOptions"];
+                };
+            };
+            /** @description The code, challenge or passkey didn't work. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finishSignIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignedChallenge"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The code, challenge or passkey didn't work. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    addPasskey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignedChallenge"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The code, challenge or passkey didn't work. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    signOut: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    startSignIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasskeyOptions"];
                 };
             };
         };
