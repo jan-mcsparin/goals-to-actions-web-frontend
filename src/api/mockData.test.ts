@@ -44,8 +44,12 @@ describe.each([
     }
   })
 
-  it("puts every task in the current week, which starts on a Monday", () => {
+  it("puts every task in the current week, which starts on a Monday, or in the bank of the next", () => {
     for (const task of data.tasks) {
+      if (task.week === '2026-11-16') {
+        expect(task.plannedDay).toBeNull()
+        continue
+      }
       expect(task.week).toBe('2026-11-09')
       if (task.plannedDay) {
         expect(task.plannedDay >= '2026-11-09' && task.plannedDay <= '2026-11-15').toBe(true)
@@ -103,7 +107,7 @@ describe('mock data contents', () => {
   })
 
   it('gives Have endurance two runs a week, one done on Monday and one in the bank', () => {
-    const runs = data.tasks.filter((task) => task.goalId === 'goal-endurance')
+    const runs = data.tasks.filter((task) => task.goalId === 'goal-endurance' && task.week === '2026-11-09')
     expect(data.weeklyTargets.find((target) => target.goalId === 'goal-endurance')?.sessions).toBe(2)
     expect(runs.map((task) => [whereIs(task), task.plannedDay])).toEqual([
       ['done', '2026-11-09'],

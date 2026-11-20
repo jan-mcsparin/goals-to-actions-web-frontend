@@ -36,7 +36,7 @@ Checkpoint after task 3: build, lint and tests pass, and the screens look as the
 
 PR `next-week` (closes #46 and #35), after the API's `week-turnover` is merged:
 
-- [ ] Task 4: New types, and a mock that opens next week
+- [x] Task 4: New types, and a mock that opens next week
 - [ ] Task 5: Next week on the Week screen
 - [ ] Task 6: Wrap up this week
 - [ ] Task 7: The "Still matter?" card

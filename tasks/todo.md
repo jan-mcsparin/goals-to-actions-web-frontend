@@ -75,9 +75,9 @@ Test dates are fixed to Wednesday 11 Nov 2026, or to a Sunday evening where a te
 **Description:** `npm run api:types`. The mock fills `atClose` and `stillMatters`. `getWeek(week)` returns `isCurrent` and `nextWeekOpen`. From 6 p.m. on Sunday (device clock) the mock has next week open, with some tasks of its own. The mock's `wrapUpWeek` applies `atClose`. `answerStillMatters` is added to the client.
 
 **Acceptance criteria:**
-- [ ] Before 6 p.m. on Sunday, next week isn't open; from then it is, and its tasks can't be checked off.
-- [ ] After `wrapUpWeek`, "carriesOver" tasks are in next week's bank, "ends" tasks are closed, and next week is current.
-- [ ] Keep, schedule and drop change the task as the API does; mock data includes a task marked `stillMatters`.
+- [x] Before 6 p.m. on Sunday, next week isn't open; from then it is, and its tasks can't be checked off.
+- [x] After `wrapUpWeek`, "carriesOver" tasks are in next week's bank, "ends" tasks are closed, and next week is current.
+- [x] Keep, schedule and drop change the task as the API does; mock data includes a task marked `stillMatters`.
 
 **Verification:** `npm test && npm run lint && npm run build`.
 

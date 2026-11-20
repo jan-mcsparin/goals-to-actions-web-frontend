@@ -37,7 +37,7 @@ const lifting = countTarget('goal-strong', 3, 'lifting sessions')
 
 // Targets are given per goal and put on their goals.
 function week(tasks: Task[], weeklyTargets: TargetFor[] = [lifting]): WeekPlan {
-  return { weekOf: MONDAY, tasks, goals: withTargets([strong, reading], weeklyTargets), aspirations: [fit], recurringItems: [trash] }
+  return { weekOf: MONDAY, isCurrent: true, nextWeekOpen: false, tasks, goals: withTargets([strong, reading], weeklyTargets), aspirations: [fit], recurringItems: [trash] }
 }
 
 describe('pacingLine', () => {
