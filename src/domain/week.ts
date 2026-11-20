@@ -120,3 +120,12 @@ function progressRow(goal: Goal, plan: WeekPlan, pacing: Pacing): ProgressRow {
 function summaryTitle(task: Task): string {
   return task.timeOfDay ? `${task.title} ${timeLabel(task.timeOfDay)}` : task.title
 }
+
+// What the wrap-up sheet lists: each unfinished task by what closing the week does to it, as the
+// API says in `atClose` (the phone doesn't work this out).
+export function wrapUpLists(plan: WeekPlan): { carriesOver: Task[]; ends: Task[] } {
+  return {
+    carriesOver: plan.tasks.filter((task) => task.atClose === 'carriesOver'),
+    ends: plan.tasks.filter((task) => task.atClose === 'ends'),
+  }
+}

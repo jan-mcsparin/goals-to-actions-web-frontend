@@ -4,6 +4,7 @@ import { DayPickerSheet } from '../components/DayPickerSheet.tsx'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import type { DaySummary, ProgressRow } from '../domain/week.ts'
 import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
+import { WrapUpSheet } from '../components/WrapUpSheet.tsx'
 import { ViewToggle, type ViewOption } from '../components/ViewToggle.tsx'
 import { useWeek } from '../hooks/useWeek.ts'
 import type { WeekViewMode } from '../storage/weekView.ts'
@@ -16,7 +17,8 @@ type WeekProps = {
 }
 
 export function Week({ today, onOpenDay }: WeekProps) {
-  const { title, range, week, message, view, canViewNext, setView, place } = useWeek(today)
+  const { title, range, week, message, view, canViewNext, setView, place, wrapUp } = useWeek(today)
+  const [wrapping, setWrapping] = useState(false)
   const [placing, setPlacing] = useState<Task>()
   // With nothing loaded, the message is all there is, so it stays.
   const shownMessage = useFleetingMessage(message, { sticky: !week })
@@ -73,6 +75,23 @@ export function Week({ today, onOpenDay }: WeekProps) {
           </>
         )}
       </section>
+
+      {view === 'next' && (
+        <button type="button" className="week-wrap-up" onClick={() => setWrapping(true)}>
+          Wrap up this week
+        </button>
+      )}
+
+      <WrapUpSheet
+        open={wrapping}
+        carriesOver={wrapUp.carriesOver}
+        ends={wrapUp.ends}
+        onConfirm={() => {
+          setWrapping(false)
+          wrapUp.confirm()
+        }}
+        onClose={() => setWrapping(false)}
+      />
 
       <DayPickerSheet
         open={placing !== undefined}

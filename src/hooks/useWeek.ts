@@ -1,7 +1,7 @@
 // This week, ready to render: progress per goal, a line per day, and the bank.
 // Loads through the API client; rules come from domain/week.ts.
 import { useState } from 'react'
-import { getWeek, placeTask } from '../api/client.ts'
+import { getWeek, placeTask, wrapUpWeek } from '../api/client.ts'
 import { mondayOfDay, weekAfter } from '../api/dates.ts'
 import type { Task, WeekPlan } from '../api/types.ts'
 import {
@@ -11,6 +11,7 @@ import {
   weekRange,
   type DaySummary,
   type PickableDay,
+  wrapUpLists,
   type ProgressRow,
 } from '../domain/week.ts'
 import { withTaskReplaced } from './planUpdates.ts'
@@ -20,6 +21,7 @@ import { isInBank, placedOnDay, weekOf } from '../domain/tasks'
 
 const LOAD_FAILED = "Couldn't load this week. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
+const WRAP_UP_FAILED = "Couldn't wrap up the week. Nothing changed."
 
 export type WeekView = {
   progress: ProgressRow[]
@@ -39,6 +41,8 @@ export type UseWeek = {
   canViewNext: boolean
   setView: (view: WeekViewMode) => void
   place: (bankTaskId: string, date: string) => void
+  // What the wrap-up sheet lists (titles), and the wrap-up itself. Next week's view offers it.
+  wrapUp: { carriesOver: string[]; ends: string[]; confirm: () => void }
 }
 
 // The current week, and next week once it's open.
@@ -80,6 +84,18 @@ export function useWeek(today: string): UseWeek {
       })
   }
 
+  // No undo, so nothing changes on screen until the API says it's done.
+  function confirmWrapUp() {
+    if (!weeks) return
+    setMessage(undefined)
+    wrapUpWeek(weeks.current.weekOf)
+      .then((current) => {
+        setWeeks({ current })
+        setView('this')
+      })
+      .catch(() => setMessage(WRAP_UP_FAILED))
+  }
+
   function replaceTask(next: Task) {
     setWeeks(
       (previous) =>
@@ -90,10 +106,16 @@ export function useWeek(today: string): UseWeek {
     )
   }
 
+  const lists = weeks ? wrapUpLists(weeks.current) : { carriesOver: [], ends: [] }
+  const wrapUp = {
+    carriesOver: lists.carriesOver.map((task) => task.title),
+    ends: lists.ends.map((task) => task.title),
+    confirm: confirmWrapUp,
+  }
   const monday = view === 'next' ? weekAfter(mondayOfDay(today)) : mondayOfDay(today)
   const range = weekRange(plan?.weekOf ?? monday)
   const title = view === 'next' ? 'Next week' : 'This week'
-  return { title, range, week: plan && viewOf(plan, today), message, view, canViewNext, setView, place }
+  return { title, range, week: plan && viewOf(plan, today), message, view, canViewNext, setView, place, wrapUp }
 }
 
 function viewOf(plan: WeekPlan, today: string): WeekView {

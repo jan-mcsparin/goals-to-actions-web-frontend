@@ -38,7 +38,7 @@ PR `next-week` (closes #46 and #35), after the API's `week-turnover` is merged:
 
 - [x] Task 4: New types, and a mock that opens next week
 - [x] Task 5: Next week on the Week screen
-- [ ] Task 6: Wrap up this week
+- [x] Task 6: Wrap up this week
 - [ ] Task 7: The "Still matter?" card
 - [ ] Task 8: Docs and the phone check
 

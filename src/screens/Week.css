@@ -6,6 +6,7 @@
 
 .week-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
@@ -128,6 +129,25 @@
 }
 
 .week-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The toggle takes its own line under the title and range. */
+.week-header .view-toggle {
+  flex-basis: 100%;
+}
+
+.week-wrap-up {
+  min-height: 2.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+}
+
+.week-wrap-up:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }

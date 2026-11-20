@@ -1,14 +1,14 @@
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getWeek, placeTask } from '../api/client.ts'
+import { getWeek, placeTask, wrapUpWeek } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import { Week } from './Week.tsx'
 import { isInBank } from '../domain/tasks.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
-  return { ...actual, getWeek: vi.fn(actual.getWeek), placeTask: vi.fn(actual.placeTask) }
+  return { ...actual, getWeek: vi.fn(actual.getWeek), placeTask: vi.fn(actual.placeTask), wrapUpWeek: vi.fn(actual.wrapUpWeek) }
 })
 
 const WEDNESDAY_DAY = '2026-11-11'
@@ -273,5 +273,52 @@ describe('Week, next week', () => {
     render(<Week today={WEDNESDAY_DAY} onOpenDay={() => {}} />)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'This week' })).toBeDefined()
+  })
+})
+
+describe('Week, wrapping up', () => {
+  async function openSheet() {
+    sundayEvening()
+    render(<Week today={SUNDAY_DAY} onOpenDay={() => {}} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Next week' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Wrap up this week' }))
+    return await screen.findByRole('dialog')
+  }
+
+  it("is offered on next week only, and opens a sheet of what carries over and what ends", async () => {
+    sundayEvening()
+    render(<Week today={SUNDAY_DAY} onOpenDay={() => {}} />)
+    await screen.findByRole('region', { name: 'Days' })
+    expect(screen.queryByRole('button', { name: 'Wrap up this week' })).toBeNull()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Next week' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Wrap up this week' }))
+
+    const sheet = await screen.findByRole('dialog')
+    expect(within(within(sheet).getByRole('region', { name: 'Carries over to next week' })).getByText('Call the dentist')).toBeDefined()
+    expect(within(within(sheet).getByRole('region', { name: 'Ends with this week' })).getByText('Lift: deadlift day')).toBeDefined()
+  })
+
+  it('makes next week the current one when confirmed, and the toggle goes', async () => {
+    const sheet = await openSheet()
+
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Wrap up this week' }))
+
+    expect(wrapUpWeek).toHaveBeenCalledWith('2026-11-09')
+    expect(await screen.findByRole('heading', { level: 1, name: 'This week' })).toBeDefined()
+    expect(screen.getByText('Nov 16–22')).toBeDefined()
+    expect(screen.queryByRole('group', { name: 'Week' })).toBeNull()
+    expect(localStorage.getItem('gta.weekView')).toBe('this')
+  })
+
+  it('leaves the week as it was, and says so, when wrapping up fails', async () => {
+    vi.mocked(wrapUpWeek).mockRejectedValueOnce(new Error('offline'))
+    const sheet = await openSheet()
+
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Wrap up this week' }))
+
+    expect(await screen.findByText("Couldn't wrap up the week. Nothing changed.")).toBeDefined()
+    expect(screen.getByRole('heading', { level: 1, name: 'Next week' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Next week' }).getAttribute('aria-pressed')).toBe('true')
   })
 })

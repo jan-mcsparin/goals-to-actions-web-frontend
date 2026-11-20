@@ -109,9 +109,9 @@ Test dates are fixed to Wednesday 11 Nov 2026, or to a Sunday evening where a te
 **Description:** **Wrap up this week** sits on Next week. A sheet lists what carries over and what ends with the week, from `atClose`, then confirms. After confirming, Week shows the new current week. Nothing prompts it.
 
 **Acceptance criteria:**
-- [ ] The sheet's two lists match the tasks' `atClose`; an empty list isn't shown. The wording is warm and never mentions misses.
-- [ ] Confirming calls `wrapUpWeek`; afterwards next week's tasks can be checked off and the toggle is gone. There's no undo.
-- [ ] A failed wrap-up leaves the week as it was and says so in one line.
+- [x] The sheet's two lists match the tasks' `atClose`; an empty list isn't shown. The wording is warm and never mentions misses.
+- [x] Confirming calls `wrapUpWeek`; afterwards next week's tasks can be checked off and the toggle is gone. There's no undo.
+- [x] A failed wrap-up leaves the week as it was and says so in one line.
 
 **Verification:** `npx vitest run src/components/WrapUpSheet.test.tsx src/screens/Week.test.tsx`; build, lint.
 
