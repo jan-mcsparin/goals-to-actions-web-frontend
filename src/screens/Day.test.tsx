@@ -462,3 +462,31 @@ describe('Day', () => {
     expect(screen.queryByText(/done$/)).toBeNull()
   })
 })
+
+describe('Day in next week', () => {
+  const TUESDAY_AFTER = '2026-11-17'
+
+  beforeEach(() => {
+    vi.setSystemTime(new Date(2026, 10, 15, 18, 0))
+  })
+
+  it("can't be checked off, but its tasks can still be sent back", async () => {
+    await placeTask('task-next-lift', '2026-11-16', TUESDAY_AFTER)
+    render(<Day date={TUESDAY_AFTER} today="2026-11-15" />)
+
+    const row = await screen.findByRole('checkbox', { name: 'Lift: squat day' })
+
+    expect((row as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: /Lift: squat day/ })).toBeDefined()
+  })
+
+  it("pulls from next week's bank, not this week's", async () => {
+    render(<Day date={TUESDAY_AFTER} today="2026-11-15" />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Pull from bank' }))
+
+    const sheet = await screen.findByRole('dialog')
+
+    expect(await within(sheet).findByText('Lift: squat day')).toBeDefined()
+    expect(within(sheet).queryByText('Call the dentist')).toBeNull()
+  })
+})

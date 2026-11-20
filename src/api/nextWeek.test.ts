@@ -67,6 +67,17 @@ describe('getWeek and next week', () => {
     expect(bank.tasks.every((task) => task.week === THIS_WEEK)).toBe(true)
   })
 
+  it("reads next week's bank once it's open, and not before", async () => {
+    await expect(getBank(NEXT_WEEK)).rejects.toThrow(NotFoundError)
+
+    at(SUNDAY_EVENING)
+    const bank = await getBank(NEXT_WEEK)
+
+    expect(bank.weekOf).toBe(NEXT_WEEK)
+    expect(bank.tasks.length).toBeGreaterThan(0)
+    expect(bank.tasks.every((task) => task.week === NEXT_WEEK)).toBe(true)
+  })
+
   it('refuses to check off a task in next week, and lets it be placed', async () => {
     at(SUNDAY_EVENING)
     const [task] = (await getWeek(NEXT_WEEK)).tasks

@@ -14,6 +14,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
 const WEDNESDAY_DAY = '2026-11-11'
 
 beforeEach(() => {
+  localStorage.clear()
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(2026, 10, 11, 9, 0))
   resetStore()
@@ -199,5 +200,78 @@ describe('Week', () => {
 
     const bank = await screen.findByRole('region', { name: 'Bank' })
     expect(within(bank).getByText('Nothing in the bank.')).toBeDefined()
+  })
+})
+
+const SUNDAY_DAY = '2026-11-15'
+
+function sundayEvening() {
+  vi.setSystemTime(new Date(2026, 10, 15, 18, 0))
+}
+
+describe('Week, next week', () => {
+  it('offers no toggle until next week is open', async () => {
+    render(<Week today={WEDNESDAY_DAY} onOpenDay={() => {}} />)
+    await screen.findByRole('region', { name: 'Days' })
+
+    expect(screen.queryByRole('group', { name: 'Week' })).toBeNull()
+  })
+
+  it('offers This week and Next week from Sunday at 6 p.m.', async () => {
+    sundayEvening()
+    render(<Week today={SUNDAY_DAY} onOpenDay={() => {}} />)
+
+    const toggle = await screen.findByRole('group', { name: 'Week' })
+    expect(within(toggle).getByRole('button', { name: 'This week' }).getAttribute('aria-pressed')).toBe('true')
+    expect(within(toggle).getByRole('button', { name: 'Next week' }).getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it("shows next week's range, days and bank, and opens its days", async () => {
+    sundayEvening()
+    const onOpenDay = vi.fn()
+    render(<Week today={SUNDAY_DAY} onOpenDay={onOpenDay} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Next week' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Next week' })).toBeDefined()
+    expect(screen.getByText('Nov 16–22')).toBeDefined()
+    expect(dayButtons().map((day) => day.querySelector('.week-day-name')?.textContent)).toEqual([
+      'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',
+    ])
+    const bank = screen.getByRole('region', { name: /^Bank/ })
+    expect(within(bank).getAllByRole('button').length).toBeGreaterThan(0)
+    await userEvent.click(dayButtons()[1])
+    expect(onOpenDay).toHaveBeenCalledWith('2026-11-17')
+  })
+
+  it("puts a task from next week's bank on one of its days", async () => {
+    sundayEvening()
+    render(<Week today={SUNDAY_DAY} onOpenDay={() => {}} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Next week' }))
+    const bank = await screen.findByRole('region', { name: /^Bank/ })
+
+    await userEvent.click(within(bank).getAllByRole('button')[0])
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: /Tue/ }))
+
+    expect(placeTask).toHaveBeenCalledWith(expect.any(String), '2026-11-16', '2026-11-17')
+    expect(dayButtons()[1].textContent).not.toContain('Free day')
+  })
+
+  it('opens on the view chosen last time', async () => {
+    sundayEvening()
+    const first = render(<Week today={SUNDAY_DAY} onOpenDay={() => {}} />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Next week' }))
+    first.unmount()
+
+    render(<Week today={SUNDAY_DAY} onOpenDay={() => {}} />)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Next week' })).toBeDefined()
+  })
+
+  it('falls back to This week when next week is not open', async () => {
+    localStorage.setItem('gta.weekView', 'next')
+    render(<Week today={WEDNESDAY_DAY} onOpenDay={() => {}} />)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'This week' })).toBeDefined()
   })
 })

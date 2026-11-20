@@ -9,12 +9,14 @@ type TaskRowProps = {
   onToggle: () => void
   onSendToBank: () => void
   onSwap?: () => void
+  // False for a task in a week that hasn't started: it can be moved, not checked off.
+  canCheck?: boolean
 }
 
 // The whole row is the checkbox, so a tap anywhere on it checks the task off.
 // Done tasks have no menu (tapping again undoes them), and neither do
 // fixed-day items, which stay on their day.
-export function TaskRow({ row, onToggle, onSendToBank, onSwap }: TaskRowProps) {
+export function TaskRow({ row, onToggle, onSendToBank, onSwap, canCheck = true }: TaskRowProps) {
   const { task, timeLabel, subline } = row
   const done = isDone(task)
   const titleId = `task-${task.id}-title`
@@ -32,6 +34,7 @@ export function TaskRow({ row, onToggle, onSendToBank, onSwap }: TaskRowProps) {
         aria-labelledby={titleId}
         aria-describedby={describedBy || undefined}
         className="task-row"
+        disabled={!canCheck}
         onClick={onToggle}
       >
         <span className="task-check" aria-hidden="true" />

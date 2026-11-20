@@ -92,9 +92,9 @@ Test dates are fixed to Wednesday 11 Nov 2026, or to a Sunday evening where a te
 **Description:** Once next week is open, Week shows a "This week | Next week" toggle. Next week shows its days, Monday to Sunday, and its bank. A task can be put on a day, sent back to the bank or swapped, but not checked off. The chosen view is remembered across reloads.
 
 **Acceptance criteria:**
-- [ ] Before 6 p.m. on Sunday, and on every other day, Week reads as it does now, with no toggle.
-- [ ] On Next week, place, back to bank and swap work, and no check-off is offered.
-- [ ] After a reload, the same view is open; with next week no longer open, it falls back to This week.
+- [x] Before 6 p.m. on Sunday, and on every other day, Week reads as it does now, with no toggle.
+- [x] On Next week, place, back to bank and swap work, and no check-off is offered.
+- [x] After a reload, the same view is open; with next week no longer open, it falls back to This week.
 
 **Verification:** `npx vitest run src/screens/Week.test.tsx src/hooks`; build, lint.
 

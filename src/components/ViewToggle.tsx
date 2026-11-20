@@ -1,20 +1,19 @@
-import type { TodayViewMode } from '../storage/viewPreference.ts'
 import './ViewToggle.css'
 
-const OPTIONS: { view: TodayViewMode; label: string }[] = [
-  { view: 'list', label: 'List' },
-  { view: 'byGoal', label: 'By goal' },
-]
+export type ViewOption<View extends string> = { view: View; label: string }
 
-type ViewToggleProps = {
-  view: TodayViewMode
-  onChange: (view: TodayViewMode) => void
+type ViewToggleProps<View extends string> = {
+  // What the group is called to a screen reader: "View", "Week".
+  label: string
+  view: View
+  options: ViewOption<View>[]
+  onChange: (view: View) => void
 }
 
-export function ViewToggle({ view, onChange }: ViewToggleProps) {
+export function ViewToggle<View extends string>({ label, view, options, onChange }: ViewToggleProps<View>) {
   return (
-    <div className="view-toggle" role="group" aria-label="View">
-      {OPTIONS.map((option) => (
+    <div className="view-toggle" role="group" aria-label={label}>
+      {options.map((option) => (
         <button
           key={option.view}
           type="button"

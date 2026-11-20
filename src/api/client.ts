@@ -2,7 +2,7 @@
 // except that with the switch on real (mode.ts) the aspiration and goal ones
 // call the API instead (realAspirations.ts, realGoals.ts), with the same
 // signatures.
-import { addDays, fromLocalDay, mondayOf, toLocalDay } from './dates.ts'
+import { addDays, fromLocalDay, mondayOf, toLocalDay, weekAfter } from './dates.ts'
 import { taskWeek } from '../domain/add.ts'
 import { checkedOff, inTheBank, isInBank, isPlanned, placedOnDay, uncheckedOff } from '../domain/tasks.ts'
 import { isWithinGoal, MOST_SESSIONS, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
@@ -395,8 +395,12 @@ export async function setIntensity(intensity: Intensity): Promise<Settings> {
   return structuredClone(store.settings)
 }
 
-export async function getBank(): Promise<Bank> {
-  const weekOf = thisWeek()
+// The current week's bank, or next week's once it's open.
+export async function getBank(week: string = thisWeek()): Promise<Bank> {
+  if (week !== thisWeek() && !(nextWeekOpen() && week === weekAfter(thisWeek()))) {
+    throw new NotFoundError(`No week ${week}`)
+  }
+  const weekOf = week
   const tasks = shown(store.tasks.filter((task) => isInBank(task) && !task.setAside && task.week === weekOf))
   return structuredClone({ weekOf, tasks, ...recordsReferencedBy(tasks) })
 }
@@ -623,10 +627,6 @@ function isWaiting(task: StoredTask): boolean {
 function thisWeek(): string {
   const phones = toLocalDay(mondayOf(new Date()))
   return store.closedThrough !== null && weekAfter(store.closedThrough) > phones ? weekAfter(store.closedThrough) : phones
-}
-
-function weekAfter(week: string): string {
-  return toLocalDay(addDays(fromLocalDay(week), 7))
 }
 
 // From 6 p.m. on the current week's Sunday (ADR-009), by the device clock.

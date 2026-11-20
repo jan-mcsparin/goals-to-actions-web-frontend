@@ -11,7 +11,7 @@ import {
   swapTasks,
   uncheckTask,
 } from '../api/client.ts'
-import { toLocalDay } from '../api/dates.ts'
+import { mondayOfDay, toLocalDay } from '../api/dates.ts'
 import type { Bank, DayPlan, Task } from '../api/types.ts'
 import {
   bankRows,
@@ -35,6 +35,8 @@ export type DayView = {
   isToday: boolean
   // Tasks can be placed on today and later days, not on past ones.
   canPlace: boolean
+  // A day in a week that hasn't started can't be checked off.
+  canCheckOff: boolean
   progress: { done: number; total: number }
   sections: Section[]
 }
@@ -109,7 +111,7 @@ export function useDay(date: string, today: string): UseDay {
     setBank(undefined)
     setBankFailed(false)
     try {
-      const loaded = await getBank()
+      const loaded = await getBank(mondayOfDay(date))
       if (load === latestBankLoad.current) setBank(loaded)
     } catch {
       if (load === latestBankLoad.current) setBankFailed(true)
@@ -196,6 +198,7 @@ function viewOf(plan: DayPlan, view: TodayViewMode, today: string): DayView {
   return {
     isToday: plan.date === today,
     canPlace: plan.date >= today,
+    canCheckOff: mondayOfDay(plan.date) <= mondayOfDay(today),
     progress: progress(plan),
     sections,
   }
