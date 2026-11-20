@@ -48,6 +48,9 @@ function aStoredTask(id: string, fields: Partial<StoredTask> = {}): StoredTask {
 // Wednesday 11 Nov 2026, 9 a.m. local time.
 const WEDNESDAY = new Date(2026, 10, 11, 9, 0)
 const WEDNESDAY_DAY = '2026-11-11'
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+// A check-off tapped on Wednesday morning: what the phone saw.
+const TAPPED = { completedAt: WEDNESDAY.toISOString(), completedOn: WEDNESDAY_DAY }
 
 function ids(records: { id: string }[]) {
   return records.map((record) => record.id).sort()
@@ -137,28 +140,38 @@ describe('getDay', () => {
 })
 
 describe('checkOffTask', () => {
-  it('marks the task done with a completion time and returns it', async () => {
-    const task = await checkOffTask('task-lift-today')
+  it('marks the task done with the moment it was tapped and returns it', async () => {
+    const task = await checkOffTask('task-lift-today', TAPPED)
 
     expect(whereIs(task)).toBe('done')
     expect(task.completedAt).toBe(WEDNESDAY.toISOString())
+    expect(task.completedOn).toBe(WEDNESDAY_DAY)
+  })
+
+  it('keeps the moment sent, not the clock when it saves: a queued check-off saves later', async () => {
+    vi.setSystemTime(new Date(2026, 10, 12, 8, 0))
+
+    const task = await checkOffTask('task-lift-today', TAPPED)
+
+    expect(task.completedAt).toBe(WEDNESDAY.toISOString())
+    expect(task.completedOn).toBe(WEDNESDAY_DAY)
   })
 
   it('stores a logged value when given', async () => {
-    const task = await checkOffTask('task-lift-today', 155)
+    const task = await checkOffTask('task-lift-today', { ...TAPPED, valueLogged: 155 })
 
     expect(task.valueLogged).toBe(155)
   })
 
   it('is reflected in the next getDay', async () => {
-    await checkOffTask('task-laundry')
+    await checkOffTask('task-laundry', TAPPED)
 
     const { tasks } = await getDay(WEDNESDAY_DAY)
     expect(statusIn(tasks, 'task-laundry')).toBe('done')
   })
 
   it('is undone by resetStore', async () => {
-    await checkOffTask('task-laundry')
+    await checkOffTask('task-laundry', TAPPED)
     resetStore()
 
     const { tasks } = await getDay(WEDNESDAY_DAY)
@@ -166,11 +179,11 @@ describe('checkOffTask', () => {
   })
 
   it('rejects an unknown task id', async () => {
-    await expect(checkOffTask('no-such-task')).rejects.toThrow('no-such-task')
+    await expect(checkOffTask('no-such-task', TAPPED)).rejects.toThrow('no-such-task')
   })
 
   it('returns a copy, so changing it does not change the store', async () => {
-    const task = await checkOffTask('task-laundry')
+    const task = await checkOffTask('task-laundry', TAPPED)
     task.state = 'open'
 
     const { tasks } = await getDay(WEDNESDAY_DAY)
@@ -180,7 +193,7 @@ describe('checkOffTask', () => {
 
 describe('uncheckTask', () => {
   it('puts a done task back to planned and clears what check-off set', async () => {
-    await checkOffTask('task-lift-today', 155)
+    await checkOffTask('task-lift-today', { ...TAPPED, valueLogged: 155 })
 
     const task = await uncheckTask('task-lift-today')
 
@@ -190,7 +203,7 @@ describe('uncheckTask', () => {
   })
 
   it('is reflected in the next getDay', async () => {
-    await checkOffTask('task-laundry')
+    await checkOffTask('task-laundry', TAPPED)
     await uncheckTask('task-laundry')
 
     const { tasks } = await getDay(WEDNESDAY_DAY)
@@ -254,7 +267,7 @@ describe('moveTaskToBank', () => {
   })
 
   it('rejects a task that is not planned', async () => {
-    await checkOffTask('task-laundry')
+    await checkOffTask('task-laundry', TAPPED)
 
     await expect(moveTaskToBank('task-laundry', THIS_WEEK)).rejects.toThrow('not planned')
     await expect(moveTaskToBank('task-lift-bank', THIS_WEEK)).rejects.toThrow('not planned')
@@ -1255,7 +1268,7 @@ describe('getUpkeep', () => {
     expect(taskIds).not.toContain('task-laundry')
     expect(taskIds).not.toContain('task-plan-mon')
 
-    await checkOffTask('task-ballot')
+    await checkOffTask('task-ballot', TAPPED)
 
     expect(ids((await getUpkeep()).tasks)).not.toContain('task-ballot')
   })
@@ -1300,6 +1313,10 @@ function expectConsistentStore() {
 }
 
 describe('addTask', () => {
+  it('gives the task an id made on the device', async () => {
+    expect((await addTask({ title: 'Fill out my ballot' })).id).toMatch(UUID_V4)
+  })
+
   it("stores a task with only a title in this week's bank", async () => {
     const task = await addTask({ title: '  Fill out my ballot  ' })
 
@@ -1522,6 +1539,10 @@ describe('addAspiration', () => {
 describe('addRecurringItem', () => {
   const trash: NewRecurringItem = { name: '  Water the plants ', schedule: { kind: 'weekly', weekday: 'tuesday' }, startsOn: WEDNESDAY_DAY }
 
+  it('gives the item an id made on the device', async () => {
+    expect((await addRecurringItem(trash)).id).toMatch(UUID_V4)
+  })
+
   it('stores an active item with no aspiration, on Keep life running', async () => {
     const item = await addRecurringItem(trash)
 
@@ -1563,8 +1584,8 @@ describe('addRecurringItem', () => {
 })
 
 describe('getSettings', () => {
-  it('starts at Normal, set on Oct 1, with weeks starting Monday', async () => {
-    expect(await getSettings()).toEqual({ intensity: 'normal', intensitySetOn: '2026-10-01', weekStartsOn: 'monday' })
+  it('starts at Normal, as the API has it: intensity only', async () => {
+    expect(await getSettings()).toEqual({ intensity: 'normal' })
   })
 
   it('returns a copy', async () => {
@@ -1576,10 +1597,10 @@ describe('getSettings', () => {
 })
 
 describe('setIntensity', () => {
-  it('sets the intensity, set today, and the next getSettings agrees', async () => {
+  it('sets the intensity, and the next getSettings agrees', async () => {
     const settings = await setIntensity('goingHard')
 
-    expect(settings).toEqual({ intensity: 'goingHard', intensitySetOn: WEDNESDAY_DAY, weekStartsOn: 'monday' })
+    expect(settings).toEqual({ intensity: 'goingHard' })
     expect(await getSettings()).toEqual(settings)
   })
 
@@ -1592,7 +1613,7 @@ describe('setIntensity', () => {
 
   it('rejects an unknown intensity and changes nothing', async () => {
     await expect(setIntensity('flatOut' as never)).rejects.toThrow()
-    expect(store.settings).toEqual({ intensity: 'normal', intensitySetOn: '2026-10-01', weekStartsOn: 'monday' })
+    expect(store.settings).toEqual({ intensity: 'normal' })
   })
 })
 

@@ -6,6 +6,11 @@ import type { components } from './openapi.ts'
 
 type Schemas = components['schemas']
 
+// What the phone saw when a task was checked off: the moment, and the local day
+// it counts for (12:30 a.m. is the new day). Made once, at the tap, and sent as
+// it was, even if the save happens later.
+export type CheckOff = Schemas['CheckOff']
+
 // What the browser's passkey functions take, as JSON, and the challenge to
 // send back with the passkey made or used.
 export type PasskeyOptions = Schemas['PasskeyOptions']
@@ -74,14 +79,10 @@ export type NewAspiration = Schemas['AspirationInput']
 // belongs to Keep life running.
 export type NewRecurringItem = Schemas['NewRecurringItem']
 
-export type Intensity = 'easingOff' | 'normal' | 'goingHard'
-
 // Free time has no setting: it's whatever the intensity's task cap leaves open.
-export type Settings = {
-  intensity: Intensity
-  intensitySetOn: string
-  weekStartsOn: 'monday'
-}
+// Weeks always start Monday, so that's no setting either.
+export type Settings = Schemas['Settings']
+export type Intensity = Settings['intensity']
 
 export type DayPlan = {
   date: string

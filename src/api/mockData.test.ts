@@ -147,7 +147,7 @@ describe('mock data contents', () => {
     expect(data.tasks.some((task) => task.carriedOver >= 2)).toBe(true)
   })
 
-  it('starts at normal intensity with weeks starting Monday', () => {
-    expect(data.settings).toMatchObject({ intensity: 'normal', weekStartsOn: 'monday' })
+  it('starts at normal intensity', () => {
+    expect(data.settings).toEqual({ intensity: 'normal' })
   })
 })

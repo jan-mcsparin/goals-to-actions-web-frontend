@@ -10,7 +10,7 @@ import {
   wrapUpWeek,
 } from './client.ts'
 import { resetStore } from './mockStore.ts'
-import { isInBank } from '../domain/tasks.ts'
+import { checkOffAt, isInBank } from '../domain/tasks.ts'
 
 const THIS_WEEK = '2026-11-09'
 const NEXT_WEEK = '2026-11-16'
@@ -83,7 +83,7 @@ describe('getWeek and next week', () => {
     at(SUNDAY_EVENING)
     const [task] = (await getWeek(NEXT_WEEK)).tasks
 
-    await expect(checkOffTask(task.id)).rejects.toThrow()
+    await expect(checkOffTask(task.id, checkOffAt(SUNDAY_EVENING))).rejects.toThrow()
     await placeTask(task.id, NEXT_WEEK, '2026-11-17')
 
     const placed = (await getWeek(NEXT_WEEK)).tasks.find((candidate) => candidate.id === task.id)

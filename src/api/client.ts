@@ -19,6 +19,7 @@ import type {
   AspirationDetail,
   AspirationsOverview,
   Bank,
+  CheckOff,
   DayPlan,
   Goal,
   GoalDetail,
@@ -50,12 +51,11 @@ export async function getDay(date: string): Promise<DayPlan> {
   return structuredClone({ date, tasks, stillMatters, ...recordsReferencedBy(tasks) })
 }
 
-export async function checkOffTask(taskId: string, valueLogged?: number): Promise<Task> {
+// Keeps the moment and day it's given: they're what the phone saw at the tap.
+export async function checkOffTask(taskId: string, checkOff: CheckOff): Promise<Task> {
   const task = findTask(taskId)
   if (task.week !== null && task.week > thisWeek()) throw new Error("Can't check off a task in a week that hasn't started")
-  const now = new Date()
-  replaceTask(task, checkedOff(task, now.toISOString(), toLocalDay(now)))
-  if (valueLogged !== undefined) task.valueLogged = valueLogged
+  replaceTask(task, checkedOff(task, checkOff))
   return taskOut(task)
 }
 
@@ -394,7 +394,6 @@ export async function getSettings(): Promise<Settings> {
 export async function setIntensity(intensity: Intensity): Promise<Settings> {
   if (!isIntensity(intensity)) throw new Error(`Unknown intensity ${intensity}`)
   store.settings.intensity = intensity
-  store.settings.intensitySetOn = toLocalDay(new Date())
   return structuredClone(store.settings)
 }
 
@@ -498,7 +497,7 @@ export async function addRecurringItem(item: NewRecurringItem): Promise<Recurrin
   if (item.aspirationId) findActiveAspiration(item.aspirationId)
 
   const added: RecurringItem = {
-    id: newId('rec'),
+    id: newDeviceId(),
     name,
     aspirationId: item.aspirationId ?? null,
     fromGoalId: item.fromGoalId ?? null,
@@ -584,7 +583,7 @@ function shown(tasks: StoredTask[]): Task[] {
 
 function newStoredTask(fields: Pick<StoredTask, 'title' | 'origin'> & Partial<StoredTask>): StoredTask {
   return {
-    id: newId('task'),
+    id: newDeviceId(),
     state: 'open',
     goalId: null,
     goalLabel: null,
@@ -760,14 +759,6 @@ function findCurrentGoal(goalId: string): StoredGoal {
   const goal = findGoal(goalId)
   if (!isCurrentGoal(goal)) throw new Error(`${goalId} is ${goal.status}`)
   return goal
-}
-
-// Ids for the records whose screens aren't on the API yet; #39 moves them to
-// newDeviceId. A counter: the store resets on reload, and so does this.
-let lastId = 0
-
-function newId(prefix: string): string {
-  return `${prefix}-new-${++lastId}`
 }
 
 function pauseWork(goals: StoredGoal[], items: RecurringItem[]) {

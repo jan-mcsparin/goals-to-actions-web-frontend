@@ -12,7 +12,7 @@ import {
   swapTasks,
   uncheckTask,
 } from '../api/client.ts'
-import { mondayOfDay, toLocalDay } from '../api/dates.ts'
+import { mondayOfDay } from '../api/dates.ts'
 import type { Bank, DayPlan, StillMattersAnswer, Task } from '../api/types.ts'
 import {
   bankRows,
@@ -28,7 +28,7 @@ import { readNotNow, saveNotNow } from '../storage/stillMattersNotNow.ts'
 import { readTodayView, saveTodayView, type TodayViewMode } from '../storage/viewPreference.ts'
 import { withTaskReplaced } from './planUpdates.ts'
 import { useLoaded } from './useLoaded.ts'
-import { checkedOff, isDone, placedOnDay, uncheckedOff, weekOf } from '../domain/tasks'
+import { checkedOff, checkOffAt, isDone, placedOnDay, uncheckedOff, weekOf } from '../domain/tasks'
 
 const LOAD_FAILED = "Couldn't load today. Try again in a moment."
 const SAVE_FAILED = "Couldn't save that. Try again."
@@ -105,12 +105,13 @@ export function useDay(date: string, today: string): UseDay {
     const before = plan?.tasks.find((task) => task.id === taskId)
     if (!before) return
 
-    const undoing = isDone(before)
-    replaceTask(undoing ? uncheckedOff(before) : checkedOff(before, new Date().toISOString(), toLocalDay(new Date())))
+    // A check-off reads the clock once: the moment shown is the one sent.
+    const checkOff = isDone(before) ? undefined : checkOffAt(new Date())
+    replaceTask(checkOff ? checkedOff(before, checkOff) : uncheckedOff(before))
     setMessage(undefined)
     const isLatest = startRequest(taskId)
 
-    const save = undoing ? uncheckTask(taskId) : checkOffTask(taskId)
+    const save = checkOff ? checkOffTask(taskId, checkOff) : uncheckTask(taskId)
     save
       .then((saved) => isLatest() && replaceTask(saved))
       .catch(() => {

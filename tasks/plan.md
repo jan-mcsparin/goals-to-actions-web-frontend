@@ -1,56 +1,46 @@
-# Implementation Plan: Sign in with a passkey, and stay signed in (#48)
+# Implementation Plan: Ids made on the device, the phone's time zone, and the check-off's moment (#39)
 
-Issue: [#48](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/48); no spec of its own. The rules are in [ADR-012](../../docs/adr/0012-sign-in-with-a-passkey.md) and the API's [`sign-in` spec](../../api/specs/sign-in.md) and [plan](../../api/tasks/plan.md) (the contract). Tasks: [`todo.md`](todo.md). (The plan for #30, #46 and #35 is in git history.)
+Issue: [#39](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/39); no spec of its own. The rules are in [`data-model.md`: on every table](../../docs/data-model.md#on-every-table), the API's `CheckOff` (`openapi.ts`), and [ADR-004](../../docs/adr/0004-instant-open.md). Tasks: [`todo.md`](todo.md). (The plan for #48 is in git history.)
 
 ## Overview
 
-The API answers 401 without a session (`__Host-session`, an `HttpOnly` cookie the page never sees). The front end learns it's signed out only from a 401: there's no "who am I" route, and none is needed. It starts as signed in, and the first 401 flips it.
+Most of #39 arrived with earlier work:
 
-Five routes, all `POST /api/sign-in/…`: `code` (a one-time code → options to make a passkey), `passkeys` (keep it, and sign in), `start` and `finish` (sign in with a passkey), `sign-out`. Passkeys go through the browser's own functions: `PublicKeyCredential.parseCreationOptionsFromJSON` / `parseRequestOptionsFromJSON`, `navigator.credentials.create` / `get`, and the credential's `toJSON()`. No new dependency.
+- **The time zone:** `request.ts` already sends `X-Time-Zone` on every request, with a test.
+- **Ids made on the device:** new aspirations, goals, milestones and check-ins already use `newDeviceId()`, on the mock and on the API. Recurring items and tasks still get counter ids (`rec-new-1`) in the mock.
 
-**One PR**, `sign-in-session`. Tasks 1–3 are the logic and change nothing on screen. Tasks 4–5 build sketches 1–3 and 5 of [`docs/screens/sign-in.png`](../../docs/screens/sign-in.png). The PR says "Part of #48": the phone checks wait for hosting (ADR-011), and sketch 4 waits for #43.
+What's left is three small changes, all before Today, Week and the bank move to the API (#42):
 
-**Settled with Jan (2026-11-20):**
-- **Sketch 4 (session ended: a sheet over the stored screen, Not now, the "N changes waiting" banner) is built in #43,** with the stored week and the queue. Until then any signed-out state shows the sign-in page.
-- **No "Signed in as"** in Settings: the API has no name for a user. Account is just Sign out.
-- **No tester note** on the add-a-passkey step.
-- **The new logo's app icons and favicon are their own small PR.** The sign-in page uses the mark and the wordmark from `docs/brand/`.
+1. **A check-off carries the moment it was tapped.** The API's `CheckOff` is `{ completedAt, completedOn, valueLogged? }`: what the phone saw at the tap, with that day winning even if the week has closed since. Today, `useDay` makes one moment for the screen, and `checkOffTask` makes another when it saves. Once #43 queues changes, the save may happen hours later. So the hook makes the moment once and sends it.
+2. **Recurring items and tasks get ids made on the device** in the mock, as everything else does. The `newId` counter goes.
+3. **Settings is the API's:** just `intensity`. `weekStartsOn` and `intensitySetOn` go, and Settings still shows "Week starts Monday" as a fixed row.
+
+**One PR**, `device-ids`, which closes #39.
 
 ## Decisions
 
-- **A 401 is `SignedOutError`** (in `errors.ts`, beside `NotFoundError`). `request.ts` throws it and tells `api/session.ts`, a tiny listener list. The sign-in routes' own 401s mean "that didn't work", so they don't tell the session.
-- **A signed-out load shows no "Couldn't load".** `useLoaded` leaves the message alone for `SignedOutError`; the sign-in screen is the message. Saves keep their ordinary "Couldn't save that" until #43's queue keeps them.
-- **`api/signIn.ts` returns an outcome, not an exception:** `signedIn`, `cancelled` (the person closed the passkey sheet), `didntWork` (the API's 401), `unsupported` (the browser lacks the JSON functions, ADR-012's open question), or a thrown plain `Error` for a failed request. The hook turns outcomes into copy.
-- **The mock stays signed in.** In mock mode the sign-in functions answer `signedIn` without the browser, and sign out works, so the click-through can sign out and back in. Mock data never answers 401, so the test suite is unchanged.
-- **`useSession` lives in App,** which passes it to the sign-in page. It holds `signedIn`, the step, the copy to show, and `signIn`, `enterCode`, `submitCode(code)`, `addPasskey()`, `back`, `signOut`. After signing in it raises the data revision, so the open screen loads again.
-- **Settings gets `onSignOut` from App,** as screens get their other callbacks.
-- **The sign-in page has three steps,** state in `useSession`: sign in; enter a code (redeemed on Continue); add a passkey (made on Add passkey, with the redeemed options). Back from the code step returns to sign in.
-- **The mark and wordmark are inline SVG components** copied from `docs/brand/` without the C2PA metadata. No web font: the wordmark falls back to the system font, as its README allows.
-- **The sign-out sheet uses the app's `sheet.css` and `useModalDialog`,** like the other sheets. Its "N changes haven't been sent" warning comes with #43's queue.
-- **Left for #43:** sending the queue after signing in and before signing out, and clearing what's stored on the phone at sign out. None of it exists yet; this PR leaves a marked spot in `useSession` for each.
+- **`checkOffTask(taskId, checkOff: CheckOff)`**, with `CheckOff` named from the generated type in `types.ts`. A domain helper, `checkOffAt(now: Date): CheckOff`, makes it from one `Date`: the ISO moment and `toLocalDay` of the same moment. That way the optimistic change and the save can't disagree about the day.
+- **`valueLogged` moves into `CheckOff`,** as the API has it. No screen sends one yet.
+- **"Today follows the phone's date after a time zone change, and the week never goes backwards"** is met as far as the front end can meet it now:
+  - Today is the phone's own date each time the app opens (`App.tsx`), whatever the time zone.
+  - The week comes from the API, whose current week never goes backwards (`closed_through_week`). Screens read it in #42.
+  - Following the date while the app stays open (overnight, or after landing somewhere new) is the `visibilitychange` refresh. That was agreed to go in with hosting (#8), when the installed app needs it.
 
 ## Task list
 
-- [x] Task 1: A 401 is SignedOutError and tells the session
-- [x] Task 2: Passkey and code steps in `api/signIn.ts`
-- [x] Task 3: `useSession`
+- [x] Task 1: The check-off carries the moment it was tapped
+- [x] Task 2: Ids made on the device for recurring items and tasks
+- [x] Task 3: Settings is the API's
 
-Checkpoint after task 3: build, lint and tests pass; nothing on screen has changed.
-
-- [x] Task 4: The sign-in page
-- [x] Task 5: Sign out in Settings, docs, and a check in the browser
+Checkpoint after task 3: build, lint and tests pass; nothing on screen has changed; PR opened.
 
 ## Risks
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| iOS lacks `parseCreationOptionsFromJSON` / `toJSON()` | Med | The `unsupported` outcome says so plainly; a small helper is a later change, if the hosted check finds it's needed (ADR-012). |
-| Several screens' loads all 401 at once | Low | The session's state is a boolean; repeat notices change nothing. |
-| A real passkey can't be acted out in tests or by an agent's browser | Med | Unit tests stub `navigator.credentials`; Jan tries it once in Chrome on `localhost` with a code from the API's command. |
+| A test or the mock data depends on `task-new-1`-style ids | Low | The full suite runs in task 2; tests find new items by title, not id |
+| Removing `intensitySetOn` hides a use | Low | The compiler finds every reader once the type is the generated one |
 
 ## Assumed, for review with this plan
 
-1. No "who am I" route: the app opens as signed in and a 401 decides.
-2. The click-through can sign out and back in on mock data.
-3. Copy follows the sketch, except: the code error ends "Ask for a new one." (no name), and "this iPhone" reads "this device", since the Mac signs in too. The button keeps "Sign in with Face ID", as sketched.
-4. Jan's uncommitted `docs/brand/`, `docs/screens/sign-in.png` and README section go in a docs PR in the parent repo, with the README's open items updated to what was settled.
+1. #39 closes with this PR. The open-app date refresh stays with #8, as agreed on 2026-11-19.

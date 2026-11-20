@@ -1,6 +1,7 @@
 // How a task's state is read and changed. Everything else asks here instead of reading the
 // task's fields, so a change to the task type touches this file, the client and the mock.
-import type { Task } from '../api/types'
+import { toLocalDay } from '../api/dates.ts'
+import type { CheckOff, Task } from '../api/types.ts'
 
 type State = Pick<Task, 'state'>
 
@@ -40,8 +41,14 @@ export function inTheBank(task: Task): Task {
   return { ...task, plannedDay: null, placedByHand: false }
 }
 
-export function checkedOff(task: Task, at: string, on: string): Task {
-  return { ...task, state: 'done', completedAt: at, completedOn: on }
+// One reading of the clock, so the moment and the day can't disagree.
+export function checkOffAt(now: Date): CheckOff {
+  return { completedAt: now.toISOString(), completedOn: toLocalDay(now) }
+}
+
+// No value logged is null, as the API stores it.
+export function checkedOff(task: Task, { completedAt, completedOn, valueLogged }: CheckOff): Task {
+  return { ...task, state: 'done', completedAt, completedOn, valueLogged: valueLogged ?? null }
 }
 
 export function uncheckedOff(task: Task): Task {
