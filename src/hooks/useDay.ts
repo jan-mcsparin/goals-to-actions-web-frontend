@@ -234,7 +234,7 @@ export function useDay(date: string, today: string): UseDay {
     view,
     setView,
     toggleDone,
-    bankRows: bank && bankRows(bank),
+    bankRows: bank && bankRows(bank.tasks),
     bankMessage: bankFailed ? BANK_FAILED : undefined,
     loadBank,
     pull,

@@ -580,10 +580,16 @@ function replaceTask(stored: StoredTask, next: Task) {
   Object.assign(stored, next)
 }
 
-// A task as the API sends it: without what only the mock keeps, and with what closing would do,
-// its goal's aspiration and whether it stays on its day.
+// A task as the API sends it: without what only the mock keeps, and with its goal's label and
+// aspiration, what closing would do, and whether it stays on its day.
 function taskOut({ setAside: _setAside, ...task }: StoredTask): Task {
-  return structuredClone({ ...task, atClose: atCloseOf(task), aspiration: aspirationOf(task), fixedDay: isFixedDayTask(task) })
+  return structuredClone({
+    ...task,
+    goalLabel: store.goals.find((goal) => goal.id === task.goalId)?.label ?? null,
+    atClose: atCloseOf(task),
+    aspiration: aspirationOf(task),
+    fixedDay: isFixedDayTask(task),
+  })
 }
 
 function aspirationOf(task: Pick<Task, 'goalId'>): Task['aspiration'] {

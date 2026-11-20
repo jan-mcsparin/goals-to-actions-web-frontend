@@ -1,52 +1,72 @@
 import { describe, expect, it } from 'vitest'
-import { GOAL_DEFAULTS } from '../test/goals.ts'
-import type { Aspiration, Bank, DayPlan, Goal, RecurringItem, Task } from '../api/types.ts'
+import type { Task, Week } from '../api/types.ts'
 import {
+  bankOf,
   bankRows,
   dayHeading,
+  dayOf,
   goalSubline,
   groupByGoal,
   groupForList,
   progress,
   timeLabel,
+  type Day,
 } from './today.ts'
 import { aTask } from '../test/tasks.ts'
 
 const DAY = '2026-11-11'
 
+const fit = { id: 'asp-fit', name: 'Be fit', position: 2 }
+const builder = { id: 'asp-build', name: 'Be a builder', position: 1 }
+
+// What the week read says about each task's goal: its label and its aspiration.
+const GOALS: Record<string, Pick<Task, 'goalLabel' | 'aspiration'>> = {
+  'goal-strong': { goalLabel: 'Be strong', aspiration: fit },
+  'goal-proto': { goalLabel: 'Prototype', aspiration: builder },
+  'goal-read': { goalLabel: 'Read more', aspiration: null },
+}
+
 function task(id: string, fields: Partial<Task> = {}): Task {
-  return aTask(id, { plannedDay: DAY, ...fields })
+  return aTask(id, { plannedDay: DAY, ...(fields.goalId ? GOALS[fields.goalId] : {}), ...fields })
 }
 
-const fit: Aspiration = { id: 'asp-fit', name: 'Be fit', why: null, position: 2, status: 'active', createdAt: '2026-10-01T09:00:00Z', retiredOn: null }
-const builder: Aspiration = { id: 'asp-build', name: 'Be a builder', why: null, position: 1, status: 'active', createdAt: '2026-10-01T09:00:00Z', retiredOn: null }
-
-function goal(id: string, label: string, aspirationId?: string): Goal {
-  return { ...GOAL_DEFAULTS, id, label, measurableLine: '-', type: 'building', status: 'active', startDate: '2026-10-05', aspirationId: aspirationId ?? null }
+// DayPlan became a Day drawn from the week (dayOf); a task's goal is named on the task.
+function plan(tasks: Task[]): Day {
+  return { date: DAY, tasks, stillMatters: [] }
 }
 
-const strong = goal('goal-strong', 'Be strong', 'asp-fit')
-const prototype = goal('goal-proto', 'Prototype', 'asp-build')
-const reading = goal('goal-read', 'Read more')
-
-const trash: RecurringItem = {
-  id: 'rec-trash',
-  name: 'Take out the trash',
-  aspirationId: null,
-  fromGoalId: null,
-  schedule: { kind: 'weekly', weekday: 'tuesday' },
-  startsOn: '2026-10-01',
-  active: true,
-  createdAt: '2026-10-01T09:00:00Z',
-}
-
-function plan(tasks: Task[]): DayPlan {
-  return { date: DAY, tasks, stillMatters: [], goals: [strong, prototype, reading], aspirations: [fit, builder], recurringItems: [trash] }
+function weekOf(tasks: Task[]): Week {
+  return { week: '2026-11-09', isCurrent: true, nextWeekOpen: false, tasks, goals: [], days: [], quittingGoals: [] }
 }
 
 function titles(rows: { task: Task }[]) {
   return rows.map((row) => row.task.title)
 }
+
+describe('dayOf', () => {
+  it("gives the day's tasks, done ones included, and the week's Still matter? tasks", () => {
+    const week = weekOf([
+      task('Lift', { state: 'done' }),
+      task('Thursday', { plannedDay: '2026-11-12' }),
+      task('Bank', { plannedDay: null }),
+      task('Asking', { plannedDay: '2026-11-13', stillMatters: true }),
+    ])
+
+    const day = dayOf(week, DAY)
+
+    expect(day.date).toBe(DAY)
+    expect(titles(day.tasks.map((task) => ({ task })))).toEqual(['Lift'])
+    expect(day.stillMatters.map((task) => task.id)).toEqual(['Asking'])
+  })
+})
+
+describe('bankOf', () => {
+  it("gives the week's open tasks not on a day, in the week's order", () => {
+    const week = weekOf([task('Lift'), task('Dentist', { plannedDay: null }), task('Done', { plannedDay: null, state: 'done' }), task('Garage', { plannedDay: null })])
+
+    expect(bankOf(week).map((task) => task.id)).toEqual(['Dentist', 'Garage'])
+  })
+})
 
 describe('timeLabel', () => {
   it.each([
@@ -63,11 +83,15 @@ describe('timeLabel', () => {
 
 describe('goalSubline', () => {
   it('joins the goal and its aspiration', () => {
-    expect(goalSubline(strong, [fit])).toBe('Be strong · Be fit')
+    expect(goalSubline(task('Lift', { goalId: 'goal-strong' }))).toBe('Be strong · Be fit')
   })
 
   it('is the goal alone when it has no aspiration', () => {
-    expect(goalSubline(reading, [fit])).toBe('Read more')
+    expect(goalSubline(task('Read', { goalId: 'goal-read' }))).toBe('Read more')
+  })
+
+  it('is nothing for a task with no goal', () => {
+    expect(goalSubline(task('Ballot'))).toBeUndefined()
   })
 })
 
@@ -115,15 +139,13 @@ describe('groupForList', () => {
 })
 
 describe('fixed-day tasks', () => {
-  const laundry: RecurringItem = { ...trash, id: 'rec-laundry', name: 'Laundry', schedule: { kind: 'flexible', times: 1, period: 'week' } }
-
-  it('marks rows from a fixed-day recurring item, in both views', () => {
+  it('marks rows the week says are fixed to their day, in both views', () => {
     const tasks = [
-      task('Trash', { recurringItemId: 'rec-trash' }),
+      task('Trash', { recurringItemId: 'rec-trash', fixedDay: true }),
       task('Laundry', { recurringItemId: 'rec-laundry' }),
       task('Ballot'),
     ]
-    const dayPlan = { ...plan(tasks), recurringItems: [trash, laundry] }
+    const dayPlan = plan(tasks)
 
     for (const sections of [groupForList(dayPlan), groupByGoal(dayPlan)]) {
       const rows = sections[0].rows
@@ -153,6 +175,15 @@ describe('groupByGoal', () => {
       'Be strong · Be fit',
       'Read more',
     ])
+  })
+
+  it('puts a goal under a retired aspiration last, with goals under none', () => {
+    const retired = { id: 'asp-old', name: 'Old', position: null }
+    const sections = groupByGoal(
+      plan([task('Old', { goalId: 'goal-old', goalLabel: 'Old goal', aspiration: retired }), task('Lift', { goalId: 'goal-strong' })]),
+    )
+
+    expect(sections.map((section) => section.title)).toEqual(['Be strong · Be fit', 'Old goal · Old'])
   })
 
   it('drops the subline inside goal cards, since the title already says it', () => {
@@ -215,20 +246,14 @@ describe('dayHeading', () => {
 
 describe('bankRows', () => {
   it('lists bank tasks in bank order with time labels and goal sublines', () => {
-    const bank: Bank = {
-      weekOf: '2026-11-09',
-      tasks: [
-        task('Deadlift', { plannedDay: null, goalId: 'goal-strong' }),
-        task('Dentist', { plannedDay: null, timeOfDay: { kind: 'by', time: '17:00' } }),
-      ],
-      goals: [strong],
-      aspirations: [fit],
-      recurringItems: [],
-    }
+    const tasks = [
+      task('Deadlift', { plannedDay: null, goalId: 'goal-strong' }),
+      task('Dentist', { plannedDay: null, timeOfDay: { kind: 'by', time: '17:00' } }),
+    ]
 
-    expect(bankRows(bank)).toEqual([
-      { task: bank.tasks[0], subline: 'Be strong · Be fit' },
-      { task: bank.tasks[1], timeLabel: 'by 5 p.m.' },
+    expect(bankRows(tasks)).toEqual([
+      { task: tasks[0], subline: 'Be strong · Be fit' },
+      { task: tasks[1], timeLabel: 'by 5 p.m.' },
     ])
   })
 })

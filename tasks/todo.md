@@ -52,11 +52,11 @@ Every front-end task:
 **Description:** `dayOf(week, date)` and `bankOf(week)` in `domain/today.ts`. Grouping, sublines and priority read each task's `aspiration`; `fixed` reads `fixedDay`. `groupForList`, `groupByGoal`, `progress` and `bankRows` take what `dayOf` and `bankOf` give. Nothing calls them from a hook yet beyond what `useDay` already does with its shapes.
 
 **Acceptance criteria:**
-- [ ] `dayOf` gives the day's tasks in day order and the week's "Still matter?" tasks; `bankOf` the week's unplaced, unfinished tasks.
-- [ ] Goal cards keep their aspiration's priority order, goals with none (or a retired one) last.
-- [ ] A fixed-day task has no menu; others do.
+- [x] `dayOf` gives the day's tasks in day order and the week's "Still matter?" tasks; `bankOf` the week's unplaced, unfinished tasks.
+- [x] Goal cards keep their aspiration's priority order, goals with none (or a retired one) last.
+- [x] A fixed-day task has no menu; others do.
 
-**Files:** `src/domain/today.ts` (+ test)
+**Files:** `src/domain/today.ts` (+ test); `bankRows` takes the tasks in `src/hooks/useDay.ts`; the mock sends `goalLabel` (it was always empty), in `src/api/client.ts`
 
 **Dependencies:** Task 2 · **Scope:** S
 
