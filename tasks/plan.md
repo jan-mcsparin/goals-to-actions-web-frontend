@@ -22,7 +22,7 @@ Five routes, all `POST /api/sign-in/…`: `code` (a one-time code → options to
 - **A signed-out load shows no "Couldn't load".** `useLoaded` leaves the message alone for `SignedOutError`; the sign-in screen is the message. Saves keep their ordinary "Couldn't save that" until #43's queue keeps them.
 - **`api/signIn.ts` returns an outcome, not an exception:** `signedIn`, `cancelled` (the person closed the passkey sheet), `didntWork` (the API's 401), `unsupported` (the browser lacks the JSON functions, ADR-012's open question), or a thrown plain `Error` for a failed request. The hook turns outcomes into copy.
 - **The mock stays signed in.** In mock mode the sign-in functions answer `signedIn` without the browser, and sign out works, so the click-through can sign out and back in. Mock data never answers 401, so the test suite is unchanged.
-- **`useSession` lives in App, given by context** like the data revision. It holds `signedIn`, the copy to show, and `signIn`, `addPasskey(code)`, `signOut`. After signing in it raises the data revision, so the open screen loads again.
+- **`useSession` lives in App,** which passes it to the sign-in page. It holds `signedIn`, the copy to show, and `signIn`, `addPasskey(code)`, `signOut`. After signing in it raises the data revision, so the open screen loads again.
 - **Settings gets `onSignOut` from App,** as screens get their other callbacks.
 - **The sign-in page has three steps,** state in `useSession`: sign in; enter a code (redeemed on Continue); add a passkey (made on Add passkey, with the redeemed options). Back from the code step returns to sign in.
 - **The mark and wordmark are inline SVG components** copied from `docs/brand/` without the C2PA metadata. No web font: the wordmark falls back to the system font, as its README allows.
@@ -33,7 +33,7 @@ Five routes, all `POST /api/sign-in/…`: `code` (a one-time code → options to
 
 - [x] Task 1: A 401 is SignedOutError and tells the session
 - [x] Task 2: Passkey and code steps in `api/signIn.ts`
-- [ ] Task 3: `useSession`
+- [x] Task 3: `useSession`
 
 Checkpoint after task 3: build, lint and tests pass; nothing on screen has changed.
 

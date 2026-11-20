@@ -39,14 +39,14 @@ Every task:
 
 ### Task 3: `useSession`
 
-**Description:** `hooks/useSession.ts`: `{ signedIn, step, busy, message, signIn, useCode, addPasskey, back, signOut }`, plus a `Session` context and `useSessionContext()`. Starts signed in; listens to `api/session.ts`. `step` is `signIn | code | addPasskey`. Copy, from the sketch: a cancelled or failed passkey is "Sign-in didn't finish. Try again when you're ready."; a code that didn't work is "That code didn't work. It may already have been used, or be more than ten minutes old. Ask for a new one."; `unsupported` is "This browser can't use a passkey."; a failed request is "Couldn't reach the app. Try again in a moment." After signing in it calls the given `onSignedIn` (App raises the data revision). Marked spots for #43: send the queue after sign-in; before sign out, send it and warn if it can't; clear storage.
+**Description:** `hooks/useSession.ts`: `{ signedIn, step, busy, message, signIn, enterCode, submitCode, addPasskey, back, signOut }`. App passes it to the sign-in page as a prop; no context is needed. Starts signed in; listens to `api/session.ts`. `step` is `signIn | code | addPasskey`. Copy, from the sketch: a cancelled or failed passkey is "Sign-in didn't finish. Try again when you're ready."; a code that didn't work is "That code didn't work. It may already have been used, or be more than ten minutes old. Ask for a new one."; `unsupported` is "This browser can't use a passkey."; a failed request is "Couldn't reach the app. Try again in a moment." After signing in it calls the given `onSignedIn` (App raises the data revision). Marked spots for #43: send the queue after sign-in; before sign out, send it and warn if it can't; clear storage.
 
 **Acceptance criteria:**
-- [ ] A 401 anywhere turns `signedIn` false.
-- [ ] Each outcome sets the copy above, and signing in clears it.
-- [ ] A redeemed code moves to `addPasskey` with its options kept; Back from `code` returns to `signIn`; an empty code isn't sent.
-- [ ] Sign out ends signed out, even if the request fails (the cookie may be gone already).
-- [ ] Hook tests over a stubbed `api/signIn.ts`.
+- [x] A 401 anywhere turns `signedIn` false.
+- [x] Each outcome sets the copy above, and signing in clears it.
+- [x] A redeemed code moves to `addPasskey` with its options kept; Back from `code` returns to `signIn`; an empty code isn't sent.
+- [x] Sign out ends signed out, even if the request fails (the cookie may be gone already).
+- [x] Hook tests over a stubbed `api/signIn.ts`.
 
 **Files:** `src/hooks/useSession.ts`, `src/hooks/useSession.test.tsx`
 
@@ -56,7 +56,7 @@ Every task:
 
 ### Task 4: The sign-in page
 
-**Description:** `screens/SignIn.tsx` (+ css), sketches 1–3 of `docs/screens/sign-in.png`, drawn from `useSessionContext()`. App shows it in place of the screens and tab bar while signed out. `components/LogoMark.tsx` and `Wordmark.tsx`: inline SVG from `docs/brand/`, without the metadata.
+**Description:** `screens/SignIn.tsx` (+ css), sketches 1–3 of `docs/screens/sign-in.png`, given the session by App. App shows it in place of the screens and tab bar while signed out. `components/LogoMark.tsx` and `Wordmark.tsx`: inline SVG from `docs/brand/`, without the metadata.
 - **Sign in:** the wordmark, "Small steps today toward who you want to be.", the message line when there is one, **Sign in with Face ID**, **New device? Use a one-time code**, and "No password. Your passkey stays on your devices."
 - **Code:** Back, the mark, "Enter your one-time code", "You get a code to set up a new device. It works once, within ten minutes.", one field (`autocomplete="one-time-code"`, labelled "One-time code"), the error under it, **Continue**.
 - **Add a passkey:** "Code accepted", "Add a passkey to this device", "From now on you'll sign in with Face ID. There's nothing to remember, and nothing that can be phished. If iCloud Keychain is on, your Mac can use the same passkey.", **Add passkey**. No tester note.
