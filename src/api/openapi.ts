@@ -527,6 +527,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["getSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/intensity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Intensity */
+        put: operations["setIntensity"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tasks/upcoming": {
         parameters: {
             query?: never;
@@ -998,6 +1032,14 @@ export interface components {
              */
             status: "ok";
         };
+        /** IntensityChoice */
+        IntensityChoice: {
+            /**
+             * Intensity
+             * @enum {string}
+             */
+            intensity: "easingOff" | "normal" | "goingHard";
+        };
         /** KeepIt */
         KeepIt: {
             /**
@@ -1393,6 +1435,18 @@ export interface components {
              * @description The week the change was made in. Refused once the task has left it.
              */
             week: string;
+        };
+        /**
+         * Settings
+         * @description The person's one setting. It sets the cap the week read marks each day against
+         *     (ADR-013); nothing resets it or suggests changing it.
+         */
+        Settings: {
+            /**
+             * Intensity
+             * @enum {string}
+             */
+            intensity: "easingOff" | "normal" | "goingHard";
         };
         /**
          * Swap
@@ -3335,6 +3389,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Settings"];
+                };
+            };
+        };
+    };
+    setIntensity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntensityChoice"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Settings"];
                 };
             };
             /** @description Validation Error */
