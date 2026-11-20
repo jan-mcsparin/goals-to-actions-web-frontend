@@ -27,11 +27,11 @@ Every task:
 **Description:** `signInWithPasskey()`, `addPasskeyWithCode(code)`, `signOut()`, over the five routes. Each sign-in step returns `signedIn | cancelled | didntWork | unsupported`. A `NotAllowedError` from the passkey sheet is `cancelled`; the API's 401 is `didntWork`; no JSON functions is `unsupported`. In mock mode they answer `signedIn` (and sign out resolves) without touching the browser. Request and reply types come from `openapi.ts`.
 
 **Acceptance criteria:**
-- [ ] Sign-in sends `startSignIn`'s options through `parseRequestOptionsFromJSON` and `credentials.get`, then `finishSignIn` with the challenge id and `credential.toJSON()`.
-- [ ] Adding a passkey does the same with `redeemCode`, `parseCreationOptionsFromJSON`, `credentials.create` and `addPasskey`.
-- [ ] Each outcome has a test; a failed request still throws.
-- [ ] The code is trimmed before it's sent; an empty code isn't sent.
-- [ ] The mock answers without the browser.
+- [x] Sign-in sends `startSignIn`'s options through `parseRequestOptionsFromJSON` and `credentials.get`, then `finishSignIn` with the challenge id and `credential.toJSON()`.
+- [x] Adding a passkey does the same with `redeemCode`, `parseCreationOptionsFromJSON`, `credentials.create` and `addPasskey`.
+- [x] Each outcome has a test; a failed request still throws.
+- [x] The code is trimmed before it's sent; support is checked first, so a code isn't spent on a browser that can't use it.
+- [x] The mock answers without the browser.
 
 **Files:** `src/api/signIn.ts`, `src/api/signIn.test.ts`, `src/api/types.ts`, `CLAUDE.md` (structure)
 

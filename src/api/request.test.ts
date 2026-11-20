@@ -48,6 +48,12 @@ describe('request', () => {
     expect(result).toEqual(reply)
   })
 
+  it('returns nothing for a 204', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
+
+    await expect(request('POST', '/sign-in/sign-out')).resolves.toBeUndefined()
+  })
+
   it('turns a 404 into NotFoundError', async () => {
     fetchMock.mockResolvedValue(respond(404, { detail: 'No aspiration a1' }))
 

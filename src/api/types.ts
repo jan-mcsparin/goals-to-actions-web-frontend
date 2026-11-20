@@ -6,6 +6,10 @@ import type { components } from './openapi.ts'
 
 type Schemas = components['schemas']
 
+// What the browser's passkey functions take, as JSON, and the challenge to
+// send back with the passkey made or used.
+export type PasskeyOptions = Schemas['PasskeyOptions']
+
 // Empty fields are null. Only active aspirations have a position (1, 2, …
 // with no gaps); only retired ones have retiredOn, a day.
 export type Aspiration = Schemas['Aspiration']

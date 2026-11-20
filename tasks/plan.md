@@ -32,7 +32,7 @@ Five routes, all `POST /api/sign-in/…`: `code` (a one-time code → options to
 ## Task list
 
 - [x] Task 1: A 401 is SignedOutError and tells the session
-- [ ] Task 2: Passkey and code steps in `api/signIn.ts`
+- [x] Task 2: Passkey and code steps in `api/signIn.ts`
 - [ ] Task 3: `useSession`
 
 Checkpoint after task 3: build, lint and tests pass; nothing on screen has changed.

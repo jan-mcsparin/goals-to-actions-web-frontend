@@ -27,5 +27,6 @@ export async function request<T>(method: Method, path: string, body?: unknown): 
   }
   if (response.status === 404) throw new NotFoundError(`${method} ${path}: not found`)
   if (!response.ok) throw new Error(`${method} ${path}: ${response.status}`)
+  if (response.status === 204) return undefined as T
   return (await response.json()) as T
 }
