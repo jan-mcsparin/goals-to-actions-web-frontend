@@ -36,7 +36,7 @@ The dev server passes `/api` on to the API, path unchanged, so the phone reaches
 
 Signed in, the app needs a passkey, and a browser driven by an agent has no Touch ID. `tools/soft-passkey.js` is a software passkey for that: run it in the page, and `navigator.credentials` in that tab answers with a key made in the browser. Everything else is the real sign-in, checked by the API's WebAuthn library. It runs only on `http://localhost`, isn't part of the build, and holds no secret: adding its passkey still needs a one-time code.
 
-1. With the API and `npm run dev:real` running, open `http://localhost:5173`.
+1. With the API and `npm run dev:real` running, open `http://localhost:5173`. Signed out, the sign-in page shows once a screen on the API gets a 401: for now that's the Aspirations tab or a goal's page, since Today and Week are still on mock data (#42).
 2. Run the script in the page. With the Chrome DevTools MCP, that's `evaluate_script` with `sourcePath` set to this file and `format: "script"`. Do it again after each reload, before signing in.
 3. The first time in that browser, make a code (in `../api`: `uv run python -m app.sign_in.command code <user-id>`; the founder's account is `00000000-0000-4000-8000-000000000001`). Then **New device? Use a one-time code**, the code, Continue, and **Add passkey**.
 4. After that, **Sign in with Face ID** signs in with the kept key. `window.softPasskey.forget()` removes it.
