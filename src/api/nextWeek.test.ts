@@ -37,7 +37,7 @@ describe('getWeek and next week', () => {
   it('says this week is current, and that next week is not open yet, on a Wednesday', async () => {
     const week = await getWeek()
 
-    expect(week).toMatchObject({ weekOf: THIS_WEEK, isCurrent: true, nextWeekOpen: false })
+    expect(week).toMatchObject({ week: THIS_WEEK, isCurrent: true, nextWeekOpen: false })
     await expect(getWeek(NEXT_WEEK)).rejects.toThrow(NotFoundError)
   })
 
@@ -54,7 +54,7 @@ describe('getWeek and next week', () => {
 
     const next = await getWeek(NEXT_WEEK)
 
-    expect(next).toMatchObject({ weekOf: NEXT_WEEK, isCurrent: false, nextWeekOpen: true })
+    expect(next).toMatchObject({ week: NEXT_WEEK, isCurrent: false, nextWeekOpen: true })
     expect(next.tasks.length).toBeGreaterThan(0)
     expect(next.tasks.every((task) => task.week === NEXT_WEEK && isInBank(task))).toBe(true)
     expect(next.goals.length).toBeGreaterThan(0)
@@ -112,11 +112,11 @@ describe('wrapUpWeek', () => {
 
     const next = await wrapUpWeek(THIS_WEEK)
 
-    expect(next).toMatchObject({ weekOf: NEXT_WEEK, isCurrent: true })
+    expect(next).toMatchObject({ week: NEXT_WEEK, isCurrent: true })
     const dentist = next.tasks.find((task) => task.id === 'task-dentist')
     expect(dentist).toMatchObject({ week: NEXT_WEEK, plannedDay: null, carriedOver: 3, state: 'open' })
     expect(next.tasks.map((task) => task.id)).not.toContain('task-lift-bank')
-    expect((await getWeek()).weekOf).toBe(NEXT_WEEK)
+    expect((await getWeek()).week).toBe(NEXT_WEEK)
   })
 
   it('changes nothing when sent again', async () => {

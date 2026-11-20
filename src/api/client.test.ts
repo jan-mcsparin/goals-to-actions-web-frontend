@@ -57,7 +57,7 @@ function ids(records: { id: string }[]) {
 }
 
 // Each goal that has a weekly target, with its sessions, in the order given.
-function targetsOf(goals: Goal[]): [string, number][] {
+function targetsOf(goals: Pick<Goal, 'id' | 'weeklyTarget'>[]): [string, number][] {
   return goals.flatMap((goal) => (goal.weeklyTarget ? [[goal.id, goal.weeklyTarget.sessions] as [string, number]] : []))
 }
 
@@ -372,7 +372,7 @@ describe('getWeek', () => {
   it("returns every task in this week, planned, done and in the bank", async () => {
     const week = await getWeek()
 
-    expect(week.weekOf).toBe('2026-11-09')
+    expect(week.week).toBe('2026-11-09')
     const statuses = new Map(week.tasks.map((task) => [task.id, whereIs(task)]))
     expect(statuses.get('task-lift-mon')).toBe('done')
     expect(statuses.get('task-lift-today')).toBe('planned')
@@ -381,12 +381,26 @@ describe('getWeek', () => {
     expect(week.tasks.every((task) => task.week === '2026-11-09')).toBe(true)
   })
 
-  it('includes the goals, aspirations and recurring items the tasks reference', async () => {
-    const week = await getWeek()
+  // WeekPlan's goals, aspirations and recurring items became the API's Week: its goals are
+  // the active building goals with a target that week, each with its progress.
+  it("gives each active building goal with a target its progress this week", async () => {
+    const { goals } = await getWeek()
 
-    expect(ids(week.goals)).toEqual(['goal-endurance', 'goal-garage', 'goal-strong'])
-    expect(ids(week.aspirations)).toEqual(['asp-fit', 'asp-home'])
-    expect(ids(week.recurringItems)).toEqual(['rec-laundry', 'rec-trash'])
+    expect(goals.map(({ id, progress }) => [id, progress])).toEqual([
+      ['goal-strong', { done: 1, of: 3 }],
+      ['goal-endurance', { done: 1, of: 2 }],
+    ])
+  })
+
+  it("marks each day's cap and whether it's full, as the API does", async () => {
+    store.settings.intensity = 'easingOff'
+    for (const id of ['a', 'b', 'c']) store.tasks.push({ ...aTask(id, { week: THIS_WEEK, plannedDay: '2026-11-13' }), setAside: false })
+
+    const { days } = await getWeek()
+
+    expect(days.map((day) => day.day)).toEqual(['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'])
+    expect(days.every((day) => day.cap === 3)).toBe(true)
+    expect(days.find((day) => day.day === '2026-11-13')?.full).toBe(true)
   })
 
   it('includes a goal that has a target but no tasks this week, with its aspiration', async () => {
@@ -396,8 +410,7 @@ describe('getWeek', () => {
     const week = await getWeek()
 
     expect(targetsOf(week.goals)).toEqual([['goal-strong', 3], ['goal-endurance', 2]])
-    expect(ids(week.goals)).toContain('goal-strong')
-    expect(ids(week.aspirations)).toContain('asp-fit')
+    expect(week.goals.find((goal) => goal.id === 'goal-strong')?.aspiration?.id).toBe('asp-fit')
   })
 
   it("names each task's aspiration, by its goal, with its priority", async () => {
@@ -953,7 +966,8 @@ describe('pauseGoal and resumeGoal', () => {
     expect(whereIs(task('task-lift-mon'))).toBe('done')
     expect(ids((await getDay(WEDNESDAY_DAY)).tasks)).not.toContain('task-lift-today')
     expect(ids((await getBank()).tasks)).not.toContain('task-lift-bank')
-    expect((await getWeek()).goals.find((goal) => goal.id === 'goal-strong')?.status).toBe('paused')
+    // The week's goals are the active ones (the API's Week), so a paused goal leaves them.
+    expect(ids((await getWeek()).goals)).not.toContain('goal-strong')
   })
 
   it('resuming puts those tasks back in this week’s bank, with no day', async () => {
@@ -1202,7 +1216,7 @@ describe('retireAspiration', () => {
     expect(ids((await getDay('2026-11-12')).tasks)).not.toContain('task-stretch-thu')
     expect(ids((await getBank()).tasks)).toEqual(['task-dentist', 'task-garage-shelves'])
     const week = await getWeek()
-    expect(week.goals.filter((goal) => goal.status === 'active' && goal.weeklyTarget)).toEqual([])
+    expect(week.goals).toEqual([])
     expect(week.tasks.filter((task) => task.state === 'open').map((task) => task.goalId)).not.toContain(
       'goal-strong',
     )

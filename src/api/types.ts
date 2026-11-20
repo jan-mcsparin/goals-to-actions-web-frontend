@@ -94,18 +94,12 @@ export type DayPlan = {
   recurringItems: RecurringItem[]
 }
 
-// Every task in a week (planned, done and in the bank), with what they
-// reference, and every active goal with a weekly target.
-// isCurrent and nextWeekOpen are as the API's week read sends them.
-export type WeekPlan = {
-  weekOf: string
-  isCurrent: boolean
-  nextWeekOpen: boolean
-  tasks: Task[]
-  goals: Goal[]
-  aspirations: Aspiration[]
-  recurringItems: RecurringItem[]
-}
+// The plan read (ADR-010): every task in a week, on a day then in the bank, done ones
+// included; each active building goal with a target that week and its progress; each day's
+// cap and whether it's full; and the quitting goals' days (#37). Today, any day and the bank
+// are drawn from it.
+export type Week = Schemas['Week']
+export type WeekGoal = Schemas['WeekGoal']
 
 // This week's tasks not yet on a day, with what they reference (like DayPlan).
 export type Bank = {

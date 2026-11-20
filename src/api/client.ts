@@ -4,7 +4,7 @@
 // signatures.
 import { addDays, fromLocalDay, mondayOf, toLocalDay, weekAfter } from './dates.ts'
 import { taskWeek } from '../domain/add.ts'
-import { checkedOff, inTheBank, isInBank, isPlanned, placedOnDay, uncheckedOff } from '../domain/tasks.ts'
+import { checkedOff, inTheBank, isDone, isInBank, isPlanned, placedOnDay, uncheckedOff } from '../domain/tasks.ts'
 import { isWithinGoal, MOST_SESSIONS, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
 import { isFixedDay } from '../domain/recurring.ts'
 import { isIntensity } from '../domain/settings.ts'
@@ -38,7 +38,8 @@ import type {
   StillMattersAnswer,
   Task,
   Upkeep,
-  WeekPlan,
+  Week,
+  WeekGoal,
   WeeklyTarget,
   WeeklyTargetInput,
 } from './types.ts'
@@ -68,30 +69,50 @@ export async function uncheckTask(taskId: string): Promise<Task> {
   return taskOut(task)
 }
 
-// The current week, or next week once it's open. Anything else isn't there to read.
-export async function getWeek(week: string = thisWeek()): Promise<WeekPlan> {
+// The current week, or next week once it's open. Anything else isn't there to read. Its goals
+// are the active building goals with a target that week, as the API sends them.
+export async function getWeek(week: string = thisWeek()): Promise<Week> {
   const current = thisWeek()
   const isCurrent = week === current
   const open = nextWeekOpen()
   if (!isCurrent && !(open && week === weekAfter(current))) throw new NotFoundError(`No week ${week}`)
 
   const tasks = shown(store.tasks.filter((task) => task.week === week))
-  const targetGoalIds = store.goals
-    .filter((goal) => goal.status === 'active' && latestTarget(goal.id))
-    .map((goal) => goal.id)
   return structuredClone({
-    weekOf: week,
+    week,
     isCurrent,
     nextWeekOpen: open,
     tasks,
-    ...recordsReferencedBy(tasks, targetGoalIds),
+    goals: weekGoals(week, tasks),
+    days: dayMarks(week, tasks),
+    quittingGoals: [],
+  })
+}
+
+function weekGoals(week: string, tasks: Task[]): WeekGoal[] {
+  return store.goals.flatMap((goal) => {
+    const weeklyTarget = targetIn(goal.id, week)
+    if (goal.status !== 'active' || goal.type !== 'building' || !weeklyTarget) return []
+    const done = tasks.filter((task) => task.goalId === goal.id && isDone(task)).length
+    return [{ id: goal.id, label: goal.label, aspiration: aspirationOf({ goalId: goal.id }), weeklyTarget, progress: { done, of: weeklyTarget.sessions } }]
+  })
+}
+
+// Tasks a day holds at each intensity, as the API counts them: open or done, on the day.
+const CAPS: Record<Intensity, number> = { easingOff: 3, normal: 4, goingHard: 6 }
+
+function dayMarks(week: string, tasks: Task[]): Week['days'] {
+  const cap = CAPS[store.settings.intensity]
+  return Array.from({ length: 7 }, (_, offset) => {
+    const day = toLocalDay(addDays(fromLocalDay(week), offset))
+    return { day, cap, full: tasks.filter((task) => task.plannedDay === day).length >= cap }
   })
 }
 
 // Closes the current week early, once next week is open, as the API does: what carries over
 // goes to next week's bank, the rest ends, and next week becomes the current one. Sent again,
 // it changes nothing.
-export async function wrapUpWeek(week: string): Promise<WeekPlan> {
+export async function wrapUpWeek(week: string): Promise<Week> {
   const current = thisWeek()
   if (week < current) return getWeek()
   if (week > current) throw new Error('Only the current week can be wrapped up')
@@ -673,6 +694,16 @@ function progressOf(goal: StoredGoal): ListedGoal['progress'] {
 }
 
 // A target change adds a row, or updates this week's; the latest is the one shown.
+// The target in force in a week: the latest that starts by then.
+function targetIn(goalId: string, week: string): WeeklyTarget | undefined {
+  const row = store.weeklyTargets
+    .filter((target) => target.goalId === goalId && target.effectiveFrom <= week)
+    .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0]
+  if (!row) return undefined
+  const { goalId: _goalId, ...target } = row
+  return target
+}
+
 function latestTarget(goalId: string): WeeklyTarget | undefined {
   const row = store.weeklyTargets
     .filter((target) => target.goalId === goalId)

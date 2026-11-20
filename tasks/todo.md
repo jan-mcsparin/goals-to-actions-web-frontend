@@ -40,8 +40,8 @@ Every front-end task:
 **Description:** `WeekPlan` becomes the generated `Week`: `week` (not `weekOf`), `days`, `goals` as `WeekGoal` with `progress`, `quittingGoals` (empty in the mock). The mock's `getWeek` builds it, counting progress as the API does. `domain/week.ts` reads it: progress rows from `goals`, titled and ordered by each goal's `aspiration`. `useWeek` follows. The tests that build or read a week move to the new names; what they assert doesn't change.
 
 **Acceptance criteria:**
-- [ ] `WeekPlan` is gone from `types.ts`; `Week` and `WeekGoal` are named from the schema.
-- [ ] Week looks as before on mock: same rows, order, pacing lines, day lines, wrap-up lists.
+- [x] `WeekPlan` is gone from `types.ts`; `Week` and `WeekGoal` are named from the schema.
+- [x] Week looks as before on mock: same rows, order, pacing lines, day lines, wrap-up lists.
 
 **Files:** `src/api/types.ts`, `src/api/client.ts` (+ test), `src/domain/week.ts` (+ test), `src/hooks/useWeek.ts`; fixtures only in `src/api/nextWeek.test.ts`, `src/hooks/dataRevision.test.tsx`
 

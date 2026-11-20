@@ -13,7 +13,7 @@ import {
   updateAspiration,
 } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
-import type { WeekPlan } from '../api/types.ts'
+import type { Week } from '../api/types.ts'
 import { DataRevision, useDataRevision, useRevisionCounter } from './dataRevision.ts'
 import { useAspiration } from './useAspiration.ts'
 import { useAspirations } from './useAspirations.ts'
@@ -135,7 +135,7 @@ describe('useWeek after a failed save', () => {
     await act(async () => hook.result.current.place(hook.result.current.week!.bank[0].id, TODAY))
     expect(hook.result.current.message).toBe("Couldn't save that. Try again.")
     const reloaded = await getWeek()
-    let finishReload!: (plan: WeekPlan) => void
+    let finishReload!: (plan: Week) => void
     vi.mocked(getWeek).mockReturnValueOnce(new Promise((resolve) => (finishReload = resolve)))
 
     act(() => hook.bump())
