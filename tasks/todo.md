@@ -117,12 +117,12 @@ Every front-end task:
 
 ### Task 8: Recurring items and Keep life running on the real API
 
-**Description:** `realPlan.ts` gains `listRecurringItems`, `createRecurringItem` (device-made id) and `getUpcoming`. Real `getUpkeep` reads the recurring items, the open weeks and the upcoming list, and keeps the loose ones. Real `getAspirations` and `getAspiration` read recurring items too. `whereLabel` says something true for a task with no week.
+**Description:** `realPlan.ts` gains `listRecurringItems`, `createRecurringItem` (device-made id) and `getUpcoming`. Real `getUpkeep` reads the recurring items, the open weeks and the upcoming list, and keeps the loose ones. Real `getAspirations` and `getAspiration` read recurring items too. `whereLabel` says "Later" for a task with no week (the upcoming list), sorted last.
 
 **Acceptance criteria:**
-- [ ] Each real function tested against a stubbed `fetch`; real `getUpkeep` reads next week only when it's open.
-- [ ] `whereLabel` for a task with no week is tested.
-- [ ] The Add sheet's Recurring form saves under an aspiration on real.
+- [x] Each real function tested against a stubbed `fetch`; real `getUpkeep` reads next week only when it's open.
+- [x] `whereLabel` for a task with no week is tested.
+- [x] The Add sheet's Recurring form saves under an aspiration on real.
 
 **Files:** `src/api/realPlan.ts` (+ test), `src/api/realAspirations.ts` (+ test), `src/api/client.ts`, `src/domain/upkeep.ts` (+ test)
 

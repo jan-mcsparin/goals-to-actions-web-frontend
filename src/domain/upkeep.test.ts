@@ -55,8 +55,9 @@ describe('upkeepView', () => {
     expect(todo[0]).toMatchObject({ where: 'Today', due: 'due Nov 13' })
   })
 
-  it('orders tasks by day, then the bank, then later weeks', () => {
+  it('orders tasks by day, then the bank, then later weeks, then those with no week yet', () => {
     const tasks = [
+      task('upcoming', { week: null, dueDate: '2026-12-15' }),
       task('later', { week: '2026-11-16' }),
       task('bank'),
       onDay('saturday', '2026-11-14'),
@@ -65,7 +66,7 @@ describe('upkeepView', () => {
 
     const { todo } = upkeepView({ recurringItems: [], tasks }, WEDNESDAY)
 
-    expect(todo.map((row) => row.taskId)).toEqual(['today', 'saturday', 'bank', 'later'])
+    expect(todo.map((row) => row.taskId)).toEqual(['today', 'saturday', 'bank', 'later', 'upcoming'])
   })
 
   it('is empty on both sides when there is nothing', () => {
@@ -80,6 +81,11 @@ describe('whereLabel', () => {
 
   it('names an earlier day of this week by its weekday', () => {
     expect(whereLabel(onDay('monday', '2026-11-09'), WEDNESDAY)).toBe('Monday')
+  })
+
+  // From the upcoming list: due beyond the open weeks, it joins its week's bank when that opens.
+  it('says Later for a task with no week yet', () => {
+    expect(whereLabel(task('upcoming', { week: null, dueDate: '2026-12-15' }), WEDNESDAY)).toBe('Later')
   })
 
   it('works out this week from any day in it', () => {

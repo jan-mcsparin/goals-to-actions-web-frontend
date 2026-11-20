@@ -1648,7 +1648,11 @@ describe('the mock or real switch', () => {
   beforeEach(() => {
     fetchMock.mockReset()
     fetchMock.mockImplementation(async (url) => {
-      const lists: Record<string, unknown> = { '/api/aspirations': { aspirations: [] }, '/api/goals': { goals: [] } }
+      const lists: Record<string, unknown> = {
+        '/api/aspirations': { aspirations: [] },
+        '/api/goals': { goals: [] },
+        '/api/recurring-items': { recurringItems: [] },
+      }
       return new Response(JSON.stringify(lists[String(url)] ?? {}), { status: 200 })
     })
     vi.stubGlobal('fetch', fetchMock)
@@ -1689,14 +1693,16 @@ describe('the mock or real switch', () => {
     for (const change of [client.pauseGoal, client.resumeGoal, client.endGoal, client.markGoalReached, client.reopenGoal, client.goAgain]) {
       await change('g1')
     }
-    await client.getUpkeep()
+    await client.getSettings()
 
-    // The two reads behind each aspiration screen go out together, in either order.
-    expect(paths()).toHaveLength(17)
+    // The three reads behind each aspiration screen go out together, in any order. Settings
+    // stays on the mock until #43.
+    expect(paths()).toHaveLength(19)
     expect(paths()).toEqual(
       expect.arrayContaining([
         'GET /api/aspirations',
         'GET /api/goals',
+        'GET /api/recurring-items',
         'GET /api/goals/g1',
         'PUT /api/goals/{id}',
         'PUT /api/goals/g1/weekly-target',
@@ -1729,6 +1735,7 @@ describe('the mock or real switch', () => {
     await client.swapTasks('t1', { week, bankTaskId: 't2', day: '2026-11-12' })
     await client.answerStillMatters('t1', { answer: 'keep' })
     await client.wrapUpWeek(week)
+    await client.addRecurringItem({ name: 'Water the plants', schedule: { kind: 'weekly', weekday: 'thursday' }, startsOn: '2026-11-12' })
 
     expect(paths()).toEqual([
       'GET /api/weeks/2026-11-09',
@@ -1740,6 +1747,7 @@ describe('the mock or real switch', () => {
       'POST /api/tasks/t1/swap',
       'POST /api/tasks/t1/still-matters',
       'POST /api/weeks/2026-11-09/wrap-up',
+      'PUT /api/recurring-items/{id}',
     ])
   })
 })

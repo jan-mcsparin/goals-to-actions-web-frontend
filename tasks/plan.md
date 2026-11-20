@@ -51,7 +51,7 @@ API #45 (aspiration + fixedDay on tasks and week goals)
 ### Phase 2: the real API
 - [x] Task 6: Plan actions on the real API
 - [x] Task 7: Adding a task sends a day
-- [ ] Task 8: Recurring items and Keep life running on the real API
+- [x] Task 8: Recurring items and Keep life running on the real API
 - [ ] Task 9: The tab's bars from the week's goals
 
 ### Checkpoint B: complete

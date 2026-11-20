@@ -398,6 +398,7 @@ export async function bringBackAspiration(aspirationId: string): Promise<Aspirat
 }
 
 export async function getUpkeep(): Promise<Upkeep> {
+  if (realApi) return realPlan.getUpkeep()
   const weekOf = thisWeek()
   return structuredClone({
     recurringItems: store.recurringItems.filter((item) => item.active && item.aspirationId === null),
@@ -519,6 +520,7 @@ export async function addAspiration(aspiration: NewAspiration): Promise<Aspirati
 // Active from now. Without an aspiration it belongs to Keep life running.
 // Its tasks are the planner's, so none are added here.
 export async function addRecurringItem(item: NewRecurringItem): Promise<RecurringItem> {
+  if (realApi) return realPlan.createRecurringItem(item)
   const name = item.name.trim()
   if (!name) throw new Error('A recurring item needs a name')
   if (item.aspirationId) findActiveAspiration(item.aspirationId)

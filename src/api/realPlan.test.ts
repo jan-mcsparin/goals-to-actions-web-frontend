@@ -1,10 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NotFoundError } from './errors.ts'
+import type { RecurringItem, Task } from './types.ts'
+import { aTask } from '../test/tasks.ts'
 import {
   addTask,
   answerStillMatters,
   checkOffTask,
+  createRecurringItem,
+  getUpcoming,
+  getUpkeep,
   getWeek,
+  listRecurringItems,
   moveTaskToBank,
   placeTask,
   swapTasks,
@@ -105,5 +111,93 @@ describe('what the person does to a task', () => {
   ] as const)('%s', async (_name, send, method, url, body) => {
     expect(await send()).toEqual(ANSWER)
     expect(sent()).toEqual({ url, method, body })
+  })
+})
+
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+
+function item(id: string, fields: Partial<RecurringItem> = {}): RecurringItem {
+  return {
+    id,
+    name: id,
+    aspirationId: null,
+    fromGoalId: null,
+    schedule: { kind: 'weekly', weekday: 'tuesday' },
+    startsOn: '2026-11-16',
+    active: true,
+    createdAt: '2026-11-16T09:00:00Z',
+    ...fields,
+  }
+}
+
+describe('recurring items', () => {
+  it('lists every item', async () => {
+    answerWith({ recurringItems: [item('trash')] })
+
+    expect(await listRecurringItems()).toEqual([item('trash')])
+    expect(sent()).toEqual({ url: '/api/recurring-items', method: 'GET', body: undefined })
+  })
+
+  it('creates one at an id made on the device, with what was chosen', async () => {
+    const chosen = { name: 'Water the plants', aspirationId: null, schedule: { kind: 'weekly', weekday: 'thursday' }, startsOn: '2026-11-18' } as const
+
+    await createRecurringItem(chosen)
+
+    const { url, method, body } = sent()
+    expect(method).toBe('PUT')
+    expect(String(url).replace('/api/recurring-items/', '')).toMatch(UUID_V4)
+    expect(body).toEqual(chosen)
+  })
+})
+
+describe('getUpcoming', () => {
+  it('reads the tasks waiting for their week', async () => {
+    answerWith({ tasks: [aTask('passport', { week: null })] })
+
+    expect((await getUpcoming()).map((task) => task.id)).toEqual(['passport'])
+    expect(sent().url).toBe('/api/tasks/upcoming')
+  })
+})
+
+describe('getUpkeep', () => {
+  // Answers like the API would for each read Keep life running makes.
+  function serve({ nextWeekOpen, next = [] }: { nextWeekOpen: boolean; next?: Task[] }) {
+    const thisWeek = [
+      aTask('groceries', { week: '2026-11-16', plannedDay: '2026-11-19' }),
+      aTask('lift', { week: '2026-11-16', goalId: 'strong' }),
+      aTask('trash', { week: '2026-11-16', recurringItemId: 'trash' }),
+      aTask('ballot', { week: '2026-11-16', state: 'done' }),
+    ]
+    fetchMock.mockImplementation(async (url) => {
+      const path = String(url)
+      const body =
+        path === '/api/recurring-items'
+          ? { recurringItems: [item('trash'), item('rent', { active: false }), item('stretch', { aspirationId: 'fit' })] }
+          : path === '/api/tasks/upcoming'
+            ? { tasks: [aTask('passport', { week: null, dueDate: '2027-01-10' })] }
+            : path === '/api/weeks/2026-11-16'
+              ? { week: '2026-11-16', isCurrent: true, nextWeekOpen, tasks: thisWeek }
+              : path === '/api/weeks/2026-11-23'
+                ? { week: '2026-11-23', isCurrent: false, nextWeekOpen, tasks: next }
+                : undefined
+      if (!body) throw new Error(`Unexpected ${path}`)
+      return new Response(JSON.stringify(body), { status: 200 })
+    })
+  }
+
+  it('keeps the items that are on with no aspiration, and the open loose tasks', async () => {
+    serve({ nextWeekOpen: false })
+
+    const upkeep = await getUpkeep()
+
+    expect(upkeep.recurringItems.map((found) => found.id)).toEqual(['trash'])
+    expect(upkeep.tasks.map((task) => task.id)).toEqual(['groceries', 'passport'])
+    expect(fetchMock.mock.calls.map(([url]) => url)).not.toContain('/api/weeks/2026-11-23')
+  })
+
+  it('reads next week too once it is open', async () => {
+    serve({ nextWeekOpen: true, next: [aTask('insurance', { week: '2026-11-23' })] })
+
+    expect((await getUpkeep()).tasks.map((task) => task.id)).toEqual(['groceries', 'insurance', 'passport'])
   })
 })
