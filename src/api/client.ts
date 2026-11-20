@@ -3,7 +3,6 @@
 // instead (realAspirations.ts, realGoals.ts, realPlan.ts), with the same
 // signatures.
 import { addDays, fromLocalDay, mondayOf, toLocalDay, weekAfter } from './dates.ts'
-import { taskWeek } from '../domain/add.ts'
 import { checkedOff, inTheBank, isDone, isInBank, isPlanned, placedOnDay, uncheckedOff } from '../domain/tasks.ts'
 import { isWithinGoal, MOST_SESSIONS, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
 import { isFixedDay } from '../domain/recurring.ts'
@@ -417,9 +416,11 @@ export async function setIntensity(intensity: Intensity): Promise<Settings> {
   return structuredClone(store.settings)
 }
 
-// In the bank of this week, or of its due week when that's later. With
-// onToday it goes on today's plan, placed by hand, whatever its due date.
+// In the bank of this week, or of its due week when that's later. With a day that's still
+// allowed (today or later, in an open week) it goes on that day, placed by hand, whatever its
+// due date; a day no longer allowed saves it in this week's bank, as the API does.
 export async function addTask(task: NewTask): Promise<Task> {
+  if (realApi) return realPlan.addTask(task)
   const title = task.title.trim()
   if (!title) throw new Error('A task needs a title')
   if (task.goalId) findActiveGoal(task.goalId)
@@ -428,14 +429,30 @@ export async function addTask(task: NewTask): Promise<Task> {
   const added = newStoredTask({
     title,
     origin: 'byHand',
-    week: taskWeek(task.dueDate, today),
+    week: taskWeek(task.dueDate),
     goalId: task.goalId ?? null,
     dueDate: task.dueDate ?? null,
     timeOfDay: task.timeOfDay ? { ...task.timeOfDay } : null,
   })
-  if (task.onToday) replaceTask(added, placedOnDay({ ...added, week: thisWeek() }, today))
+  const dayWeek = task.day ? toLocalDay(mondayOf(fromLocalDay(task.day))) : null
+  if (task.day && dayWeek && task.day >= today && isOpenWeek(dayWeek)) {
+    replaceTask(added, placedOnDay({ ...added, week: dayWeek }, task.day))
+  }
   store.tasks.push(added)
   return taskOut(added)
+}
+
+// This week's Monday, or the Monday of the due date's week when that's later. The server
+// decides this (ADR-008); the mock only imitates it.
+function taskWeek(dueDate: string | null | undefined): string {
+  const current = thisWeek()
+  if (!dueDate) return current
+  const dueWeek = toLocalDay(mondayOf(fromLocalDay(dueDate)))
+  return dueWeek > current ? dueWeek : current
+}
+
+function isOpenWeek(week: string): boolean {
+  return week === thisWeek() || (nextWeekOpen() && week === weekAfter(thisWeek()))
 }
 
 // The planner's stand-in adds no more than one task a day, so a typo in a

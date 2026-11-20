@@ -57,14 +57,9 @@ export type Task = Schemas['Task']
 // What "Still matter?" sends: keep it, put it on a day (as placeTask does), or drop it.
 export type StillMattersAnswer = Schemas['KeepIt'] | Schemas['ScheduleIt'] | Schemas['DropIt']
 
-// What the Add sheet sends to addTask. Not stored as is: the API places it.
-export type NewTask = {
-  title: string
-  goalId?: string
-  dueDate?: string
-  timeOfDay?: TimeOfDay
-  onToday?: boolean
-}
+// What the Add sheet sends to addTask. With a day it's placed there by hand; a day no longer
+// allowed, or none, saves it in a bank. The server picks the week from the due date.
+export type NewTask = Schemas['NewTask']
 
 // What the Add sheet sends to createGoal. A building goal sends its target too.
 export type NewGoal = Schemas['NewGoal']

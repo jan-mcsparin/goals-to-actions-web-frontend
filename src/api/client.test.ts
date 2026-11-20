@@ -1368,13 +1368,25 @@ describe('addTask', () => {
   })
 
   it('puts a task on today, placed by hand, whatever its due date', async () => {
-    const task = await addTask({ title: 'Call the vet', dueDate: '2026-11-25', onToday: true })
+    const task = await addTask({ title: 'Call the vet', dueDate: '2026-11-25', day: WEDNESDAY_DAY })
 
     expect(task).toMatchObject({ plannedDay: WEDNESDAY_DAY, week: '2026-11-09', placedByHand: true })
     const today = (await readDay(WEDNESDAY_DAY)).tasks.find((row) => row.id === task.id)
     expect(today?.placedByHand).toBe(true)
     expect(ids((await readBank()).tasks)).not.toContain(task.id)
     expectConsistentStore()
+  })
+
+  it("saves a task sent for a day that's passed in this week's bank, as the API does", async () => {
+    const task = await addTask({ title: 'Call the vet', day: '2026-11-10' })
+
+    expect(task).toMatchObject({ plannedDay: null, week: '2026-11-09', placedByHand: false })
+  })
+
+  it('puts a task on a later day of the week when sent one', async () => {
+    const task = await addTask({ title: 'Call the vet', day: '2026-11-13' })
+
+    expect(task).toMatchObject({ plannedDay: '2026-11-13', week: '2026-11-09', placedByHand: true })
   })
 
   it('gives each new task its own id', async () => {
@@ -1709,6 +1721,7 @@ describe('the mock or real switch', () => {
     const week = '2026-11-09'
 
     await client.getWeek(week)
+    await client.addTask({ title: 'Call the vet', day: '2026-11-11' })
     await client.checkOffTask('t1', { completedAt: '2026-11-11T16:00:00.000Z', completedOn: '2026-11-11', valueLogged: null })
     await client.uncheckTask('t1')
     await client.moveTaskToBank('t1', week)
@@ -1719,6 +1732,7 @@ describe('the mock or real switch', () => {
 
     expect(paths()).toEqual([
       'GET /api/weeks/2026-11-09',
+      'PUT /api/tasks/{id}',
       'POST /api/tasks/t1/check-off',
       'POST /api/tasks/t1/uncheck',
       'POST /api/tasks/t1/bank',

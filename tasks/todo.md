@@ -107,9 +107,9 @@ Every front-end task:
 **Description:** `NewTask` becomes the generated type. `taskInput` sends today as `day` for "On today", nothing for the bank. `taskWeek` leaves `domain/add.ts`; the mock keeps its own copy of the rule (spec decision 2). `taskConfirmation` reads the returned task, with "Saved. It joins the week it's due." when it has no week. `addTask` goes to real behind the switch.
 
 **Acceptance criteria:**
-- [ ] No `taskWeek` in `domain/`.
-- [ ] The three confirmations, plus the new one for a task with no week, are tested.
-- [ ] `realPlan.addTask` sends `PUT /tasks/{id}` with a device-made id.
+- [x] No `taskWeek` in `domain/`.
+- [x] The three confirmations, plus the new one for a task with no week, are tested.
+- [x] `realPlan.addTask` sends `PUT /tasks/{id}` with a device-made id.
 
 **Files:** `src/api/types.ts`, `src/domain/add.ts` (+ test), `src/api/client.ts`, `src/api/realPlan.ts` (+ test), `src/hooks/useAdd.ts`; `onToday` → `day` in `src/hooks/useDay.test.tsx` and `src/api/client.test.ts`
 

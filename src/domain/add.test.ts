@@ -23,7 +23,6 @@ import {
   taskConfirmation,
   taskInput,
   taskReady,
-  taskWeek,
   WEEKDAY_OPTIONS,
   type GoalDraft,
   type RepeatOption,
@@ -33,28 +32,7 @@ import { repeatText } from './recurring.ts'
 const WEDNESDAY = '2026-11-11'
 const THIS_MONDAY = '2026-11-09'
 
-describe('taskWeek', () => {
-  it('puts a task with no due date in this week', () => {
-    expect(taskWeek(undefined, WEDNESDAY)).toBe(THIS_MONDAY)
-  })
-
-  it('puts a task due this week in this week', () => {
-    expect(taskWeek('2026-11-15', WEDNESDAY)).toBe(THIS_MONDAY)
-  })
-
-  it('puts a task due in the past in this week', () => {
-    expect(taskWeek('2026-10-20', WEDNESDAY)).toBe(THIS_MONDAY)
-  })
-
-  it('puts a task due next week in that week', () => {
-    expect(taskWeek('2026-11-16', WEDNESDAY)).toBe('2026-11-16')
-    expect(taskWeek('2026-11-22', WEDNESDAY)).toBe('2026-11-16')
-  })
-
-  it('puts a task due across the year end in that week', () => {
-    expect(taskWeek('2027-01-01', WEDNESDAY)).toBe('2026-12-28')
-  })
-})
+// taskWeek went: which week a new task goes in is the server's to decide (ADR-008).
 
 describe('taskConfirmation', () => {
   it('confirms a task on today', () => {
@@ -67,6 +45,10 @@ describe('taskConfirmation', () => {
 
   it('confirms a task waiting for a later week', () => {
     expect(taskConfirmation({ state: 'open', plannedDay: null, week: '2026-11-23' }, WEDNESDAY)).toBe('Saved for the week of Nov 23.')
+  })
+
+  it('confirms a task due beyond the open weeks, which waits with no week', () => {
+    expect(taskConfirmation({ state: 'open', plannedDay: null, week: null }, WEDNESDAY)).toBe("Saved. It joins the week it's due.")
   })
 
   it('names the year of a later week in another year', () => {
@@ -97,31 +79,31 @@ describe('taskInput', () => {
   const draft = emptyTaskDraft('inBank')
 
   it('sends only the title when nothing else is set', () => {
-    expect(taskInput({ ...draft, title: 'Fill out my ballot' })).toEqual({ title: 'Fill out my ballot', onToday: false })
+    expect(taskInput({ ...draft, title: 'Fill out my ballot' }, WEDNESDAY)).toEqual({ title: 'Fill out my ballot' })
   })
 
   it('sends the goal, due date and time of day when set', () => {
-    const input = taskInput({ ...draft, title: 'Lift', goalId: 'goal-strong', dueDate: '2026-11-13', timeKind: 'by', time: '18:00' })
+    const input = taskInput({ ...draft, title: 'Lift', goalId: 'goal-strong', dueDate: '2026-11-13', timeKind: 'by', time: '18:00' }, WEDNESDAY)
 
     expect(input).toEqual({
       title: 'Lift',
       goalId: 'goal-strong',
       dueDate: '2026-11-13',
       timeOfDay: { kind: 'by', time: '18:00' },
-      onToday: false,
     })
   })
 
   it('leaves out a time of day without a time', () => {
-    expect(taskInput({ ...draft, title: 'Lift', timeKind: 'at' }).timeOfDay).toBeUndefined()
+    expect(taskInput({ ...draft, title: 'Lift', timeKind: 'at' }, WEDNESDAY).timeOfDay).toBeUndefined()
   })
 
   it('leaves out a time without "by" or "at"', () => {
-    expect(taskInput({ ...draft, title: 'Lift', time: '18:00' }).timeOfDay).toBeUndefined()
+    expect(taskInput({ ...draft, title: 'Lift', time: '18:00' }, WEDNESDAY).timeOfDay).toBeUndefined()
   })
 
-  it('puts it on today when "On today" is chosen', () => {
-    expect(taskInput({ ...draft, title: 'Call the vet', placement: 'onToday' }).onToday).toBe(true)
+  // NewTask is the API's now: "On today" sends today as the day, and the server places it.
+  it('sends today as its day when "On today" is chosen', () => {
+    expect(taskInput({ ...draft, title: 'Call the vet', placement: 'onToday' }, WEDNESDAY).day).toBe(WEDNESDAY)
   })
 })
 

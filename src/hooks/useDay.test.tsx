@@ -301,7 +301,7 @@ describe('useDay when the data revision changes', () => {
   it('loads the day again, showing the old one until the new one arrives', async () => {
     const hook = renderWithRevision()
     await waitFor(() => expect(hook.result.current.day).toBeDefined())
-    await addTask({ title: 'Call the vet', onToday: true })
+    await addTask({ title: 'Call the vet', day: '2026-11-11' })
 
     act(() => hook.bump())
 

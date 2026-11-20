@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NotFoundError } from './errors.ts'
 import {
+  addTask,
   answerStillMatters,
   checkOffTask,
   getWeek,
@@ -63,6 +64,17 @@ describe('getWeek', () => {
     fetchMock.mockImplementation(async () => new Response('{}', { status: 404 }))
 
     await expect(getWeek('2026-12-07')).rejects.toBeInstanceOf(NotFoundError)
+  })
+})
+
+describe('addTask', () => {
+  it('puts the task at an id made on the device, with what was typed', async () => {
+    await addTask({ title: 'Call the vet', day: '2026-11-18', dueDate: '2026-11-20' })
+
+    const { url, method, body } = sent()
+    expect(method).toBe('PUT')
+    expect(url).toMatch(/^\/api\/tasks\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+    expect(body).toEqual({ title: 'Call the vet', day: '2026-11-18', dueDate: '2026-11-20' })
   })
 })
 

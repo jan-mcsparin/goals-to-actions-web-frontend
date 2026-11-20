@@ -2,8 +2,9 @@
 // to its tasks. Same signatures as the mock ones, so hooks and screens don't know which they
 // got. A plan edit names the week it was made in, and is refused (409) once the task has left it.
 import { mondayOfDay, toLocalDay, weekAfter } from './dates.ts'
+import { newDeviceId } from './ids.ts'
 import { request } from './request.ts'
-import type { CheckOff, StillMattersAnswer, Task, Week } from './types.ts'
+import type { CheckOff, NewTask, StillMattersAnswer, Task, Week } from './types.ts'
 
 // With no week, the current one: the phone's own week, or the one after once that has been
 // wrapped up early (the API then reads the phone's week as not current).
@@ -12,6 +13,11 @@ export async function getWeek(week?: string): Promise<Week> {
   const phonesWeek = mondayOfDay(toLocalDay(new Date()))
   const read = await request<Week>('GET', `/weeks/${phonesWeek}`)
   return read.isCurrent ? read : request('GET', `/weeks/${weekAfter(phonesWeek)}`)
+}
+
+// At an id made here, so sending it again makes no second task.
+export async function addTask(task: NewTask): Promise<Task> {
+  return request('PUT', `/tasks/${newDeviceId()}`, task)
 }
 
 export async function checkOffTask(taskId: string, checkOff: CheckOff): Promise<Task> {

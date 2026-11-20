@@ -130,7 +130,7 @@ export function useAdd(origin: AddOrigin, today: string, { onSaved, onChanged }:
     setMessage(undefined)
     try {
       if (tab === 'task') {
-        const saved = await addTask(taskInput(task))
+        const saved = await addTask(taskInput(task, today))
         onSaved(taskConfirmation(saved, today))
       } else if (tab === 'goal') {
         const saved = await saveGoal()
