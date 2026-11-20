@@ -1,0 +1,22 @@
+/* The brand's ink and green (../docs/brand/README.md); on dark, white dots
+   and the brighter star. */
+.logo-mark {
+  --logo-ink: #16213a;
+  --logo-star: #1e8a5f;
+  display: block;
+}
+
+.logo-mark-dot {
+  fill: var(--logo-ink);
+}
+
+.logo-mark-star {
+  fill: var(--logo-star);
+}
+
+@media (prefers-color-scheme: dark) {
+  .logo-mark {
+    --logo-ink: #ffffff;
+    --logo-star: #3fbf87;
+  }
+}

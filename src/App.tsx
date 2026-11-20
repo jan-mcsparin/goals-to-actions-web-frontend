@@ -8,11 +8,13 @@ import { addOriginFor, type AddOrigin } from './hooks/useAdd.ts'
 import { DataRevision, useRevisionCounter } from './hooks/dataRevision.ts'
 import { useFleetingMessage } from './hooks/useFleetingMessage.ts'
 import { useNavigation, type Screen } from './hooks/useNavigation.ts'
+import { useSession } from './hooks/useSession.ts'
 import { Aspiration } from './screens/Aspiration.tsx'
 import { Aspirations } from './screens/Aspirations.tsx'
 import { Day } from './screens/Day.tsx'
 import { GoalDetail } from './screens/GoalDetail.tsx'
 import { Settings } from './screens/Settings.tsx'
+import { SignIn } from './screens/SignIn.tsx'
 import { Upkeep } from './screens/Upkeep.tsx'
 import { Week } from './screens/Week.tsx'
 import { tabOf } from './storage/navigation.ts'
@@ -29,6 +31,9 @@ function App() {
   const { revision, bump } = useRevisionCounter()
   const [confirmation, setConfirmation] = useState<string>()
   const shownConfirmation = useFleetingMessage(confirmation)
+  // Signed out, the sign-in page takes the app's place; signing in loads the
+  // open screen again.
+  const session = useSession(bump)
 
   // Cleared on open, so the same line after the next save shows again.
   function openAdd(opening: Partial<AddOrigin> = {}) {
@@ -43,6 +48,8 @@ function App() {
     if (open) goTo(open)
     setConfirmation(line)
   }
+
+  if (!session.signedIn) return <SignIn session={session} />
 
   return (
     <DataRevision value={revision}>
@@ -65,7 +72,7 @@ function App() {
               onOpenSettings={() => goTo({ screen: 'settings' })}
             />
           )}
-          {current.screen === 'settings' && <Settings onBack={backToAspirations} />}
+          {current.screen === 'settings' && <Settings onBack={backToAspirations} onSignOut={session.signOut} signingOut={session.busy} />}
           {current.screen === 'upkeep' && <Upkeep today={today} onBack={() => goTo({ screen: 'aspirations' })} />}
           {current.screen === 'aspiration' && (
             <Aspiration

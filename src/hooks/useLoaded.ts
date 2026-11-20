@@ -3,8 +3,9 @@
 // The screen's one message slot lives here too: a failed load fills it, and a
 // later load that works clears it, but leaves a save message alone (the reload
 // doesn't redo the save). A record that isn't there is reported as notFound.
+// Signed out says nothing here: the sign-in page is the message.
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
-import { NotFoundError } from '../api/client.ts'
+import { NotFoundError, SignedOutError } from '../api/client.ts'
 import { useDataRevision } from './dataRevision.ts'
 
 export type Loaded<T> = {
@@ -33,6 +34,7 @@ export function useLoaded<T>(load: () => Promise<T>, loadFailed: string): Loaded
       })
       .catch((error: unknown) => {
         if (!current) return
+        if (error instanceof SignedOutError) return
         if (error instanceof NotFoundError) setNotFound(true)
         else setMessage(loadFailed)
       })

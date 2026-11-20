@@ -11,11 +11,11 @@ React + Vite + TypeScript, client-rendered, no SSR. PWA via vite-plugin-pwa (man
 ```
 src/
   config.ts        APP_NAME and other product constants (the only place the name appears in code)
-  api/             API client functions + types. openapi.ts is generated; realAspirations.ts and realGoals.ts are the parts on the real API
+  api/             API client functions + types. openapi.ts is generated; realAspirations.ts and realGoals.ts are the parts on the real API; signIn.ts signs in with a passkey
   domain/          plain TS: planning, pacing, rollover rules. No React imports. Unit-tested.
   storage/         On-device storage: Today's view choice and the open screen (localStorage) now; IndexedDB plan cache + offline queue later, once there's an API
   hooks/           React hooks wrapping api/, domain/ and storage/
-  screens/         Day (Today and any opened day), Week, Aspirations, Aspiration, Upkeep (Keep life running), GoalDetail, Settings; Add is a sheet
+  screens/         Day (Today and any opened day), Week, Aspirations, Aspiration, Upkeep (Keep life running), GoalDetail, Settings, SignIn (in place of the app while signed out); Add is a sheet
   components/      presentational pieces only
 ```
 

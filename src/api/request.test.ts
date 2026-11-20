@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { NotFoundError } from './errors.ts'
+import { NotFoundError, SignedOutError } from './errors.ts'
 import { request } from './request.ts'
+import { onSignedOut, signedIn } from './session.ts'
 
 function respond(status: number, body?: unknown) {
   return new Response(body === undefined ? null : JSON.stringify(body), {
@@ -47,13 +48,19 @@ describe('request', () => {
     expect(result).toEqual(reply)
   })
 
+  it('returns nothing for a 204', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
+
+    await expect(request('POST', '/sign-in/sign-out')).resolves.toBeUndefined()
+  })
+
   it('turns a 404 into NotFoundError', async () => {
     fetchMock.mockResolvedValue(respond(404, { detail: 'No aspiration a1' }))
 
     await expect(request('PATCH', '/aspirations/a1', { name: 'x' })).rejects.toBeInstanceOf(NotFoundError)
   })
 
-  it.each([409, 422, 500])('turns a %i into a failed request, not NotFoundError', async (status) => {
+  it.each([403, 409, 422, 500])('turns a %i into a failed request, not NotFoundError', async (status) => {
     fetchMock.mockResolvedValue(respond(status, { detail: 'No' }))
 
     const failure = request('POST', '/aspirations/reorder', { ids: [] })
@@ -69,5 +76,43 @@ describe('request', () => {
 
     await expect(failure).rejects.toThrow()
     await expect(failure).rejects.not.toBeInstanceOf(NotFoundError)
+  })
+
+  describe('a 401', () => {
+    const listener = vi.fn()
+    let stopListening: () => void
+
+    beforeEach(() => {
+      listener.mockReset()
+      stopListening = onSignedOut(listener)
+    })
+
+    afterEach(() => stopListening())
+
+    it('is SignedOutError and tells the session', async () => {
+      fetchMock.mockResolvedValue(respond(401, { detail: 'Not signed in' }))
+
+      await expect(request('GET', '/aspirations')).rejects.toBeInstanceOf(SignedOutError)
+      expect(listener).toHaveBeenCalledTimes(1)
+    })
+
+    it('for a request sent before signing in again tells no one', async () => {
+      let reply: (response: Response) => void = () => {}
+      fetchMock.mockReturnValue(new Promise((resolve) => (reply = resolve)))
+
+      const pending = request('GET', '/aspirations')
+      signedIn()
+      reply(respond(401, { detail: 'Not signed in' }))
+
+      await expect(pending).rejects.toBeInstanceOf(SignedOutError)
+      expect(listener).not.toHaveBeenCalled()
+    })
+
+    it('from a sign-in route is SignedOutError and tells no one: it means that didn’t work', async () => {
+      fetchMock.mockResolvedValue(respond(401, { detail: "That didn't work" }))
+
+      await expect(request('POST', '/sign-in/finish', {})).rejects.toBeInstanceOf(SignedOutError)
+      expect(listener).not.toHaveBeenCalled()
+    })
   })
 })

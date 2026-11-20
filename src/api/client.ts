@@ -7,7 +7,7 @@ import { taskWeek } from '../domain/add.ts'
 import { checkedOff, inTheBank, isInBank, isPlanned, placedOnDay, uncheckedOff } from '../domain/tasks.ts'
 import { isWithinGoal, MOST_SESSIONS, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
 import { isIntensity } from '../domain/settings.ts'
-import { NotFoundError } from './errors.ts'
+import { NotFoundError, SignedOutError } from './errors.ts'
 import { newDeviceId } from './ids.ts'
 import type { StoredCheckIn, StoredGoal, StoredMilestone, StoredTask } from './mockData.ts'
 import { store } from './mockStore.ts'
@@ -41,7 +41,7 @@ import type {
   WeeklyTargetInput,
 } from './types.ts'
 
-export { NotFoundError }
+export { NotFoundError, SignedOutError }
 
 // Set-aside tasks keep their day but don't show on it.
 export async function getDay(date: string): Promise<DayPlan> {
