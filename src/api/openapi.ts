@@ -735,6 +735,27 @@ export interface components {
              */
             valueLogged?: number | null;
         };
+        /**
+         * DayMark
+         * @description A day's cap and whether it's reached: a guide shown on Week, never enforced (ADR-013).
+         */
+        DayMark: {
+            /**
+             * Cap
+             * @description Tasks a day holds at the person's intensity: 3, 4 or 6.
+             */
+            cap: number;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /**
+             * Full
+             * @description The day holds at least `cap` tasks, open or done.
+             */
+            full: boolean;
+        };
         /** DropIt */
         DropIt: {
             /**
@@ -1369,6 +1390,11 @@ export interface components {
          *     from it.
          */
         Week: {
+            /**
+             * Days
+             * @description Monday to Sunday, each with the full-day mark.
+             */
+            days: components["schemas"]["DayMark"][];
             /**
              * Goals
              * @description Every active building goal with a target that week, and its progress.
