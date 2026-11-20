@@ -62,10 +62,10 @@ Every task:
 - **Add a passkey:** "Code accepted", "Add a passkey to this device", "From now on you'll sign in with Face ID. There's nothing to remember, and nothing that can be phished. If iCloud Keychain is on, your Mac can use the same passkey.", **Add passkey**. No tester note.
 
 **Acceptance criteria:**
-- [ ] Each step and its message render; buttons are disabled while busy.
-- [ ] The field is announced with its error (`aria-invalid`, `aria-describedby`).
-- [ ] Buttons are `#2f6f4f`; the page reads well at iPhone width, light and dark.
-- [ ] Component tests over a stubbed session.
+- [x] Each step and its message render; buttons are disabled while busy.
+- [x] The field is announced with its error (`aria-invalid`, `aria-describedby`).
+- [ ] Buttons are `#2f6f4f`; the page reads well at iPhone width, light and dark (checked in task 5).
+- [x] Component tests over a stubbed session.
 
 **Dependencies:** Task 3 · **Scope:** M
 

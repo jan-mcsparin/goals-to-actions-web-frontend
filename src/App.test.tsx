@@ -1,8 +1,9 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resumeGoal, retireAspiration } from './api/client.ts'
 import { resetStore, store } from './api/mockStore.ts'
+import { signedOut } from './api/session.ts'
 import App from './App.tsx'
 
 // Wednesday 11 Nov 2026, 9 a.m. local time.
@@ -646,4 +647,21 @@ it('keeps a new intensity after leaving Settings and coming back', async () => {
   await user.click(await screen.findByRole('button', { name: 'Settings' }))
 
   expect(((await screen.findByRole('radio', { name: 'Going hard' })) as HTMLInputElement).checked).toBe(true)
+})
+
+describe('signing in', () => {
+  it('shows the sign-in page in place of the app after a 401, and the open screen once signed in', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { level: 1, name: 'Today · Wednesday' })
+
+    act(() => signedOut())
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Goals to Actions' })).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Week' })).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Sign in with Face ID' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Today · Wednesday' })).toBeDefined()
+  })
 })

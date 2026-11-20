@@ -37,7 +37,7 @@ Five routes, all `POST /api/sign-in/…`: `code` (a one-time code → options to
 
 Checkpoint after task 3: build, lint and tests pass; nothing on screen has changed.
 
-- [ ] Task 4: The sign-in page
+- [x] Task 4: The sign-in page
 - [ ] Task 5: Sign out in Settings, docs, and a check in the browser
 
 ## Risks
