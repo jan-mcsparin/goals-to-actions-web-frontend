@@ -237,6 +237,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/goals/{goal_id}/quit-days/{day}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Answer Quit Day
+         * @description Yes or no for a day. Answering again replaces it.
+         */
+        put: operations["answerQuitDay"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goals/{goal_id}/quit-days/{day}/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clear Quit Day
+         * @description Back to unknown.
+         */
+        post: operations["clearQuitDay"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/goals/{goal_id}/reopen": {
         parameters: {
             query?: never;
@@ -268,6 +308,43 @@ export interface paths {
         put?: never;
         /** Resume Goal */
         post: operations["resumeGoal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goals/{goal_id}/urges/{day}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Rate Urge
+         * @description How strong the urge was that day. Rating again replaces it. Never asked for.
+         */
+        put: operations["rateUrge"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goals/{goal_id}/urges/{day}/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clear Urge Rating */
+        post: operations["clearUrgeRating"];
         delete?: never;
         options?: never;
         head?: never;
@@ -873,6 +950,8 @@ export interface components {
             milestones: components["schemas"]["Milestone"][];
             /** @description Milestones hit, or a one-off goal's steps done. */
             progress: components["schemas"]["Progress"];
+            /** @description A quitting goal's record; empty for others. */
+            quitRecord: components["schemas"]["QuitRecord"] | null;
             /**
              * Steps
              * @description A one-off goal's tasks, done and not, in the order added; dropped ones left out. Empty for other goals.
@@ -1146,6 +1225,58 @@ export interface components {
             /** Of */
             of: number;
         };
+        /** QuitAnswer */
+        QuitAnswer: {
+            /** Held */
+            held: boolean;
+        };
+        /**
+         * QuitDay
+         * @description One day of a quitting goal's record. Empty means unknown: no answer is never a slip.
+         */
+        QuitDay: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /**
+             * Goalid
+             * Format: uuid
+             */
+            goalId: string;
+            /**
+             * Held
+             * @description Yes or no for the day; empty when not answered.
+             */
+            held: boolean | null;
+            /**
+             * Urge
+             * @description How strong the urge was; empty when not rated.
+             */
+            urge: ("low" | "some" | "strong") | null;
+        };
+        /**
+         * QuitRecord
+         * @description A quitting goal's recent days and its run, worked out on every read.
+         */
+        QuitRecord: {
+            /**
+             * Days
+             * @description The last 28 days up to today, from the goal's start at the earliest, newest first.
+             */
+            days: components["schemas"]["QuitDay"][];
+            /**
+             * Heldrun
+             * @description Days held since the last no, or since the start.
+             */
+            heldRun: number;
+            /**
+             * Unknowninrun
+             * @description Days before today since then with no answer yet. They can still be answered.
+             */
+            unknownInRun: number;
+        };
         /** RecurringItem */
         RecurringItem: {
             /** Active */
@@ -1371,6 +1502,14 @@ export interface components {
              */
             tasks: components["schemas"]["Task"][];
         };
+        /** UrgeRating */
+        UrgeRating: {
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "low" | "some" | "strong";
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1408,6 +1547,11 @@ export interface components {
              */
             nextWeekOpen: boolean;
             /**
+             * Quittinggoals
+             * @description Every active quitting goal started by the week's end, with its days.
+             */
+            quittingGoals: components["schemas"]["WeekQuitGoal"][];
+            /**
              * Tasks
              * @description On a day, then in the bank; with no outcome or done. Set-aside rows aren't shown.
              */
@@ -1443,6 +1587,25 @@ export interface components {
             done: number;
             /** Of */
             of: number;
+        };
+        /**
+         * WeekQuitGoal
+         * @description An active quitting goal on the week read, so the phone can show and answer its days
+         *     offline.
+         */
+        WeekQuitGoal: {
+            /**
+             * Days
+             * @description Each day of the week from the goal's start.
+             */
+            days: components["schemas"]["QuitDay"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
         };
         /**
          * WeeklySchedule
@@ -2238,6 +2401,114 @@ export interface operations {
             };
         };
     };
+    answerQuitDay: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-time-zone": string;
+            };
+            path: {
+                goal_id: string;
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuitAnswer"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuitDay"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description The rules don't allow this change. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clearQuitDay: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-time-zone": string;
+            };
+            path: {
+                goal_id: string;
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuitDay"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description The rules don't allow this change. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     reopenGoal: {
         parameters: {
             query?: never;
@@ -2309,6 +2580,114 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Goal"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description The rules don't allow this change. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rateUrge: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-time-zone": string;
+            };
+            path: {
+                goal_id: string;
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UrgeRating"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuitDay"];
+                };
+            };
+            /** @description No such row, or it belongs to someone else. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description The rules don't allow this change. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clearUrgeRating: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-time-zone": string;
+            };
+            path: {
+                goal_id: string;
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuitDay"];
                 };
             };
             /** @description No such row, or it belongs to someone else. */

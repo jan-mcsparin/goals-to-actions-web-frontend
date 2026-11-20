@@ -165,6 +165,8 @@ export async function getGoal(goalId: string): Promise<GoalDetail> {
     weekProgress: null,
     steps: [],
     latest: latestResult(goalId),
+    // Not kept by the mock until a quitting goal's record is built (#37).
+    quitRecord: null,
   })
 }
 
