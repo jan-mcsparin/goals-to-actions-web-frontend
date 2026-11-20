@@ -1,61 +1,56 @@
-# Implementation Plan: Tasks as the API has them, Next week and wrap-up, "Still matter?" (#30, #46, #35)
+# Implementation Plan: Sign in with a passkey, and stay signed in (#48)
 
-Issues: [#30](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/30), [#46](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/46), [#35](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/35); no spec of their own. The contract and its rules are in the API's [`week-turnover` spec](../../api/specs/week-turnover.md) and [plan](../../api/tasks/plan.md), planned alongside this one. Tasks: [`todo.md`](todo.md). (The plan for #34 is in git history.)
+Issue: [#48](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/48); no spec of its own. The rules are in [ADR-012](../../docs/adr/0012-sign-in-with-a-passkey.md) and the API's [`sign-in` spec](../../api/specs/sign-in.md) and [plan](../../api/tasks/plan.md) (the contract). Tasks: [`todo.md`](todo.md). (The plan for #30, #46 and #35 is in git history.)
 
 ## Overview
 
-Three pieces, still on mock data. Screens move to the API in #42, after the planner.
+The API answers 401 without a session (`__Host-session`, an `HttpOnly` cookie the page never sees). The front end learns it's signed out only from a 401: there's no "who am I" route, and none is needed. It starts as signed in, and the first 401 flips it.
 
-1. **#30: a task is the API's `Task`.** `status` (`inBank | planned | done | skipped`), `weekOf` and `rolloverCount` go. A task has a `state` (open, done, dropped, lapsed), an `origin`, and the week, day and placed-by-hand of its row in play. "Skipped" becomes "set aside" in code, and the client's plan functions take the API's names. Nothing changes on screen. This needs nothing from API #9 and can start now.
-2. **#46: Next week, and wrap-up.** From 6 p.m. on Sunday, Week offers **Next week**. Its tasks can be placed, sent to the bank and swapped, but not checked off. **Wrap up this week** opens a sheet listing what carries over and what ends with the week, read from each task's `atClose`. Confirming makes next week the current one.
-3. **#35: "Still matter?".** A task the API marks `stillMatters` shows a card with Keep, Reschedule and Drop, sent through `answerStillMatters`.
+Five routes, all `POST /api/sign-in/…`: `code` (a one-time code → options to make a passkey), `passkeys` (keep it, and sign in), `start` and `finish` (sign in with a passkey), `sign-out`. Passkeys go through the browser's own functions: `PublicKeyCredential.parseCreationOptionsFromJSON` / `parseRequestOptionsFromJSON`, `navigator.credentials.create` / `get`, and the credential's `toJSON()`. No new dependency.
 
-Rolling over and lapsing happen on the server (ADR-008); #35's rules are built and tested in API #9. The phone only shows what the week read says, so no rollover rules go into `domain/`.
+**One PR**, `sign-in-session`. Tasks 1–3 are the logic and change nothing on screen. Tasks 4–5 build sketches 1–3 and 5 of [`docs/screens/sign-in.png`](../../docs/screens/sign-in.png). The PR says "Part of #48": the phone checks wait for hosting (ADR-011), and sketch 4 waits for #43.
 
-**Two PRs:** `tasks-as-api` (closes #30; tasks 1–3), which can go now; and `next-week` (closes #46 and #35; tasks 4–8), after the API's `week-turnover` PR is merged.
+**Settled with Jan (2026-11-20):**
+- **Sketch 4 (session ended: a sheet over the stored screen, Not now, the "N changes waiting" banner) is built in #43,** with the stored week and the queue. Until then any signed-out state shows the sign-in page.
+- **No "Signed in as"** in Settings: the API has no name for a user. Account is just Sign out.
+- **No tester note** on the add-a-passkey step.
+- **The new logo's app icons and favicon are their own small PR.** The sign-in page uses the mark and the wordmark from `docs/brand/`.
 
 ## Decisions
 
-- **The task-state readers go through one module first.** Today 266 lines across about 20 files read `status`, `weekOf` or `rolloverCount` directly. Task 1 moves every reader onto `domain/tasks.ts` (`isOnDay`, `isInBank`, `isDone`, `isSetAside`, `weekOf`) over the old type. Then task 2's type swap only changes that module, the mock and the client. The recurring-items swap was one commit; this one is too big to be.
-- **The mock stores a little more than the API sends.** `StoredTask` is the generated `Task` plus `setAside: boolean`, as `StoredGoal` is today. The API's set-aside task reads with no week, the same as an upcoming one, and the mock needs to tell them apart to bring them back.
-- **Client names match the API's operations:** `skipTask` becomes `moveTaskToBank`, `pullFromBank` becomes `placeTask`, and `swapTask` becomes `swapTasks`, returning `{ toBank, placed }`. Each plan edit sends the week it was made in (shared decision 14). That's the shape #42 calls, so it won't rename them again.
-- **`getWeek(week)` takes the week.** It returns `isCurrent` and `nextWeekOpen` as the API's `Week` does. The rest of `WeekPlan` (goals, aspirations, items) stays hand-written until #42 moves Week to the API's read.
-- **The mock opens next week from the device clock** at 6 p.m. on Sunday, as the API does from the phone's time zone. The mock's wrap-up uses `atClose` and nothing else: "carriesOver" moves a task to next week's bank, and "ends" closes it. That's the server's answer, applied, not a rule.
-- **Next week is a view on Week:** a "This week | Next week" toggle at the top (the `ViewToggle` Today already uses), shown only once next week is open. The view is remembered across reloads, as Today's is. There's no sketch of Next week yet; this is the smallest thing that fits the Week screen.
-- **"Still matter?" is a card at the top of Today,** one per marked task, above the plan. Reschedule opens the day picker the bank already uses. Flow 7 doesn't say where the card goes; Today is where the person looks every day, and the card is quiet and can be ignored.
+- **A 401 is `SignedOutError`** (in `errors.ts`, beside `NotFoundError`). `request.ts` throws it and tells `api/session.ts`, a tiny listener list. The sign-in routes' own 401s mean "that didn't work", so they don't tell the session.
+- **A signed-out load shows no "Couldn't load".** `useLoaded` leaves the message alone for `SignedOutError`; the sign-in screen is the message. Saves keep their ordinary "Couldn't save that" until #43's queue keeps them.
+- **`api/signIn.ts` returns an outcome, not an exception:** `signedIn`, `cancelled` (the person closed the passkey sheet), `didntWork` (the API's 401), `unsupported` (the browser lacks the JSON functions, ADR-012's open question), or a thrown plain `Error` for a failed request. The hook turns outcomes into copy.
+- **The mock stays signed in.** In mock mode the sign-in functions answer `signedIn` without the browser, and sign out works, so the click-through can sign out and back in. Mock data never answers 401, so the test suite is unchanged.
+- **`useSession` lives in App, given by context** like the data revision. It holds `signedIn`, the copy to show, and `signIn`, `addPasskey(code)`, `signOut`. After signing in it raises the data revision, so the open screen loads again.
+- **Settings gets `onSignOut` from App,** as screens get their other callbacks.
+- **The sign-in page has three steps,** state in `useSession`: sign in; enter a code (redeemed on Continue); add a passkey (made on Add passkey, with the redeemed options). Back from the code step returns to sign in.
+- **The mark and wordmark are inline SVG components** copied from `docs/brand/` without the C2PA metadata. No web font: the wordmark falls back to the system font, as its README allows.
+- **The sign-out sheet uses the app's `sheet.css` and `useModalDialog`,** like the other sheets. Its "N changes haven't been sent" warning comes with #43's queue.
+- **Left for #43:** sending the queue after signing in and before signing out, and clearing what's stored on the phone at sign out. None of it exists yet; this PR leaves a marked spot in `useSession` for each.
 
 ## Task list
 
-PR `tasks-as-api` (closes #30):
+- [ ] Task 1: A 401 is SignedOutError and tells the session
+- [ ] Task 2: Passkey and code steps in `api/signIn.ts`
+- [ ] Task 3: `useSession`
 
-- [x] Task 1: Read task state through one module
-- [x] Task 2: Use the generated Task everywhere
-- [x] Task 3: Plan functions take the API's names and the week
+Checkpoint after task 3: build, lint and tests pass; nothing on screen has changed.
 
-Checkpoint after task 3: build, lint and tests pass, and the screens look as they did at iPhone width.
-
-PR `next-week` (closes #46 and #35), after the API's `week-turnover` is merged:
-
-- [x] Task 4: New types, and a mock that opens next week
-- [x] Task 5: Next week on the Week screen
-- [x] Task 6: Wrap up this week
-- [x] Task 7: The "Still matter?" card
-- [ ] Task 8: Docs and the phone check
-
-Checkpoint after task 6: Next week and wrap-up click through on mock data.
+- [ ] Task 4: The sign-in page
+- [ ] Task 5: Sign out in Settings, docs, and a check in the browser
 
 ## Risks
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| Task 1 misses a reader, and task 2's swap breaks it | Med | The compiler finds it in task 2, since `status` leaves the type. Task 1 also greps for the old field names. |
-| A set-aside task shows on a day after the swap | Med | `isSetAside` has its own tests, and the pause and resume tests in the client stay as they are. |
-| The API's `Task` shape changes while #9 is built | Low | Task 4 regenerates after #9 is merged, not before. |
-| The Next week toggle crowds the Week header on a small phone | Low | Task 8's phone check at iPhone width (a Sonnet agent with the browser). |
+| iOS lacks `parseCreationOptionsFromJSON` / `toJSON()` | Med | The `unsupported` outcome says so plainly; a small helper is a later change, if the hosted check finds it's needed (ADR-012). |
+| Several screens' loads all 401 at once | Low | The session's state is a boolean; repeat notices change nothing. |
+| A real passkey can't be acted out in tests or by an agent's browser | Med | Unit tests stub `navigator.credentials`; Jan tries it once in Chrome on `localhost` with a code from the API's command. |
 
 ## Assumed, for review with this plan
 
-1. Next week is a toggle on Week, not its own screen.
-2. The "Still matter?" card sits at the top of Today.
-3. #35's acceptance criteria about rolling over and lapsing are met and tested in API #9; here, only the card and the mock are built.
-4. The mock doesn't place a new goal's sessions on days (ADR-013 leaves that to the planner, #10); they stay in the bank as they do now.
+1. No "who am I" route: the app opens as signed in and a 401 decides.
+2. The click-through can sign out and back in on mock data.
+3. Copy follows the sketch, except: the code error ends "Ask for a new one." (no name), and "this iPhone" reads "this device", since the Mac signs in too. The button keeps "Sign in with Face ID", as sketched.
+4. Jan's uncommitted `docs/brand/`, `docs/screens/sign-in.png` and README section go in a docs PR in the parent repo, with the README's open items updated to what was settled.

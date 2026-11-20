@@ -1,6 +1,6 @@
-# Tasks: Tasks as the API has them (#30), Next week and wrap-up (#46), "Still matter?" (#35)
+# Tasks: Sign in with a passkey, and stay signed in (#48)
 
-Plan: [`plan.md`](plan.md). Issues: #30, #46, #35.
+Plan: [`plan.md`](plan.md). Issue: #48.
 
 Every task:
 1. `nvm use` (Node 24).
@@ -8,155 +8,79 @@ Every task:
 3. Run `npm test && npm run lint && npm run build`.
 4. Make one commit.
 
-Test dates are fixed to Wednesday 11 Nov 2026, or to a Sunday evening where a test says so.
+### Task 1: A 401 is SignedOutError and tells the session
 
-# PR: `tasks-as-api` (closes #30)
-
-### Task 1: Read task state through one module
-
-**Description:** `domain/tasks.ts`: `isOnDay(task, day?)`, `isInBank`, `isDone`, `isPlanned`, `weekOf`, and the writers `placedOnDay`, `checkedOff`, `uncheckedOff` (`isSetAside` and `timesCarriedOver` have no reader outside the client and mock, so they wait for task 2), over today's `Task`. Every reader in `domain/`, `hooks/`, `components/` and `api/client.ts` switches to them. Nothing else changes.
+**Description:** `SignedOutError` in `api/errors.ts`, exported from `client.ts` as `NotFoundError` is. `request.ts` throws it on a 401 and, unless the path is under `/sign-in`, calls `signedOut()` in a new `api/session.ts` (`onSignedOut(listener)` returns an unsubscribe). `useLoaded` sets no load-failed message for it.
 
 **Acceptance criteria:**
-- [x] Outside `domain/tasks.ts`, `client.ts` and `mockData.ts`, nothing reads `status`, `weekOf` or `rolloverCount` (a grep in the task's notes: only the Add form's `Placement` and `WeekPlan.weekOf` remain, neither a task's).
-- [x] Each helper has tests, set-aside tasks included.
-- [x] Every existing test passes unchanged.
+- [ ] A 401 rejects with `SignedOutError` and tells the session's listeners once.
+- [ ] A 401 from a `/sign-in/…` route rejects with `SignedOutError` and tells no one.
+- [ ] 403, 409, 422 and 500 stay plain errors.
+- [ ] A load that's signed out leaves no "Couldn't load" message.
 
-**Verification:** `npm test && npm run lint && npm run build`.
+**Files:** `src/api/errors.ts`, `src/api/session.ts` (+ test), `src/api/request.ts` (+ test), `src/api/client.ts`, `src/hooks/useLoaded.ts` (+ a test)
 
-**Dependencies:** None
+**Dependencies:** None · **Scope:** S
 
-**Files:** `src/domain/tasks.ts`, `src/domain/tasks.test.ts`, `src/domain/{week,today,upkeep,aspiration,aspirations,add}.ts`, `src/hooks/useWeek.ts`
+### Task 2: Passkey and code steps in `api/signIn.ts`
 
-**Scope:** M
-
-### Task 2: Use the generated Task everywhere
-
-**Description:** `types.ts` names `Task` from `openapi.ts`. `mockData.ts` stores `StoredTask` (the `Task` plus `setAside`) and the client returns the API's shape. `domain/tasks.ts` reads the new fields. Pausing a goal, ending it or turning an item off sets its tasks aside; resuming returns them to this week's bank. A new goal's stand-in sessions are `origin: 'weeklyTarget'`.
+**Description:** `signInWithPasskey()`, `addPasskeyWithCode(code)`, `signOut()`, over the five routes. Each sign-in step returns `signedIn | cancelled | didntWork | unsupported`. A `NotAllowedError` from the passkey sheet is `cancelled`; the API's 401 is `didntWork`; no JSON functions is `unsupported`. In mock mode they answer `signedIn` (and sign out resolves) without touching the browser. Request and reply types come from `openapi.ts`.
 
 **Acceptance criteria:**
-- [x] `TaskStatus`, `weekOf` and `rolloverCount` are gone from the task type, and "skipped" is "set aside" everywhere in code.
-- [x] Today, Week, the bank, Upkeep and the aspiration pages show what they did before.
-- [x] Mock data and tests updated; the pause and resume tests pass with only the field names changed.
+- [ ] Sign-in sends `startSignIn`'s options through `parseRequestOptionsFromJSON` and `credentials.get`, then `finishSignIn` with the challenge id and `credential.toJSON()`.
+- [ ] Adding a passkey does the same with `redeemCode`, `parseCreationOptionsFromJSON`, `credentials.create` and `addPasskey`.
+- [ ] Each outcome has a test; a failed request still throws.
+- [ ] The code is trimmed before it's sent; an empty code isn't sent.
+- [ ] The mock answers without the browser.
 
-**Verification:** `npm test && npm run lint && npm run build`.
+**Files:** `src/api/signIn.ts`, `src/api/signIn.test.ts`, `src/api/types.ts`, `CLAUDE.md` (structure)
 
-**Dependencies:** 1
+**Dependencies:** Task 1 · **Scope:** M
 
-**Files:** `src/api/{types,mockData,client}.ts`, `src/api/{mockData,client}.test.ts`, `src/domain/tasks.ts`, `src/domain/tasks.test.ts`
+### Task 3: `useSession`
 
-**Scope:** M
-
-### Task 3: Plan functions take the API's names and the week
-
-**Description:** `skipTask` becomes `moveTaskToBank(taskId, week)`, `pullFromBank` becomes `placeTask(taskId, week, day)`, and `swapTask` becomes `swapTasks(taskId, { week, bankTaskId, day })`, returning `{ toBank, placed }`. A plan edit made in a week the task has left is refused, as the API's 409. The hooks and their callers follow.
+**Description:** `hooks/useSession.ts`: `{ signedIn, step, busy, message, signIn, useCode, addPasskey, back, signOut }`, plus a `Session` context and `useSessionContext()`. Starts signed in; listens to `api/session.ts`. `step` is `signIn | code | addPasskey`. Copy, from the sketch: a cancelled or failed passkey is "Sign-in didn't finish. Try again when you're ready."; a code that didn't work is "That code didn't work. It may already have been used, or be more than ten minutes old. Ask for a new one."; `unsupported` is "This browser can't use a passkey."; a failed request is "Couldn't reach the app. Try again in a moment." After signing in it calls the given `onSignedIn` (App raises the data revision). Marked spots for #43: send the queue after sign-in; before sign out, send it and warn if it can't; clear storage.
 
 **Acceptance criteria:**
-- [x] The client's plan functions have the API's operation names and bodies.
-- [x] A move sent with the wrong week is refused and changes nothing.
-- [x] Today, a day opened from Week and the bank behave as before.
+- [ ] A 401 anywhere turns `signedIn` false.
+- [ ] Each outcome sets the copy above, and signing in clears it.
+- [ ] A redeemed code moves to `addPasskey` with its options kept; Back from `code` returns to `signIn`; an empty code isn't sent.
+- [ ] Sign out ends signed out, even if the request fails (the cookie may be gone already).
+- [ ] Hook tests over a stubbed `api/signIn.ts`.
 
-**Verification:** `npm test && npm run lint && npm run build`.
+**Files:** `src/hooks/useSession.ts`, `src/hooks/useSession.test.tsx`
 
-**Dependencies:** 2
+**Dependencies:** Tasks 1, 2 · **Scope:** M
 
-**Files:** `src/api/client.ts`, `src/api/client.test.ts`, `src/hooks/{useDay,useWeek,planUpdates}.ts`, `src/hooks/useDay.test.tsx`
+**Checkpoint:** build, lint and tests pass; nothing on screen has changed.
 
-**Scope:** M
+### Task 4: The sign-in page
 
-## Checkpoint: #30
-- [ ] Build, lint and tests pass.
-- [ ] Today, Week and the bank look as they did at iPhone width.
-- [ ] PR opened; Jan reviews.
-
-# PR: `next-week` (closes #46 and #35), after the API's `week-turnover` is merged
-
-### Task 4: New types, and a mock that opens next week
-
-**Description:** `npm run api:types`. The mock fills `atClose` and `stillMatters`. `getWeek(week)` returns `isCurrent` and `nextWeekOpen`. From 6 p.m. on Sunday (device clock) the mock has next week open, with some tasks of its own. The mock's `wrapUpWeek` applies `atClose`. `answerStillMatters` is added to the client.
+**Description:** `screens/SignIn.tsx` (+ css), sketches 1–3 of `docs/screens/sign-in.png`, drawn from `useSessionContext()`. App shows it in place of the screens and tab bar while signed out. `components/LogoMark.tsx` and `Wordmark.tsx`: inline SVG from `docs/brand/`, without the metadata.
+- **Sign in:** the wordmark, "Small steps today toward who you want to be.", the message line when there is one, **Sign in with Face ID**, **New device? Use a one-time code**, and "No password. Your passkey stays on your devices."
+- **Code:** Back, the mark, "Enter your one-time code", "You get a code to set up a new device. It works once, within ten minutes.", one field (`autocomplete="one-time-code"`, labelled "One-time code"), the error under it, **Continue**.
+- **Add a passkey:** "Code accepted", "Add a passkey to this device", "From now on you'll sign in with Face ID. There's nothing to remember, and nothing that can be phished. If iCloud Keychain is on, your Mac can use the same passkey.", **Add passkey**. No tester note.
 
 **Acceptance criteria:**
-- [x] Before 6 p.m. on Sunday, next week isn't open; from then it is, and its tasks can't be checked off.
-- [x] After `wrapUpWeek`, "carriesOver" tasks are in next week's bank, "ends" tasks are closed, and next week is current.
-- [x] Keep, schedule and drop change the task as the API does; mock data includes a task marked `stillMatters`.
+- [ ] Each step and its message render; buttons are disabled while busy.
+- [ ] The field is announced with its error (`aria-invalid`, `aria-describedby`).
+- [ ] Buttons are `#2f6f4f`; the page reads well at iPhone width, light and dark.
+- [ ] Component tests over a stubbed session.
 
-**Verification:** `npm test && npm run lint && npm run build`.
+**Dependencies:** Task 3 · **Scope:** M
 
-**Dependencies:** 3, and API #9 merged
+### Task 5: Sign out in Settings, docs, and a check in the browser
 
-**Files:** `src/api/{openapi,types,client,mockData}.ts`, `src/api/{client,mockData}.test.ts`
+**Description:** An Account section at the bottom of Settings with **Sign out**, which opens sketch 5's sheet: "Sign out of this device?", "This clears what's stored on this device. Your aspirations, goals and history stay safe on the server; sign in with your passkey to get them back.", **Sign out** and **Cancel**. (The unsent-changes warning and **Sign out anyway** come with #43.) Settings gets `onSignOut` from App.
 
-**Scope:** M
+Docs, in the parent repo on a docs branch: Jan's `docs/brand/`, `sign-in.png` and README section, with its open items settled (sketch 4 in #43, no name, no tester note, neutral code copy); `docs/flows.md` if it describes sign-in. Front-end `CLAUDE.md`: the new screen.
 
-### Task 5: Next week on the Week screen
-
-**Description:** Once next week is open, Week shows a "This week | Next week" toggle. Next week shows its days, Monday to Sunday, and its bank. A task can be put on a day, sent back to the bank or swapped, but not checked off. The chosen view is remembered across reloads.
-
-**Acceptance criteria:**
-- [x] Before 6 p.m. on Sunday, and on every other day, Week reads as it does now, with no toggle.
-- [x] On Next week, place, back to bank and swap work, and no check-off is offered.
-- [x] After a reload, the same view is open; with next week no longer open, it falls back to This week.
-
-**Verification:** `npx vitest run src/screens/Week.test.tsx src/hooks`; build, lint.
-
-**Dependencies:** 4
-
-**Files:** `src/screens/Week.tsx`, `src/screens/Week.css`, `src/screens/Week.test.tsx`, `src/hooks/useWeek.ts`, `src/storage/weekView.ts`
-
-**Scope:** M
-
-### Task 6: Wrap up this week
-
-**Description:** **Wrap up this week** sits on Next week. A sheet lists what carries over and what ends with the week, from `atClose`, then confirms. After confirming, Week shows the new current week. Nothing prompts it.
+A Sonnet agent checks the click-through (mock sign out and back in) at iPhone width, light and dark. Jan tries a real passkey in Chrome on `localhost` with a code from the API's command.
 
 **Acceptance criteria:**
-- [x] The sheet's two lists match the tasks' `atClose`; an empty list isn't shown. The wording is warm and never mentions misses.
-- [x] Confirming calls `wrapUpWeek`; afterwards next week's tasks can be checked off and the toggle is gone. There's no undo.
-- [x] A failed wrap-up leaves the week as it was and says so in one line.
+- [ ] Sign out asks once, then shows the sign-in page; Cancel changes nothing.
+- [ ] Signing in brings back the screen that was open.
+- [ ] Docs say what was built.
+- [ ] Build, lint and tests pass; PR opened as "Part of #48".
 
-**Verification:** `npx vitest run src/components/WrapUpSheet.test.tsx src/screens/Week.test.tsx`; build, lint.
-
-**Dependencies:** 5
-
-**Files:** `src/components/WrapUpSheet.tsx`, `src/components/WrapUpSheet.test.tsx`, `src/screens/Week.tsx`, `src/hooks/useWeek.ts`
-
-**Scope:** M
-
-## Checkpoint: Next week
-- [x] Next week and wrap-up click through on mock data (component and screen tests; the phone check is task 8).
-
-### Task 7: The "Still matter?" card
-
-**Description:** Each task marked `stillMatters` shows a card at the top of Today: "Still matter?", with the task's title, and **Keep**, **Reschedule** (the day picker) and **Drop**. Each answer goes through `answerStillMatters`, and the card goes away. Ignoring it changes nothing.
-
-**Acceptance criteria:**
-- [x] The card shows only for marked tasks, and only on Today.
-- [x] Keep, Reschedule and Drop each send their answer; a failed one puts the card back and says so.
-- [x] No shame language: no "missed", "overdue" or counts of weeks.
-
-**Verification:** `npx vitest run src/components/StillMattersCard.test.tsx src/screens/Day.test.tsx`; build, lint.
-
-**Dependencies:** 4
-
-**Files:** `src/components/StillMattersCard.tsx`, `src/components/StillMattersCard.test.tsx`, `src/screens/Day.tsx`, `src/hooks/useDay.ts`
-
-**Scope:** M
-
-### Task 8: Docs and the phone check
-
-**Description:** `../docs/screens/README.md` describes Next week, the wrap-up sheet and the card. `specs/README.md` notes #30, #46 and #35 as done. The screens are checked at iPhone width by a Sonnet agent with the browser.
-
-**Acceptance criteria:**
-- [ ] The docs say what was built.
-- [ ] Next week, the wrap-up sheet and the card read well at iPhone width, light and dark.
-
-**Verification:** the phone check's notes in the PR.
-
-**Dependencies:** 5–7
-
-**Files:** `../docs/screens/README.md`, `specs/README.md`
-
-**Scope:** S
-
-## Checkpoint: the PR
-- [ ] Build, lint and tests pass; the issues' acceptance criteria are met.
-- [ ] PR opened; Jan reviews.
+**Dependencies:** Task 4 · **Scope:** S
