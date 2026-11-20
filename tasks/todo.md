@@ -13,10 +13,10 @@ Every task:
 **Description:** `SignedOutError` in `api/errors.ts`, exported from `client.ts` as `NotFoundError` is. `request.ts` throws it on a 401 and, unless the path is under `/sign-in`, calls `signedOut()` in a new `api/session.ts` (`onSignedOut(listener)` returns an unsubscribe). `useLoaded` sets no load-failed message for it.
 
 **Acceptance criteria:**
-- [ ] A 401 rejects with `SignedOutError` and tells the session's listeners once.
-- [ ] A 401 from a `/sign-in/…` route rejects with `SignedOutError` and tells no one.
-- [ ] 403, 409, 422 and 500 stay plain errors.
-- [ ] A load that's signed out leaves no "Couldn't load" message.
+- [x] A 401 rejects with `SignedOutError` and tells the session's listeners once.
+- [x] A 401 from a `/sign-in/…` route rejects with `SignedOutError` and tells no one.
+- [x] 403, 409, 422 and 500 stay plain errors.
+- [x] A load that's signed out leaves no "Couldn't load" message.
 
 **Files:** `src/api/errors.ts`, `src/api/session.ts` (+ test), `src/api/request.ts` (+ test), `src/api/client.ts`, `src/hooks/useLoaded.ts` (+ a test)
 
