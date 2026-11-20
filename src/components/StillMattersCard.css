@@ -1,0 +1,53 @@
+.still-matters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+}
+
+.still-matters p {
+  margin: 0;
+}
+
+.still-matters-question {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.still-matters-title {
+  font-weight: 600;
+}
+
+.still-matters-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.still-matters button {
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+}
+
+.still-matters-actions button {
+  flex: 1;
+}
+
+/* Quieter than the answers: it's the way to wave the card off for now. */
+.still-matters .still-matters-not-now {
+  align-self: flex-end;
+  border-color: transparent;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.still-matters button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

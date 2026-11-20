@@ -3,6 +3,7 @@ import {
   answerStillMatters,
   checkOffTask,
   getBank,
+  getDay,
   getWeek,
   NotFoundError,
   placeTask,
@@ -135,6 +136,14 @@ describe('wrapUpWeek', () => {
 })
 
 describe('answerStillMatters', () => {
+  it("is listed with the day's plan, whichever day it's on", async () => {
+    const day = await getDay('2026-11-11')
+
+    expect(day.stillMatters.map((task) => task.id)).toEqual(['task-dentist'])
+    await answerStillMatters('task-dentist', { answer: 'keep' })
+    expect((await getDay('2026-11-11')).stillMatters).toEqual([])
+  })
+
   it('marks a task that rolled over twice', async () => {
     const { tasks } = await getWeek()
 

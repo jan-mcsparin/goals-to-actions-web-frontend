@@ -46,7 +46,8 @@ export { NotFoundError }
 // Set-aside tasks keep their day but don't show on it.
 export async function getDay(date: string): Promise<DayPlan> {
   const tasks = shown(store.tasks.filter((task) => task.plannedDay === date))
-  return structuredClone({ date, tasks, ...recordsReferencedBy(tasks) })
+  const stillMatters = shown(store.tasks.filter((task) => task.week === thisWeek() && task.stillMatters))
+  return structuredClone({ date, tasks, stillMatters, ...recordsReferencedBy(tasks) })
 }
 
 export async function checkOffTask(taskId: string, valueLogged?: number): Promise<Task> {

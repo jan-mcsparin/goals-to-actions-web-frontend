@@ -82,6 +82,8 @@ export type Settings = {
 export type DayPlan = {
   date: string
   tasks: Task[]
+  // The tasks asking "Still matter?", wherever they sit this week; Today shows them.
+  stillMatters: Task[]
   goals: Goal[]
   aspirations: Aspiration[]
   recurringItems: RecurringItem[]

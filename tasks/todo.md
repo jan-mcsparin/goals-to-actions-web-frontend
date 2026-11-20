@@ -122,16 +122,16 @@ Test dates are fixed to Wednesday 11 Nov 2026, or to a Sunday evening where a te
 **Scope:** M
 
 ## Checkpoint: Next week
-- [ ] Next week and wrap-up click through on mock data.
+- [x] Next week and wrap-up click through on mock data (component and screen tests; the phone check is task 8).
 
 ### Task 7: The "Still matter?" card
 
 **Description:** Each task marked `stillMatters` shows a card at the top of Today: "Still matter?", with the task's title, and **Keep**, **Reschedule** (the day picker) and **Drop**. Each answer goes through `answerStillMatters`, and the card goes away. Ignoring it changes nothing.
 
 **Acceptance criteria:**
-- [ ] The card shows only for marked tasks, and only on Today.
-- [ ] Keep, Reschedule and Drop each send their answer; a failed one puts the card back and says so.
-- [ ] No shame language: no "missed", "overdue" or counts of weeks.
+- [x] The card shows only for marked tasks, and only on Today.
+- [x] Keep, Reschedule and Drop each send their answer; a failed one puts the card back and says so.
+- [x] No shame language: no "missed", "overdue" or counts of weeks.
 
 **Verification:** `npx vitest run src/components/StillMattersCard.test.tsx src/screens/Day.test.tsx`; build, lint.
 
