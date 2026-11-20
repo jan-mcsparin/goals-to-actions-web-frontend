@@ -84,6 +84,12 @@ export async function getWeek(asked?: string): Promise<Week> {
   })
 }
 
+// The current week's goals, as its read sends them.
+function currentWeekGoals(): WeekGoal[] {
+  const week = thisWeek()
+  return weekGoals(week, shown(store.tasks.filter((task) => task.week === week)))
+}
+
 function weekGoals(week: string, tasks: Task[]): WeekGoal[] {
   return store.goals.flatMap((goal) => {
     const weeklyTarget = targetIn(goal.id, week)
@@ -144,28 +150,23 @@ export async function answerStillMatters(taskId: string, answer: StillMattersAns
 
 export async function getAspirations(): Promise<AspirationsOverview> {
   if (realApi) return real.getAspirations()
-  const weekOf = thisWeek()
   return structuredClone({
     aspirations: store.aspirations,
     goals: store.goals.map(listedGoal),
     recurringItems: store.recurringItems.filter((item) => item.active),
-    weekTasks: shown(store.tasks.filter((task) => task.week === weekOf && task.goalId !== null)),
+    weekGoals: currentWeekGoals(),
   })
 }
 
 export async function getAspiration(aspirationId: string): Promise<AspirationDetail> {
   if (realApi) return real.getAspiration(aspirationId)
   const aspiration = findAspiration(aspirationId)
-  const weekOf = thisWeek()
   const goals = store.goals.filter((goal) => goal.aspirationId === aspirationId)
-  const goalIds = new Set(goals.map((goal) => goal.id))
   return structuredClone({
     aspiration,
     goals: goals.map(listedGoal),
     recurringItems: store.recurringItems.filter((item) => item.aspirationId === aspirationId),
-    weekTasks: shown(
-      store.tasks.filter((task) => task.week === weekOf && task.goalId !== null && goalIds.has(task.goalId)),
-    ),
+    weekGoals: currentWeekGoals().filter((goal) => goal.aspiration?.id === aspirationId),
     activeCount: activeAspirations().length,
   })
 }

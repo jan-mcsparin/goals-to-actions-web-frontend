@@ -9,7 +9,7 @@ import {
   retireAspiration,
   updateAspiration,
 } from './realAspirations.ts'
-import { GOAL_DEFAULTS, listed } from '../test/goals.ts'
+import { GOAL_DEFAULTS, listed, weekGoal } from '../test/goals.ts'
 import type { Aspiration, Goal, ListedGoal, RecurringItem } from './types.ts'
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
@@ -61,6 +61,9 @@ const STRETCH = item('stretch', 'fit')
 const OLD_RUNS = item('old-runs', 'fit', false)
 const TRASH = item('trash', null)
 
+// The current week's bars: one goal under fit, one under home.
+const WEEK_GOALS = [weekGoal('strong', 'fit', 1, 3), weekGoal('clean-house', 'home', 0, 2)]
+
 // Answers like the API would, from the aspirations, goals and recurring items it keeps.
 function serve(aspirations: Aspiration[], goals: ListedGoal[] = [], recurringItems: RecurringItem[] = []) {
   let rows = structuredClone(aspirations)
@@ -69,6 +72,7 @@ function serve(aspirations: Aspiration[], goals: ListedGoal[] = [], recurringIte
     if (init?.method === 'GET' && path === '/api/aspirations') return reply({ aspirations: rows })
     if (init?.method === 'GET' && path === '/api/goals') return reply({ goals })
     if (init?.method === 'GET' && path === '/api/recurring-items') return reply({ recurringItems })
+    if (init?.method === 'GET' && path.startsWith('/api/weeks/')) return reply({ isCurrent: true, goals: WEEK_GOALS })
     if (init?.method === 'POST' && path === '/api/aspirations/reorder') {
       const { ids } = JSON.parse(String(init.body)) as { ids: string[] }
       rows = rows.map((row) => (ids.includes(row.id) ? { ...row, position: ids.indexOf(row.id) + 1 } : row))
@@ -100,9 +104,14 @@ describe('getAspirations', () => {
       aspirations: [FIT, SPANISH],
       goals: [STRONG, READING],
       recurringItems: [STRETCH, TRASH],
-      weekTasks: [],
+      weekGoals: WEEK_GOALS,
     })
-    expect(fetchMock.mock.calls.map(([url]) => url).sort()).toEqual(['/api/aspirations', '/api/goals', '/api/recurring-items'])
+    expect(fetchMock.mock.calls.map(([url]) => String(url).replace(/\d{4}-\d{2}-\d{2}$/, '{week}')).sort()).toEqual([
+      '/api/aspirations',
+      '/api/goals',
+      '/api/recurring-items',
+      '/api/weeks/{week}',
+    ])
   })
 })
 
@@ -114,7 +123,7 @@ describe('getAspiration', () => {
       aspiration: FIT,
       goals: [STRONG],
       recurringItems: [STRETCH, OLD_RUNS],
-      weekTasks: [],
+      weekGoals: [WEEK_GOALS[0]],
       activeCount: 2,
     })
   })

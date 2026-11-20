@@ -130,14 +130,14 @@ Every front-end task:
 
 ### Task 9: The tab's bars from the week's goals
 
-**Description:** `AspirationsOverview` and `AspirationDetail` carry the current week's `goals` instead of `weekTasks`. `weekCount` and the aspiration page's bars read `progress` and the week's `weeklyTarget`. The mock builds them the same way; real reads `getWeek` alongside the rest. `NOTHING_ELSE` goes.
+**Description:** `AspirationsOverview` and `AspirationDetail` carry the current week's `goals` (`weekGoals`) instead of `weekTasks`. `weekCount` and the aspiration page's bars read `progress` and the week's `weeklyTarget`. The mock builds them the same way; real reads `getWeek` alongside the rest. `NOTHING_ELSE` goes.
 
 **Acceptance criteria:**
-- [ ] Bars look as before on mock.
-- [ ] The bar uses the target in force this week, not a newer one for next week.
-- [ ] No `weekTasks` left.
+- [x] Bars look as before on mock.
+- [x] The bar uses the target in force this week, not a newer one for next week.
+- [x] No `weekTasks` left.
 
-**Files:** `src/api/types.ts`, `src/api/client.ts`, `src/api/realAspirations.ts` (+ test), `src/domain/aspirations.ts` (+ test), `src/domain/aspiration.ts` (+ test); fixtures in `src/screens/Aspirations.test.tsx` and `src/api/client.test.ts`
+**Files:** `src/api/types.ts`, `src/api/client.ts`, `src/api/realAspirations.ts` (+ test), `src/domain/aspirations.ts` (+ test), `src/domain/aspiration.ts` (+ test); fixtures in `src/screens/Aspirations.test.tsx`, `src/api/client.test.ts` and `src/test/goals.ts` (`weekGoal`)
 
 **Dependencies:** Task 2 · **Scope:** M (split the mock and real halves if it runs long)
 

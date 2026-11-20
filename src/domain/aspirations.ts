@@ -4,7 +4,6 @@
 // Nothing here paces or warns.
 import { fromLocalDay } from '../api/dates.ts'
 import type { Aspiration, AspirationsOverview, Goal, GoalType, ListedGoal } from '../api/types.ts'
-import { isDone } from './tasks'
 
 export type GoalRow = {
   goalId: string
@@ -75,20 +74,14 @@ export function goalProgress(goal: ListedGoal): string {
   return goal.type === 'oneOff' && goal.deadline ? `${label} · by ${shortDate(goal.deadline)}` : label
 }
 
-// Sessions done against the week's targets, across the aspiration's active
-// building goals. Each goal counts up to its own target, so one goal done
-// twice over can't hide another. No unit: the goals count different things.
-export function weekCount(
-  aspirationId: string,
-  overview: Pick<AspirationsOverview, 'goals' | 'weekTasks'>,
-): WeekCount | undefined {
-  const counted = overview.goals.flatMap((goal) => {
-    if (goal.aspirationId !== aspirationId || goal.status !== 'active' || goal.type !== 'building') return []
-    const target = goal.weeklyTarget
-    if (!target) return []
-    const done = overview.weekTasks.filter((task) => task.goalId === goal.id && isDone(task)).length
-    return [{ done: Math.min(done, target.sessions), total: target.sessions }]
-  })
+// "2 of 5 this week" across the aspiration's goals: done and the target as the week read
+// counts them (active building goals with a target this week). Each goal is capped at its
+// own target, so one goal done twice over can't hide another. No unit: the goals count
+// different things.
+export function weekCount(aspirationId: string, overview: Pick<AspirationsOverview, 'weekGoals'>): WeekCount | undefined {
+  const counted = overview.weekGoals
+    .filter((goal) => goal.aspiration?.id === aspirationId)
+    .map(({ progress }) => ({ done: Math.min(progress.done, progress.of), total: progress.of }))
   if (counted.length === 0) return undefined
 
   const done = sum(counted.map((goal) => goal.done))

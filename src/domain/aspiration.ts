@@ -8,7 +8,6 @@ import { goalProgress, weekCount } from './aspirations.ts'
 import { dayLabel } from './goalDetail.ts'
 import { daysLeft, daysLeftLabel } from './week.ts'
 import { repeatText } from './recurring.ts'
-import { isDone } from './tasks'
 
 export type GoalCard = {
   goalId: string
@@ -163,13 +162,13 @@ function goalCard(goal: ListedGoal, detail: AspirationDetail): GoalCard {
   }
 }
 
-// Building goals only, while active. Done isn't capped, as on Week.
+// Building goals only, while active, against the target in force this week (the week read's).
+// Done isn't capped, as on Week.
 function weekLineFor(goal: Goal, detail: AspirationDetail): string | undefined {
   if (goal.type !== 'building' || goal.status !== 'active') return undefined
-  const target = goal.weeklyTarget
-  if (!target) return 'No weekly target yet'
-  const done = detail.weekTasks.filter((task) => task.goalId === goal.id && isDone(task)).length
-  return `This week: ${done} of ${target.sessions} ${target.unit}`
+  const week = detail.weekGoals.find((candidate) => candidate.id === goal.id)
+  if (!week) return 'No weekly target yet'
+  return `This week: ${week.progress.done} of ${week.weeklyTarget.sessions} ${week.weeklyTarget.unit}`
 }
 
 function recurringRow(item: RecurringItem, paused: boolean): RecurringRow {

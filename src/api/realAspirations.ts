@@ -2,32 +2,30 @@
 // as the mock ones, so hooks and screens don't know which they got.
 //
 // The API has no read for one aspiration or for the whole tab, so both are
-// built from the aspiration, goal and recurring item lists. This week's tasks
-// come back empty until the bars read the week (#42).
+// built from the aspiration, goal and recurring item lists and the current
+// week's goals, read side by side.
 import { NotFoundError } from './errors.ts'
 import { newDeviceId } from './ids.ts'
 import type { components } from './openapi.ts'
 import { listGoals } from './realGoals.ts'
-import { listRecurringItems } from './realPlan.ts'
+import { getWeek, listRecurringItems } from './realPlan.ts'
 import { request } from './request.ts'
 import type { Aspiration, AspirationDetail, AspirationsOverview, NewAspiration } from './types.ts'
 
 type AspirationList = components['schemas']['AspirationList']
 
-const NOTHING_ELSE = { weekTasks: [] }
-
 export async function getAspirations(): Promise<AspirationsOverview> {
-  const [aspirations, goals, items] = await Promise.all([listAspirations(), listGoals(), listRecurringItems()])
-  return { aspirations, goals, recurringItems: items.filter((item) => item.active), ...NOTHING_ELSE }
+  const [aspirations, goals, items, week] = await Promise.all([listAspirations(), listGoals(), listRecurringItems(), getWeek()])
+  return { aspirations, goals, recurringItems: items.filter((item) => item.active), weekGoals: week.goals }
 }
 
 export async function getAspiration(aspirationId: string): Promise<AspirationDetail> {
-  const [aspirations, goals, items] = await Promise.all([listAspirations(), listGoals(), listRecurringItems()])
+  const [aspirations, goals, items, week] = await Promise.all([listAspirations(), listGoals(), listRecurringItems(), getWeek()])
   return {
     aspiration: findIn(aspirations, aspirationId),
     goals: goals.filter((goal) => goal.aspirationId === aspirationId),
     recurringItems: items.filter((item) => item.aspirationId === aspirationId),
-    ...NOTHING_ELSE,
+    weekGoals: week.goals.filter((goal) => goal.aspiration?.id === aspirationId),
     activeCount: inOrder(aspirations).length,
   }
 }

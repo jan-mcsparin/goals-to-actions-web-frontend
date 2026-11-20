@@ -92,7 +92,7 @@ export type AspirationsOverview = {
   aspirations: Aspiration[] // active and retired
   goals: ListedGoal[] // every status
   recurringItems: RecurringItem[] // active ones
-  weekTasks: Task[] // this week's tasks that belong to a goal
+  weekGoals: WeekGoal[] // the current week's goals, as its read sends them, with their progress
 }
 
 // One aspiration's page, as records. Laid out by domain/aspiration.ts.
@@ -100,7 +100,7 @@ export type AspirationDetail = {
   aspiration: Aspiration
   goals: ListedGoal[] // its goals, every status
   recurringItems: RecurringItem[] // its items, active or not
-  weekTasks: Task[] // this week's tasks for its goals
+  weekGoals: WeekGoal[] // the current week's goals under it, with their progress
   activeCount: number // active aspirations, for "1st of 3"
 }
 

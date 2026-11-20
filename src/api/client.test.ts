@@ -486,16 +486,19 @@ describe('getAspirations', () => {
     expect(targetsOf(goals)).toEqual([['goal-strong', 4], ['goal-endurance', 2], ['goal-cook', 5]])
   })
 
-  it("returns this week's tasks that belong to a goal, and no others", async () => {
-    store.tasks.push(
-      aStoredTask('task-lift-next-week', { title: 'Lift: squat day', week: '2026-11-16', goalId: 'goal-strong' }),
-    )
+  // weekTasks became the week read's goals: the bars count from them (#42).
+  it("returns this week's goals with their progress, as the week read sends them", async () => {
+    const { weekGoals } = await getAspirations()
 
-    const { weekTasks } = await getAspirations()
+    expect(weekGoals).toEqual((await getWeek()).goals)
+  })
 
-    expect(weekTasks.every((task) => task.goalId !== null && task.week === '2026-11-09')).toBe(true)
-    expect(ids(weekTasks)).toContain('task-run-mon')
-    expect(ids(weekTasks)).not.toContain('task-groceries')
+  it("counts against the target in force this week, not a newer one that starts next week", async () => {
+    store.weeklyTargets.push({ goalId: 'goal-strong', kind: 'count', sessions: 5, amount: null, unit: 'lifting sessions', effectiveFrom: '2026-11-16' })
+
+    const { weekGoals } = await getAspirations()
+
+    expect(weekGoals.find((goal) => goal.id === 'goal-strong')?.progress.of).toBe(3)
   })
 
   it('returns copies, so changing them does not change the store', async () => {
@@ -531,15 +534,14 @@ describe('getAspiration', () => {
     expect(ids(recurringItems)).toEqual(['rec-hockey', 'rec-stretch'])
   })
 
-  it("returns its goals' targets and this week's goal tasks for its goals only", async () => {
-    const { goals, weekTasks } = await getAspiration('asp-fit')
+  it("returns its goals' targets and this week's goals under it only", async () => {
+    store.goals.find((goal) => goal.id === 'goal-garage')!.type = 'building'
+    store.weeklyTargets.push({ goalId: 'goal-garage', kind: 'count', sessions: 1, amount: null, unit: 'sessions', effectiveFrom: '2026-10-05' })
+
+    const { goals, weekGoals } = await getAspiration('asp-fit')
 
     expect(targetsOf(goals)).toEqual([['goal-strong', 3], ['goal-endurance', 2]])
-    expect(weekTasks.length).toBeGreaterThan(0)
-    expect(
-      weekTasks.every((task) => ['goal-strong', 'goal-endurance', 'goal-look-good', 'goal-5k'].includes(task.goalId!)),
-    ).toBe(true)
-    expect(weekTasks.every((task) => task.week === '2026-11-09')).toBe(true)
+    expect(ids(weekGoals)).toEqual(['goal-endurance', 'goal-strong'])
   })
 
   it('counts the active aspirations', async () => {
@@ -1653,7 +1655,8 @@ describe('the mock or real switch', () => {
         '/api/goals': { goals: [] },
         '/api/recurring-items': { recurringItems: [] },
       }
-      return new Response(JSON.stringify(lists[String(url)] ?? {}), { status: 200 })
+      const week = { isCurrent: true, goals: [] }
+      return new Response(JSON.stringify(String(url).startsWith('/api/weeks/') ? week : (lists[String(url)] ?? {})), { status: 200 })
     })
     vi.stubGlobal('fetch', fetchMock)
   })
@@ -1695,9 +1698,9 @@ describe('the mock or real switch', () => {
     }
     await client.getSettings()
 
-    // The three reads behind each aspiration screen go out together, in any order. Settings
+    // The four reads behind each aspiration screen go out together, in any order. Settings
     // stays on the mock until #43.
-    expect(paths()).toHaveLength(19)
+    expect(paths()).toHaveLength(21)
     expect(paths()).toEqual(
       expect.arrayContaining([
         'GET /api/aspirations',
