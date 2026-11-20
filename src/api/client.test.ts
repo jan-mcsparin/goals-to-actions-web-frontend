@@ -48,6 +48,8 @@ function aStoredTask(id: string, fields: Partial<StoredTask> = {}): StoredTask {
 // Wednesday 11 Nov 2026, 9 a.m. local time.
 const WEDNESDAY = new Date(2026, 10, 11, 9, 0)
 const WEDNESDAY_DAY = '2026-11-11'
+// A check-off tapped on Wednesday morning: what the phone saw.
+const TAPPED = { completedAt: WEDNESDAY.toISOString(), completedOn: WEDNESDAY_DAY }
 
 function ids(records: { id: string }[]) {
   return records.map((record) => record.id).sort()
@@ -137,28 +139,38 @@ describe('getDay', () => {
 })
 
 describe('checkOffTask', () => {
-  it('marks the task done with a completion time and returns it', async () => {
-    const task = await checkOffTask('task-lift-today')
+  it('marks the task done with the moment it was tapped and returns it', async () => {
+    const task = await checkOffTask('task-lift-today', TAPPED)
 
     expect(whereIs(task)).toBe('done')
     expect(task.completedAt).toBe(WEDNESDAY.toISOString())
+    expect(task.completedOn).toBe(WEDNESDAY_DAY)
+  })
+
+  it('keeps the moment sent, not the clock when it saves: a queued check-off saves later', async () => {
+    vi.setSystemTime(new Date(2026, 10, 12, 8, 0))
+
+    const task = await checkOffTask('task-lift-today', TAPPED)
+
+    expect(task.completedAt).toBe(WEDNESDAY.toISOString())
+    expect(task.completedOn).toBe(WEDNESDAY_DAY)
   })
 
   it('stores a logged value when given', async () => {
-    const task = await checkOffTask('task-lift-today', 155)
+    const task = await checkOffTask('task-lift-today', { ...TAPPED, valueLogged: 155 })
 
     expect(task.valueLogged).toBe(155)
   })
 
   it('is reflected in the next getDay', async () => {
-    await checkOffTask('task-laundry')
+    await checkOffTask('task-laundry', TAPPED)
 
     const { tasks } = await getDay(WEDNESDAY_DAY)
     expect(statusIn(tasks, 'task-laundry')).toBe('done')
   })
 
   it('is undone by resetStore', async () => {
-    await checkOffTask('task-laundry')
+    await checkOffTask('task-laundry', TAPPED)
     resetStore()
 
     const { tasks } = await getDay(WEDNESDAY_DAY)
@@ -166,11 +178,11 @@ describe('checkOffTask', () => {
   })
 
   it('rejects an unknown task id', async () => {
-    await expect(checkOffTask('no-such-task')).rejects.toThrow('no-such-task')
+    await expect(checkOffTask('no-such-task', TAPPED)).rejects.toThrow('no-such-task')
   })
 
   it('returns a copy, so changing it does not change the store', async () => {
-    const task = await checkOffTask('task-laundry')
+    const task = await checkOffTask('task-laundry', TAPPED)
     task.state = 'open'
 
     const { tasks } = await getDay(WEDNESDAY_DAY)
@@ -180,7 +192,7 @@ describe('checkOffTask', () => {
 
 describe('uncheckTask', () => {
   it('puts a done task back to planned and clears what check-off set', async () => {
-    await checkOffTask('task-lift-today', 155)
+    await checkOffTask('task-lift-today', { ...TAPPED, valueLogged: 155 })
 
     const task = await uncheckTask('task-lift-today')
 
@@ -190,7 +202,7 @@ describe('uncheckTask', () => {
   })
 
   it('is reflected in the next getDay', async () => {
-    await checkOffTask('task-laundry')
+    await checkOffTask('task-laundry', TAPPED)
     await uncheckTask('task-laundry')
 
     const { tasks } = await getDay(WEDNESDAY_DAY)
@@ -254,7 +266,7 @@ describe('moveTaskToBank', () => {
   })
 
   it('rejects a task that is not planned', async () => {
-    await checkOffTask('task-laundry')
+    await checkOffTask('task-laundry', TAPPED)
 
     await expect(moveTaskToBank('task-laundry', THIS_WEEK)).rejects.toThrow('not planned')
     await expect(moveTaskToBank('task-lift-bank', THIS_WEEK)).rejects.toThrow('not planned')
@@ -1255,7 +1267,7 @@ describe('getUpkeep', () => {
     expect(taskIds).not.toContain('task-laundry')
     expect(taskIds).not.toContain('task-plan-mon')
 
-    await checkOffTask('task-ballot')
+    await checkOffTask('task-ballot', TAPPED)
 
     expect(ids((await getUpkeep()).tasks)).not.toContain('task-ballot')
   })

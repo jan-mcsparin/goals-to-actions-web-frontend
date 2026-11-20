@@ -19,6 +19,7 @@ import type {
   AspirationDetail,
   AspirationsOverview,
   Bank,
+  CheckOff,
   DayPlan,
   Goal,
   GoalDetail,
@@ -50,12 +51,11 @@ export async function getDay(date: string): Promise<DayPlan> {
   return structuredClone({ date, tasks, stillMatters, ...recordsReferencedBy(tasks) })
 }
 
-export async function checkOffTask(taskId: string, valueLogged?: number): Promise<Task> {
+// Keeps the moment and day it's given: they're what the phone saw at the tap.
+export async function checkOffTask(taskId: string, checkOff: CheckOff): Promise<Task> {
   const task = findTask(taskId)
   if (task.week !== null && task.week > thisWeek()) throw new Error("Can't check off a task in a week that hasn't started")
-  const now = new Date()
-  replaceTask(task, checkedOff(task, now.toISOString(), toLocalDay(now)))
-  if (valueLogged !== undefined) task.valueLogged = valueLogged
+  replaceTask(task, checkedOff(task, checkOff))
   return taskOut(task)
 }
 

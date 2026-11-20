@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { aTask } from '../test/tasks'
 import {
   checkedOff,
+  checkOffAt,
   inTheBank,
   isDone,
   isInBank,
@@ -74,14 +75,32 @@ describe('placedOnDay and inTheBank', () => {
   })
 })
 
+describe('checkOffAt', () => {
+  it('is the moment and the local day of the same tap', () => {
+    const tap = new Date(2026, 10, 11, 21, 15)
+
+    expect(checkOffAt(tap)).toEqual({ completedAt: tap.toISOString(), completedOn: '2026-11-11' })
+  })
+
+  it('counts just after midnight as the new day', () => {
+    expect(checkOffAt(new Date(2026, 10, 12, 0, 30)).completedOn).toBe('2026-11-12')
+  })
+})
+
 describe('checkedOff and uncheckedOff', () => {
   it('checks a task off at a moment, for a day', () => {
-    expect(checkedOff(planned, '2026-11-11T10:00:00Z', '2026-11-11')).toEqual({
+    expect(checkedOff(planned, { completedAt: '2026-11-11T10:00:00Z', completedOn: '2026-11-11' })).toEqual({
       ...planned,
       state: 'done',
       completedAt: '2026-11-11T10:00:00Z',
       completedOn: '2026-11-11',
     })
+  })
+
+  it('keeps a logged value', () => {
+    const checkOff = { completedAt: '2026-11-11T10:00:00Z', completedOn: '2026-11-11', valueLogged: 3 }
+
+    expect(checkedOff(planned, checkOff).valueLogged).toBe(3)
   })
 
   it('unchecks a done task, clearing what the check-off recorded', () => {

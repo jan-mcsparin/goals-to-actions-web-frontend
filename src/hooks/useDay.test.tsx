@@ -63,6 +63,20 @@ function laundry(state: 'planned' | 'done'): Task {
 }
 
 describe('useDay toggleDone', () => {
+  it('sends the moment it shows: one tap, one moment and day', async () => {
+    const { result } = await renderLoaded()
+
+    act(() => result.current.toggleDone('task-laundry'))
+
+    const shown = result.current.day?.sections.flatMap((section) => section.rows).find((row) => row.task.id === 'task-laundry')?.task
+    expect(vi.mocked(checkOffTask)).toHaveBeenLastCalledWith('task-laundry', {
+      completedAt: shown?.completedAt,
+      completedOn: shown?.completedOn,
+    })
+    expect(shown?.completedOn).toBe('2026-11-11')
+    await waitFor(() => expect(statusOf(result.current, 'task-laundry')).toBe('done'))
+  })
+
   it('shows the task done before the save finishes', async () => {
     const save = deferred<Task>()
     vi.mocked(checkOffTask).mockReturnValueOnce(save.promise)

@@ -28,7 +28,7 @@ What's left is three small changes, all before Today, Week and the bank move to 
 
 ## Task list
 
-- [ ] Task 1: The check-off carries the moment it was tapped
+- [x] Task 1: The check-off carries the moment it was tapped
 - [ ] Task 2: Ids made on the device for recurring items and tasks
 - [ ] Task 3: Settings is the API's
 

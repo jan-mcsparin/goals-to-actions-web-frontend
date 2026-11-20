@@ -13,10 +13,10 @@ Every task:
 **Description:** `CheckOff` in `api/types.ts` from the generated schema. `checkOffAt(now)` in `domain/tasks.ts`. `checkOffTask(taskId, checkOff)` in `api/client.ts` stores what it's given. `useDay.toggleDone` makes one `CheckOff`, uses it for the change on screen and sends it.
 
 **Acceptance criteria:**
-- [ ] `checkOffAt` gives the moment and the local day of the same `Date`; just after midnight is the new day.
-- [ ] The saved task has the `completedAt` and `completedOn` sent, not a later clock reading (a client test with the clock moved on between tap and save).
-- [ ] `useDay` sends the same moment it shows.
-- [ ] `valueLogged`, when sent, is kept.
+- [x] `checkOffAt` gives the moment and the local day of the same `Date`; just after midnight is the new day.
+- [x] The saved task has the `completedAt` and `completedOn` sent, not a later clock reading (a client test with the clock moved on between tap and save).
+- [x] `useDay` sends the same moment it shows.
+- [x] `valueLogged`, when sent, is kept.
 
 **Files:** `src/api/types.ts`, `src/domain/tasks.ts` (+ test), `src/api/client.ts` (+ test), `src/hooks/useDay.ts` (+ test)
 
