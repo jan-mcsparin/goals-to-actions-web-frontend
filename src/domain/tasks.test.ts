@@ -97,6 +97,10 @@ describe('checkedOff and uncheckedOff', () => {
     })
   })
 
+  it('clears a value logged before when the check-off has none, as the API does', () => {
+    expect(checkedOff(done, { completedAt: '2026-11-11T10:00:00Z', completedOn: '2026-11-11' }).valueLogged).toBeNull()
+  })
+
   it('keeps a logged value', () => {
     const checkOff = { completedAt: '2026-11-11T10:00:00Z', completedOn: '2026-11-11', valueLogged: 3 }
 

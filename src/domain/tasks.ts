@@ -1,7 +1,7 @@
 // How a task's state is read and changed. Everything else asks here instead of reading the
 // task's fields, so a change to the task type touches this file, the client and the mock.
 import { toLocalDay } from '../api/dates.ts'
-import type { CheckOff, Task } from '../api/types'
+import type { CheckOff, Task } from '../api/types.ts'
 
 type State = Pick<Task, 'state'>
 
@@ -46,8 +46,9 @@ export function checkOffAt(now: Date): CheckOff {
   return { completedAt: now.toISOString(), completedOn: toLocalDay(now) }
 }
 
+// No value logged is null, as the API stores it.
 export function checkedOff(task: Task, { completedAt, completedOn, valueLogged }: CheckOff): Task {
-  return { ...task, state: 'done', completedAt, completedOn, ...(valueLogged != null && { valueLogged }) }
+  return { ...task, state: 'done', completedAt, completedOn, valueLogged: valueLogged ?? null }
 }
 
 export function uncheckedOff(task: Task): Task {

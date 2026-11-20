@@ -7,6 +7,12 @@ import type { DayPlan, Task } from '../api/types.ts'
 import { DataRevision } from './dataRevision.ts'
 import { useDay, type UseDay } from './useDay.ts'
 import { aTask, whereIs } from '../test/tasks.ts'
+import { checkOffAt } from '../domain/tasks.ts'
+
+vi.mock('../domain/tasks.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../domain/tasks.ts')>()
+  return { ...actual, checkOffAt: vi.fn(actual.checkOffAt) }
+})
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
@@ -31,6 +37,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
+  // Back to the real checkOffAt, the one given to vi.fn.
+  vi.mocked(checkOffAt).mockReset()
 })
 
 function deferred<T>() {
@@ -64,10 +72,17 @@ function laundry(state: 'planned' | 'done'): Task {
 
 describe('useDay toggleDone', () => {
   it('sends the moment it shows: one tap, one moment and day', async () => {
+    // A clock that moves on with every reading: two readings would disagree.
+    let readings = 0
+    vi.mocked(checkOffAt).mockImplementation(() => {
+      readings += 1
+      return { completedAt: `2026-11-11T16:0${readings}:00.000Z`, completedOn: '2026-11-11' }
+    })
     const { result } = await renderLoaded()
 
     act(() => result.current.toggleDone('task-laundry'))
 
+    expect(readings).toBe(1)
     const shown = result.current.day?.sections.flatMap((section) => section.rows).find((row) => row.task.id === 'task-laundry')?.task
     expect(vi.mocked(checkOffTask)).toHaveBeenLastCalledWith('task-laundry', {
       completedAt: shown?.completedAt,

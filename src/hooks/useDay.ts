@@ -105,13 +105,13 @@ export function useDay(date: string, today: string): UseDay {
     const before = plan?.tasks.find((task) => task.id === taskId)
     if (!before) return
 
-    const undoing = isDone(before)
-    const checkOff = checkOffAt(new Date())
-    replaceTask(undoing ? uncheckedOff(before) : checkedOff(before, checkOff))
+    // A check-off reads the clock once: the moment shown is the one sent.
+    const checkOff = isDone(before) ? undefined : checkOffAt(new Date())
+    replaceTask(checkOff ? checkedOff(before, checkOff) : uncheckedOff(before))
     setMessage(undefined)
     const isLatest = startRequest(taskId)
 
-    const save = undoing ? uncheckTask(taskId) : checkOffTask(taskId, checkOff)
+    const save = checkOff ? checkOffTask(taskId, checkOff) : uncheckTask(taskId)
     save
       .then((saved) => isLatest() && replaceTask(saved))
       .catch(() => {
