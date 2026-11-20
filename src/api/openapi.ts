@@ -1263,7 +1263,7 @@ export interface components {
         QuitRecord: {
             /**
              * Days
-             * @description The last 28 days up to today, from the goal's start at the earliest, newest first.
+             * @description The last 28 days up to today, or to the day the goal ended or was reached; from its start at the earliest, newest first.
              */
             days: components["schemas"]["QuitDay"][];
             /**
@@ -1273,7 +1273,7 @@ export interface components {
             heldRun: number;
             /**
              * Unknowninrun
-             * @description Days before today since then with no answer yet. They can still be answered.
+             * @description Days since then with no answer yet, before today or the day the goal ended. They can still be answered.
              */
             unknownInRun: number;
         };
