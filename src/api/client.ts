@@ -498,7 +498,7 @@ export async function addRecurringItem(item: NewRecurringItem): Promise<Recurrin
   if (item.aspirationId) findActiveAspiration(item.aspirationId)
 
   const added: RecurringItem = {
-    id: newId('rec'),
+    id: newDeviceId(),
     name,
     aspirationId: item.aspirationId ?? null,
     fromGoalId: item.fromGoalId ?? null,
@@ -584,7 +584,7 @@ function shown(tasks: StoredTask[]): Task[] {
 
 function newStoredTask(fields: Pick<StoredTask, 'title' | 'origin'> & Partial<StoredTask>): StoredTask {
   return {
-    id: newId('task'),
+    id: newDeviceId(),
     state: 'open',
     goalId: null,
     goalLabel: null,
@@ -760,14 +760,6 @@ function findCurrentGoal(goalId: string): StoredGoal {
   const goal = findGoal(goalId)
   if (!isCurrentGoal(goal)) throw new Error(`${goalId} is ${goal.status}`)
   return goal
-}
-
-// Ids for the records whose screens aren't on the API yet; #39 moves them to
-// newDeviceId. A counter: the store resets on reload, and so does this.
-let lastId = 0
-
-function newId(prefix: string): string {
-  return `${prefix}-new-${++lastId}`
 }
 
 function pauseWork(goals: StoredGoal[], items: RecurringItem[]) {

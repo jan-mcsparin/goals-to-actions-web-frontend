@@ -48,6 +48,7 @@ function aStoredTask(id: string, fields: Partial<StoredTask> = {}): StoredTask {
 // Wednesday 11 Nov 2026, 9 a.m. local time.
 const WEDNESDAY = new Date(2026, 10, 11, 9, 0)
 const WEDNESDAY_DAY = '2026-11-11'
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 // A check-off tapped on Wednesday morning: what the phone saw.
 const TAPPED = { completedAt: WEDNESDAY.toISOString(), completedOn: WEDNESDAY_DAY }
 
@@ -1312,6 +1313,10 @@ function expectConsistentStore() {
 }
 
 describe('addTask', () => {
+  it('gives the task an id made on the device', async () => {
+    expect((await addTask({ title: 'Fill out my ballot' })).id).toMatch(UUID_V4)
+  })
+
   it("stores a task with only a title in this week's bank", async () => {
     const task = await addTask({ title: '  Fill out my ballot  ' })
 
@@ -1533,6 +1538,10 @@ describe('addAspiration', () => {
 
 describe('addRecurringItem', () => {
   const trash: NewRecurringItem = { name: '  Water the plants ', schedule: { kind: 'weekly', weekday: 'tuesday' }, startsOn: WEDNESDAY_DAY }
+
+  it('gives the item an id made on the device', async () => {
+    expect((await addRecurringItem(trash)).id).toMatch(UUID_V4)
+  })
 
   it('stores an active item with no aspiration, on Keep life running', async () => {
     const item = await addRecurringItem(trash)

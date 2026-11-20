@@ -27,8 +27,8 @@ Every task:
 **Description:** `addRecurringItem` and `addTask` in the mock use `newDeviceId()`. `newId` and its counter go.
 
 **Acceptance criteria:**
-- [ ] A new recurring item and a new task have a version 4 UUID.
-- [ ] No counter ids remain in `client.ts`.
+- [x] A new recurring item and a new task have a version 4 UUID.
+- [x] No counter ids remain in `client.ts`.
 
 **Files:** `src/api/client.ts`, `src/api/client.test.ts`
 
