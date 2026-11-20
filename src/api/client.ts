@@ -1,6 +1,6 @@
 // The functions screens and hooks call. They read the in-memory mock store,
-// except that with the switch on real (mode.ts) the aspiration and goal ones
-// call the API instead (realAspirations.ts, realGoals.ts), with the same
+// except that with the switch on real (mode.ts) the ones on the API call it
+// instead (realAspirations.ts, realGoals.ts, realPlan.ts), with the same
 // signatures.
 import { addDays, fromLocalDay, mondayOf, toLocalDay, weekAfter } from './dates.ts'
 import { taskWeek } from '../domain/add.ts'
@@ -15,6 +15,7 @@ import { store } from './mockStore.ts'
 import { realApi } from './mode.ts'
 import * as real from './realAspirations.ts'
 import * as realGoals from './realGoals.ts'
+import * as realPlan from './realPlan.ts'
 import type {
   Aspiration,
   AspirationDetail,
@@ -46,6 +47,7 @@ export { NotFoundError, SignedOutError }
 
 // Keeps the moment and day it's given: they're what the phone saw at the tap.
 export async function checkOffTask(taskId: string, checkOff: CheckOff): Promise<Task> {
+  if (realApi) return realPlan.checkOffTask(taskId, checkOff)
   const task = findTask(taskId)
   if (task.week !== null && task.week > thisWeek()) throw new Error("Can't check off a task in a week that hasn't started")
   replaceTask(task, checkedOff(task, checkOff))
@@ -53,6 +55,7 @@ export async function checkOffTask(taskId: string, checkOff: CheckOff): Promise<
 }
 
 export async function uncheckTask(taskId: string): Promise<Task> {
+  if (realApi) return realPlan.uncheckTask(taskId)
   const task = findTask(taskId)
   if (task.state !== 'done') throw new Error(`Task ${taskId} is not done`)
 
@@ -62,7 +65,9 @@ export async function uncheckTask(taskId: string): Promise<Task> {
 
 // The current week, or next week once it's open. Anything else isn't there to read. Its goals
 // are the active building goals with a target that week, as the API sends them.
-export async function getWeek(week: string = thisWeek()): Promise<Week> {
+export async function getWeek(asked?: string): Promise<Week> {
+  if (realApi) return realPlan.getWeek(asked)
+  const week = asked ?? thisWeek()
   const current = thisWeek()
   const isCurrent = week === current
   const open = nextWeekOpen()
@@ -104,6 +109,7 @@ function dayMarks(week: string, tasks: Task[]): Week['days'] {
 // goes to next week's bank, the rest ends, and next week becomes the current one. Sent again,
 // it changes nothing.
 export async function wrapUpWeek(week: string): Promise<Week> {
+  if (realApi) return realPlan.wrapUpWeek(week)
   const current = thisWeek()
   if (week < current) return getWeek()
   if (week > current) throw new Error('Only the current week can be wrapped up')
@@ -123,6 +129,7 @@ export async function wrapUpWeek(week: string): Promise<Week> {
 
 // Keep it, put it on a day, or drop it. Each ends the question.
 export async function answerStillMatters(taskId: string, answer: StillMattersAnswer): Promise<Task> {
+  if (realApi) return realPlan.answerStillMatters(taskId, answer)
   const task = findTask(taskId)
   if (!task.stillMatters) throw new Error(`Task ${taskId} isn't asking`)
   if (answer.answer === 'schedule') {
@@ -516,6 +523,7 @@ export async function addRecurringItem(item: NewRecurringItem): Promise<Recurrin
 // Back to the bank, in the week the change was made in; the day is cleared and the rollover
 // count stays. Refused once the task has left that week, as the API does (a 409).
 export async function moveTaskToBank(taskId: string, week: string): Promise<Task> {
+  if (realApi) return realPlan.moveTaskToBank(taskId, week)
   const task = findPlannedTask(taskId)
   checkWeek(task, week)
   replaceTask(task, inTheBank(task))
@@ -524,6 +532,7 @@ export async function moveTaskToBank(taskId: string, week: string): Promise<Task
 
 // Onto a day of its week, placed by hand.
 export async function placeTask(taskId: string, week: string, day: string): Promise<Task> {
+  if (realApi) return realPlan.placeTask(taskId, week, day)
   const task = findBankTask(taskId)
   checkWeek(task, week)
   checkDay(day, week)
@@ -537,6 +546,7 @@ export async function swapTasks(
   taskId: string,
   { week, bankTaskId, day }: { week: string; bankTaskId: string; day: string },
 ): Promise<{ toBank: Task; placed: Task }> {
+  if (realApi) return realPlan.swapTasks(taskId, { week, bankTaskId, day })
   const toBank = findPlannedTask(taskId)
   const placed = findBankTask(bankTaskId)
   checkWeek(toBank, week)

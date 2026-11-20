@@ -86,17 +86,17 @@ Every front-end task:
 
 ### Checkpoint A
 
-- [ ] Build, lint and tests pass.
-- [ ] Sonnet agent, mock (`npm run dev`), phone width: Today in both views, another day, Week this week and next, the bank sheet's pull and swap, back to bank, check off and uncheck, wrap-up, "Still matter?". Nothing differs from `main`.
+- [x] Build, lint and tests pass.
+- [x] Sonnet agent, mock (`npm run dev`), phone width: Today in both views, another day, Week this week and next, the bank sheet's pull and swap, back to bank, check off and uncheck, wrap-up, "Still matter?". Nothing differs from `main`.
 
 ### Task 6: Plan actions on the real API
 
-**Description:** `api/realPlan.ts`: `getWeek`, `checkOffTask`, `uncheckTask`, `moveTaskToBank`, `placeTask`, `swapTasks`, `answerStillMatters`, `wrapUpWeek`, each sending its week where the API asks. `client.ts` sends them to real behind the switch.
+**Description:** `api/realPlan.ts`: `getWeek` with no week reads the phone's week, or the week after once it was wrapped up early; `getWeek`, `checkOffTask`, `uncheckTask`, `moveTaskToBank`, `placeTask`, `swapTasks`, `answerStillMatters`, `wrapUpWeek`, each sending its week where the API asks. `client.ts` sends them to real behind the switch.
 
 **Acceptance criteria:**
-- [ ] Each sends the right method, path and body against a stubbed `fetch`.
-- [ ] A 404 on `getWeek` reaches the screen as "not found", as the mock's does.
-- [ ] Mock unchanged.
+- [x] Each sends the right method, path and body against a stubbed `fetch`.
+- [x] A 404 on `getWeek` reaches the screen as "not found", as the mock's does.
+- [x] Mock unchanged.
 
 **Files:** `src/api/realPlan.ts` (+ test), `src/api/client.ts`
 

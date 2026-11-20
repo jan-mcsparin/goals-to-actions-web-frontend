@@ -1677,7 +1677,7 @@ describe('the mock or real switch', () => {
     for (const change of [client.pauseGoal, client.resumeGoal, client.endGoal, client.markGoalReached, client.reopenGoal, client.goAgain]) {
       await change('g1')
     }
-    await client.getWeek()
+    await client.getUpkeep()
 
     // The two reads behind each aspiration screen go out together, in either order.
     expect(paths()).toHaveLength(17)
@@ -1700,5 +1700,32 @@ describe('the mock or real switch', () => {
         'POST /api/goals/g1/go-again',
       ]),
     )
+  })
+
+  it('sends the week and what the person does to its tasks to the API with VITE_API=real', async () => {
+    vi.stubEnv('VITE_API', 'real')
+    vi.resetModules()
+    const client = await import('./client.ts')
+    const week = '2026-11-09'
+
+    await client.getWeek(week)
+    await client.checkOffTask('t1', { completedAt: '2026-11-11T16:00:00.000Z', completedOn: '2026-11-11', valueLogged: null })
+    await client.uncheckTask('t1')
+    await client.moveTaskToBank('t1', week)
+    await client.placeTask('t1', week, '2026-11-12')
+    await client.swapTasks('t1', { week, bankTaskId: 't2', day: '2026-11-12' })
+    await client.answerStillMatters('t1', { answer: 'keep' })
+    await client.wrapUpWeek(week)
+
+    expect(paths()).toEqual([
+      'GET /api/weeks/2026-11-09',
+      'POST /api/tasks/t1/check-off',
+      'POST /api/tasks/t1/uncheck',
+      'POST /api/tasks/t1/bank',
+      'POST /api/tasks/t1/place',
+      'POST /api/tasks/t1/swap',
+      'POST /api/tasks/t1/still-matters',
+      'POST /api/weeks/2026-11-09/wrap-up',
+    ])
   })
 })

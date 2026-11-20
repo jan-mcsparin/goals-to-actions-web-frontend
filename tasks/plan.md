@@ -46,10 +46,10 @@ API #45 (aspiration + fixedDay on tasks and week goals)
 - [x] Task 5: `getDay` and `getBank` go
 
 ### Checkpoint A
-- [ ] Tests, lint, build pass; on mock, Today, a day, Week, the bank sheet and wrap-up look and work as before (Sonnet agent, phone width)
+- [x] Tests, lint, build pass; on mock, Today, a day, Week, the bank sheet and wrap-up look and work as before (Sonnet agent, phone width)
 
 ### Phase 2: the real API
-- [ ] Task 6: Plan actions on the real API
+- [x] Task 6: Plan actions on the real API
 - [ ] Task 7: Adding a task sends a day
 - [ ] Task 8: Recurring items and Keep life running on the real API
 - [ ] Task 9: The tab's bars from the week's goals
