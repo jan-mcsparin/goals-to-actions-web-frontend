@@ -61,7 +61,7 @@ function CodeStep({ session }: SignInProps) {
   return (
     <form className="sign-in-step" onSubmit={submit}>
       <div className="sign-in-top">
-        <BackLink onBack={session.back} />
+        <BackLink onBack={session.back} disabled={session.busy} />
         <LogoMark size={36} />
         <h1 className="sign-in-title">Enter your one-time code</h1>
         <p className="sign-in-text">You get a code to set up a new device. It works once, within ten minutes.</p>
@@ -87,7 +87,7 @@ function CodeStep({ session }: SignInProps) {
         )}
       </div>
       <div className="sign-in-actions">
-        <button type="submit" className="sign-in-primary" disabled={session.busy}>
+        <button type="submit" className="sign-in-primary" disabled={session.busy || code.trim() === ''}>
           Continue
         </button>
       </div>

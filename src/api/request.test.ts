@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NotFoundError, SignedOutError } from './errors.ts'
 import { request } from './request.ts'
-import { onSignedOut } from './session.ts'
+import { onSignedOut, signedIn } from './session.ts'
 
 function respond(status: number, body?: unknown) {
   return new Response(body === undefined ? null : JSON.stringify(body), {
@@ -94,6 +94,18 @@ describe('request', () => {
 
       await expect(request('GET', '/aspirations')).rejects.toBeInstanceOf(SignedOutError)
       expect(listener).toHaveBeenCalledTimes(1)
+    })
+
+    it('for a request sent before signing in again tells no one', async () => {
+      let reply: (response: Response) => void = () => {}
+      fetchMock.mockReturnValue(new Promise((resolve) => (reply = resolve)))
+
+      const pending = request('GET', '/aspirations')
+      signedIn()
+      reply(respond(401, { detail: 'Not signed in' }))
+
+      await expect(pending).rejects.toBeInstanceOf(SignedOutError)
+      expect(listener).not.toHaveBeenCalled()
     })
 
     it('from a sign-in route is SignedOutError and tells no one: it means that didn’t work', async () => {

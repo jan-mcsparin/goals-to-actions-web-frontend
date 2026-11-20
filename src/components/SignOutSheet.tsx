@@ -6,13 +6,15 @@ import { useModalDialog } from './useModalDialog.ts'
 
 type SignOutSheetProps = {
   open: boolean
+  // Held while signing out, so it's sent once.
+  busy?: boolean
   onSignOut: () => void
   onClose: () => void
 }
 
 // Asks once before signing out, saying what goes and what stays. The warning
 // about changes not yet sent comes with the queue (#43).
-export function SignOutSheet({ open, onSignOut, onClose }: SignOutSheetProps) {
+export function SignOutSheet({ open, busy, onSignOut, onClose }: SignOutSheetProps) {
   const dialog = useModalDialog(open)
   const backdropClose = useBackdropClose(onClose)
   const titleId = useId()
@@ -30,7 +32,7 @@ export function SignOutSheet({ open, onSignOut, onClose }: SignOutSheetProps) {
         <button type="button" className="edit-form-cancel" onClick={onClose}>
           Cancel
         </button>
-        <button type="button" className="edit-form-save" onClick={onSignOut}>
+        <button type="button" className="edit-form-save" disabled={busy} onClick={onSignOut}>
           Sign out
         </button>
       </div>

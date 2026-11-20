@@ -95,6 +95,21 @@ describe('SignIn', () => {
       expect(document.getElementById(field.getAttribute('aria-describedby') ?? '')?.textContent).toBe(message)
     })
 
+    it('holds Continue until a code is typed', async () => {
+      render(<SignIn session={session('code')} />)
+
+      const continueButton = screen.getByRole('button', { name: 'Continue' })
+      expect(continueButton.hasAttribute('disabled')).toBe(true)
+      await userEvent.type(screen.getByLabelText('One-time code'), '9')
+      expect(continueButton.hasAttribute('disabled')).toBe(false)
+    })
+
+    it('holds Back while the code is checked', () => {
+      render(<SignIn session={session('code', { busy: true })} />)
+
+      expect(screen.getByRole('button', { name: 'Back' }).hasAttribute('disabled')).toBe(true)
+    })
+
     it('goes back', async () => {
       const shown = session('code')
       render(<SignIn session={shown} />)

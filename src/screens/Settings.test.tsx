@@ -182,6 +182,17 @@ describe('Settings, signing out', () => {
     expect(onSignOut).not.toHaveBeenCalled()
   })
 
+  it('holds the sheet’s Sign out while signing out', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<Settings onBack={() => {}} onSignOut={() => {}} />)
+    await user.click(screen.getByRole('button', { name: 'Sign out' }))
+
+    rerender(<Settings onBack={() => {}} onSignOut={() => {}} signingOut />)
+
+    const sheet = screen.getByRole('dialog', { name: 'Sign out of this device?' })
+    expect(within(sheet).getByRole('button', { name: 'Sign out' }).hasAttribute('disabled')).toBe(true)
+  })
+
   it('offers sign out even when settings can’t load', async () => {
     vi.mocked(getSettings).mockRejectedValueOnce(new Error('offline'))
     render(<Settings onBack={() => {}} onSignOut={() => {}} />)

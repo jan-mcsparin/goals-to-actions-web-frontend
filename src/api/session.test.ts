@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { onSignedOut, signedOut } from './session.ts'
+import { onSignedOut, signedIn, signedOut, signIns } from './session.ts'
 
 describe('session', () => {
   it('tells every listener it has signed out', () => {
@@ -24,5 +24,19 @@ describe('session', () => {
     signedOut()
 
     expect(listener).not.toHaveBeenCalled()
+  })
+
+  it('ignores a 401 for a request sent before the latest sign-in', () => {
+    const listener = vi.fn()
+    const stop = onSignedOut(listener)
+    const sentAt = signIns()
+
+    signedIn()
+    signedOut(sentAt)
+    expect(listener).not.toHaveBeenCalled()
+
+    signedOut(signIns())
+    expect(listener).toHaveBeenCalledTimes(1)
+    stop()
   })
 })

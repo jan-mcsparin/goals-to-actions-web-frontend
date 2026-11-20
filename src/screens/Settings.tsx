@@ -13,9 +13,10 @@ import './Settings.css'
 type SettingsProps = {
   onBack: () => void
   onSignOut: () => void
+  signingOut?: boolean
 }
 
-export function Settings({ onBack, onSignOut }: SettingsProps) {
+export function Settings({ onBack, onSignOut, signingOut }: SettingsProps) {
   const [askingToSignOut, setAskingToSignOut] = useState(false)
   const { loaded, intensity, chooseIntensity, exportData, message } = useSettings()
   // With nothing loaded, the message stays.
@@ -81,7 +82,7 @@ export function Settings({ onBack, onSignOut }: SettingsProps) {
         </button>
       </section>
 
-      <SignOutSheet open={askingToSignOut} onSignOut={onSignOut} onClose={() => setAskingToSignOut(false)} />
+      <SignOutSheet open={askingToSignOut} busy={signingOut} onSignOut={onSignOut} onClose={() => setAskingToSignOut(false)} />
       <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
     </main>
   )

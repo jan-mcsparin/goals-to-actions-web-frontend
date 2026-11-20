@@ -5,7 +5,7 @@
 // where it means the code or passkey didn't work. Any other failure, a network
 // one included, is a plain Error, which screens report as a failed request.
 import { NotFoundError, SignedOutError } from './errors.ts'
-import { signedOut } from './session.ts'
+import { signedOut, signIns } from './session.ts'
 
 export type Method = 'GET' | 'PUT' | 'PATCH' | 'POST'
 
@@ -16,13 +16,16 @@ export async function request<T>(method: Method, path: string, body?: unknown): 
   }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
 
+  const sentAt = signIns()
   const response = await fetch(`/api${path}`, {
     method,
     headers,
     ...(body !== undefined && { body: JSON.stringify(body) }),
   })
   if (response.status === 401) {
-    if (!path.startsWith('/sign-in/')) signedOut()
+    // The sign-in routes (signIn.ts) answer 401 when a code or passkey didn't
+    // work; that isn't the session ending.
+    if (!path.startsWith('/sign-in/')) signedOut(sentAt)
     throw new SignedOutError(`${method} ${path}: not signed in`)
   }
   if (response.status === 404) throw new NotFoundError(`${method} ${path}: not found`)
