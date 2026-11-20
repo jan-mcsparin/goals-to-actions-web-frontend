@@ -95,6 +95,8 @@
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 1rem;
   letter-spacing: 0.08em;
+  /* Codes are shown in capitals; the API reads them in any case. */
+  text-transform: uppercase;
 }
 
 .sign-in-field[aria-invalid='true'] {

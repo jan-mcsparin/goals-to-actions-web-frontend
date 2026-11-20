@@ -64,7 +64,7 @@ Every task:
 **Acceptance criteria:**
 - [x] Each step and its message render; buttons are disabled while busy.
 - [x] The field is announced with its error (`aria-invalid`, `aria-describedby`).
-- [ ] Buttons are `#2f6f4f`; the page reads well at iPhone width, light and dark (checked in task 5).
+- [x] Buttons are `#2f6f4f`; the page reads well at iPhone width, light and dark (checked in task 5: light and dark on the real API, signed out).
 - [x] Component tests over a stubbed session.
 
 **Dependencies:** Task 3 · **Scope:** M
@@ -78,9 +78,9 @@ Docs, in the parent repo on a docs branch: Jan's `docs/brand/`, `sign-in.png` an
 A Sonnet agent checks the click-through (mock sign out and back in) at iPhone width, light and dark. Jan tries a real passkey in Chrome on `localhost` with a code from the API's command.
 
 **Acceptance criteria:**
-- [ ] Sign out asks once, then shows the sign-in page; Cancel changes nothing.
-- [ ] Signing in brings back the screen that was open.
-- [ ] Docs say what was built.
-- [ ] Build, lint and tests pass; PR opened as "Part of #48".
+- [x] Sign out asks once, then shows the sign-in page; Cancel changes nothing.
+- [x] Signing in brings back the screen that was open.
+- [x] Docs say what was built.
+- [x] Build, lint and tests pass; PR opened as "Part of #48".
 
 **Dependencies:** Task 4 · **Scope:** S
