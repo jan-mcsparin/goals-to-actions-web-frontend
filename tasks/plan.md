@@ -42,7 +42,7 @@ API #45 (aspiration + fixedDay on tasks and week goals)
 - [x] Task 1: Tasks carry their aspiration and fixed day
 - [x] Task 2: The mock sends the API's `Week`
 - [x] Task 3: Today's sections drawn from a week
-- [ ] Task 4: `useDay` reads the week
+- [x] Task 4: `useDay` reads the week
 - [ ] Task 5: `getDay` and `getBank` go
 
 ### Checkpoint A

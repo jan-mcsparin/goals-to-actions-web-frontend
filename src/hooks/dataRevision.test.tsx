@@ -5,7 +5,6 @@ import {
   addTask,
   getAspiration,
   getAspirations,
-  getDay,
   getGoal,
   getUpkeep,
   getWeek,
@@ -26,7 +25,6 @@ vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
   return {
     ...actual,
-    getDay: vi.fn(actual.getDay),
     getWeek: vi.fn(actual.getWeek),
     getAspirations: vi.fn(actual.getAspirations),
     getAspiration: vi.fn(actual.getAspiration),
@@ -109,7 +107,7 @@ describe('useAspirations when the data revision changes', () => {
 })
 
 describe.each([
-  ['useDay', getDay, () => useDay(TODAY, TODAY)],
+  ['useDay', getWeek, () => useDay(TODAY, TODAY)],
   ['useWeek', getWeek, () => useWeek(TODAY)],
   ['useAspirations', getAspirations, () => useAspirations()],
   ['useAspiration', getAspiration, () => useAspiration('asp-fit', TODAY)],

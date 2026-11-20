@@ -29,8 +29,6 @@ export function Day({ date, today, onBack }: DayProps) {
     setView,
     toggleDone,
     bankRows,
-    bankMessage,
-    loadBank,
     pull,
     sendToBank,
     swap,
@@ -53,7 +51,6 @@ export function Day({ date, today, onBack }: DayProps) {
 
   function openSheet(next: Sheet) {
     setSheet(next)
-    void loadBank()
   }
 
   function pickFromBank(bankTaskId: string) {
@@ -135,7 +132,6 @@ export function Day({ date, today, onBack }: DayProps) {
         open={sheet !== undefined}
         title={sheet?.kind === 'swap' ? `Swap ${sheet.taskTitle} for` : 'Pull from bank'}
         rows={bankRows}
-        message={bankMessage}
         onPick={pickFromBank}
         onClose={() => setSheet(undefined)}
       />

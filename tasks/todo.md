@@ -65,10 +65,10 @@ Every front-end task:
 **Description:** `useDay` reads the day's week (`getWeek(mondayOfDay(date))`) and draws the day, the cards and the bank from it with `dayOf` and `bankOf`. `loadBank` no longer fetches; the bank sheet is the same week's bank. A change is shown on the week, so the day and the bank stay in step.
 
 **Acceptance criteria:**
-- [ ] Today, an opened day and the bank sheet look and behave as before on mock.
-- [ ] `useDay`'s save and rollback tests pass with only their fixtures and stubs changed.
+- [x] Today, an opened day and the bank sheet look and behave as before on mock.
+- [x] `useDay`'s save and rollback tests pass with only their fixtures and stubs changed.
 
-**Files:** `src/hooks/useDay.ts` (+ test), `src/screens/Day.test.tsx`
+**Files:** `src/hooks/useDay.ts` (+ test), `src/screens/Day.tsx` (+ test; the bank sheet's own load and its loading and failure states went, since it has none), `src/hooks/dataRevision.test.tsx`
 
 **Dependencies:** Task 3 · **Scope:** M
 

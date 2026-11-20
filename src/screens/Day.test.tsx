@@ -1,19 +1,16 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { answerStillMatters, checkOffTask, getBank, getDay, placeTask } from '../api/client.ts'
+import { answerStillMatters, checkOffTask, getWeek, placeTask } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
-import type { Bank } from '../api/types.ts'
 import { Day } from './Day.tsx'
-import { aTask } from '../test/tasks.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
   return {
     ...actual,
     checkOffTask: vi.fn(actual.checkOffTask),
-    getDay: vi.fn(actual.getDay),
-    getBank: vi.fn(actual.getBank),
+    getWeek: vi.fn(actual.getWeek),
     placeTask: vi.fn(actual.placeTask),
     moveTaskToBank: vi.fn(actual.moveTaskToBank),
     swapTasks: vi.fn(actual.swapTasks),
@@ -36,22 +33,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers()
 })
-
-function deferred<T>() {
-  let resolve!: (value: T) => void
-  const promise = new Promise<T>((res) => {
-    resolve = res
-  })
-  return { promise, resolve }
-}
-
-const ONE_TASK_BANK: Bank = {
-  weekOf: '2026-11-09',
-  tasks: [aTask('task-dentist', { title: 'Call the dentist', carriedOver: 2 })],
-  goals: [],
-  aspirations: [],
-  recurringItems: [],
-}
 
 // For the tests that wait out a message: timeouts are faked too, and still
 // run on their own so RTL's polling works.
@@ -121,7 +102,7 @@ describe('Day', () => {
 
   it("keeps a load failure until it's tapped", async () => {
     fakeTimeouts()
-    vi.mocked(getDay).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(getWeek).mockRejectedValueOnce(new Error('offline'))
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
@@ -134,7 +115,7 @@ describe('Day', () => {
   })
 
   it("still shows the day's heading when it can't load", async () => {
-    vi.mocked(getDay).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(getWeek).mockRejectedValueOnce(new Error('offline'))
     render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
     await screen.findByRole('status')
@@ -144,7 +125,7 @@ describe('Day', () => {
   })
 
   it('still shows an opened day with its way back when it can\'t load', async () => {
-    vi.mocked(getDay).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(getWeek).mockRejectedValueOnce(new Error('offline'))
     render(<Day date="2026-11-12" today={WEDNESDAY_DAY} onBack={() => {}} />)
 
     await screen.findByRole('status')
@@ -202,13 +183,8 @@ describe('Day', () => {
   })
 
   it('says so when the bank is empty, and closes', async () => {
-    vi.mocked(getBank).mockResolvedValueOnce({
-      weekOf: '2026-11-09',
-      tasks: [],
-      goals: [],
-      aspirations: [],
-      recurringItems: [],
-    })
+    const week = await getWeek('2026-11-09')
+    vi.mocked(getWeek).mockResolvedValueOnce({ ...week, tasks: week.tasks.filter((task) => task.plannedDay !== null) })
     const user = userEvent.setup()
     render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
@@ -339,45 +315,19 @@ describe('Day', () => {
     expect(screen.queryByRole('button', { name: 'More for Laundry' })).toBeNull()
   })
 
-  it('shows the bank sheet loading until the bank arrives', async () => {
-    const load = deferred<Bank>()
-    vi.mocked(getBank).mockReturnValueOnce(load.promise)
+  // The bank is drawn from the day's week (ADR-010), so the sheet has no load of its own.
+  it('opens the bank from the week already read, with no second read', async () => {
     const user = userEvent.setup()
     render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+    await screen.findByRole('button', { name: 'Pull from bank' })
+    vi.mocked(getWeek).mockClear()
 
-    await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
-    const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
-    expect(within(sheet).getByText('Loading…')).toBeDefined()
-
-    await act(async () => load.resolve(ONE_TASK_BANK))
-
-    expect(within(sheet).queryByText('Loading…')).toBeNull()
-    expect(within(sheet).getByRole('button', { name: 'Call the dentist' })).toBeDefined()
-  })
-
-  it("says so inside the sheet when the bank can't load", async () => {
-    vi.mocked(getBank).mockRejectedValueOnce(new Error('offline'))
-    const user = userEvent.setup()
-    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
-
-    await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
-    const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
-
-    expect(await within(sheet).findByText("Couldn't open the bank. Try again in a moment.")).toBeDefined()
-  })
-
-  it('reloads the bank each time the sheet opens, without showing the old list', async () => {
-    const user = userEvent.setup()
-    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
-    await user.click(await screen.findByRole('button', { name: 'Pull from bank' }))
-    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Close' }))
-
-    vi.mocked(getBank).mockReturnValueOnce(new Promise(() => {}))
     await user.click(screen.getByRole('button', { name: 'Pull from bank' }))
     const sheet = await screen.findByRole('dialog', { name: 'Pull from bank' })
 
-    expect(within(sheet).getByText('Loading…')).toBeDefined()
-    expect(within(sheet).queryByRole('button', { name: 'Lift: deadlift day' })).toBeNull()
+    expect(within(sheet).getByRole('button', { name: 'Lift: deadlift day' })).toBeDefined()
+    expect(within(sheet).queryByText('Loading…')).toBeNull()
+    expect(getWeek).not.toHaveBeenCalled()
   })
 
   it('shows another day with its own heading, and pulls bank tasks onto it', async () => {
@@ -447,14 +397,8 @@ describe('Day', () => {
   })
 
   it('shows a warm empty state when nothing is planned', async () => {
-    vi.mocked(getDay).mockResolvedValueOnce({
-      date: '2026-11-11',
-      tasks: [],
-      stillMatters: [],
-      goals: [],
-      aspirations: [],
-      recurringItems: [],
-    })
+    const week = await getWeek('2026-11-09')
+    vi.mocked(getWeek).mockResolvedValueOnce({ ...week, tasks: week.tasks.filter((task) => task.plannedDay !== '2026-11-11') })
 
     render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
