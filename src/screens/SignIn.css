@@ -49,6 +49,7 @@
 .sign-in-line {
   max-width: 18rem;
   margin: 0;
+  text-wrap: balance;
   color: var(--sign-in-muted);
 }
 
