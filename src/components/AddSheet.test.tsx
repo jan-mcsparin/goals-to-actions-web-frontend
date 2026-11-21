@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addRecurringItem, addTask, getAspirations } from '../api/client.ts'
+import { addRecurringItem, addTask, getChoices } from '../api/client.ts'
 import { readBank, readDay } from '../test/plan.ts'
 import { resetStore, store } from '../api/mockStore.ts'
 import type { AddOrigin, OnSaved } from '../hooks/useAdd.ts'
@@ -15,7 +15,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     ...actual,
     addTask: vi.fn(actual.addTask),
     addRecurringItem: vi.fn(actual.addRecurringItem),
-    getAspirations: vi.fn(actual.getAspirations),
+    getChoices: vi.fn(actual.getChoices),
   }
 })
 
@@ -142,7 +142,7 @@ describe('AddSheet', () => {
   })
 
   it("says so under the goal picker when the goals can't load", async () => {
-    vi.mocked(getAspirations).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(getChoices).mockRejectedValueOnce(new Error('offline'))
     await openSheet()
 
     expect(await screen.findByText("Couldn't load your goals. Try again in a moment.")).toBeDefined()

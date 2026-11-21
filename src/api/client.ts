@@ -17,6 +17,7 @@ import * as realGoals from './realGoals.ts'
 import * as realPlan from './realPlan.ts'
 import * as realSettings from './realSettings.ts'
 import type {
+  AddChoices,
   Aspiration,
   AspirationDetail,
   AspirationsOverview,
@@ -148,6 +149,12 @@ export async function answerStillMatters(taskId: string, answer: StillMattersAns
   }
   task.stillMatters = false
   return taskOut(task)
+}
+
+// What the Add sheet's pickers offer: the aspirations and the goals.
+export async function getChoices(): Promise<AddChoices> {
+  if (realApi) return real.getChoices()
+  return structuredClone({ aspirations: store.aspirations, goals: store.goals.map(listedGoal) })
 }
 
 export async function getAspirations(): Promise<AspirationsOverview> {

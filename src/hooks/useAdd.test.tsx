@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addAspiration, addTask, createGoal, getAspirations, getGoal } from '../api/client.ts'
+import { addAspiration, addTask, createGoal, getAspirations, getChoices, getGoal } from '../api/client.ts'
 import { readBank, readDay } from '../test/plan.ts'
 import { resetStore, store } from '../api/mockStore.ts'
 import type { Task } from '../api/types.ts'
@@ -16,6 +16,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     createGoal: vi.fn(actual.createGoal),
     addTask: vi.fn(actual.addTask),
     getAspirations: vi.fn(actual.getAspirations),
+    getChoices: vi.fn(actual.getChoices),
   }
 })
 
@@ -67,6 +68,14 @@ describe('useAdd', () => {
     expect(result.current.canSave).toBe(false)
   })
 
+  it("reads its choices once, and not the whole Aspirations tab", async () => {
+    const { result } = renderAdd()
+
+    await waitFor(() => expect(result.current.goals.length).toBeGreaterThan(0))
+    expect(getChoices).toHaveBeenCalledTimes(1)
+    expect(getAspirations).not.toHaveBeenCalled()
+  })
+
   it('offers the active goals once they load', async () => {
     const { result } = renderAdd()
 
@@ -76,7 +85,7 @@ describe('useAdd', () => {
   })
 
   it("says so under the picker when the goals can't load, and still saves", async () => {
-    vi.mocked(getAspirations).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(getChoices).mockRejectedValueOnce(new Error('offline'))
     const { result, onSaved } = renderAdd()
 
     await waitFor(() => expect(result.current.goalsMessage).toBe("Couldn't load your goals. Try again in a moment."))
@@ -187,7 +196,7 @@ describe('useAdd on the Goal tab', () => {
   })
 
   it("says so under the picker when the aspirations can't load", async () => {
-    vi.mocked(getAspirations).mockRejectedValueOnce(new Error('offline'))
+    vi.mocked(getChoices).mockRejectedValueOnce(new Error('offline'))
     const { result } = onGoalTab()
 
     await waitFor(() => expect(result.current.aspirationsMessage).toBe("Couldn't load your aspirations. Try again in a moment."))
