@@ -1,9 +1,19 @@
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { checkOffTask } from '../api/client.ts'
+import { SignedOutError } from '../api/errors.ts'
+import { enqueue, resetQueue, waitingCount } from '../api/queue.ts'
 import { signedOut, signIns } from '../api/session.ts'
+import type { Change } from '../domain/replay.ts'
+import { planStore, resetPlanStore } from '../storage/planStore.ts'
 import { addPasskey, redeemCode, signInWithPasskey, signOut } from '../api/signIn.ts'
 import type { PasskeyOptions } from '../api/types.ts'
 import { useSession } from './useSession.ts'
+
+vi.mock('../api/client.ts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../api/client.ts')>()),
+  checkOffTask: vi.fn(),
+}))
 
 vi.mock('../api/signIn.ts', () => ({
   signInWithPasskey: vi.fn(),
@@ -21,7 +31,17 @@ const OPTIONS: PasskeyOptions = { challengeId: 'challenge-1', options: {} }
 
 const onSignedIn = vi.fn()
 
+const CHANGE: Change = {
+  kind: 'checkOff',
+  id: 'c1',
+  taskId: 't1',
+  checkOff: { completedAt: '2026-11-20T16:00:00.000Z', completedOn: '2026-11-20', valueLogged: null },
+}
+
 beforeEach(() => {
+  resetPlanStore()
+  resetQueue()
+  vi.mocked(checkOffTask).mockReset().mockRejectedValue(new SignedOutError('not signed in'))
   vi.mocked(signInWithPasskey).mockReset()
   vi.mocked(redeemCode).mockReset()
   vi.mocked(addPasskey).mockReset()
@@ -29,26 +49,106 @@ beforeEach(() => {
   onSignedIn.mockReset()
 })
 
-function signedOutSession() {
+// A 401 lands; with nothing stored, that's the sign-in page.
+async function signedOutSession() {
   const hook = renderHook(() => useSession(onSignedIn))
-  act(() => signedOut())
+  await act(async () => signedOut())
   return hook
+}
+
+// A 401 lands with something stored: the session ended over what's shown.
+async function endedSession() {
+  await planStore().responses.put('settings', {})
+  return signedOutSession()
 }
 
 describe('useSession', () => {
   it('starts signed in, on the first step, with nothing to say', () => {
     const { result } = renderHook(() => useSession(onSignedIn))
 
-    expect(result.current.signedIn).toBe(true)
+    expect(result.current.status).toBe('signedIn')
     expect(result.current.step).toBe('signIn')
     expect(result.current.message).toBeUndefined()
     expect(result.current.busy).toBe(false)
   })
 
-  it('is signed out after a 401 anywhere', () => {
-    const { result } = signedOutSession()
+  it('is signed out after a 401 with nothing stored: the sign-in page', async () => {
+    const { result } = await signedOutSession()
 
-    expect(result.current.signedIn).toBe(false)
+    expect(result.current.status).toBe('signedOut')
+  })
+
+  describe('a session that ends with something stored', () => {
+    it.each([
+      ['a week', () => planStore().weeks.put('2026-11-16', {} as never)],
+      ['a last response', () => planStore().responses.put('settings', {})],
+      ['a change waiting', () => enqueue(CHANGE)],
+    ])('has ended, not signed out, with %s', async (_, keep) => {
+      await keep()
+      const { result } = await signedOutSession()
+
+      expect(result.current.status).toBe('sessionEnded')
+      expect(result.current.askingToSignIn).toBe(true)
+    })
+
+    it('leaves the banner after Not now, and later 401s keep it that way', async () => {
+      const { result } = await endedSession()
+
+      act(() => result.current.notNow())
+      expect(result.current.askingToSignIn).toBe(false)
+      await act(async () => signedOut())
+
+      expect(result.current.status).toBe('sessionEnded')
+      expect(result.current.askingToSignIn).toBe(false)
+    })
+
+    it('doesn’t read the store again for each later 401', async () => {
+      const { result } = await endedSession()
+      const counting = vi.spyOn(planStore().responses, 'count')
+
+      await act(async () => signedOut())
+
+      expect(counting).not.toHaveBeenCalled()
+      expect(result.current.status).toBe('sessionEnded')
+    })
+
+    it('signs in from the banner and lets the app send and load again', async () => {
+      vi.mocked(signInWithPasskey).mockResolvedValue('signedIn')
+      const { result } = await endedSession()
+      act(() => result.current.notNow())
+
+      await act(() => result.current.signIn())
+
+      expect(result.current.status).toBe('signedIn')
+      expect(result.current.askingToSignIn).toBe(false)
+      expect(onSignedIn).toHaveBeenCalledTimes(1)
+    })
+
+    it('opens the sheet again when signing in from the banner doesn’t finish, to say so', async () => {
+      vi.mocked(signInWithPasskey).mockResolvedValue('cancelled')
+      const { result } = await endedSession()
+      act(() => result.current.notNow())
+
+      await act(() => result.current.signIn())
+
+      expect(result.current.status).toBe('sessionEnded')
+      expect(result.current.askingToSignIn).toBe(true)
+      expect(result.current.message).toBe(DIDNT_FINISH)
+    })
+
+    it('ignores a 401 whose answer lands after a sign-in', async () => {
+      let answer: () => void = () => {}
+      const slow = new Promise<void>((resolve) => (answer = resolve))
+      vi.spyOn(planStore().weeks, 'count').mockReturnValueOnce(slow.then(() => 0))
+      vi.mocked(signInWithPasskey).mockResolvedValue('signedIn')
+      const { result } = renderHook(() => useSession(onSignedIn))
+
+      act(() => signedOut())
+      await act(() => result.current.signIn())
+      await act(async () => answer())
+
+      expect(result.current.status).toBe('signedIn')
+    })
   })
 
   it('stops listening once unmounted', () => {
@@ -57,33 +157,33 @@ describe('useSession', () => {
 
     signedOut()
 
-    expect(result.current.signedIn).toBe(true)
+    expect(result.current.status).toBe('signedIn')
   })
 
   it('signs in with a passkey and lets the app load again', async () => {
     vi.mocked(signInWithPasskey).mockResolvedValue('signedIn')
-    const { result } = signedOutSession()
+    const { result } = await signedOutSession()
 
     await act(() => result.current.signIn())
 
-    expect(result.current.signedIn).toBe(true)
+    expect(result.current.status).toBe('signedIn')
     expect(onSignedIn).toHaveBeenCalledTimes(1)
   })
 
   it.each(['cancelled', 'didntWork'] as const)('says sign-in didn’t finish when %s', async (outcome) => {
     vi.mocked(signInWithPasskey).mockResolvedValue(outcome)
-    const { result } = signedOutSession()
+    const { result } = await signedOutSession()
 
     await act(() => result.current.signIn())
 
-    expect(result.current.signedIn).toBe(false)
+    expect(result.current.status).toBe('signedOut')
     expect(result.current.message).toBe(DIDNT_FINISH)
     expect(onSignedIn).not.toHaveBeenCalled()
   })
 
   it('says when the browser can’t use a passkey', async () => {
     vi.mocked(signInWithPasskey).mockResolvedValue('unsupported')
-    const { result } = signedOutSession()
+    const { result } = await signedOutSession()
 
     await act(() => result.current.signIn())
 
@@ -92,7 +192,7 @@ describe('useSession', () => {
 
   it('says when the app can’t be reached', async () => {
     vi.mocked(signInWithPasskey).mockRejectedValue(new Error('POST /sign-in/start: 500'))
-    const { result } = signedOutSession()
+    const { result } = await signedOutSession()
 
     await act(() => result.current.signIn())
 
@@ -103,7 +203,7 @@ describe('useSession', () => {
   it('is busy while a step is under way, and starts no second one', async () => {
     let finish: (outcome: 'signedIn') => void = () => {}
     vi.mocked(signInWithPasskey).mockReturnValue(new Promise((resolve) => (finish = resolve)))
-    const { result } = signedOutSession()
+    const { result } = await signedOutSession()
 
     act(() => void result.current.signIn())
     expect(result.current.busy).toBe(true)
@@ -116,7 +216,7 @@ describe('useSession', () => {
 
   it('counts each sign-in, so a 401 for a request sent before it is ignored', async () => {
     vi.mocked(signInWithPasskey).mockResolvedValue('signedIn')
-    const { result } = signedOutSession()
+    const { result } = await signedOutSession()
     const before = signIns()
 
     await act(() => result.current.signIn())
@@ -127,7 +227,7 @@ describe('useSession', () => {
   describe('a one-time code', () => {
     it('opens the code step, and Back returns with the message cleared', async () => {
       vi.mocked(signInWithPasskey).mockResolvedValue('cancelled')
-      const { result } = signedOutSession()
+      const { result } = await signedOutSession()
       await act(() => result.current.signIn())
 
       act(() => result.current.enterCode())
@@ -139,7 +239,7 @@ describe('useSession', () => {
     })
 
     it('isn’t sent when empty', async () => {
-      const { result } = signedOutSession()
+      const { result } = await signedOutSession()
       act(() => result.current.enterCode())
 
       await act(() => result.current.submitCode('   '))
@@ -151,7 +251,7 @@ describe('useSession', () => {
     it('moves on to adding a passkey, which uses the redeemed options and signs in', async () => {
       vi.mocked(redeemCode).mockResolvedValue({ outcome: 'redeemed', options: OPTIONS })
       vi.mocked(addPasskey).mockResolvedValue('signedIn')
-      const { result } = signedOutSession()
+      const { result } = await signedOutSession()
       act(() => result.current.enterCode())
 
       await act(() => result.current.submitCode('9F3K-ABCD'))
@@ -160,14 +260,14 @@ describe('useSession', () => {
 
       await act(() => result.current.addPasskey())
       expect(addPasskey).toHaveBeenCalledWith(OPTIONS)
-      expect(result.current.signedIn).toBe(true)
+      expect(result.current.status).toBe('signedIn')
       expect(result.current.step).toBe('signIn')
       expect(onSignedIn).toHaveBeenCalledTimes(1)
     })
 
     it('says when the code didn’t work, and stays on the code step', async () => {
       vi.mocked(redeemCode).mockResolvedValue({ outcome: 'didntWork' })
-      const { result } = signedOutSession()
+      const { result } = await signedOutSession()
       act(() => result.current.enterCode())
 
       await act(() => result.current.submitCode('nope'))
@@ -179,7 +279,7 @@ describe('useSession', () => {
     it('goes back to the code step when the passkey is refused: the code is spent', async () => {
       vi.mocked(redeemCode).mockResolvedValue({ outcome: 'redeemed', options: OPTIONS })
       vi.mocked(addPasskey).mockResolvedValue('didntWork')
-      const { result } = signedOutSession()
+      const { result } = await signedOutSession()
       act(() => result.current.enterCode())
       await act(() => result.current.submitCode('9F3K'))
 
@@ -194,7 +294,7 @@ describe('useSession', () => {
     it('ignores Back while a code is being checked', async () => {
       let finish: (redeemed: { outcome: 'redeemed'; options: PasskeyOptions }) => void = () => {}
       vi.mocked(redeemCode).mockReturnValue(new Promise((resolve) => (finish = resolve)))
-      const { result } = signedOutSession()
+      const { result } = await signedOutSession()
       act(() => result.current.enterCode())
 
       act(() => void result.current.submitCode('9F3K'))
@@ -208,7 +308,7 @@ describe('useSession', () => {
     it('says when adding the passkey didn’t finish, and stays to try again', async () => {
       vi.mocked(redeemCode).mockResolvedValue({ outcome: 'redeemed', options: OPTIONS })
       vi.mocked(addPasskey).mockResolvedValue('cancelled')
-      const { result } = signedOutSession()
+      const { result } = await signedOutSession()
       act(() => result.current.enterCode())
       await act(() => result.current.submitCode('9F3K'))
 
@@ -220,13 +320,100 @@ describe('useSession', () => {
   })
 
   describe('signing out', () => {
+    it('sends what waits first, then clears every store and the queue', async () => {
+      vi.mocked(checkOffTask).mockResolvedValue({} as never)
+      await planStore().weeks.put('2026-11-16', {} as never)
+      await planStore().responses.put('goal/g1', {})
+      await enqueue(CHANGE)
+      const { result } = renderHook(() => useSession(onSignedIn))
+
+      await act(() => result.current.signOut())
+
+      expect(checkOffTask).toHaveBeenCalledWith('t1', expect.anything())
+      expect(result.current.status).toBe('signedOut')
+      expect(await planStore().weeks.entries()).toEqual([])
+      expect(await planStore().responses.entries()).toEqual([])
+      expect(await planStore().queue.entries()).toEqual([])
+      expect(waitingCount()).toBe(0)
+    })
+
+    it('leaves the app before clearing, so a read still landing can’t store what it read', async () => {
+      let cleared: () => void = () => {}
+      vi.spyOn(planStore(), 'clear').mockReturnValue(new Promise<void>((resolve) => (cleared = resolve)))
+      const { result } = renderHook(() => useSession(onSignedIn))
+
+      let signingOut: Promise<void> = Promise.resolve()
+      await act(async () => {
+        signingOut = result.current.signOut()
+      })
+
+      expect(result.current.status).toBe('signedOut')
+      expect(result.current.busy).toBe(true)
+      await act(async () => {
+        cleared()
+        await signingOut
+      })
+      expect(result.current.busy).toBe(false)
+    })
+
+    it('warns when changes can’t be sent, and clears nothing until signed out anyway', async () => {
+      vi.mocked(checkOffTask).mockRejectedValue(new Error('Failed to fetch'))
+      await enqueue(CHANGE)
+      const { result } = renderHook(() => useSession(onSignedIn))
+
+      await act(() => result.current.signOut())
+
+      expect(result.current.unsent).toBe(1)
+      expect(result.current.status).toBe('signedIn')
+      expect(signOut).not.toHaveBeenCalled()
+      expect(await planStore().queue.entries()).toHaveLength(1)
+
+      await act(() => result.current.signOut())
+
+      expect(signOut).toHaveBeenCalledTimes(1)
+      expect(result.current.status).toBe('signedOut')
+      expect(result.current.unsent).toBeUndefined()
+      expect(await planStore().queue.entries()).toEqual([])
+      expect(waitingCount()).toBe(0)
+    })
+
+    it('forgets the warning when the sheet is closed, and sends again next time', async () => {
+      vi.mocked(checkOffTask).mockRejectedValue(new Error('Failed to fetch'))
+      await enqueue(CHANGE)
+      const { result } = renderHook(() => useSession(onSignedIn))
+      await act(() => result.current.signOut())
+
+      act(() => result.current.cancelSignOut())
+      expect(result.current.unsent).toBeUndefined()
+      vi.mocked(checkOffTask).mockClear().mockResolvedValue({} as never)
+      await act(() => result.current.signOut())
+
+      expect(checkOffTask).toHaveBeenCalledTimes(1)
+      expect(result.current.status).toBe('signedOut')
+    })
+
+    it('doesn’t open the session-ended sheet for a 401 while sending', async () => {
+      vi.mocked(checkOffTask).mockImplementation(async () => {
+        signedOut()
+        throw new SignedOutError('not signed in')
+      })
+      await enqueue(CHANGE)
+      const { result } = renderHook(() => useSession(onSignedIn))
+
+      await act(() => result.current.signOut())
+
+      expect(result.current.status).toBe('signedIn')
+      expect(result.current.askingToSignIn).toBe(false)
+      expect(result.current.unsent).toBe(1)
+    })
+
     it('ends the session and shows the first step', async () => {
       const { result } = renderHook(() => useSession(onSignedIn))
 
       await act(() => result.current.signOut())
 
       expect(signOut).toHaveBeenCalledTimes(1)
-      expect(result.current.signedIn).toBe(false)
+      expect(result.current.status).toBe('signedOut')
       expect(result.current.step).toBe('signIn')
     })
 
@@ -241,8 +428,8 @@ describe('useSession', () => {
       await act(async () => finish())
 
       expect(signOut).toHaveBeenCalledTimes(1)
-      expect(result.current.busy).toBe(false)
-      expect(result.current.signedIn).toBe(false)
+      await waitFor(() => expect(result.current.busy).toBe(false))
+      expect(result.current.status).toBe('signedOut')
     })
 
     it('is signed out even when the request fails: the cookie may be gone already', async () => {
@@ -251,7 +438,7 @@ describe('useSession', () => {
 
       await act(() => result.current.signOut())
 
-      expect(result.current.signedIn).toBe(false)
+      expect(result.current.status).toBe('signedOut')
       expect(result.current.message).toBeUndefined()
     })
   })

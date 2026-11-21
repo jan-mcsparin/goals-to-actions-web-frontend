@@ -6,16 +6,19 @@ import { SignIn } from './SignIn.tsx'
 
 function session(step: SignInStep, overrides: Partial<UseSession> = {}): UseSession {
   return {
-    signedIn: false,
+    status: 'signedOut',
+    askingToSignIn: false,
     step,
     busy: false,
     message: undefined,
     signIn: vi.fn(async () => {}),
+    notNow: vi.fn(),
     enterCode: vi.fn(),
     submitCode: vi.fn(async () => {}),
     addPasskey: vi.fn(async () => {}),
     back: vi.fn(),
     signOut: vi.fn(async () => {}),
+    cancelSignOut: vi.fn(),
     ...overrides,
   }
 }

@@ -121,6 +121,17 @@ export function flush(): Promise<void> {
   return sending
 }
 
+// Signing out: nothing waits any more, here or on the phone. What the phone
+// kept isn't read back afterwards.
+export async function discardQueue(): Promise<void> {
+  entries = []
+  stalled = false
+  loaded = true
+  loading = Promise.resolve()
+  tell()
+  await planStore().queue.clear()
+}
+
 // A week read that started at `startedAt` has landed: the changes confirmed
 // before then are in it, so they stop being replayed.
 export function settle(startedAt: number): void {

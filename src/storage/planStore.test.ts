@@ -35,6 +35,16 @@ describe('planStore', () => {
     expect((await weeks.get('2026-11-09'))?.isCurrent).toBe(true)
   })
 
+  it('counts what a shelf holds, without reading it', async () => {
+    const { responses } = planStore()
+    expect(await responses.count()).toBe(0)
+
+    await responses.put('settings', {})
+    await responses.put('goal/g1', {})
+
+    expect(await responses.count()).toBe(2)
+  })
+
   it('lists the queue in order of its keys, and deletes one', async () => {
     const { queue } = planStore()
     await queue.put(2, 'second')

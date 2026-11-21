@@ -1,0 +1,33 @@
+/* In the same width as a screen's content, above it. */
+.signed-out-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  box-sizing: border-box;
+  width: min(40rem, 100% - 2rem);
+  margin: calc(0.5rem + env(safe-area-inset-top)) auto 0;
+  padding: 0.25rem 0.25rem 0.25rem 0.875rem;
+  border-radius: 0.625rem;
+  background: color-mix(in srgb, var(--text) 6%, var(--bg));
+  font-size: 0.875rem;
+}
+
+.signed-out-banner button {
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+}
+
+.signed-out-banner button:disabled {
+  opacity: 0.5;
+}
+
+.signed-out-banner button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

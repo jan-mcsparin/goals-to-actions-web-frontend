@@ -193,6 +193,34 @@ describe('Settings, signing out', () => {
     expect(within(sheet).getByRole('button', { name: 'Sign out' }).hasAttribute('disabled')).toBe(true)
   })
 
+  it.each([
+    [1, "1 change hasn't been sent yet."],
+    [3, "3 changes haven't been sent yet."],
+  ])('warns with %i unsent, and the button reads Sign out anyway', async (unsent, line) => {
+    const onSignOut = vi.fn()
+    const user = userEvent.setup()
+    const { rerender } = render(<Settings onBack={() => {}} onSignOut={onSignOut} />)
+    await user.click(screen.getByRole('button', { name: 'Sign out' }))
+
+    rerender(<Settings onBack={() => {}} onSignOut={onSignOut} unsent={unsent} />)
+
+    const sheet = screen.getByRole('dialog', { name: 'Sign out of this device?' })
+    expect(sheet.textContent).toContain(`${line} Signing out deletes them from this phone.`)
+    await user.click(within(sheet).getByRole('button', { name: 'Sign out anyway' }))
+    expect(onSignOut).toHaveBeenCalledOnce()
+  })
+
+  it('forgets the warning on Cancel', async () => {
+    const onCancelSignOut = vi.fn()
+    const user = userEvent.setup()
+    render(<Settings onBack={() => {}} onSignOut={() => {}} unsent={2} onCancelSignOut={onCancelSignOut} />)
+    await user.click(screen.getByRole('button', { name: 'Sign out' }))
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(onCancelSignOut).toHaveBeenCalled()
+  })
+
   it('offers sign out even when settings can’t load', async () => {
     vi.mocked(getSettings).mockRejectedValueOnce(new Error('offline'))
     render(<Settings onBack={() => {}} onSignOut={() => {}} />)
