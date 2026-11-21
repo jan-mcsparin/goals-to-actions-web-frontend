@@ -74,6 +74,18 @@ describe('useLoaded', () => {
     expect(result.current.data).toEqual({ count: 3 })
   })
 
+  it('shows the stored response even when the load fails before it is read, as offline', async () => {
+    const stored = deferred<unknown>()
+    vi.spyOn(planStore().responses, 'get').mockReturnValueOnce(stored.promise as never)
+    const load = () => Promise.reject(new TypeError('Failed to fetch'))
+
+    const { result } = renderHook(() => useLoaded('aspirations', load, LOAD_FAILED))
+
+    await waitFor(() => expect(result.current.message).toBe(LOAD_FAILED))
+    await act(async () => stored.resolve({ count: 3 }))
+    expect(result.current.data).toEqual({ count: 3 })
+  })
+
   it("doesn't show another id's stored response", async () => {
     await planStore().responses.put('goal/g1', { name: 'Run a 10k' })
 
@@ -84,14 +96,18 @@ describe('useLoaded', () => {
     expect(result.current.data).toBeUndefined()
   })
 
-  it('forgets the stored response of a record that is gone', async () => {
+  it('forgets the stored response of a record that is gone, and never shows it', async () => {
     await planStore().responses.put('goal/g1', { name: 'Run a 10k' })
+    const stored = deferred<unknown>()
+    vi.spyOn(planStore().responses, 'get').mockReturnValueOnce(stored.promise as never)
 
     const load = () => Promise.reject(new NotFoundError('GET /goals/g1: 404'))
     const { result } = renderHook(() => useLoaded('goal/g1', load, LOAD_FAILED))
 
     await waitFor(() => expect(result.current.notFound).toBe(true))
     await waitFor(async () => expect(await planStore().responses.get('goal/g1')).toBeUndefined())
+    await act(async () => stored.resolve({ name: 'Run a 10k' }))
+    expect(result.current.data).toBeUndefined()
   })
 
   it('works as before when storage fails', async () => {

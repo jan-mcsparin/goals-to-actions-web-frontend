@@ -33,6 +33,9 @@ export function useLoaded<T>(key: string, load: () => Promise<T>, loadFailed: st
 
   useEffect(() => {
     let current = true
+    // Only a fresh response, or word that the record is gone, outranks the
+    // stored one; a failed load (as offline, often before the store has
+    // answered) leaves the stored one to show.
     let landed = false
     const { responses } = planStore()
     responses
@@ -50,8 +53,10 @@ export function useLoaded<T>(key: string, load: () => Promise<T>, loadFailed: st
         setMessage((shown) => (shown === loadFailed ? undefined : shown))
       })
       .catch((error: unknown) => {
-        landed = true
-        if (error instanceof NotFoundError) responses.delete(key).catch(() => {})
+        if (error instanceof NotFoundError) {
+          landed = true
+          responses.delete(key).catch(() => {})
+        }
         if (!current) return
         if (error instanceof SignedOutError) return
         if (error instanceof NotFoundError) setNotFound(true)
