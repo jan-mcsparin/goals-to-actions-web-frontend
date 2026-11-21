@@ -96,6 +96,7 @@ export async function placeTask(taskId: string, week: string, day: string): Prom
 2. **The mock keeps imitating the server until #43**: `atClose`, `stillMatters`, what wrap-up does, and shared decision 12's bank tasks for a new goal. It shrinks to what tests need when real becomes the default. None of it is in `domain/`. Shared decision 23 in the [map](README.md) is changed to say so.
 3. **The full-day mark is left out** of #42 and is its own issue, [#70](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/70).
 4. **A task due beyond the open weeks** is confirmed with "Saved. It joins the week it's due."
+5. **A recurring item under an aspiration counts as that aspiration's goal on Today.** Its task with no goal names the item's aspiration in the week read. List puts it in Move forward under the aspiration's name, and By goal gives the aspiration a card of its own after that aspiration's goals. Keep life running keeps only work under no goal and no aspiration. On mock, Laundry and the trash (under Keep a calm home) move to Move forward.
 
 ## Checked, 2026-11-20
 
