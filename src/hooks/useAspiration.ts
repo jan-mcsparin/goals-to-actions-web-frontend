@@ -38,6 +38,7 @@ export type UseAspiration = {
 
 export function useAspiration(aspirationId: string, today: string): UseAspiration {
   const { data: detail, setData: setDetail, message, setMessage, notFound } = useLoaded(
+    `aspiration/${aspirationId}`,
     useCallback(() => getAspiration(aspirationId), [aspirationId]),
     LOAD_FAILED,
   )

@@ -22,7 +22,7 @@ export type UseSettings = {
 }
 
 export function useSettings(): UseSettings {
-  const { data: settings, setData: setSettings, message, setMessage } = useLoaded(getSettings, LOAD_FAILED)
+  const { data: settings, setData: setSettings, message, setMessage } = useLoaded('settings', getSettings, LOAD_FAILED)
   const latestSave = useRef(0)
 
   function chooseIntensity(intensity: Intensity) {

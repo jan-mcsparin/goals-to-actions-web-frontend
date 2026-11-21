@@ -53,6 +53,20 @@ async function timeline() {
   return screen.findByRole('region', { name: 'Milestones' })
 }
 
+describe('GoalDetail, offline', () => {
+  it('opens from what it last showed while the fresh read is on its way', async () => {
+    const first = renderGoal()
+    await screen.findByRole('heading', { level: 1, name: 'Be strong' })
+    await act(async () => {})
+    first.unmount()
+
+    vi.mocked(getGoal).mockReturnValueOnce(new Promise(() => {}))
+    renderGoal()
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Be strong' })).toBeDefined()
+  })
+})
+
 describe('GoalDetail, header', () => {
   it('pins back, the type, the label, the measurable line and the aspiration link', async () => {
     const user = userEvent.setup()

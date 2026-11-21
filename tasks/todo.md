@@ -1,14 +1,6 @@
-# Tasks: The stored week and the queue (#43b)
+# 043c: Other screens offline
 
-Plan: [`plan.md`](plan.md).
-
-- [x] 1. Refusals are typed (`RefusedError`, `request.ts`, the mock)
-- [x] 2. The store (`storage/planStore.ts`)
-- [x] 3. Replay rules (`domain/replay.ts`)
-- [x] 4. The queue (`api/queue.ts`, `api/sendOrder.ts`, `addTask` with an id)
-- [x] 5. The stored week hook (`hooks/useStoredWeek.ts`)
-- [x] 6. Today and a day on the queue (`useDay`)
-- [x] 7. Week on the queue (`useWeek`)
-- [x] 8. Add a task on the queue (`useAdd`)
-- [x] 9. The quiet line and the triggers
-- [x] 10. Docs and the browser check
+- [x] 1. The responses shelf
+- [x] 2. useLoaded keeps the last response (and the five hooks pass their key)
+- [x] 3. Screens: Aspirations after a failed load; a goal from its stored response
+- [x] 4. Docs and the browser check

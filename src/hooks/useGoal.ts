@@ -80,6 +80,7 @@ export type UseGoal = {
 
 export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoal {
   const { data: detail, setData: setDetail, message, setMessage, notFound } = useLoaded(
+    `goal/${goalId}`,
     useCallback(() => getGoal(goalId), [goalId]),
     LOAD_FAILED,
   )
