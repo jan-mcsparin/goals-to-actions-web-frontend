@@ -156,6 +156,14 @@ describe('aspirationPage, active', () => {
     expect(page.goals[0].weekLine).toBe('This week: 1 of 3 lifting sessions')
   })
 
+  // A goal made once next week is open gets a target that starts next week, so this week's
+  // read doesn't list it.
+  it('says when a target starts next week, for a goal not on this week', () => {
+    const page = activePage({ goals: [goal('strong')], weeklyTargets: [target('strong', 3, 'lifting sessions')] })
+
+    expect(page.goals[0].weekLine).toBe('From next week: 3 lifting sessions')
+  })
+
   it('says "No weekly target yet" for a building goal without one', () => {
     const page = activePage({ goals: [goal('look-good')] })
 

@@ -167,6 +167,7 @@ function goalCard(goal: ListedGoal, detail: AspirationDetail): GoalCard {
 function weekLineFor(goal: Goal, detail: AspirationDetail): string | undefined {
   if (goal.type !== 'building' || goal.status !== 'active') return undefined
   const week = detail.weekGoals.find((candidate) => candidate.id === goal.id)
+  if (!week && goal.weeklyTarget) return `From next week: ${goal.weeklyTarget.sessions} ${goal.weeklyTarget.unit}`
   if (!week) return 'No weekly target yet'
   return `This week: ${week.progress.done} of ${week.weeklyTarget.sessions} ${week.weeklyTarget.unit}`
 }
