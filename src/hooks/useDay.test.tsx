@@ -231,10 +231,10 @@ describe('useDay swap', () => {
     const { result } = await renderLoaded()
     const before = taskIdsInOrder(result.current)
 
-    act(() => result.current.swap('task-laundry', 'task-dentist'))
+    act(() => result.current.swap('task-ballot', 'task-dentist'))
 
     expect(taskIdsInOrder(result.current)).toEqual(
-      before?.map((id) => (id === 'task-laundry' ? 'task-dentist' : id)),
+      before?.map((id) => (id === 'task-ballot' ? 'task-dentist' : id)),
     )
     expect(result.current.bankRows?.map((row) => row.task.id)).not.toContain('task-dentist')
   })

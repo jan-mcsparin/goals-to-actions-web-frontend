@@ -393,6 +393,12 @@ describe('getWeek', () => {
     expect(byId.get('task-groceries')?.aspiration).toBeNull()
   })
 
+  it("names a recurring item's aspiration on its task with no goal", async () => {
+    const trash = (await getWeek()).tasks.find((task) => task.recurringItemId === 'rec-trash')
+
+    expect(trash?.aspiration?.id).toBe('asp-home')
+  })
+
   it('names a retired aspiration with no priority', async () => {
     const fit = store.aspirations.find((aspiration) => aspiration.id === 'asp-fit')!
     Object.assign(fit, { status: 'retired', position: null, retiredOn: '2026-11-10' })

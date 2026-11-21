@@ -55,13 +55,14 @@ describe('Day', () => {
     expect(screen.getByText('0 of 4 done')).toBeDefined()
 
     const keep = screen.getByRole('region', { name: 'Keep life running' })
-    expect(rowTitles(keep)).toEqual(['Move the car for street sweeping', 'Laundry', 'Fill out my ballot'])
+    expect(rowTitles(keep)).toEqual(['Move the car for street sweeping', 'Fill out my ballot'])
     expect(within(keep).getByText('by 7 a.m.')).toBeDefined()
 
     const forward = screen.getByRole('region', { name: 'Move forward' })
-    expect(rowTitles(forward)).toEqual(['Lift: bench day'])
+    expect(rowTitles(forward)).toEqual(['Lift: bench day', 'Laundry'])
     expect(within(forward).getByText('at 6 p.m.')).toBeDefined()
     expect(within(forward).getByText('Be strong · Be fit')).toBeDefined()
+    expect(within(forward).getByText('Keep a calm home')).toBeDefined()
 
     const freeTime = screen.getByRole('region', { name: 'Free time' })
     expect(within(freeTime).getByText('The rest is yours.')).toBeDefined()
@@ -176,6 +177,7 @@ describe('Day', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(rowTitles(screen.getByRole('region', { name: 'Move forward' }))).toEqual([
       'Lift: bench day',
+      'Laundry',
       'Lift: deadlift day',
     ])
     expect(screen.getByText('0 of 5 done')).toBeDefined()

@@ -65,9 +65,10 @@ export function timeLabel({ kind, time }: TimeOfDay): string {
   return `${kind} ${formatClock(time)}`
 }
 
-// "Be strong · Be fit": the task's goal and that goal's aspiration, as the week names them.
+// "Be strong · Be fit": the task's goal and that goal's aspiration, as the week names them. A
+// recurring item's task under an aspiration with no goal is named by the aspiration alone.
 export function goalSubline(task: Pick<Task, 'goalLabel' | 'aspiration'>): string | undefined {
-  if (!task.goalLabel) return undefined
+  if (!task.goalLabel) return task.aspiration?.name
   return task.aspiration ? `${task.goalLabel} · ${task.aspiration.name}` : task.goalLabel
 }
 
@@ -77,7 +78,7 @@ export function groupForList(plan: Day): Section[] {
     {
       id: 'keep-life-running',
       title: KEEP_LIFE_RUNNING,
-      rows: tasks.filter(isMaintenance).map(maintenanceRow),
+      rows: tasks.filter(isMaintenance).map((task) => rowFor(task)),
     },
     {
       id: 'move-forward',
@@ -93,12 +94,12 @@ export function groupByGoal(plan: Day): Section[] {
   const maintenance: Section = {
     id: 'keep-life-running',
     title: KEEP_LIFE_RUNNING,
-    rows: tasks.filter(isMaintenance).map(maintenanceRow),
+    rows: tasks.filter(isMaintenance).map((task) => rowFor(task)),
   }
-  const goalCards = goalsByPriority(tasks).map((goalTask) => ({
-    id: goalTask.goalId!,
-    title: goalSubline(goalTask)!,
-    rows: tasks.filter((task) => task.goalId === goalTask.goalId).map((task) => rowFor(task)),
+  const goalCards = cardsByPriority(tasks).map((cardTask) => ({
+    id: cardOf(cardTask)!,
+    title: goalSubline(cardTask)!,
+    rows: tasks.filter((task) => cardOf(task) === cardOf(cardTask)).map((task) => rowFor(task)),
   }))
   return [maintenance, ...goalCards]
     .filter((section) => section.rows.length > 0)
@@ -114,8 +115,15 @@ function visibleTasks(plan: Day): Task[] {
   return plan.tasks.filter((task) => isOnDay(task))
 }
 
+// Under no goal and no aspiration: it keeps life running.
 function isMaintenance(task: Task): boolean {
-  return task.goalId === null
+  return cardOf(task) === null
+}
+
+// The By goal card a task sits on: its goal's, or for a recurring item's task with no goal,
+// its aspiration's own.
+function cardOf(task: Task): string | null {
+  return task.goalId ?? task.aspiration?.id ?? null
 }
 
 // Timed tasks anchor the day in time order; untimed ones follow in plan order.
@@ -132,19 +140,17 @@ function rowFor(task: Task, subline?: string): TaskRow {
     task,
     ...(task.timeOfDay && { timeLabel: timeLabel(task.timeOfDay) }),
     ...(subline && { subline }),
+    ...(task.fixedDay && { fixed: true as const }),
   }
 }
 
-function maintenanceRow(task: Task): TaskRow {
-  return task.fixedDay ? { ...rowFor(task), fixed: true } : rowFor(task)
-}
-
-// One task per goal, in its aspiration's priority order; goals under none, or a retired one,
-// come last.
-function goalsByPriority(tasks: Task[]): Task[] {
-  const firsts = tasks.filter((task, index) => task.goalId !== null && tasks.findIndex((other) => other.goalId === task.goalId) === index)
+// One task per card, in its aspiration's priority order, an aspiration's goals before its own
+// card; goals under none, or a retired one, come last.
+function cardsByPriority(tasks: Task[]): Task[] {
+  const firsts = tasks.filter((task, index) => !isMaintenance(task) && tasks.findIndex((other) => cardOf(other) === cardOf(task)) === index)
   const priorityOf = (task: Task) => task.aspiration?.position ?? Infinity
-  return [...firsts].sort((a, b) => priorityOf(a) - priorityOf(b))
+  const ownCard = (task: Task) => (task.goalId === null ? 1 : 0)
+  return [...firsts].sort((a, b) => priorityOf(a) - priorityOf(b) || ownCard(a) - ownCard(b))
 }
 
 function formatClock(time: string): string {

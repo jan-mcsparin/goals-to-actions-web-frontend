@@ -1399,8 +1399,8 @@ export interface components {
         };
         /**
          * PlanAspiration
-         * @description The aspiration a task's goal is under, so the phone can order and label the plan from
-         *     the week read alone.
+         * @description The aspiration a task is under, so the phone can order and label the plan from the week
+         *     read alone.
          */
         PlanAspiration: {
             /**
@@ -1632,7 +1632,7 @@ export interface components {
         };
         /** Task */
         Task: {
-            /** @description Its goal's aspiration. Empty with no goal, or a goal under none. */
+            /** @description Its goal's aspiration, or for a recurring item's task with no goal, the item's. Empty when it's under none. */
             aspiration: components["schemas"]["PlanAspiration"] | null;
             /**
              * Atclose

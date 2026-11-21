@@ -93,6 +93,10 @@ describe('goalSubline', () => {
   it('is nothing for a task with no goal', () => {
     expect(goalSubline(task('Ballot'))).toBeUndefined()
   })
+
+  it("is the aspiration for a recurring item's task under one with no goal", () => {
+    expect(goalSubline(task('Stretch', { recurringItemId: 'rec-stretch', aspiration: fit }))).toBe('Be fit')
+  })
 })
 
 describe('groupForList', () => {
@@ -108,6 +112,21 @@ describe('groupForList', () => {
     expect(sections.map((section) => section.title)).toEqual(['Keep life running', 'Move forward'])
     expect(titles(sections[0].rows)).toEqual(['Trash', 'Ballot'])
     expect(titles(sections[1].rows)).toEqual(['Lift'])
+  })
+
+  it("puts a recurring item's task under an aspiration in Move forward, named by it", () => {
+    const sections = groupForList(
+      plan([
+        task('Stretch', { recurringItemId: 'rec-stretch', aspiration: fit, fixedDay: true }),
+        task('Trash', { recurringItemId: 'rec-trash' }),
+      ]),
+    )
+
+    expect(sections.map((section) => [section.title, titles(section.rows)])).toEqual([
+      ['Keep life running', ['Trash']],
+      ['Move forward', ['Stretch']],
+    ])
+    expect(sections[1].rows[0]).toMatchObject({ subline: 'Be fit', fixed: true })
   })
 
   it('orders timed tasks by time, then untimed tasks in plan order', () => {
@@ -184,6 +203,26 @@ describe('groupByGoal', () => {
     )
 
     expect(sections.map((section) => section.title)).toEqual(['Be strong · Be fit', 'Old goal · Old'])
+  })
+
+  it("gives an aspiration's recurring items their own card, after that aspiration's goals", () => {
+    const sections = groupByGoal(
+      plan([
+        task('Stretch', { recurringItemId: 'rec-stretch', aspiration: fit }),
+        task('Walk', { recurringItemId: 'rec-walk', aspiration: fit }),
+        task('Lift', { goalId: 'goal-strong' }),
+        task('Build', { goalId: 'goal-proto' }),
+        task('Trash', { recurringItemId: 'rec-trash' }),
+      ]),
+    )
+
+    expect(sections.map((section) => [section.title, titles(section.rows)])).toEqual([
+      ['Keep life running', ['Trash']],
+      ['Prototype · Be a builder', ['Build']],
+      ['Be strong · Be fit', ['Lift']],
+      ['Be fit', ['Stretch', 'Walk']],
+    ])
+    expect(sections[3].rows[0].subline).toBeUndefined()
   })
 
   it('drops the subline inside goal cards, since the title already says it', () => {

@@ -604,9 +604,12 @@ function taskOut({ setAside: _setAside, ...task }: StoredTask): Task {
   })
 }
 
-function aspirationOf(task: Pick<Task, 'goalId'>): Task['aspiration'] {
+// Its goal's aspiration, or for a recurring item's task with no goal, the item's.
+function aspirationOf(task: Pick<Task, 'goalId'> & Partial<Pick<Task, 'recurringItemId'>>): Task['aspiration'] {
   const goal = store.goals.find((candidate) => candidate.id === task.goalId)
-  const aspiration = store.aspirations.find((candidate) => candidate.id === goal?.aspirationId)
+  const item = goal ? undefined : store.recurringItems.find((candidate) => candidate.id === task.recurringItemId)
+  const aspirationId = goal ? goal.aspirationId : item?.aspirationId
+  const aspiration = store.aspirations.find((candidate) => candidate.id === aspirationId)
   return aspiration ? { id: aspiration.id, name: aspiration.name, position: aspiration.position } : null
 }
 
