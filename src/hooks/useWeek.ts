@@ -4,7 +4,7 @@
 // wrapping up needs a connection, and its answer is kept. Rules come from domain/week.ts.
 import { useState } from 'react'
 import { getWeek, wrapUpWeek } from '../api/client.ts'
-import { mondayOfDay, toLocalDay, weekAfter } from '../api/dates.ts'
+import { mondayOfDay, weekAfter } from '../api/dates.ts'
 import { newDeviceId } from '../api/ids.ts'
 import { enqueue } from '../api/queue.ts'
 import type { Task, Week } from '../api/types.ts'
@@ -18,7 +18,7 @@ import {
   wrapUpLists,
   type ProgressRow,
 } from '../domain/week.ts'
-import { planStore } from '../storage/planStore.ts'
+import { storedCurrentAndNext } from '../storage/currentWeek.ts'
 import { readWeekView, saveWeekView, type WeekViewMode } from '../storage/weekView.ts'
 import { useStoredWeeks, type WeeksRead } from './useStoredWeeks.ts'
 import { isInBank, weekOf } from '../domain/tasks'
@@ -51,14 +51,7 @@ export type UseWeek = {
 // The current week, and next week once it's open: as stored, then fresh. The current one
 // is the phone's week, or the one after once that has been wrapped up early.
 const CURRENT_AND_NEXT: WeeksRead = {
-  stored: async () => {
-    const phonesWeek = mondayOfDay(toLocalDay(new Date()))
-    const own = await planStore().weeks.get(phonesWeek)
-    const current = own && !own.isCurrent ? await planStore().weeks.get(weekAfter(phonesWeek)) : own
-    if (!current) return []
-    const next = current.nextWeekOpen ? await planStore().weeks.get(weekAfter(current.week)) : undefined
-    return next ? [current, next] : [current]
-  },
+  stored: () => storedCurrentAndNext(),
   fresh: async () => {
     const current = await getWeek()
     return current.nextWeekOpen ? [current, await getWeek(weekAfter(current.week))] : [current]

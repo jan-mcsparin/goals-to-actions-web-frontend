@@ -9,6 +9,6 @@ Plan: [`plan.md`](plan.md).
 - [x] 5. The stored week hook (`hooks/useStoredWeek.ts`)
 - [x] 6. Today and a day on the queue (`useDay`)
 - [x] 7. Week on the queue (`useWeek`)
-- [ ] 8. Add a task on the queue (`useAdd`)
+- [x] 8. Add a task on the queue (`useAdd`)
 - [ ] 9. The quiet line and the triggers
 - [ ] 10. Docs and the browser check

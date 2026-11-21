@@ -6,8 +6,12 @@
 // tells onChanged, so the screen behind can reload. A save that fails keeps
 // the sheet open with a calm message. Rules come from domain/add.ts.
 import { useEffect, useRef, useState } from 'react'
-import { addAspiration, addRecurringItem, addTask, createGoal, getChoices } from '../api/client.ts'
-import type { Goal } from '../api/types.ts'
+import { addAspiration, addRecurringItem, createGoal, getChoices, getWeek } from '../api/client.ts'
+import { newDeviceId } from '../api/ids.ts'
+import { enqueue } from '../api/queue.ts'
+import type { Goal, Week } from '../api/types.ts'
+import { predictedPlace } from '../domain/replay.ts'
+import { storedCurrentAndNext } from '../storage/currentWeek.ts'
 import {
   aspirationChoices,
   aspirationReady,
@@ -130,8 +134,7 @@ export function useAdd(origin: AddOrigin, today: string, { onSaved, onChanged }:
     setMessage(undefined)
     try {
       if (tab === 'task') {
-        const saved = await addTask(taskInput(task, today))
-        onSaved(taskConfirmation(saved, today))
+        onSaved(await queueTask())
       } else if (tab === 'goal') {
         const saved = await saveGoal()
         onSaved(goalConfirmation(saved.type), newGoalScreen(saved))
@@ -147,6 +150,16 @@ export function useAdd(origin: AddOrigin, today: string, { onSaved, onChanged }:
       savingNow.current = false
       setSaving(false)
     }
+  }
+
+  // Queued like any change to the plan (ADR-010), so it's never lost offline. It shows,
+  // and the line says, where it's expected to go; the server's answer settles it.
+  async function queueTask(): Promise<string> {
+    const input = taskInput(task, today)
+    const place = predictedPlace(input, await currentWeek(), today)
+    const goalLabel = goals.find((choice) => choice.id === input.goalId)?.label ?? null
+    await enqueue({ kind: 'addTask', id: newDeviceId(), taskId: newDeviceId(), task: input, goalLabel, place })
+    return taskConfirmation({ state: 'open', week: place?.week ?? null, plannedDay: place?.day ?? null }, today)
   }
 
   // A new aspiration is saved first. Once it is, it becomes the selection, so
@@ -208,4 +221,10 @@ export function useAdd(origin: AddOrigin, today: string, { onSaved, onChanged }:
     message,
     save,
   }
+}
+
+// The current week as the phone has it; read if nothing is stored yet, and none offline.
+async function currentWeek(): Promise<Week | undefined> {
+  const [stored] = await storedCurrentAndNext().catch(() => [])
+  return stored ?? getWeek().catch(() => undefined)
 }
