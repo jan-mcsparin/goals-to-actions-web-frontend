@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "api:types": "npm ci --prefix tools/api-types --silent && tools/api-types/node_modules/.bin/openapi-typescript ../api/openapi.json -o src/api/openapi.ts",
-    "dev:real": "VITE_API=real vite"
+    "dev:mock": "VITE_API=mock vite"
   },
   "dependencies": {
     "react": "^19.3.1",

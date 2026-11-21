@@ -39,9 +39,22 @@ The API is built in twelve slices ([its map](../../api/specs/README.md)). After 
 | `api-client-foundation` | [040](040-api-client-foundation.md) | #40 | Generated types, the mock/real switch, the Aspirations tab on real data (done) | `aspirations` |
 | `setup-screens-on-api` | [041](041-setup-screens-on-api.md) | #41 | Aspirations, aspiration and goal screens, and the Add sheet's goal form, on real data (done) | `milestones-check-ins` |
 | `plan-screens-on-api` | [042](042-plan-screens-on-api.md) | #42 | Today, Week and the bank; planning rules leave `domain/` (ADR-008) (done) | `planner` |
-| `api-by-default` | written then | #43 | Settings, the stored plan, the offline queue; real becomes the default | `settings-sync` |
+| `api-by-default` | 043a–d (below) | #43 | Settings, the stored plan, the offline queue; real becomes the default | `settings-sync` |
 
 `install-instant-open` (#8) still goes last, after #43.
+
+### #43 in four parts (drafted 2026-11-20)
+
+#43 bundles four pieces that ship and are checked on their own, so it has four specs and four PRs, each "Part of #43"; #43 closes with the last (settled with Jan, 2026-11-20, with each spec's questions).
+
+| Module id | Spec | Responsibility | Depends on |
+|---|---|---|---|
+| `real-by-default` | [043a](043a-real-by-default.md) | Real is the default, Settings on the API, each list read once | — |
+| `stored-week-and-queue` | [043b](043b-stored-week-and-queue.md) | The week stored on the phone, the queue replayed over it and sent in order (ADR-010) | `real-by-default` |
+| `other-screens-offline` | [043c](043c-other-screens-offline.md) | Every other screen opens from its last response; a failed load never empties a screen | `real-by-default`, `stored-week-and-queue` (its storage) |
+| `sign-in-around-the-queue` | [043d](043d-sign-in-around-the-queue.md) | The session-ended sheet and banner, sign-out that sends first and clears (ADR-012) | `stored-week-and-queue`, `other-screens-offline` |
+
+Build order: 043a → 043b → 043c → 043d. #43's quitting-goal and delete criteria move to #37 and #38, which build those screens. Its phone checks go with #8.
 
 ## Decisions shared by these specs
 
@@ -72,7 +85,7 @@ Assumed (say so if wrong):
 20. **Nothing here builds the planner.** No week is redrafted and nothing is placed on a day for the person. The one stand-in is decision 12.
 21. **Next week is a view on Week** (#46, settled 2026-11-19): from 6 p.m. on Sunday a "This week | Next week" toggle appears, remembered across reloads and gone again once next week has become the current one. Its days open like any day, but nothing in a week that hasn't started can be checked off. **Wrap up this week** sits on Next week and opens a sheet listing what carries over and what ends, from each task's `atClose`; confirming has no undo.
 22. **"Still matter?" is a card at the top of Today** (#35, settled 2026-11-19), one per marked task, with Keep, Reschedule and Drop. **Not now** waves it off for the day without answering, and it comes back tomorrow. It never shows how long a task has waited.
-23. **The mock imitates the server's answers and nothing more** (ADR-008): `atClose`, `stillMatters` and what wrap-up does are mock rules standing in for the API's, and stay until real becomes the default (#43), so the click-through keeps working; the mock then shrinks to what tests need (settled in spec 042). Today on mock data after a Sunday-evening wrap-up shows the new current week's days as not yet checkable until the device's date reaches them.
+23. **The mock imitates the server's answers and nothing more** (ADR-008): `atClose`, `stillMatters` and what wrap-up does are mock rules standing in for the API's, so tests and the click-through (`npm run dev:mock`) keep working. Real is the default since 043a, and the mock stays whole (settled in 043a, replacing 042's "shrinks to what tests need"). Today on mock data after a Sunday-evening wrap-up shows the new current week's days as not yet checkable until the device's date reaches them.
 
 ## Shared conventions
 

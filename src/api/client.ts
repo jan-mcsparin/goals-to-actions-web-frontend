@@ -15,7 +15,9 @@ import { realApi } from './mode.ts'
 import * as real from './realAspirations.ts'
 import * as realGoals from './realGoals.ts'
 import * as realPlan from './realPlan.ts'
+import * as realSettings from './realSettings.ts'
 import type {
+  AddChoices,
   Aspiration,
   AspirationDetail,
   AspirationsOverview,
@@ -147,6 +149,12 @@ export async function answerStillMatters(taskId: string, answer: StillMattersAns
   }
   task.stillMatters = false
   return taskOut(task)
+}
+
+// What the Add sheet's pickers offer: the aspirations and the goals.
+export async function getChoices(): Promise<AddChoices> {
+  if (realApi) return real.getChoices()
+  return structuredClone({ aspirations: store.aspirations, goals: store.goals.map(listedGoal) })
 }
 
 export async function getAspirations(): Promise<AspirationsOverview> {
@@ -409,11 +417,13 @@ export async function getUpkeep(): Promise<Upkeep> {
 }
 
 export async function getSettings(): Promise<Settings> {
+  if (realApi) return realSettings.getSettings()
   return structuredClone(store.settings)
 }
 
 // Set today, even when it's the intensity already set: the person chose it again.
 export async function setIntensity(intensity: Intensity): Promise<Settings> {
+  if (realApi) return realSettings.setIntensity(intensity)
   if (!isIntensity(intensity)) throw new Error(`Unknown intensity ${intensity}`)
   store.settings.intensity = intensity
   return structuredClone(store.settings)

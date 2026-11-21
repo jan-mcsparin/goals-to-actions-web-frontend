@@ -86,6 +86,12 @@ export type Intensity = Settings['intensity']
 export type Week = Schemas['Week']
 export type WeekGoal = Schemas['WeekGoal']
 
+// What the Add sheet's pickers offer: aspirations and goals, as their lists send them.
+export type AddChoices = {
+  aspirations: Aspiration[] // active and retired; the picker keeps the active ones
+  goals: ListedGoal[] // every status; the picker keeps the active ones
+}
+
 // Everything the Aspirations tab shows, as records. Ordering, grouping and
 // counting are left to domain/aspirations.ts.
 export type AspirationsOverview = {

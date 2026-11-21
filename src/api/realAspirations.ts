@@ -10,9 +10,15 @@ import type { components } from './openapi.ts'
 import { listGoals } from './realGoals.ts'
 import { getWeek, listRecurringItems } from './realPlan.ts'
 import { request } from './request.ts'
-import type { Aspiration, AspirationDetail, AspirationsOverview, NewAspiration } from './types.ts'
+import type { AddChoices, Aspiration, AspirationDetail, AspirationsOverview, NewAspiration } from './types.ts'
 
 type AspirationList = components['schemas']['AspirationList']
+
+// The Add sheet's pickers need only these two lists, not the whole tab.
+export async function getChoices(): Promise<AddChoices> {
+  const [aspirations, goals] = await Promise.all([listAspirations(), listGoals()])
+  return { aspirations, goals }
+}
 
 export async function getAspirations(): Promise<AspirationsOverview> {
   const [aspirations, goals, items, week] = await Promise.all([listAspirations(), listGoals(), listRecurringItems(), getWeek()])

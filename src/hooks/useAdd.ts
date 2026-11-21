@@ -6,7 +6,7 @@
 // tells onChanged, so the screen behind can reload. A save that fails keeps
 // the sheet open with a calm message. Rules come from domain/add.ts.
 import { useEffect, useRef, useState } from 'react'
-import { addAspiration, addRecurringItem, addTask, createGoal, getAspirations } from '../api/client.ts'
+import { addAspiration, addRecurringItem, addTask, createGoal, getChoices } from '../api/client.ts'
 import type { Goal } from '../api/types.ts'
 import {
   aspirationChoices,
@@ -105,11 +105,11 @@ export function useAdd(origin: AddOrigin, today: string, { onSaved, onChanged }:
   // still works. Opening the sheet again tries again.
   useEffect(() => {
     let current = true
-    getAspirations()
-      .then((overview) => {
+    getChoices()
+      .then((choices) => {
         if (!current) return
-        setGoals(goalChoices(overview.goals))
-        setAspirations(aspirationChoices(overview.aspirations))
+        setGoals(goalChoices(choices.goals))
+        setAspirations(aspirationChoices(choices.aspirations))
       })
       .catch(() => current && setChoicesFailed(true))
     return () => {

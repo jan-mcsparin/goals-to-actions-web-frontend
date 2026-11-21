@@ -5,6 +5,7 @@ import {
   bringBackAspiration,
   getAspiration,
   getAspirations,
+  getChoices,
   moveAspiration,
   retireAspiration,
   updateAspiration,
@@ -94,6 +95,15 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+})
+
+describe('getChoices', () => {
+  it("reads the aspirations and goals only, for the Add sheet's pickers", async () => {
+    serve([FIT, SPANISH], [STRONG, READING], [STRETCH])
+
+    expect(await getChoices()).toEqual({ aspirations: [FIT, SPANISH], goals: [STRONG, READING] })
+    expect(fetchMock.mock.calls.map(([url]) => String(url)).sort()).toEqual(['/api/aspirations', '/api/goals'])
+  })
 })
 
 describe('getAspirations', () => {

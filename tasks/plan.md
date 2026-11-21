@@ -1,71 +1,33 @@
-# Implementation Plan: Today, Week and the bank on the API (#42)
+# Implementation Plan: Real by default (#43, part a)
 
-Spec: [`../specs/042-plan-screens-on-api.md`](../specs/042-plan-screens-on-api.md). Issue: [#42](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/42). Tasks: [`todo.md`](todo.md). (The plan for #39 is in git history.)
+Spec: [`../specs/043a-real-by-default.md`](../specs/043a-real-by-default.md). Issue: [#43](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/43) (part a of four). Tasks: [`todo.md`](todo.md). (The plan for #42 is in git history.)
 
 ## Overview
 
-The plan screens move to the API in two PRs. First the API's week read gains what Today and Week need (API #45), so Today stays one read. Then the front end, in ten commits: the mock takes on the API's `Week` shape, Today and the bank are drawn from it, and then each group of actions goes to the real API behind the switch. Mock stays the default throughout, and looks the same at every commit.
+The app talks to the API unless built with `VITE_API=mock`; tests and `npm run dev:mock` use the mock. Settings moves to the API. The Add sheet stops reading the whole Aspirations tab for its pickers.
 
-## Architecture decisions
+## Traced: where the repeated reads come from (settled 2)
 
-- **Shape first, then wiring.** Tasks 1 to 5 change only shapes and reads, on mock, with nothing on screen changing. That's the riskiest part (useDay is the biggest hook, and every plan test touches the week's shape), so it goes first and is checked before any real call is added.
-- **`getDay` and `getBank` go; `dayOf` and `bankOf` draw from the week** (ADR-010). `useDay` reads the day's week once; the bank sheet is drawn from that same week, not loaded separately. #43 then stores that document and changes nothing here.
-- **`realPlan.ts` beside `realGoals.ts`**, one function per operation; `client.ts` picks mock or real per function, as now.
-- **The tab's bars read the week's `goals[].progress`**, in mock and real. `AspirationsOverview.weekTasks` and `AspirationDetail.weekTasks` become the current week's goals. The target in force that week comes with them (041's assumed decision 6).
-- **The mock works out `aspiration` and `fixedDay` when it sends a task**, as it already does `atClose`, stored empty like `atClose`, so `mockData.ts`'s rows don't change.
-- **The mock keeps its stand-ins** for the server until #43 (spec decision 2), but builds what it returns as the API's `Week`.
+From the code, in real mode:
 
-## Dependency graph
+- **The Add sheet** calls `getAspirations`, the whole tab's read: aspirations, goals, recurring items and the week (and next week's, from Sunday evening). Its pickers need aspirations and goals only. Opened over the Aspirations tab, it repeats the tab's reads, which is #40's "two or three times".
+- Development's StrictMode runs each effect twice; that's not a bug and the build doesn't do it.
+- A save on a goal or an aspiration's page reads the page again on purpose (the API's answer is the truth); no screen reads twice on opening.
 
-```
-API #45 (aspiration + fixedDay on tasks and week goals)
- └── 1 Tasks carry aspiration and fixedDay (mock works them out)
-      └── 2 The mock sends the API's Week; Week reads it
-           ├── 3 Today's sections drawn from a week (dayOf, bankOf)
-           │    └── 4 useDay reads the week
-           │         └── 5 getDay and getBank go
-           │              ├── 6 Plan actions on the real API
-           │              │    └── 7 Adding a task sends a day
-           │              └── 8 Recurring items and Keep life running on the real API
-           └── 9 Tab bars from the week's goals
-                          └── 10 Docs, CLAUDE.md, manual checks, PR (after 6 to 9)
-```
+The browser check (task 4) confirms this with the network log; anything else it finds is fixed there.
 
-6, 8 and 9 only share `client.ts`; they run in order to keep each commit small, not because one needs another.
+## Tasks
 
-## Task list
+1. **Real by default.** `mode.ts`: `VITE_API !== 'mock'`; `test.env` sets mock for every test; `dev:mock` replaces `dev:real`. README, CLAUDE.md and shared decision 23 updated. A test that tests run on the mock. (S)
+2. **Settings on the API.** `api/realSettings.ts` (`getSettings`, `setIntensity`) + test; `client.ts` routes both; the real-mode switch test counts the new paths. (S)
+3. **The Add sheet reads its choices only.** `getChoices()` (aspirations and goals) in mock and real; `useAdd` calls it; test that opening the sheet reads choices once and never the tab. (S)
+4. **Checked in the browser** by a Sonnet agent at phone width against the local API: Settings reads and saves intensity, kept after a reload; the network log on opening Today, Week, Aspirations, an aspiration, a goal, Keep life running, Settings and the Add sheet shows each `GET` once (StrictMode's double aside). Recorded in the spec's Checked section; spec status built. (S)
 
-### Phase 0: the API (its own PR, in `api/`)
-- [x] Task 0: The week read names aspirations and fixed days (API #45)
+Checkpoint after each task: `nvm use`, `npm test`, `npm run lint`, `npm run build`.
 
-### Phase 1: the week's shape, on mock
-- [x] Task 1: Tasks carry their aspiration and fixed day
-- [x] Task 2: The mock sends the API's `Week`
-- [x] Task 3: Today's sections drawn from a week
-- [x] Task 4: `useDay` reads the week
-- [x] Task 5: `getDay` and `getBank` go
+## Risks
 
-### Checkpoint A
-- [x] Tests, lint, build pass; on mock, Today, a day, Week, the bank sheet and wrap-up look and work as before (Sonnet agent, phone width)
-
-### Phase 2: the real API
-- [x] Task 6: Plan actions on the real API
-- [x] Task 7: Adding a task sends a day
-- [x] Task 8: Recurring items and Keep life running on the real API
-- [x] Task 9: The tab's bars from the week's goals
-
-### Checkpoint B: complete
-- [x] Task 10: Docs, then manual checks on real and mock, then the PR
-
-## Risks and mitigations
-
-| Risk | Impact | Mitigation |
-|---|---|---|
-| `useDay` rework breaks the optimistic save and rollback | High | Task 4 keeps `useDay`'s existing tests passing unchanged in what they assert; only fixtures move to the `Week` shape |
-| The local API has no next week open or no "Still matter?" task, so those can't be checked by hand on real | Med | The agent checks what the date allows and says what it couldn't; those paths are covered by `realPlan` tests and the mock |
-| A task due beyond the open weeks has `week: null`; screens that assume a week mislabel it | Low | `taskConfirmation` and Keep life running's `whereLabel` get a case for it, with tests |
-| The tab and an aspiration's page grow to four reads | Low | Run side by side (`Promise.all`); reading them once is #43's |
-
-## Open questions
-
-None. All four of the spec's were settled on 2026-11-20.
+| Risk | Mitigation |
+|---|---|
+| A test reaches the network once real is the default | `test.env` sets mock; a test asserts `realApi` is false |
+| The production build ships mock | the build has no `VITE_API`, so it's real; checked in task 4 by running against the API |
