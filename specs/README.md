@@ -64,7 +64,7 @@ What the earlier steps left of #17, #37 and #38, and #76, which 038 needs. Each 
 |---|---|---|---|---|
 | `every-failed-save` | [017](017-every-failed-save.md) | #17 | Every failed save shows its message; the screen ends on the server's record | 043c |
 | `quitting-goal-daily-answer` | [037](037-quitting-goal-daily-answer.md) | #37 | A quitting goal's daily answer and urge rating, on Today and its page, queued offline | 043b |
-| `edit-recurring-item` | [076](076-edit-recurring-item.md) | #76 | Open a recurring item to edit its name, repeat and aspiration; pause and resume it | 017 |
+| `edit-recurring-item` | [076](076-edit-recurring-item.md) | #76 | Open a recurring item to edit its name, repeat and aspiration; pause and resume it | 017; API #49 (an edit moves this week's work) |
 | `delete-mistakes` | [038](038-delete-mistakes.md) | #38 | Delete on tasks, milestones, goals, aspirations and recurring items | `edit-recurring-item` (its sheet holds the item's Delete) |
 
 Order: 017 (small, and it changes the save hooks the others build on) → 037 → 076 → 038.
