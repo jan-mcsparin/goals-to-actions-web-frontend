@@ -151,16 +151,16 @@ describe('AddSheet', () => {
     )
   })
 
-  it('stays open with what was typed and a calm message when the save fails', async () => {
-    vi.mocked(addTask).mockRejectedValueOnce(new Error('offline'))
+  it("saves a task even when it can't be sent, and says where it goes", async () => {
+    vi.mocked(addTask).mockRejectedValue(new Error('offline'))
     const { user, onSaved } = await openSheet()
     await user.type(screen.getByRole('textbox', { name: 'Title' }), 'Fill out my ballot')
 
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
-    expect(onSaved).not.toHaveBeenCalled()
-    expect(screen.getByRole('status').textContent).toBe("Couldn't save that. Try again.")
-    expect(screen.getByRole('textbox', { name: 'Title' })).toHaveProperty('value', 'Fill out my ballot')
+    expect(onSaved).toHaveBeenCalled()
+    expect(screen.queryByRole('status')).toBeNull()
+    vi.mocked(addTask).mockReset()
   })
 })
 

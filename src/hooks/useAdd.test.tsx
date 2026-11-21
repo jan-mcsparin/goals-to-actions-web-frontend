@@ -6,6 +6,7 @@ import { resetStore, store } from '../api/mockStore.ts'
 import type { Task } from '../api/types.ts'
 import { NEW_ASPIRATION } from '../domain/add.ts'
 import { addOriginFor, useAdd, type AddOrigin } from './useAdd.ts'
+import { waitingCount } from '../api/queue.ts'
 import { aTask } from '../test/tasks.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
@@ -125,29 +126,35 @@ describe('useAdd', () => {
     expect((await readDay(TODAY)).tasks.map((task) => task.title)).toContain('Call the vet')
   })
 
-  it('says where a task due in a later week waits', async () => {
+  it('says a task due after the open weeks joins the week it is due, as the server will', async () => {
     const { result, onSaved } = renderAdd()
 
     act(() => result.current.editTask({ title: 'Renew passport', dueDate: '2026-11-25' }))
     await act(async () => result.current.save())
 
-    expect(onSaved).toHaveBeenCalledWith('Saved for the week of Nov 23.')
+    expect(onSaved).toHaveBeenCalledWith("Saved. It joins the week it's due.")
   })
 
-  it('keeps the sheet open with a calm message when the save fails, and can try again', async () => {
-    vi.mocked(addTask).mockRejectedValueOnce(new Error('offline'))
+  it('queues the task with its own id, sending what was typed', async () => {
+    const { result } = renderAdd()
+
+    act(() => result.current.editTask({ title: 'Fill out my ballot' }))
+    await act(async () => result.current.save())
+
+    await waitFor(() => expect(addTask).toHaveBeenCalledWith({ title: 'Fill out my ballot' }, expect.any(String)))
+  })
+
+  it("saves a task even when it can't be sent: it waits on the phone", async () => {
+    vi.mocked(addTask).mockRejectedValue(new Error('offline'))
     const { result, onSaved } = renderAdd()
     act(() => result.current.editTask({ title: 'Fill out my ballot' }))
 
     await act(async () => result.current.save())
 
-    expect(onSaved).not.toHaveBeenCalled()
-    expect(result.current.message).toBe("Couldn't save that. Try again.")
-    expect(result.current.task.title).toBe('Fill out my ballot')
-
-    await act(async () => result.current.save())
-
     expect(onSaved).toHaveBeenCalledWith("Added to this week's bank.")
+    expect(result.current.message).toBeUndefined()
+    await waitFor(() => expect(waitingCount()).toBe(1))
+    vi.mocked(addTask).mockReset()
   })
 
   it('saves once when Save is tapped twice while the first is on its way', async () => {

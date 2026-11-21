@@ -24,6 +24,7 @@ export function Day({ date, today, onBack }: DayProps) {
     heading,
     day,
     asking,
+    waiting,
     message,
     view,
     setView,
@@ -86,6 +87,8 @@ export function Day({ date, today, onBack }: DayProps) {
         onBack={onBack}
         progress={isEmpty ? undefined : { ...progress, label: isToday ? 'Done today' : 'Done this day' }}
       />
+
+      {waiting && <p className="today-waiting">{waiting}</p>}
 
       {asking.map((ask) => (
         <StillMattersCard

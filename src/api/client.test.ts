@@ -21,6 +21,7 @@ import {
   moveAspiration,
   NotFoundError,
   pauseGoal,
+  RefusedError,
   placeTask,
   reopenGoal,
   resumeGoal,
@@ -285,6 +286,25 @@ describe('placeTask', () => {
     await expect(placeTask('task-lift-bank', NEXT_WEEK, '2026-11-17')).rejects.toThrow('another week')
 
     expect(statusIn((await readBank()).tasks, 'task-lift-bank')).toBe('inBank')
+  })
+})
+
+// What the API answers with 404 or 409, so a queued change that no longer applies is dropped.
+describe('refusals, as the API answers them', () => {
+  it('says a task that is not there is not found', async () => {
+    await expect(checkOffTask('no-such-task', TAPPED)).rejects.toBeInstanceOf(NotFoundError)
+    await expect(placeTask('no-such-task', THIS_WEEK, WEDNESDAY_DAY)).rejects.toBeInstanceOf(NotFoundError)
+  })
+
+  it.each([
+    ['uncheck one not done', () => uncheckTask('task-laundry')],
+    ['send one not planned to the bank', () => moveTaskToBank('task-lift-bank', THIS_WEEK)],
+    ['send one to the bank in a week it has left', () => moveTaskToBank('task-laundry', NEXT_WEEK)],
+    ['place one on a past day', () => placeTask('task-lift-bank', THIS_WEEK, '2026-11-10')],
+    ['place one in a week it has left', () => placeTask('task-lift-bank', NEXT_WEEK, '2026-11-17')],
+    ['swap one not planned', () => swapTasks('task-lift-bank', { week: THIS_WEEK, bankTaskId: 'task-lift-bank', day: WEDNESDAY_DAY })],
+  ])('refuses to %s', async (_, change) => {
+    await expect(change()).rejects.toBeInstanceOf(RefusedError)
   })
 })
 
@@ -1335,6 +1355,15 @@ function expectConsistentStore() {
 describe('addTask', () => {
   it('gives the task an id made on the device', async () => {
     expect((await addTask({ title: 'Fill out my ballot' })).id).toMatch(UUID_V4)
+  })
+
+  it('keeps the id it is given, and adds nothing the second time', async () => {
+    const first = await addTask({ title: 'Fill out my ballot' }, 'task-new')
+    const again = await addTask({ title: 'Fill out my ballot' }, 'task-new')
+
+    expect(first.id).toBe('task-new')
+    expect(again).toEqual(first)
+    expect(store.tasks.filter((task) => task.id === 'task-new')).toHaveLength(1)
   })
 
   it("stores a task with only a title in this week's bank", async () => {

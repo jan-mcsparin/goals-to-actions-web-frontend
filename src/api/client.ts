@@ -7,7 +7,7 @@ import { checkedOff, inTheBank, isDone, isInBank, isPlanned, placedOnDay, unchec
 import { isWithinGoal, MOST_SESSIONS, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
 import { isFixedDay } from '../domain/recurring.ts'
 import { isIntensity } from '../domain/settings.ts'
-import { NotFoundError, SignedOutError } from './errors.ts'
+import { NotFoundError, RefusedError, SignedOutError } from './errors.ts'
 import { newDeviceId } from './ids.ts'
 import type { StoredCheckIn, StoredGoal, StoredMilestone, StoredTask } from './mockData.ts'
 import { store } from './mockStore.ts'
@@ -44,13 +44,13 @@ import type {
   WeeklyTargetInput,
 } from './types.ts'
 
-export { NotFoundError, SignedOutError }
+export { NotFoundError, RefusedError, SignedOutError }
 
 // Keeps the moment and day it's given: they're what the phone saw at the tap.
 export async function checkOffTask(taskId: string, checkOff: CheckOff): Promise<Task> {
   if (realApi) return realPlan.checkOffTask(taskId, checkOff)
   const task = findTask(taskId)
-  if (task.week !== null && task.week > thisWeek()) throw new Error("Can't check off a task in a week that hasn't started")
+  if (task.week !== null && task.week > thisWeek()) throw new RefusedError("Can't check off a task in a week that hasn't started")
   replaceTask(task, checkedOff(task, checkOff))
   return taskOut(task)
 }
@@ -58,7 +58,7 @@ export async function checkOffTask(taskId: string, checkOff: CheckOff): Promise<
 export async function uncheckTask(taskId: string): Promise<Task> {
   if (realApi) return realPlan.uncheckTask(taskId)
   const task = findTask(taskId)
-  if (task.state !== 'done') throw new Error(`Task ${taskId} is not done`)
+  if (task.state !== 'done') throw new RefusedError(`Task ${taskId} is not done`)
 
   replaceTask(task, uncheckedOff(task))
   return taskOut(task)
@@ -432,14 +432,17 @@ export async function setIntensity(intensity: Intensity): Promise<Settings> {
 // In the bank of this week, or of its due week when that's later. With a day that's still
 // allowed (today or later, in an open week) it goes on that day, placed by hand, whatever its
 // due date; a day no longer allowed saves it in this week's bank, as the API does.
-export async function addTask(task: NewTask): Promise<Task> {
-  if (realApi) return realPlan.addTask(task)
+export async function addTask(task: NewTask, taskId = newDeviceId()): Promise<Task> {
+  if (realApi) return realPlan.addTask(task, taskId)
+  const existing = store.tasks.find((candidate) => candidate.id === taskId)
+  if (existing) return taskOut(existing)
   const title = task.title.trim()
   if (!title) throw new Error('A task needs a title')
   if (task.goalId) findActiveGoal(task.goalId)
 
   const today = toLocalDay(new Date())
   const added = newStoredTask({
+    id: taskId,
     title,
     origin: 'byHand',
     week: taskWeek(task.dueDate),
@@ -589,12 +592,12 @@ export async function swapTasks(
 }
 
 function checkWeek(task: Task, week: string) {
-  if (task.week !== week) throw new Error(`Task ${task.id} has moved on to another week`)
+  if (task.week !== week) throw new RefusedError(`Task ${task.id} has moved on to another week`)
 }
 
 function checkDay(day: string, week: string) {
-  if (day < toLocalDay(new Date())) throw new Error("Can't place a task on a past day")
-  if (toLocalDay(mondayOf(fromLocalDay(day))) !== week) throw new Error("A task goes on a day in its own week")
+  if (day < toLocalDay(new Date())) throw new RefusedError("Can't place a task on a past day")
+  if (toLocalDay(mondayOf(fromLocalDay(day))) !== week) throw new RefusedError('A task goes on a day in its own week')
 }
 
 // The mock keeps one object per task, so a change made on a copy is put back on it.
@@ -673,13 +676,13 @@ function newStoredTask(fields: Pick<StoredTask, 'title' | 'origin'> & Partial<St
 
 function findPlannedTask(taskId: string): StoredTask {
   const task = findTask(taskId)
-  if (!isPlanned(task) || task.setAside) throw new Error(`Task ${taskId} is not planned`)
+  if (!isPlanned(task) || task.setAside) throw new RefusedError(`Task ${taskId} is not planned`)
   return task
 }
 
 function findBankTask(taskId: string): StoredTask {
   const task = findTask(taskId)
-  if (!isInBank(task) || task.setAside) throw new Error(`Task ${taskId} is not in the bank`)
+  if (!isInBank(task) || task.setAside) throw new RefusedError(`Task ${taskId} is not in the bank`)
   return task
 }
 
@@ -871,7 +874,7 @@ function activeAspirations(): Aspiration[] {
 
 function findTask(taskId: string): StoredTask {
   const task = store.tasks.find((candidate) => candidate.id === taskId)
-  if (!task) throw new Error(`No task with id ${taskId}`)
+  if (!task) throw new NotFoundError(`No task with id ${taskId}`)
   return task
 }
 

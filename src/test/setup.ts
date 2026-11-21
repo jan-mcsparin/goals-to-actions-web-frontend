@@ -1,7 +1,15 @@
 // Runs before each .tsx test file. Vitest globals are off, so RTL can't
 // register its own cleanup; unmount rendered trees between tests here.
 import { cleanup } from '@testing-library/react'
-import { afterEach } from 'vitest'
+import { afterEach, beforeEach } from 'vitest'
+
+// Each test starts with nothing stored on the phone and nothing queued. Imported
+// here, not above, so the queue sends through the test file's mocked client.
+beforeEach(async () => {
+  const [{ resetQueue }, { resetPlanStore }] = await Promise.all([import('../api/queue.ts'), import('../storage/planStore.ts')])
+  resetPlanStore()
+  resetQueue()
+})
 
 afterEach(() => {
   cleanup()

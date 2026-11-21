@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { NotFoundError, SignedOutError } from './errors.ts'
+import { NotFoundError, RefusedError, SignedOutError } from './errors.ts'
 import { request } from './request.ts'
 import { onSignedOut, signedIn } from './session.ts'
+import { queueIsSending } from './sendOrder.ts'
 
 function respond(status: number, body?: unknown) {
   return new Response(body === undefined ? null : JSON.stringify(body), {
@@ -60,13 +61,23 @@ describe('request', () => {
     await expect(request('PATCH', '/aspirations/a1', { name: 'x' })).rejects.toBeInstanceOf(NotFoundError)
   })
 
-  it.each([403, 409, 422, 500])('turns a %i into a failed request, not NotFoundError', async (status) => {
+  it('turns a 409 into RefusedError, with the reason the API gave', async () => {
+    fetchMock.mockResolvedValue(respond(409, { detail: 'The task has moved on to another week.' }))
+
+    const refused = request('POST', '/tasks/t1/place', { week: '2026-11-09', day: '2026-11-11' })
+
+    await expect(refused).rejects.toBeInstanceOf(RefusedError)
+    await expect(refused).rejects.toThrow('409')
+  })
+
+  it.each([403, 422, 500])('turns a %i into a failed request, neither NotFoundError nor RefusedError', async (status) => {
     fetchMock.mockResolvedValue(respond(status, { detail: 'No' }))
 
     const failure = request('POST', '/aspirations/reorder', { ids: [] })
 
     await expect(failure).rejects.toThrow(String(status))
     await expect(failure).rejects.not.toBeInstanceOf(NotFoundError)
+    await expect(failure).rejects.not.toBeInstanceOf(RefusedError)
   })
 
   it('turns a network failure into a failed request, not NotFoundError', async () => {
@@ -114,5 +125,48 @@ describe('request', () => {
       await expect(request('POST', '/sign-in/finish', {})).rejects.toBeInstanceOf(SignedOutError)
       expect(listener).not.toHaveBeenCalled()
     })
+  })
+})
+
+describe('the order of writes', () => {
+  afterEach(() => {
+    queueIsSending(Promise.resolve())
+  })
+
+  function sendingUntilAnswered() {
+    let answer = () => {}
+    queueIsSending(new Promise<void>((resolve) => (answer = resolve)))
+    return () => answer()
+  }
+
+  it("holds a write until the queue's send under way is answered", async () => {
+    fetchMock.mockImplementation(async () => respond(200, {}))
+    const answer = sendingUntilAnswered()
+
+    const write = request('PUT', '/settings/intensity', { intensity: 'normal' })
+    await Promise.resolve()
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    answer()
+    await write
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("doesn't hold a read, or the queue's own write", async () => {
+    fetchMock.mockImplementation(async () => respond(200, {}))
+    sendingUntilAnswered()
+
+    await request('GET', '/settings')
+    await request('POST', '/tasks/t1/uncheck', undefined, { queued: true })
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it("gives the queue's own write a time limit, so a dead connection can't hold the queue", async () => {
+    fetchMock.mockImplementation(async () => respond(200, {}))
+
+    await request('POST', '/tasks/t1/uncheck', undefined, { queued: true })
+
+    expect(fetchMock.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal)
   })
 })

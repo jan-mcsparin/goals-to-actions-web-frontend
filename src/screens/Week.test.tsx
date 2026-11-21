@@ -139,8 +139,8 @@ describe('Week', () => {
     expect(screen.getByText('5 days left · on pace')).toBeDefined()
   })
 
-  it('puts the chip back and says so calmly when the save fails', async () => {
-    vi.mocked(placeTask).mockRejectedValueOnce(new Error('offline'))
+  it("keeps the chip on its day, with no message, when the save can't be sent", async () => {
+    vi.mocked(placeTask).mockRejectedValue(new Error('offline'))
     const user = userEvent.setup()
     render(<Week today={WEDNESDAY_DAY} onOpenDay={() => {}} />)
 
@@ -148,20 +148,22 @@ describe('Week', () => {
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Friday' }))
     await act(async () => {})
 
-    expect(screen.getByRole('region', { name: 'Bank · 4 not on a day' })).toBeDefined()
-    expect(dayButtons()[4].textContent).not.toContain('Call the dentist')
-    expect(screen.getByRole('status').className).toBe('screen-message')
-    expect(screen.getByRole('status').textContent).toBe("Couldn't save that. Try again.")
+    expect(placeTask).toHaveBeenCalled()
+    expect(dayButtons()[4].textContent).toContain('Call the dentist')
+    expect(screen.queryByRole('status')).toBeNull()
+    vi.mocked(placeTask).mockReset()
   })
 
   it('lets a failed save go after a few seconds', async () => {
-    fakeTimeouts()
-    vi.mocked(placeTask).mockRejectedValueOnce(new Error('offline'))
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'], shouldAdvanceTime: true })
+    sundayEvening()
+    vi.mocked(wrapUpWeek).mockRejectedValueOnce(new Error('offline'))
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    render(<Week today={WEDNESDAY_DAY} onOpenDay={() => {}} />)
+    render(<Week today={SUNDAY_DAY} onOpenDay={() => {}} />)
 
-    await user.click(await screen.findByRole('button', { name: 'Call the dentist' }))
-    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Friday' }))
+    await user.click(await screen.findByRole('button', { name: 'Next week' }))
+    await user.click(await screen.findByRole('button', { name: 'Wrap up this week' }))
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Wrap up this week' }))
     expect(await screen.findByRole('status')).toBeDefined()
 
     act(() => vi.advanceTimersByTime(5000))

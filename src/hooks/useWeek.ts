@@ -1,8 +1,12 @@
 // This week, ready to render: progress per goal, a line per day, and the bank.
-// Loads through the API client; rules come from domain/week.ts.
+// Drawn from the weeks the phone stored, then the fresh read, with the queue's
+// changes replayed on top (ADR-010). Placing a task is queued and shows at once;
+// wrapping up needs a connection, and its answer is kept. Rules come from domain/week.ts.
 import { useState } from 'react'
-import { getWeek, placeTask, wrapUpWeek } from '../api/client.ts'
+import { getWeek, wrapUpWeek } from '../api/client.ts'
 import { mondayOfDay, weekAfter } from '../api/dates.ts'
+import { newDeviceId } from '../api/ids.ts'
+import { enqueue } from '../api/queue.ts'
 import type { Task, Week } from '../api/types.ts'
 import {
   daySummaries,
@@ -14,13 +18,12 @@ import {
   wrapUpLists,
   type ProgressRow,
 } from '../domain/week.ts'
-import { withTaskReplaced } from './planUpdates.ts'
+import { storedCurrentAndNext } from '../storage/currentWeek.ts'
 import { readWeekView, saveWeekView, type WeekViewMode } from '../storage/weekView.ts'
-import { useLoaded } from './useLoaded.ts'
-import { isInBank, placedOnDay, weekOf } from '../domain/tasks'
+import { useStoredWeeks, type WeeksRead } from './useStoredWeeks.ts'
+import { isInBank, weekOf } from '../domain/tasks'
 
 const LOAD_FAILED = "Couldn't load this week. Try again in a moment."
-const SAVE_FAILED = "Couldn't save that. Try again."
 const WRAP_UP_FAILED = "Couldn't wrap up the week. Nothing changed."
 
 export type WeekView = {
@@ -45,68 +48,54 @@ export type UseWeek = {
   wrapUp: { carriesOver: string[]; ends: string[]; confirm: () => void }
 }
 
-// The current week, and next week once it's open.
-type Weeks = { current: Week; next?: Week }
-
-async function loadWeeks(): Promise<Weeks> {
-  const current = await getWeek()
-  return current.nextWeekOpen ? { current, next: await getWeek(weekAfter(current.week)) } : { current }
+// The current week, and next week once it's open: as stored, then fresh. The current one
+// is the phone's week, or the one after once that has been wrapped up early.
+const CURRENT_AND_NEXT: WeeksRead = {
+  stored: () => storedCurrentAndNext(),
+  fresh: async () => {
+    const current = await getWeek()
+    return current.nextWeekOpen ? [current, await getWeek(weekAfter(current.week))] : [current]
+  },
 }
 
 export function useWeek(today: string): UseWeek {
-  const { data: weeks, setData: setWeeks, message, setMessage } = useLoaded(loadWeeks, LOAD_FAILED)
+  const { weeks, message, setMessage, keep } = useStoredWeeks(CURRENT_AND_NEXT, LOAD_FAILED)
   const [chosen, setChosen] = useState(readWeekView)
-  const canViewNext = weeks?.next !== undefined
+  const current = weeks?.[0]
+  const next = weeks?.[1]
+  const canViewNext = next !== undefined
   // A remembered Next week falls back to This week once it's no longer open.
   const view = chosen === 'next' && (canViewNext || !weeks) ? 'next' : 'this'
-  const plan = view === 'next' ? weeks?.next : weeks?.current
+  const plan = view === 'next' ? next : current
 
   function setView(next: WeekViewMode) {
     setChosen(next)
     saveWeekView(next)
   }
 
-  // Shows the task on its new day at once; puts it back in the bank if the save fails.
+  // Queued: the task shows on its new day at once, and waits there if it can't be sent.
   function place(bankTaskId: string, date: string) {
-    const before = plan?.tasks.find((task) => task.id === bankTaskId)
-    if (!before) return
-    const week = weekOf(before)
-    if (week === null) return
-
-    replaceTask(placedOnDay(before, date))
+    const task = plan?.tasks.find((candidate) => candidate.id === bankTaskId)
+    const week = task && weekOf(task)
+    if (!week) return
     setMessage(undefined)
-
-    placeTask(bankTaskId, week, date)
-      .then(replaceTask)
-      .catch(() => {
-        replaceTask(before)
-        setMessage(SAVE_FAILED)
-      })
+    void enqueue({ kind: 'place', id: newDeviceId(), taskId: bankTaskId, week, day: date })
   }
 
-  // No undo, so nothing changes on screen until the API says it's done.
+  // No undo, so nothing changes on screen until the API says it's done. It waits for the
+  // queue first (api/sendOrder.ts), so it sees every check-off.
   function confirmWrapUp() {
-    if (!weeks) return
+    if (!current) return
     setMessage(undefined)
-    wrapUpWeek(weeks.current.week)
-      .then((current) => {
-        setWeeks({ current })
+    wrapUpWeek(current.week)
+      .then((wrapped) => {
+        keep([wrapped])
         setView('this')
       })
       .catch(() => setMessage(WRAP_UP_FAILED))
   }
 
-  function replaceTask(next: Task) {
-    setWeeks(
-      (previous) =>
-        previous && {
-          current: withTaskReplaced(previous.current, next.id, next),
-          next: previous.next && withTaskReplaced(previous.next, next.id, next),
-        },
-    )
-  }
-
-  const lists = weeks ? wrapUpLists(weeks.current) : { carriesOver: [], ends: [] }
+  const lists = current ? wrapUpLists(current) : { carriesOver: [], ends: [] }
   const wrapUp = {
     carriesOver: lists.carriesOver.map((task) => task.title),
     ends: lists.ends.map((task) => task.title),

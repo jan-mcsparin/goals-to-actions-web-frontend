@@ -87,11 +87,13 @@ describe('Day', () => {
 
   it('says a failed save above the tab bar, and lets it go after a few seconds', async () => {
     fakeTimeouts()
-    vi.mocked(checkOffTask).mockRejectedValueOnce(new Error('offline'))
+    // Still matter? is the one save on Today that isn't queued.
+    vi.mocked(answerStillMatters).mockRejectedValueOnce(new Error('offline'))
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
-    await user.click(await screen.findByRole('checkbox', { name: 'Laundry' }))
+    const card = await screen.findByRole('group', { name: 'Still matter? Call the dentist' })
+    await user.click(within(card).getByRole('button', { name: 'Keep' }))
 
     const message = await screen.findByRole('status')
     expect(message.className).toBe('screen-message')
@@ -99,6 +101,20 @@ describe('Day', () => {
 
     act(() => vi.advanceTimersByTime(5000))
     expect(screen.queryByRole('status')).toBeNull()
+  })
+
+  it('says quietly how many changes wait once a send has failed, and only then', async () => {
+    vi.mocked(checkOffTask).mockRejectedValue(new Error('offline'))
+    const user = userEvent.setup()
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+    expect(await screen.findByRole('checkbox', { name: 'Laundry' })).toBeDefined()
+    expect(screen.queryByText(/waiting to send/)).toBeNull()
+
+    await user.click(screen.getByRole('checkbox', { name: 'Laundry' }))
+
+    expect(await screen.findByText('1 change waiting to send')).toBeDefined()
+    expect(screen.queryByRole('status')).toBeNull()
+    vi.mocked(checkOffTask).mockReset()
   })
 
   it("keeps a load failure until it's tapped", async () => {
@@ -230,7 +246,7 @@ describe('Day', () => {
     expect(await within(sheet).findByRole('button', { name: 'Laundry' })).toBeDefined()
   })
 
-  it('swaps a task for one from the bank, keeping its place in the day', async () => {
+  it('swaps a task for one from the bank', async () => {
     const user = userEvent.setup()
     render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
@@ -240,10 +256,11 @@ describe('Day', () => {
     await user.click(await within(sheet).findByRole('button', { name: 'Call the dentist' }))
 
     expect(screen.queryByRole('dialog')).toBeNull()
-    expect(rowTitles(screen.getByRole('region', { name: 'Keep life running' }))).toEqual([
-      'Move the car for street sweeping',
+    // In the swapped task's place until sent; then in the order the week read gives.
+    expect([...rowTitles(screen.getByRole('region', { name: 'Keep life running' }))].sort()).toEqual([
       'Call the dentist',
       'Fill out my ballot',
+      'Move the car for street sweeping',
     ])
     expect(screen.getByText('0 of 4 done')).toBeDefined()
     expect(document.activeElement).toBe(screen.getByRole('checkbox', { name: 'Call the dentist' }))

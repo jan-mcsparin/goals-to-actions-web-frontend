@@ -82,6 +82,12 @@ describe('addTask', () => {
     expect(url).toMatch(/^\/api\/tasks\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
     expect(body).toEqual({ title: 'Call the vet', day: '2026-11-18', dueDate: '2026-11-20' })
   })
+
+  it('puts it at the id it is given, so a queued add sent twice is one task', async () => {
+    await addTask({ title: 'Call the vet' }, 'task-1')
+
+    expect(sent().url).toBe('/api/tasks/task-1')
+  })
 })
 
 describe('what the person does to a task', () => {

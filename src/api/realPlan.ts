@@ -10,6 +10,9 @@ import type { CheckOff, NewRecurringItem, NewTask, RecurringItem, StillMattersAn
 type RecurringItemList = components['schemas']['RecurringItemList']
 type Upcoming = components['schemas']['Upcoming']
 
+// The six writes the queue sends (api/queue.ts): they don't wait for it, being it.
+const QUEUED = { queued: true }
+
 // With no week, the current one: the phone's own week, or the one after once that has been
 // wrapped up early (the API then reads the phone's week as not current).
 export async function getWeek(week?: string): Promise<Week> {
@@ -19,32 +22,32 @@ export async function getWeek(week?: string): Promise<Week> {
   return read.isCurrent ? read : request('GET', `/weeks/${weekAfter(phonesWeek)}`)
 }
 
-// At an id made here, so sending it again makes no second task.
-export async function addTask(task: NewTask): Promise<Task> {
-  return request('PUT', `/tasks/${newDeviceId()}`, task)
+// At an id made here, so sending it again makes no second task. A queued add brings its own.
+export async function addTask(task: NewTask, taskId = newDeviceId()): Promise<Task> {
+  return request('PUT', `/tasks/${taskId}`, task, QUEUED)
 }
 
 export async function checkOffTask(taskId: string, checkOff: CheckOff): Promise<Task> {
-  return request('POST', `/tasks/${taskId}/check-off`, checkOff)
+  return request('POST', `/tasks/${taskId}/check-off`, checkOff, QUEUED)
 }
 
 export async function uncheckTask(taskId: string): Promise<Task> {
-  return request('POST', `/tasks/${taskId}/uncheck`)
+  return request('POST', `/tasks/${taskId}/uncheck`, undefined, QUEUED)
 }
 
 export async function moveTaskToBank(taskId: string, week: string): Promise<Task> {
-  return request('POST', `/tasks/${taskId}/bank`, { week })
+  return request('POST', `/tasks/${taskId}/bank`, { week }, QUEUED)
 }
 
 export async function placeTask(taskId: string, week: string, day: string): Promise<Task> {
-  return request('POST', `/tasks/${taskId}/place`, { week, day })
+  return request('POST', `/tasks/${taskId}/place`, { week, day }, QUEUED)
 }
 
 export async function swapTasks(
   taskId: string,
   swap: { week: string; bankTaskId: string; day: string },
 ): Promise<{ toBank: Task; placed: Task }> {
-  return request('POST', `/tasks/${taskId}/swap`, swap)
+  return request('POST', `/tasks/${taskId}/swap`, swap, QUEUED)
 }
 
 export async function answerStillMatters(taskId: string, answer: StillMattersAnswer): Promise<Task> {
