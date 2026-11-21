@@ -1,5 +1,6 @@
 // What the phone keeps of the plan (ADR-010): each week read as it arrived, by
-// its Monday, and the queue of changes not yet confirmed, by their order. In
+// its Monday, the queue of changes not yet confirmed, by their order, and the
+// last response of every other read, by the read (useLoaded.ts). In
 // IndexedDB where there is one, in memory where there's none (as in tests).
 // Where IndexedDB is there but won't open (an old Safari private window), every
 // call fails instead. So every call can fail: callers keep their own state and
@@ -19,11 +20,15 @@ export type PlanStore = {
   weeks: Shelf<string, Week>
   // What each entry holds is the queue's business (api/queue.ts).
   queue: Shelf<number, unknown>
+  // Keyed by the read and its id, such as `goal/<id>`.
+  responses: Shelf<string, unknown>
   clear(): Promise<void>
 }
 
 const DATABASE = 'gta-plan'
-const SHELVES = ['weeks', 'queue'] as const
+const SHELVES = ['weeks', 'queue', 'responses'] as const
+// 2 added `responses`; the upgrade creates whichever store is missing.
+const VERSION = 2
 
 let current: PlanStore | undefined
 let askedToPersist = false
@@ -51,18 +56,19 @@ function askToPersist() {
   }
 }
 
-function store(weeks: Shelf<string, Week>, queue: Shelf<number, unknown>): PlanStore {
+function store(weeks: Shelf<string, Week>, queue: Shelf<number, unknown>, responses: Shelf<string, unknown>): PlanStore {
   return {
     weeks,
     queue,
+    responses,
     clear: async () => {
-      await Promise.all([weeks.clear(), queue.clear()])
+      await Promise.all([weeks.clear(), queue.clear(), responses.clear()])
     },
   }
 }
 
 function memoryStore(): PlanStore {
-  return store(memoryShelf(), memoryShelf())
+  return store(memoryShelf(), memoryShelf(), memoryShelf())
 }
 
 function memoryShelf<K extends string | number, V>(): Shelf<K, V> {
@@ -86,12 +92,12 @@ function memoryShelf<K extends string | number, V>(): Shelf<K, V> {
 
 function indexedDbStore(): PlanStore {
   const opened = openDatabase()
-  return store(indexedDbShelf(opened, 'weeks'), indexedDbShelf(opened, 'queue'))
+  return store(indexedDbShelf(opened, 'weeks'), indexedDbShelf(opened, 'queue'), indexedDbShelf(opened, 'responses'))
 }
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const opening = indexedDB.open(DATABASE, 1)
+    const opening = indexedDB.open(DATABASE, VERSION)
     opening.onupgradeneeded = () => {
       for (const name of SHELVES) {
         if (!opening.result.objectStoreNames.contains(name)) opening.result.createObjectStore(name)

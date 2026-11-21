@@ -49,15 +49,27 @@ describe('planStore', () => {
     ])
   })
 
-  it('clears both stores', async () => {
+  it('keeps the last response of each other read, by its key', async () => {
+    const { responses } = planStore()
+
+    await responses.put('goal/g1', { name: 'Run a 10k' })
+    await responses.put('goal/g1', { name: 'Run a half' })
+
+    expect(await responses.get('goal/g1')).toEqual({ name: 'Run a half' })
+    expect(await responses.get('goal/g2')).toBeUndefined()
+  })
+
+  it('clears every store', async () => {
     const store = planStore()
     await store.weeks.put('2026-11-09', aWeek('2026-11-09'))
     await store.queue.put(1, 'first')
+    await store.responses.put('settings', { intensity: 'steady' })
 
     await store.clear()
 
     expect(await store.weeks.entries()).toEqual([])
     expect(await store.queue.entries()).toEqual([])
+    expect(await store.responses.entries()).toEqual([])
   })
 
   it('starts empty again after a reset', async () => {
