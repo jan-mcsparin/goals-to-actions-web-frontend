@@ -1,6 +1,7 @@
-# 043c: Other screens offline
+# 043d: Sign-in around the queue
 
-- [x] 1. The responses shelf
-- [x] 2. useLoaded keeps the last response (and the five hooks pass their key)
-- [x] 3. Screens: Aspirations after a failed load; a goal from its stored response
-- [x] 4. Docs and the browser check
+- [ ] 1. Clearing what's stored
+- [ ] 2. Session ended vs signed out
+- [ ] 3. Sign-out sends first
+- [ ] 4. Sheet, banner and App
+- [ ] 5. Docs and the browser check
