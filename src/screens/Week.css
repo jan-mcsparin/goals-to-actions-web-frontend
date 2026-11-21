@@ -98,7 +98,7 @@
   overflow-wrap: anywhere;
 }
 
-.week-day-done {
+.week-day-mark {
   flex: none;
   color: var(--muted);
   font-size: 0.875rem;

@@ -123,6 +123,15 @@ describe('daySummaries', () => {
     expect(days.map((day) => day.isToday)).toEqual([false, false, true, false, false, false, false])
     expect(days.map((day) => day.isPast)).toEqual([true, true, false, false, false, false, false])
   })
+
+  it("marks a day full when the week read says so, whatever's on it", () => {
+    const marks = [
+      { day: '2026-11-10', cap: 3, full: true },
+      { day: '2026-11-12', cap: 3, full: false },
+    ]
+    const full = daySummaries({ ...plan, days: marks }, WEDNESDAY).map((day) => day.full)
+    expect(full).toEqual([false, true, false, false, false, false, false])
+  })
 })
 
 describe('weekRange', () => {
