@@ -87,4 +87,5 @@ By a Sonnet agent with Chrome DevTools at 390×844, against the local API:
 - **Offline** (gone offline after loading; the dev server has no service worker, so an offline reload isn't possible there): each screen showed what it last showed, with its "Couldn't load …" message; tapping the message left the screen as it was, the Aspirations tab included.
 - **A write offline:** intensity showed "Couldn't save that. Try again." and stayed on Normal.
 - **Back online:** fresh reads, no console errors from the app.
+- **A save is stored** (after the review fix): changing intensity online updated the stored `settings`; offline, Settings reopened with the new intensity. Set back to Normal afterwards.
 - Not checked: an offline reload of the installed app (with #8's phone checks), and upgrading a real version-1 database.
