@@ -1,6 +1,6 @@
 # Spec: Today, Week and the bank on the API (#42)
 
-Status: approved 2026-11-20; plan in [`../tasks/plan.md`](../tasks/plan.md). Issue: [#42](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/42). Module `plan-screens-on-api` in the [map](README.md). Depends on the API's [`tasks-week`](../../api/specs/tasks-week.md), [`recurring-items`](../../api/specs/recurring-items.md), [`week-turnover`](../../api/specs/week-turnover.md) and [`planner`](../../api/specs/planner.md) slices (all built), and on a small API change: [API #45](https://github.com/jan-mcsparin/goals-to-actions-api/issues/45) (decision 1 below).
+Status: built 2026-11-20 (PR #71); plan in [`../tasks/plan.md`](../tasks/plan.md). Issue: [#42](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/42). Module `plan-screens-on-api` in the [map](README.md). Depends on the API's [`tasks-week`](../../api/specs/tasks-week.md), [`recurring-items`](../../api/specs/recurring-items.md), [`week-turnover`](../../api/specs/week-turnover.md) and [`planner`](../../api/specs/planner.md) slices (all built), and on a small API change: [API #45](https://github.com/jan-mcsparin/goals-to-actions-api/issues/45) (decision 1 below).
 
 ## Objective
 
@@ -84,11 +84,11 @@ export async function placeTask(taskId: string, week: string, day: string): Prom
 
 ## Success criteria
 
-- [ ] Every acceptance criterion on #42 is met.
-- [ ] With the switch on real, Today, any day, Week, the bank, Keep life running, the tab's bars and recurring lines, an aspiration's page and the Add sheet's Task and Recurring forms work on the API; with it off, on mock, looking as they do now.
-- [ ] `getDay` and `getBank` are gone; Today and the bank are drawn from the week.
-- [ ] No hand-written week, day, bank or new-task type is left in `types.ts`; `taskWeek` is gone from `domain/`.
-- [ ] `npm test`, `npm run lint`, `npm run build` pass.
+- [x] Every acceptance criterion on #42 is met.
+- [x] With the switch on real, Today, any day, Week, the bank, Keep life running, the tab's bars and recurring lines, an aspiration's page and the Add sheet's Task and Recurring forms work on the API; with it off, on mock, looking as they do now.
+- [x] `getDay` and `getBank` are gone; Today and the bank are drawn from the week.
+- [x] No hand-written week, day, bank or new-task type is left in `types.ts`; `taskWeek` is gone from `domain/`.
+- [x] `npm test`, `npm run lint`, `npm run build` pass.
 
 ## Settled with Jan, 2026-11-20
 
@@ -96,3 +96,22 @@ export async function placeTask(taskId: string, week: string, day: string): Prom
 2. **The mock keeps imitating the server until #43**: `atClose`, `stillMatters`, what wrap-up does, and shared decision 12's bank tasks for a new goal. It shrinks to what tests need when real becomes the default. None of it is in `domain/`. Shared decision 23 in the [map](README.md) is changed to say so.
 3. **The full-day mark is left out** of #42 and is its own issue, [#70](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/70).
 4. **A task due beyond the open weeks** is confirmed with "Saved. It joins the week it's due."
+
+## Checked, 2026-11-20
+
+**Mock, phone width (Chrome DevTools, Sonnet agent):** Today in both views, check off and uncheck, pull, back to bank, swap, "Still matter?" Keep, Week's bars, day lines and placing from its bank, and an opened later day all worked, with no console errors.
+
+**Real API, phone width** (`npm run dev:real`, the API on PR jan-mcsparin/goals-to-actions-api#46, signed in with `tools/soft-passkey.js` and a one-time code):
+- Today read `GET /api/weeks/2026-11-16`.
+- Adding a task worked on Today, in the bank, and due six weeks out in the bank ("Saved. It joins the week it's due.").
+- Check off, uncheck, pull, back to bank, swap, placing from Week's bank, and pulling on an opened Saturday each reached their route with a 200, and each held after a reload.
+- Two recurring items were added, one under Be Fit and one with none. They showed on the tab's recurring line and on Keep life running.
+- The tab and Be Fit's page counted "0 of 3 this week" from the week's goals.
+- Keep life running placed each loose task, the waiting one as "Later · due Jan 1".
+- Offline, a check-off and a pull each showed "Couldn't save that. Try again." and put back what was shown.
+- No console errors.
+- Not checkable on a Friday: "Still matter?" (no task was asking), Next week and wrap-up (from Sunday 6 p.m.).
+
+Noticed, not changed:
+- After a reload, untimed tasks on Today can come back in the API's order (by when they were added) instead of where a pull or swap put them.
+- Each save re-reads the week, the aspirations, goals and recurring items more than once. Reading once is #43's.

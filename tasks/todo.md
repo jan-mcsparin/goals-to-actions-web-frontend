@@ -146,10 +146,10 @@ Every front-end task:
 **Description:** `CLAUDE.md`: `realPlan.ts`; the generated types list; `domain/` described without planning or rollover rules (the server's, ADR-008). `../docs/` wherever a described behaviour moved (a separate docs-repo PR if so). Then the checks, recorded in the spec's Checked section.
 
 **Acceptance criteria:**
-- [ ] Sonnet agent, real (`npm run dev:real`, Jan's API), phone width: the spec's manual list. Each change still there after a reload; with the API off, each action shows "Couldn't save that. Try again." and puts back what was shown.
-- [ ] Sonnet agent, mock: Checkpoint A's list again.
-- [ ] Build, lint and tests pass.
-- [ ] PR opened, closing #42; specs README moves 042 to Done.
+- [x] Sonnet agent, real (`npm run dev:real`, Jan's API), phone width: the spec's manual list. Each change still there after a reload; with the API off, each action shows "Couldn't save that. Try again." and puts back what was shown.
+- [x] Sonnet agent, mock: Checkpoint A's list again.
+- [x] Build, lint and tests pass.
+- [x] PR opened, closing #42; specs README moves 042 to Done.
 
 **Files:** `CLAUDE.md`, `specs/042-plan-screens-on-api.md`, `specs/README.md`
 

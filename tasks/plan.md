@@ -55,7 +55,7 @@ API #45 (aspiration + fixedDay on tasks and week goals)
 - [x] Task 9: The tab's bars from the week's goals
 
 ### Checkpoint B: complete
-- [ ] Task 10: Docs, then manual checks on real and mock, then the PR
+- [x] Task 10: Docs, then manual checks on real and mock, then the PR
 
 ## Risks and mitigations
 

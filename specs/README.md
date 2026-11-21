@@ -16,6 +16,7 @@ One spec per issue, numbered like the issue. This file is the index and the map 
 | [007 Settings screen](007-settings-screen.md) | #7 |
 | [040 API client foundation](040-api-client-foundation.md) | #40 |
 | [041 Setup screens on the API](041-setup-screens-on-api.md) | #41 |
+| [042 Today, Week and the bank on the API](042-plan-screens-on-api.md) | #42 |
 
 ## Remaining (drafted 2026-11-10)
 
@@ -37,7 +38,7 @@ The API is built in twelve slices ([its map](../../api/specs/README.md)). After 
 |---|---|---|---|---|
 | `api-client-foundation` | [040](040-api-client-foundation.md) | #40 | Generated types, the mock/real switch, the Aspirations tab on real data (done) | `aspirations` |
 | `setup-screens-on-api` | [041](041-setup-screens-on-api.md) | #41 | Aspirations, aspiration and goal screens, and the Add sheet's goal form, on real data (done) | `milestones-check-ins` |
-| `plan-screens-on-api` | [042](042-plan-screens-on-api.md) | #42 | Today, Week and the bank; planning rules leave `domain/` (ADR-008) | `planner` |
+| `plan-screens-on-api` | [042](042-plan-screens-on-api.md) | #42 | Today, Week and the bank; planning rules leave `domain/` (ADR-008) (done) | `planner` |
 | `api-by-default` | written then | #43 | Settings, the stored plan, the offline queue; real becomes the default | `settings-sync` |
 
 `install-instant-open` (#8) still goes last, after #43.
