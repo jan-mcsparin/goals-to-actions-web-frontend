@@ -39,9 +39,22 @@ The API is built in twelve slices ([its map](../../api/specs/README.md)). After 
 | `api-client-foundation` | [040](040-api-client-foundation.md) | #40 | Generated types, the mock/real switch, the Aspirations tab on real data (done) | `aspirations` |
 | `setup-screens-on-api` | [041](041-setup-screens-on-api.md) | #41 | Aspirations, aspiration and goal screens, and the Add sheet's goal form, on real data (done) | `milestones-check-ins` |
 | `plan-screens-on-api` | [042](042-plan-screens-on-api.md) | #42 | Today, Week and the bank; planning rules leave `domain/` (ADR-008) (done) | `planner` |
-| `api-by-default` | written then | #43 | Settings, the stored plan, the offline queue; real becomes the default | `settings-sync` |
+| `api-by-default` | 043a–d (below) | #43 | Settings, the stored plan, the offline queue; real becomes the default | `settings-sync` |
 
 `install-instant-open` (#8) still goes last, after #43.
+
+### #43 in four parts (drafted 2026-11-20)
+
+#43 bundles four pieces that ship and are checked on their own, so it has four specs and four PRs, each "Part of #43".
+
+| Module id | Spec | Responsibility | Depends on |
+|---|---|---|---|
+| `real-by-default` | [043a](043a-real-by-default.md) | Real is the default, Settings on the API, each list read once | — |
+| `stored-week-and-queue` | [043b](043b-stored-week-and-queue.md) | The week stored on the phone, the queue replayed over it and sent in order (ADR-010) | `real-by-default` |
+| `other-screens-offline` | [043c](043c-other-screens-offline.md) | Every other screen opens from its last response; a failed load never empties a screen | `real-by-default`, `stored-week-and-queue` (its storage) |
+| `sign-in-around-the-queue` | [043d](043d-sign-in-around-the-queue.md) | The session-ended sheet and banner, sign-out that sends first and clears (ADR-012) | `stored-week-and-queue`, `other-screens-offline` |
+
+Build order: 043a → 043b → 043c → 043d. #43's quitting-goal and delete criteria move to #37 and #38, which build those screens. Its phone checks go with #8.
 
 ## Decisions shared by these specs
 
