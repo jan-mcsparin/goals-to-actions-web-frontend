@@ -1,6 +1,6 @@
 # Spec: Real by default (#43, part a)
 
-Status: draft 2026-11-20. The first of four parts of [#43](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/43) (module `api-by-default` in the [map](README.md)): **a real by default** → b [stored week and queue](043b-stored-week-and-queue.md) → c [other screens offline](043c-other-screens-offline.md) → d [sign-in around the queue](043d-sign-in-around-the-queue.md). Depends on the API's [`settings-sync`](../../api/specs/settings-sync.md) slice (built).
+Status: built 2026-11-20; plan in [`../tasks/plan.md`](../tasks/plan.md). The first of four parts of [#43](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/43) (module `api-by-default` in the [map](README.md)): **a real by default** → b [stored week and queue](043b-stored-week-and-queue.md) → c [other screens offline](043c-other-screens-offline.md) → d [sign-in around the queue](043d-sign-in-around-the-queue.md). Depends on the API's [`settings-sync`](../../api/specs/settings-sync.md) slice (built).
 
 ## Objective
 
@@ -86,3 +86,12 @@ export async function setIntensity(intensity: Intensity): Promise<Settings> {
 
 1. **The mock stays whole.** Tests and the click-through use all of it; it can go later if it gets in the way.
 2. **The double reads are traced first,** with the network log, in the plan's first task; the fix follows what that finds.
+
+## Checked, 2026-11-20
+
+By a Sonnet agent with Chrome DevTools at 390×844, against the local API (dev server, so StrictMode runs each effect twice):
+
+- Settings showed the API's intensity; a change was saved (`PUT /settings/intensity`, 200) and kept after a reload; set back after.
+- Each screen's reads, each twice from StrictMode and no more: Today and Week `GET /weeks/{monday}`; the Aspirations tab and an aspiration's page aspirations, goals, recurring items and the week; a goal `GET /goals/{id}`; Keep life running recurring items, the week and upcoming; Settings `GET /settings`; the Add sheet aspirations and goals only (no recurring items, no week).
+- One extra `GET /settings` was seen once, going back from Settings after a save. No code path reads settings there (the screen reads on opening only, a save doesn't read again); not reproduced, left as is.
+- No console errors.
