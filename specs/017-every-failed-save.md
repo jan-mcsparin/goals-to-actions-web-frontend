@@ -1,6 +1,6 @@
 # Spec: Report every failed save
 
-Status: draft 2026-11-20; open questions below. Issue: [#17](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/17). Step 5 of the front-end hookup. The issue's comments hold the design (2026-11-12). This spec checks it against what has changed since: the plan screens' saves now go through the queue (043b), and every other screen opens from its stored response (043c).
+Status: draft 2026-11-20; questions settled with Jan the same day. Issue: [#17](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/17). Step 5 of the front-end hookup. The issue's comments hold the design (2026-11-12). This spec checks it against what has changed since: the plan screens' saves now go through the queue (043b), and every other screen opens from its stored response (043c).
 
 ## Objective
 
@@ -66,7 +66,9 @@ No browser check is needed beyond the agent's usual pass at phone width: with th
 - [ ] The same message failing twice shows twice.
 - [ ] The issue's hook tests added.
 
-## Open questions
+## Settled with Jan, 2026-11-20
+
+Both as recommended.
 
 1. **Leave `useDay` and `useWeek` out?** Recommended: yes. Their frequent saves are queued now, so "a failed save rolls back" no longer applies to them, and their other writes already report every failure. The issue's own comment left this to be decided "whether the offline queue covers it", and it does.
 2. **Close #17 with this,** including its "Done before #41" line, which is out of date? Recommended: yes. #41 shipped without it, and nothing since depends on it.

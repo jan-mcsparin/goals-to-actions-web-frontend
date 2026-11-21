@@ -1,6 +1,6 @@
 # Spec: Delete what was made by mistake
 
-Status: draft 2026-11-20; open questions below. Issue: [#38](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/38). Step 5 of the front-end hookup. The API side is built ([`api/specs/delete.md`](../../api/specs/delete.md)): five `DELETE` routes, and the server decides what goes with each.
+Status: draft 2026-11-20; questions settled with Jan the same day. Its recurring-item delete waits for #76 (decision 2). Issue: [#38](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/38). Step 5 of the front-end hookup. The API side is built ([`api/specs/delete.md`](../../api/specs/delete.md)): five `DELETE` routes, and the server decides what goes with each.
 
 ## Objective
 
@@ -74,7 +74,9 @@ As spec 042. Sheets use the native `<dialog>` pattern (`components/sheet.css`, `
 - [ ] Delete and Drop are worded so they can't be confused.
 - [ ] API client functions, mock and tests added; docs updated.
 
-## Open questions
+## Settled with Jan, 2026-11-20
+
+All as recommended.
 
 1. **The places in item 1.** Recommended as listed. A task has no page of its own, so its More menu and the bank's sheet are where it can be reached. A milestone row isn't tappable today unless it's Next, so this makes every milestone row open a small sheet.
 2. **Where a recurring item's Delete goes.** Today a recurring item can only be added: its rows on an aspiration's page and on Keep life running don't open anything. #76 (edit a recurring item) will add a sheet that opens from those rows. Recommended: **build #76 first, or together with this**, and put Delete at the bottom of its edit sheet, as for an aspiration. The alternative, a delete-only sheet now that #76 later replaces, builds a screen twice.
