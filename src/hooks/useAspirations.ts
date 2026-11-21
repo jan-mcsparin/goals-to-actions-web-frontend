@@ -12,7 +12,7 @@ export type UseAspirations = {
 }
 
 export function useAspirations(): UseAspirations {
-  const { data: overview, message } = useLoaded(getAspirations, LOAD_FAILED)
+  const { data: overview, message } = useLoaded('aspirations', getAspirations, LOAD_FAILED)
 
   return { view: overview && aspirationsView(overview), message }
 }

@@ -12,7 +12,7 @@ export type UseUpkeep = {
 }
 
 export function useUpkeep(today: string): UseUpkeep {
-  const { data: upkeep, message } = useLoaded(getUpkeep, LOAD_FAILED)
+  const { data: upkeep, message } = useLoaded('upkeep', getUpkeep, LOAD_FAILED)
 
   return { view: upkeep && upkeepView(upkeep, today), message }
 }
