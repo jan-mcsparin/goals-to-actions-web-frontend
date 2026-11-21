@@ -83,6 +83,19 @@ describe('Week', () => {
     expect(days[6].textContent).toContain('Free day')
   })
 
+  it('marks a full day quietly, and a done day as done', async () => {
+    const mockWeek = vi.mocked(getWeek).getMockImplementation()!
+    vi.mocked(getWeek).mockImplementationOnce(async (week) => {
+      const plan = await mockWeek(week)
+      return { ...plan, days: plan.days.map((day) => ({ ...day, full: day.day <= '2026-11-12' })) }
+    })
+    render(<Week today={WEDNESDAY_DAY} onOpenDay={() => {}} />)
+    await screen.findByRole('region', { name: 'Days' })
+
+    const marks = dayButtons().map((day) => day.querySelector('.week-day-mark')?.textContent ?? null)
+    expect(marks).toEqual(['done', 'Full', 'Full', 'Full', null, null, null])
+  })
+
   it('opens a day when you tap it', async () => {
     const onOpenDay = vi.fn()
     const user = userEvent.setup()

@@ -155,7 +155,7 @@ function DayRow({ day, onOpen }: { day: DaySummary; onOpen: () => void }) {
       >
         <span className="week-day-name">{day.weekday}</span>
         <span className="week-day-summary">{day.summary}</span>
-        {day.allDone && <span className="week-day-done">done</span>}
+        {day.allDone ? <span className="week-day-mark">done</span> : day.full && <span className="week-day-mark">Full</span>}
       </button>
     </li>
   )

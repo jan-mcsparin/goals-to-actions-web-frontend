@@ -25,6 +25,8 @@ export type DaySummary = {
   weekday: string
   summary: string
   allDone: boolean
+  // At the cap set by intensity, as the week read says. A guide only: nothing is refused.
+  full: boolean
   isToday: boolean
   isPast: boolean
 }
@@ -80,6 +82,7 @@ export function daySummaries(plan: Week, today: string): DaySummary[] {
       weekday: fromLocalDay(date).toLocaleDateString('en-US', { weekday: 'short' }),
       summary: tasks.length ? tasks.map(summaryTitle).join(' · ') : 'Free day',
       allDone: tasks.length > 0 && tasks.every(isDone),
+      full: plan.days.some((day) => day.day === date && day.full),
       isToday: date === today,
       isPast: date < today,
     }
