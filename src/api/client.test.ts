@@ -1677,7 +1677,7 @@ describe('the mock or real switch', () => {
     return fetchMock.mock.calls.map(([url, init]) => `${init?.method} ${String(url).replace(/[0-9a-f-]{36}/, '{id}')}`)
   }
 
-  it('keeps everything on the mock by default', async () => {
+  it('keeps everything on the mock with VITE_API=mock, as in every test', async () => {
     await getAspirations()
     await getGoal('goal-strong')
     await getWeek()
@@ -1685,7 +1685,7 @@ describe('the mock or real switch', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('sends the aspiration and goal functions to the API with VITE_API=real, and leaves the rest on the mock', async () => {
+  it('sends the aspiration, goal and settings functions to the API with VITE_API=real', async () => {
     vi.stubEnv('VITE_API', 'real')
     vi.resetModules()
     const client = await import('./client.ts')
@@ -1703,10 +1703,10 @@ describe('the mock or real switch', () => {
       await change('g1')
     }
     await client.getSettings()
+    await client.setIntensity('goingHard')
 
-    // The four reads behind each aspiration screen go out together, in any order. Settings
-    // stays on the mock until #43.
-    expect(paths()).toHaveLength(21)
+    // The four reads behind each aspiration screen go out together, in any order.
+    expect(paths()).toHaveLength(23)
     expect(paths()).toEqual(
       expect.arrayContaining([
         'GET /api/aspirations',
@@ -1725,6 +1725,8 @@ describe('the mock or real switch', () => {
         'POST /api/goals/g1/mark-reached',
         'POST /api/goals/g1/reopen',
         'POST /api/goals/g1/go-again',
+        'GET /api/settings',
+        'PUT /api/settings/intensity',
       ]),
     )
   })
