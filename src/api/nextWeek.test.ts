@@ -3,7 +3,6 @@ import {
   answerStillMatters,
   checkOffTask,
   getWeek,
-  NotFoundError,
   placeTask,
   wrapUpWeek,
 } from './client.ts'
@@ -37,7 +36,8 @@ describe('getWeek and next week', () => {
     const week = await getWeek()
 
     expect(week).toMatchObject({ week: THIS_WEEK, isCurrent: true, nextWeekOpen: false })
-    await expect(getWeek(NEXT_WEEK)).rejects.toThrow(NotFoundError)
+    // As the API does: a week not open yet reads with nothing in it, not as missing.
+    expect(await getWeek(NEXT_WEEK)).toMatchObject({ week: NEXT_WEEK, isCurrent: false, tasks: [] })
   })
 
   it('opens next week from 6 p.m. on Sunday, not before', async () => {
@@ -67,8 +67,8 @@ describe('getWeek and next week', () => {
     expect(bank.tasks.every((task) => task.week === THIS_WEEK)).toBe(true)
   })
 
-  it("reads next week's bank once it's open, and not before", async () => {
-    await expect(readBank(NEXT_WEEK)).rejects.toThrow(NotFoundError)
+  it("reads next week's bank once it's open, and empty before", async () => {
+    expect((await readBank(NEXT_WEEK)).tasks).toEqual([])
 
     at(SUNDAY_EVENING)
     const bank = await readBank(NEXT_WEEK)
@@ -116,6 +116,14 @@ describe('wrapUpWeek', () => {
     expect(dentist).toMatchObject({ week: NEXT_WEEK, plannedDay: null, carriedOver: 3, state: 'open' })
     expect(next.tasks.map((task) => task.id)).not.toContain('task-lift-bank')
     expect((await getWeek()).week).toBe(NEXT_WEEK)
+  })
+
+  // Today on that Sunday reads the week it's in, which has just closed.
+  it('still reads the week it closed, as no longer current', async () => {
+    at(SUNDAY_EVENING)
+    await wrapUpWeek(THIS_WEEK)
+
+    expect(await getWeek(THIS_WEEK)).toMatchObject({ week: THIS_WEEK, isCurrent: false })
   })
 
   it('changes nothing when sent again', async () => {

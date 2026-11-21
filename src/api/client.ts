@@ -62,17 +62,18 @@ export async function uncheckTask(taskId: string): Promise<Task> {
   return taskOut(task)
 }
 
-// The current week, or next week once it's open. Anything else isn't there to read. Its goals
-// are the active building goals with a target that week, as the API sends them.
+// Any week, as the API reads it: one that hasn't opened yet has nothing in it (the mock keeps
+// next week's tasks ready before then). Its goals are the active building goals with a target
+// that week.
 export async function getWeek(asked?: string): Promise<Week> {
   if (realApi) return realPlan.getWeek(asked)
   const week = asked ?? thisWeek()
   const current = thisWeek()
   const isCurrent = week === current
   const open = nextWeekOpen()
-  if (!isCurrent && !(open && week === weekAfter(current))) throw new NotFoundError(`No week ${week}`)
+  const notOpenYet = week > current && !(open && week === weekAfter(current))
 
-  const tasks = shown(store.tasks.filter((task) => task.week === week))
+  const tasks = notOpenYet ? [] : shown(store.tasks.filter((task) => task.week === week))
   return structuredClone({
     week,
     isCurrent,
