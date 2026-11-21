@@ -47,6 +47,8 @@ export default defineConfig({
     }),
   ],
   test: {
+    // Every test runs on the mock, so none reaches the network.
+    env: { VITE_API: 'mock' },
     // Plain-TS tests run in Node; component and hook tests (.tsx) need a DOM.
     projects: [
       {

@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  // 'real' sends the screens already on the API to it (npm run dev:real);
-  // anything else, or nothing, keeps the whole app on mock data.
+  // 'mock' runs the whole app on mock data (npm run dev:mock, and every test);
+  // anything else, or nothing, talks to the API.
   readonly VITE_API?: string
 }
 
