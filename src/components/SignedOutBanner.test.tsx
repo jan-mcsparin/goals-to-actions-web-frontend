@@ -14,6 +14,12 @@ describe('SignedOutBanner', () => {
     expect(screen.getByText(line)).toBeDefined()
   })
 
+  it('announces only its line, not the button, as the count changes', () => {
+    render(<SignedOutBanner waiting={2} onSignIn={() => {}} />)
+
+    expect(screen.getByRole('status').textContent).toBe('Not signed in · 2 changes waiting')
+  })
+
   it('opens the passkey from Sign in, held while signing in', async () => {
     const onSignIn = vi.fn()
     const user = userEvent.setup()

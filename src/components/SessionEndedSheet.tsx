@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { safeLine } from '../domain/session.ts'
 import { FaceIdIcon } from './FaceIdIcon.tsx'
 import { LogoMark } from './LogoMark.tsx'
 import './SessionEndedSheet.css'
@@ -46,11 +47,4 @@ export function SessionEndedSheet({ open, waiting, busy, message, onSignIn, onNo
       </div>
     </dialog>
   )
-}
-
-function safeLine(waiting: number): string {
-  const safe = 'Everything you did is safe on this phone'
-  if (waiting === 0) return `${safe}.`
-  const changes = waiting === 1 ? '1 change' : `${waiting} changes`
-  return `${safe}: ${changes} will send as soon as you're back in.`
 }

@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { unsentLine } from '../domain/session.ts'
 import './editForm.css'
 import './SignOutSheet.css'
 import './sheet.css'
@@ -46,8 +47,4 @@ export function SignOutSheet({ open, busy, unsent, onSignOut, onClose }: SignOut
       </div>
     </dialog>
   )
-}
-
-function unsentLine(unsent: number): string {
-  return unsent === 1 ? "1 change hasn't been sent yet." : `${unsent} changes haven't been sent yet.`
 }
