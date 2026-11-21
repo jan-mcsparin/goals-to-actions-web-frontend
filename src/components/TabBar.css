@@ -14,10 +14,13 @@
 
 .tab-bar button {
   min-height: var(--tab-bar-height);
+  padding: 0 0.25rem;
   border: none;
   background: transparent;
   color: var(--muted);
   font: inherit;
+  /* Small enough that "Aspirations" keeps clear of the edge at iPhone width. */
+  font-size: 0.875rem;
 }
 
 .tab-bar button[aria-current='page'] {
