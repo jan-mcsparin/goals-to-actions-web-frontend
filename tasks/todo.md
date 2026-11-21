@@ -4,4 +4,4 @@
 - [x] 2. Session ended vs signed out
 - [x] 3. Sign-out sends first
 - [x] 4. Sheet, banner and App
-- [ ] 5. Docs and the browser check
+- [x] 5. Docs and the browser check

@@ -11,11 +11,11 @@ React + Vite + TypeScript, client-rendered, no SSR. PWA via vite-plugin-pwa (man
 ```
 src/
   config.ts        APP_NAME and other product constants (the only place the name appears in code)
-  api/             API client functions + types. openapi.ts is generated; realAspirations.ts, realGoals.ts, realPlan.ts and realSettings.ts are the parts on the real API; queue.ts sends the queued plan changes in order (ADR-010); signIn.ts signs in with a passkey
+  api/             API client functions + types. openapi.ts is generated; realAspirations.ts, realGoals.ts, realPlan.ts and realSettings.ts are the parts on the real API; queue.ts sends the queued plan changes in order (ADR-010); stored.ts says whether anything of the person's is stored and clears it all on sign-out (ADR-012); signIn.ts signs in with a passkey
   domain/          plain TS: what screens show, drawn from what the API sends (a day and the bank from the week, grouping, wording, pacing lines), and how a change shows before the API answers. No planning or rollover rules: the server owns those (ADR-008). No React imports. Unit-tested.
   storage/         On-device storage: the week documents, the queue and every other read's last response in IndexedDB (planStore.ts, memory where there's none, as in tests); Today's view choice, the open screen and the like in localStorage
   hooks/           React hooks wrapping api/, domain/ and storage/
-  screens/         Day (Today and any opened day), Week, Aspirations, Aspiration, Upkeep (Keep life running), GoalDetail, Settings, SignIn (in place of the app while signed out); Add is a sheet
+  screens/         Day (Today and any opened day), Week, Aspirations, Aspiration, Upkeep (Keep life running), GoalDetail, Settings, SignIn (in place of the app while signed out with nothing stored; a session that ends over stored data keeps the screen, with the session-ended sheet, then a banner); Add is a sheet
   components/      presentational pieces only
 ```
 
