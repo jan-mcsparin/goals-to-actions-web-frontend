@@ -1,6 +1,6 @@
 # Spec: The stored week and the queue (#43, part b)
 
-Status: draft 2026-11-20. Part b of [#43](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/43): a [real by default](043a-real-by-default.md) → **b stored week and queue** → c [other screens offline](043c-other-screens-offline.md) → d [sign-in around the queue](043d-sign-in-around-the-queue.md). Depends on part a. The design is [ADR-010](../../docs/adr/0010-week-document-and-replayed-queue.md); the API's side is shared decisions 13 to 15 in [its map](../../api/specs/README.md). This is the part ADR-004's promise rests on, and the riskiest.
+Status: built 2026-11-20; plan in [`../tasks/plan.md`](../tasks/plan.md). Part b of [#43](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/43): a [real by default](043a-real-by-default.md) → **b stored week and queue** → c [other screens offline](043c-other-screens-offline.md) → d [sign-in around the queue](043d-sign-in-around-the-queue.md). Depends on part a. The design is [ADR-010](../../docs/adr/0010-week-document-and-replayed-queue.md); the API's side is shared decisions 13 to 15 in [its map](../../api/specs/README.md). This is the part ADR-004's promise rests on, and the riskiest.
 
 ## Objective
 
@@ -107,3 +107,22 @@ export function replay(week: Week, changes: Change[]): Week {
 2. **An added task shows where we think it will go anyway:** on its day when it was added to one in a stored week; otherwise in the current week's bank, or a stored later week's bank when its due date falls there; not on the plan when due beyond the stored weeks ("Saved. It joins the week it's due."). Display only, replaced by the server's answer (ADR-008).
 3. **A 422 shows the same line,** "N changes waiting to send".
 4. **Wrap-up waits for the queue** like any other write, so it sees every check-off first. Expected to be rare.
+
+## Built differently, or noted while building
+
+- **A write that isn't queued waits for the send under way,** and goes anyway if that send failed (the queue is stuck), so one stuck change never blocks Settings or a goal (plan, architecture decisions; ADR-010's Built note).
+- **After a swap, the bank task holds the other's place until the week is read again;** then the day is in the order the read gives (the server's). The same goes for any task once sent.
+- **A task due after the open weeks** says "Saved. It joins the week it's due." on mock too, as the API does (the mock used to file it under its later week).
+- **The mock answers like the API:** `RefusedError` where the API answers 409, `NotFoundError` for a task that isn't there.
+
+## Checked, 2026-11-20
+
+By a Sonnet agent with Chrome DevTools at 390×844, against the local API:
+
+- **Stored week:** this week's document was in IndexedDB; on Slow 3G, Today's list showed about 2 s before the fresh week read finished.
+- **Offline:** a check-off, back to bank, a pull and an added task each showed at once with no failed-save message; the queue held the four in order; "1 change waiting to send" rose to "4 changes waiting to send".
+- **Back online:** sent in order (check-off, bank, place, PUT task, each 200), then the week read; the queue emptied, the line went, nothing flickered back, and a reload matched (within a group, the server's order).
+- **A change made moot:** with check-off sends failing, a check-off waited ("1 change waiting to send"); the task was deleted through the API; once sends worked, the check-off got a 404 and was dropped with no message, and the task left Today.
+- **Other writes offline:** intensity showed "Couldn't save that. Try again." and went back.
+- **Week:** placing a bank chip on Saturday showed at once and sent `POST /place` (200).
+- No console errors from the app. Offline, Today's fresh read failing also announces "Couldn't load today. Try again in a moment." while the stored week shows; 043c settles how a failed load reads with data on screen.
