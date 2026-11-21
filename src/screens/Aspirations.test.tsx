@@ -161,6 +161,23 @@ describe('Aspirations', () => {
     expect(screen.queryByRole('status')).toBeNull()
   })
 
+  it('opens from what it last showed when loading fails, and stays once the message is tapped', async () => {
+    fakeTimeouts()
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    const first = render(<Aspirations onOpenAspiration={vi.fn()} onOpenGoal={vi.fn()} onOpenUpkeep={vi.fn()} onOpenSettings={vi.fn()} />)
+    await screen.findByRole('region', { name: 'Be fit' })
+    await act(async () => {})
+    first.unmount()
+
+    vi.mocked(getAspirations).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    renderTab()
+
+    await screen.findByRole('region', { name: 'Be fit' })
+    await user.click(await screen.findByRole('button', { name: "Couldn't load your aspirations. Try again in a moment." }))
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.getByRole('region', { name: 'Be fit' })).toBeDefined()
+  })
+
   it('never mentions pace or being behind', async () => {
     renderTab()
     await screen.findByRole('region', { name: 'Be fit' })
