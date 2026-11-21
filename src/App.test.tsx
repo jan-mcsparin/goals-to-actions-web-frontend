@@ -1,10 +1,16 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { resumeGoal, retireAspiration } from './api/client.ts'
+import { resumeGoal, retireAspiration, uncheckTask } from './api/client.ts'
+import { enqueue, flush } from './api/queue.ts'
 import { resetStore, store } from './api/mockStore.ts'
 import { signedOut } from './api/session.ts'
 import App from './App.tsx'
+
+vi.mock('./api/client.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./api/client.ts')>()
+  return { ...actual, uncheckTask: vi.fn(actual.uncheckTask) }
+})
 
 // Wednesday 11 Nov 2026, 9 a.m. local time.
 beforeEach(() => {
@@ -647,6 +653,34 @@ it('keeps a new intensity after leaving Settings and coming back', async () => {
   await user.click(await screen.findByRole('button', { name: 'Settings' }))
 
   expect(((await screen.findByRole('radio', { name: 'Going hard' })) as HTMLInputElement).checked).toBe(true)
+})
+
+describe('the queue', () => {
+  it('sends what was waiting when the app opens', async () => {
+    vi.mocked(uncheckTask).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await enqueue({ kind: 'uncheck', id: 'c1', taskId: 'no-such-task' })
+    await flush()
+    vi.mocked(uncheckTask).mockClear()
+
+    render(<App />)
+    await screen.findByRole('heading', { level: 1, name: 'Today · Wednesday' })
+
+    await waitFor(() => expect(uncheckTask).toHaveBeenCalledWith('no-such-task'))
+  })
+
+  it('sends what was waiting once signed in again', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { level: 1, name: 'Today · Wednesday' })
+    vi.mocked(uncheckTask).mockRejectedValueOnce(new Error('POST /tasks/t1/uncheck: 401'))
+    await act(async () => enqueue({ kind: 'uncheck', id: 'c1', taskId: 'no-such-task' }))
+    act(() => signedOut())
+    vi.mocked(uncheckTask).mockClear()
+
+    await user.click(screen.getByRole('button', { name: 'Sign in with Face ID' }))
+
+    await waitFor(() => expect(uncheckTask).toHaveBeenCalledWith('no-such-task'))
+  })
 })
 
 describe('signing in', () => {

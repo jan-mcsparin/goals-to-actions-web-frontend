@@ -69,7 +69,7 @@ export function useSession(onSignedIn: () => void): UseSession {
     countSignIn()
     setStep('signIn')
     setSignedIn(true)
-    // #43: send the queue now.
+    // App sends the queue, then loads the open screen again.
     onSignedIn()
   }
 

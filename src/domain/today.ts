@@ -53,6 +53,11 @@ export function dayHeading(day: string, today: string): string {
   return `${weekday} · ${calendarDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
 }
 
+// Today's one quiet line while changes wait after a failed send (ADR-010).
+export function waitingLine(count: number): string {
+  return count === 1 ? '1 change waiting to send' : `${count} changes waiting to send`
+}
+
 export function progress(plan: Day): Progress {
   return countDone(visibleTasks(plan))
 }

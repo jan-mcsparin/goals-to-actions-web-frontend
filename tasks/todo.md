@@ -10,5 +10,5 @@ Plan: [`plan.md`](plan.md).
 - [x] 6. Today and a day on the queue (`useDay`)
 - [x] 7. Week on the queue (`useWeek`)
 - [x] 8. Add a task on the queue (`useAdd`)
-- [ ] 9. The quiet line and the triggers
+- [x] 9. The quiet line and the triggers
 - [ ] 10. Docs and the browser check

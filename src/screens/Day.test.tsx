@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { answerStillMatters, getWeek, placeTask } from '../api/client.ts'
+import { answerStillMatters, checkOffTask, getWeek, placeTask } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import { Day } from './Day.tsx'
 
@@ -101,6 +101,20 @@ describe('Day', () => {
 
     act(() => vi.advanceTimersByTime(5000))
     expect(screen.queryByRole('status')).toBeNull()
+  })
+
+  it('says quietly how many changes wait once a send has failed, and only then', async () => {
+    vi.mocked(checkOffTask).mockRejectedValue(new Error('offline'))
+    const user = userEvent.setup()
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+    expect(await screen.findByRole('checkbox', { name: 'Laundry' })).toBeDefined()
+    expect(screen.queryByText(/waiting to send/)).toBeNull()
+
+    await user.click(screen.getByRole('checkbox', { name: 'Laundry' }))
+
+    expect(await screen.findByText('1 change waiting to send')).toBeDefined()
+    expect(screen.queryByRole('status')).toBeNull()
+    vi.mocked(checkOffTask).mockReset()
   })
 
   it("keeps a load failure until it's tapped", async () => {

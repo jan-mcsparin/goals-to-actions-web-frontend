@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { toLocalDay } from './api/dates.ts'
+import { flush, installTriggers } from './api/queue.ts'
 import { AddSheet } from './components/AddSheet.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import { ScreenMessage } from './components/ScreenMessage.tsx'
@@ -31,9 +32,21 @@ function App() {
   const { revision, bump } = useRevisionCounter()
   const [confirmation, setConfirmation] = useState<string>()
   const shownConfirmation = useFleetingMessage(confirmation)
-  // Signed out, the sign-in page takes the app's place; signing in loads the
-  // open screen again.
-  const session = useSession(bump)
+  // Signed out, the sign-in page takes the app's place; signing in sends what
+  // waited (ADR-010) and loads the open screen again.
+  const session = useSession(
+    useCallback(() => {
+      void flush()
+      bump()
+    }, [bump]),
+  )
+
+  // What waited is sent on opening, on coming back to the front and when the
+  // network is back; each new change sends too (api/queue.ts).
+  useEffect(() => {
+    void flush()
+    return installTriggers()
+  }, [])
 
   // Cleared on open, so the same line after the next save shows again.
   function openAdd(opening: Partial<AddOrigin> = {}) {

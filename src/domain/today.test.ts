@@ -10,6 +10,7 @@ import {
   groupForList,
   progress,
   timeLabel,
+  waitingLine,
   type Day,
 } from './today.ts'
 import { aTask } from '../test/tasks.ts'
@@ -257,6 +258,13 @@ describe('groupByGoal', () => {
     const sections = groupForList(plan([task('Lift', { goalId: 'goal-strong' })]))
 
     expect(sections[0].progress).toBeUndefined()
+  })
+})
+
+describe('waitingLine', () => {
+  it('counts the changes waiting to send, one or many', () => {
+    expect(waitingLine(1)).toBe('1 change waiting to send')
+    expect(waitingLine(3)).toBe('3 changes waiting to send')
   })
 })
 

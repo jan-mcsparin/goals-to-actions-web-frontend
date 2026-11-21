@@ -21,12 +21,14 @@ import {
   type Day,
   type Section,
   type TaskRow,
+  waitingLine,
 } from '../domain/today.ts'
 import { checkOffAt, isDone, weekOf } from '../domain/tasks'
 import { pickableDays, type PickableDay } from '../domain/week.ts'
 import { planStore } from '../storage/planStore.ts'
 import { readNotNow, saveNotNow } from '../storage/stillMattersNotNow.ts'
 import { readTodayView, saveTodayView, type TodayViewMode } from '../storage/viewPreference.ts'
+import { useQueue } from './useQueue.ts'
 import { useStoredWeeks, type WeeksRead } from './useStoredWeeks.ts'
 
 const LOAD_FAILED = "Couldn't load today. Try again in a moment."
@@ -58,6 +60,8 @@ export type UseDay = {
   day?: DayView
   // On Today only, and only what hasn't been waved off for the day.
   asking: StillMattersAsk[]
+  // On Today only, while changes wait after a failed send: "3 changes waiting to send".
+  waiting?: string
   message?: string
   view: TodayViewMode
   setView: (view: TodayViewMode) => void
@@ -83,6 +87,7 @@ export function useDay(date: string, today: string): UseDay {
   const monday = mondayOfDay(date)
   const read = useMemo(() => weekRead(monday), [monday])
   const { weeks, message, setMessage, reload } = useStoredWeeks(read, LOAD_FAILED)
+  const queue = useQueue()
   const [view, setViewState] = useState(readTodayView)
   const [notNow, setNotNow] = useState(() => readNotNow(today))
   // "Still matter?" answers on their way: their cards are hidden meanwhile.
@@ -169,6 +174,7 @@ export function useDay(date: string, today: string): UseDay {
     heading: dayHeading(date, today),
     day: plan && viewOf(plan, view, today),
     asking: date === today ? asked.map(askAbout) : [],
+    waiting: date === today && queue.stalled ? waitingLine(queue.waiting) : undefined,
     message,
     view,
     setView,
