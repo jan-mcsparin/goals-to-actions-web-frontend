@@ -1685,7 +1685,7 @@ describe('the mock or real switch', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('sends the aspiration, goal and settings functions to the API with VITE_API=real', async () => {
+  it('sends the aspiration, goal, settings and Add-sheet choice functions to the API with VITE_API=real', async () => {
     vi.stubEnv('VITE_API', 'real')
     vi.resetModules()
     const client = await import('./client.ts')
@@ -1704,9 +1704,11 @@ describe('the mock or real switch', () => {
     }
     await client.getSettings()
     await client.setIntensity('goingHard')
+    await client.getChoices()
 
-    // The four reads behind each aspiration screen go out together, in any order.
-    expect(paths()).toHaveLength(23)
+    // The four reads behind each aspiration screen go out together, in any order; the Add
+    // sheet's choices read two of them.
+    expect(paths()).toHaveLength(25)
     expect(paths()).toEqual(
       expect.arrayContaining([
         'GET /api/aspirations',
