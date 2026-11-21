@@ -136,6 +136,27 @@ describe('enqueue and send', () => {
   })
 })
 
+describe('a change made while the queue is still loading', () => {
+  it('is sent without waiting for another trigger', async () => {
+    let release = () => {}
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    const kept = planStore().queue.entries
+    vi.spyOn(planStore().queue, 'entries').mockImplementation(async () => {
+      await gate
+      return kept()
+    })
+    void loadQueue() // a screen loads the queue on mount
+    void flush() // and App sends on opening
+
+    const tapped = enqueue(checkOff('c1'))
+    release()
+    await tapped
+
+    await vi.waitFor(() => expect(checkOffTask).toHaveBeenCalled())
+    await vi.waitFor(() => expect(waitingCount()).toBe(0))
+  })
+})
+
 describe('confirmed changes', () => {
   it('keep being replayed until a week read that started after them lands', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })

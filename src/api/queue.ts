@@ -109,10 +109,13 @@ function add(change: Change) {
   void flush()
 }
 
-// Sends what's waiting, from the first. A second call while sending joins it.
+// Sends what's waiting, from the first. A second call while sending joins it. A change
+// added as a send was finishing (the first tap while the queue loads) is sent by a new one,
+// unless that send stopped on a failure: then it waits for the next try.
 export function flush(): Promise<void> {
   sending ??= sendAll().finally(() => {
     sending = undefined
+    if (!stalled && waitingCount() > 0) void flush()
   })
   queueIsSending(sending)
   return sending
