@@ -713,7 +713,7 @@ describe('a session that ends over what is stored', () => {
     await act(async () => signedOut())
 
     const sheet = await screen.findByRole('dialog', { name: 'Sign in to keep saving' })
-    expect(sheet.textContent).toContain('1 change will send as soon as you’re back in.')
+    expect(sheet.textContent).toContain("1 change will send as soon as you're back in.")
     expect(screen.getByRole('heading', { level: 1, name: 'Today · Wednesday' })).toBeDefined()
 
     await user.click(within(sheet).getByRole('button', { name: 'Not now' }))

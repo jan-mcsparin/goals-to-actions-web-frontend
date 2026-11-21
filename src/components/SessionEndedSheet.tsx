@@ -52,5 +52,5 @@ function safeLine(waiting: number): string {
   const safe = 'Everything you did is safe on this phone'
   if (waiting === 0) return `${safe}.`
   const changes = waiting === 1 ? '1 change' : `${waiting} changes`
-  return `${safe}: ${changes} will send as soon as you’re back in.`
+  return `${safe}: ${changes} will send as soon as you're back in.`
 }

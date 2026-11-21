@@ -49,5 +49,5 @@ export function SignOutSheet({ open, busy, unsent, onSignOut, onClose }: SignOut
 }
 
 function unsentLine(unsent: number): string {
-  return unsent === 1 ? '1 change hasn’t been sent yet.' : `${unsent} changes haven’t been sent yet.`
+  return unsent === 1 ? "1 change hasn't been sent yet." : `${unsent} changes haven't been sent yet.`
 }

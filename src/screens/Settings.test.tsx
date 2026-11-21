@@ -194,8 +194,8 @@ describe('Settings, signing out', () => {
   })
 
   it.each([
-    [1, '1 change hasn’t been sent yet.'],
-    [3, '3 changes haven’t been sent yet.'],
+    [1, "1 change hasn't been sent yet."],
+    [3, "3 changes haven't been sent yet."],
   ])('warns with %i unsent, and the button reads Sign out anyway', async (unsent, line) => {
     const onSignOut = vi.fn()
     const user = userEvent.setup()

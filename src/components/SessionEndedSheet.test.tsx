@@ -10,8 +10,8 @@ function sheet() {
 describe('SessionEndedSheet', () => {
   it.each([
     [0, 'Everything you did is safe on this phone.'],
-    [1, 'Everything you did is safe on this phone: 1 change will send as soon as you’re back in.'],
-    [3, 'Everything you did is safe on this phone: 3 changes will send as soon as you’re back in.'],
+    [1, "Everything you did is safe on this phone: 1 change will send as soon as you're back in."],
+    [3, "Everything you did is safe on this phone: 3 changes will send as soon as you're back in."],
   ])('with %i waiting, says what is safe', (waiting, line) => {
     render(<SessionEndedSheet open waiting={waiting} onSignIn={() => {}} onNotNow={() => {}} />)
 
