@@ -674,7 +674,7 @@ describe('the queue', () => {
     await screen.findByRole('heading', { level: 1, name: 'Today · Wednesday' })
     vi.mocked(uncheckTask).mockRejectedValueOnce(new Error('POST /tasks/t1/uncheck: 401'))
     await act(async () => enqueue({ kind: 'uncheck', id: 'c1', taskId: 'no-such-task' }))
-    act(() => signedOut())
+    await act(async () => signedOut())
     vi.mocked(uncheckTask).mockClear()
 
     await user.click(screen.getByRole('button', { name: 'Sign in with Face ID' }))
@@ -689,7 +689,7 @@ describe('signing in', () => {
     render(<App />)
     await screen.findByRole('heading', { level: 1, name: 'Today · Wednesday' })
 
-    act(() => signedOut())
+    await act(async () => signedOut())
 
     expect(screen.getByRole('heading', { level: 1, name: 'Goals to Actions' })).toBeDefined()
     expect(screen.queryByRole('button', { name: 'Week' })).toBeNull()

@@ -33,11 +33,10 @@ function App() {
   const [confirmation, setConfirmation] = useState<string>()
   const shownConfirmation = useFleetingMessage(confirmation)
   // Signed out, the sign-in page takes the app's place; signing in sends what
-  // waited (ADR-010) and loads the open screen again.
+  // waited (ADR-010), then loads the open screen again.
   const session = useSession(
     useCallback(() => {
-      void flush()
-      bump()
+      void flush().finally(bump)
     }, [bump]),
   )
 
@@ -62,7 +61,7 @@ function App() {
     setConfirmation(line)
   }
 
-  if (!session.signedIn) return <SignIn session={session} />
+  if (session.status !== 'signedIn') return <SignIn session={session} />
 
   return (
     <DataRevision value={revision}>

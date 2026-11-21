@@ -1,9 +1,12 @@
 // Whether this device is signed in, and the sign-in page's steps: sign in
 // with a passkey, or enter a one-time code and add a passkey (ADR-012). The
 // app starts signed in; a 401 from any request (api/session.ts) says
-// otherwise. A step that doesn't finish says so calmly, never as an error.
+// otherwise. With something stored, the session has ended over what's shown
+// (a sheet, then after Not now a banner); with nothing, it's the sign-in page.
+// A step that doesn't finish says so calmly, never as an error.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { onSignedOut, signedIn as countSignIn } from '../api/session.ts'
+import { onSignedOut, signedIn as countSignIn, signIns } from '../api/session.ts'
+import { anythingStored } from '../api/stored.ts'
 import * as passkeys from '../api/signIn.ts'
 import type { SignInOutcome } from '../api/signIn.ts'
 import type { PasskeyOptions } from '../api/types.ts'
@@ -16,12 +19,17 @@ const UNREACHABLE = "Couldn't reach the app. Try again in a moment."
 
 export type SignInStep = 'signIn' | 'code' | 'addPasskey'
 
+export type SessionStatus = 'signedIn' | 'sessionEnded' | 'signedOut'
+
 export type UseSession = {
-  signedIn: boolean
+  status: SessionStatus
+  // With the session ended: the sheet, rather than the banner.
+  askingToSignIn: boolean
   step: SignInStep
   busy: boolean
   message?: string
   signIn: () => Promise<void>
+  notNow: () => void
   enterCode: () => void
   submitCode: (code: string) => Promise<void>
   addPasskey: () => Promise<void>
@@ -31,14 +39,31 @@ export type UseSession = {
 
 // `onSignedIn` runs after each sign-in: App loads the open screen again.
 export function useSession(onSignedIn: () => void): UseSession {
-  const [signedIn, setSignedIn] = useState(true)
+  const [status, setStatus] = useState<SessionStatus>('signedIn')
+  const [askingToSignIn, setAskingToSignIn] = useState(false)
   const [step, setStep] = useState<SignInStep>('signIn')
   const [message, setMessage] = useState<string>()
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
   const redeemed = useRef<PasskeyOptions>(undefined)
+  // Not signed in, whichever way: a later 401 changes nothing.
+  const ended = useRef(false)
 
-  useEffect(() => onSignedOut(() => setSignedIn(false)), [])
+  // Once ended, it stays so (and Not now stays) until a sign-in. A sign-in
+  // while the store was being asked makes the answer stale.
+  useEffect(
+    () =>
+      onSignedOut(() => {
+        const at = signIns()
+        void anythingStored().then((stored) => {
+          if (signIns() !== at || ended.current) return
+          ended.current = true
+          setStatus(stored ? 'sessionEnded' : 'signedOut')
+          setAskingToSignIn(stored)
+        })
+      }),
+    [],
+  )
 
   // One step at a time; a failed request is the one thing that throws.
   const run = useCallback(async (work: () => Promise<void>) => {
@@ -68,12 +93,23 @@ export function useSession(onSignedIn: () => void): UseSession {
     redeemed.current = undefined
     countSignIn()
     setStep('signIn')
-    setSignedIn(true)
+    ended.current = false
+    setStatus('signedIn')
+    setAskingToSignIn(false)
     // App sends the queue, then loads the open screen again.
     onSignedIn()
   }
 
-  const signIn = () => run(async () => finished(await passkeys.signInWithPasskey()))
+  // From the banner, the sheet opens with it: what didn't finish shows there.
+  const signIn = () => {
+    if (status === 'sessionEnded') setAskingToSignIn(true)
+    return run(async () => finished(await passkeys.signInWithPasskey()))
+  }
+
+  function notNow() {
+    setMessage(undefined)
+    setAskingToSignIn(false)
+  }
 
   function enterCode() {
     setMessage(undefined)
@@ -124,9 +160,10 @@ export function useSession(onSignedIn: () => void): UseSession {
       } catch {
         // Nothing to tell: the session ends on its own in time.
       }
+      ended.current = true
       setStep('signIn')
-      setSignedIn(false)
+      setStatus('signedOut')
     })
 
-  return { signedIn, step, busy, message, signIn, enterCode, submitCode, addPasskey, back, signOut }
+  return { status, askingToSignIn, step, busy, message, signIn, notNow, enterCode, submitCode, addPasskey, back, signOut }
 }
