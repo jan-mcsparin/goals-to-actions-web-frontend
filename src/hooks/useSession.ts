@@ -60,10 +60,11 @@ export function useSession(onSignedIn: () => void): UseSession {
   useEffect(
     () =>
       onSignedOut(() => {
-        // Signing out says so itself, with the warning.
-        if (signingOut.current) return
+        if (ended.current) return
         const at = signIns()
         void anythingStored().then((stored) => {
+          // Signing out says so itself, with the warning. Its 401s come from
+          // sending changes, so with changes waiting, answered at once.
           if (signIns() !== at || ended.current || signingOut.current) return
           ended.current = true
           setStatus(stored ? 'sessionEnded' : 'signedOut')
@@ -179,11 +180,15 @@ export function useSession(onSignedIn: () => void): UseSession {
         } catch {
           // Nothing to tell: the session ends on its own in time.
         }
-        await clearStored()
         ended.current = true
         setUnsent(undefined)
         setStep('signIn')
         setStatus('signedOut')
+        // Once the screens have gone (React closes them before the next task),
+        // so a read still landing can't store what it read: they keep nothing
+        // once closed.
+        await new Promise((resolve) => setTimeout(resolve))
+        await clearStored()
       } finally {
         signingOut.current = false
       }

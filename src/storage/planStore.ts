@@ -13,6 +13,7 @@ export type Shelf<K extends IDBValidKey, V> = {
   delete(key: K): Promise<void>
   // In key order.
   entries(): Promise<[K, V][]>
+  count(): Promise<number>
   clear(): Promise<void>
 }
 
@@ -86,6 +87,7 @@ function memoryShelf<K extends string | number, V>(): Shelf<K, V> {
       [...values.entries()]
         .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
         .map(([key, value]) => [key, structuredClone(value)]),
+    count: async () => values.size,
     clear: async () => values.clear(),
   }
 }
@@ -145,6 +147,7 @@ function indexedDbShelf<K extends IDBValidKey, V>(opened: Promise<IDBDatabase>, 
         transaction.onerror = () => reject(transaction.error)
       })
     },
+    count: () => run('readonly', (shelf) => shelf.count()),
     clear: async () => {
       await run('readwrite', (shelf) => shelf.clear())
     },

@@ -42,7 +42,7 @@ describe('anythingStored', () => {
   })
 
   it('is false where the phone cannot store anything', async () => {
-    vi.spyOn(planStore().weeks, 'entries').mockRejectedValue(new Error('no storage'))
+    vi.spyOn(planStore().weeks, 'count').mockRejectedValue(new Error('no storage'))
 
     expect(await anythingStored()).toBe(false)
   })

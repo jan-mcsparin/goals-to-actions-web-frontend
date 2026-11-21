@@ -9,8 +9,8 @@ export async function anythingStored(): Promise<boolean> {
   if (waitingCount() > 0) return true
   try {
     const { weeks, responses, queue } = planStore()
-    const shelves = await Promise.all([weeks.entries(), responses.entries(), queue.entries()])
-    return shelves.some((kept) => kept.length > 0)
+    const counts = await Promise.all([weeks.count(), responses.count(), queue.count()])
+    return counts.some((count) => count > 0)
   } catch {
     // Nothing readable: nothing to show either.
     return false

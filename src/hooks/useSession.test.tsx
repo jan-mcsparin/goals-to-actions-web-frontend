@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { checkOffTask } from '../api/client.ts'
 import { SignedOutError } from '../api/errors.ts'
@@ -102,6 +102,16 @@ describe('useSession', () => {
       expect(result.current.askingToSignIn).toBe(false)
     })
 
+    it('doesn’t read the store again for each later 401', async () => {
+      const { result } = await endedSession()
+      const counting = vi.spyOn(planStore().responses, 'count')
+
+      await act(async () => signedOut())
+
+      expect(counting).not.toHaveBeenCalled()
+      expect(result.current.status).toBe('sessionEnded')
+    })
+
     it('signs in from the banner and lets the app send and load again', async () => {
       vi.mocked(signInWithPasskey).mockResolvedValue('signedIn')
       const { result } = await endedSession()
@@ -129,7 +139,7 @@ describe('useSession', () => {
     it('ignores a 401 whose answer lands after a sign-in', async () => {
       let answer: () => void = () => {}
       const slow = new Promise<void>((resolve) => (answer = resolve))
-      vi.spyOn(planStore().weeks, 'entries').mockReturnValueOnce(slow.then(() => []))
+      vi.spyOn(planStore().weeks, 'count').mockReturnValueOnce(slow.then(() => 0))
       vi.mocked(signInWithPasskey).mockResolvedValue('signedIn')
       const { result } = renderHook(() => useSession(onSignedIn))
 
@@ -327,6 +337,25 @@ describe('useSession', () => {
       expect(waitingCount()).toBe(0)
     })
 
+    it('leaves the app before clearing, so a read still landing can’t store what it read', async () => {
+      let cleared: () => void = () => {}
+      vi.spyOn(planStore(), 'clear').mockReturnValue(new Promise<void>((resolve) => (cleared = resolve)))
+      const { result } = renderHook(() => useSession(onSignedIn))
+
+      let signingOut: Promise<void> = Promise.resolve()
+      await act(async () => {
+        signingOut = result.current.signOut()
+      })
+
+      expect(result.current.status).toBe('signedOut')
+      expect(result.current.busy).toBe(true)
+      await act(async () => {
+        cleared()
+        await signingOut
+      })
+      expect(result.current.busy).toBe(false)
+    })
+
     it('warns when changes can’t be sent, and clears nothing until signed out anyway', async () => {
       vi.mocked(checkOffTask).mockRejectedValue(new Error('Failed to fetch'))
       await enqueue(CHANGE)
@@ -399,7 +428,7 @@ describe('useSession', () => {
       await act(async () => finish())
 
       expect(signOut).toHaveBeenCalledTimes(1)
-      expect(result.current.busy).toBe(false)
+      await waitFor(() => expect(result.current.busy).toBe(false))
       expect(result.current.status).toBe('signedOut')
     })
 
