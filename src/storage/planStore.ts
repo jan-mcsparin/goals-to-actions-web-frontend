@@ -1,8 +1,9 @@
 // What the phone keeps of the plan (ADR-010): each week read as it arrived, by
 // its Monday, and the queue of changes not yet confirmed, by their order. In
-// IndexedDB where there is one; in memory otherwise (tests, or a browser that
-// blocks it), so the app still works for the session. Every call can fail:
-// callers keep their own state and treat the store as a copy.
+// IndexedDB where there is one, in memory where there's none (as in tests).
+// Where IndexedDB is there but won't open (an old Safari private window), every
+// call fails instead. So every call can fail: callers keep their own state and
+// treat the store as a copy, and the app works for the session without it.
 import type { Week } from '../api/types.ts'
 
 export type Shelf<K extends IDBValidKey, V> = {
