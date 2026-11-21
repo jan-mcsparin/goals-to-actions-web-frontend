@@ -45,7 +45,7 @@ The API is built in twelve slices ([its map](../../api/specs/README.md)). After 
 
 ### #43 in four parts (drafted 2026-11-20)
 
-#43 bundles four pieces that ship and are checked on their own, so it has four specs and four PRs, each "Part of #43".
+#43 bundles four pieces that ship and are checked on their own, so it has four specs and four PRs, each "Part of #43"; #43 closes with the last (settled with Jan, 2026-11-20, with each spec's questions).
 
 | Module id | Spec | Responsibility | Depends on |
 |---|---|---|---|

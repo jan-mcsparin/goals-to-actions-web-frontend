@@ -101,9 +101,9 @@ export function replay(week: Week, changes: Change[]): Week {
 - [ ] Persistent storage is asked for.
 - [ ] Tests and docs updated.
 
-## Open questions
+## Settled with Jan, 2026-11-20
 
-1. **A library for IndexedDB?** Recommended: none. A small wrapper over IndexedDB in `storage/` (two stores, get/put/delete/list), and a memory version with the same interface for unit tests; the real one is proved in the browser checks. The alternative is `fake-indexeddb` as a dev-only dependency so the real wrapper runs in Vitest too.
-2. **How does an added task replay before the server answers?** Recommended: on its day when it was added to one in a stored week; otherwise in the current week's bank, or a stored later week's bank when its due date falls there; not shown on the plan when due beyond the stored weeks (the confirmation says "Saved. It joins the week it's due."). That's a guess of the server's placement for display only, replaced by the server's answer; the server still decides (ADR-008).
-3. **What does the line say for a 422?** ADR-010 says the quiet line says so. Recommended: the same "N changes waiting to send"; a 422 is a bug to fix, not something the person can act on.
-4. **Is Week's "Wrap up" held while changes wait?** Recommended: it waits for the queue like any other write (item 6), so the wrap-up sees every check-off first.
+1. **No library for IndexedDB.** A small wrapper in `storage/` (two stores, get/put/delete/list), a memory version with the same interface for unit tests; the real one is proved in the browser checks.
+2. **An added task shows where we think it will go anyway:** on its day when it was added to one in a stored week; otherwise in the current week's bank, or a stored later week's bank when its due date falls there; not on the plan when due beyond the stored weeks ("Saved. It joins the week it's due."). Display only, replaced by the server's answer (ADR-008).
+3. **A 422 shows the same line,** "N changes waiting to send".
+4. **Wrap-up waits for the queue** like any other write, so it sees every check-off first. Expected to be rare.

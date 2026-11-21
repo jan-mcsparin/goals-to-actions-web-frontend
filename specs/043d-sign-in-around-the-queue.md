@@ -64,7 +64,7 @@ As spec 042; sheets use the native `<dialog>` pattern (`components/sheet.css`, `
 - [ ] Sign-out sends first, warns when it can't, then clears every store.
 - [ ] Tests and docs updated.
 
-## Open questions
+## Settled with Jan, 2026-11-20
 
-1. **Does sign-out clear the remembered screen and view choices too?** ADR-012 lists the week documents, the screens' responses and the queue. Recommended: those only. The open screen, List / By goal and each goal's Show all hold nothing of the person's; keeping them is harmless.
-2. **The sheet's wording.** The sketch has "Sign in to keep saving… 3 changes will send as soon as you're back in." Recommended as written in item 1, and in the sign-out warning in item 4. Say if you want other words.
+1. **Sign-out clears ADR-012's list only:** the week documents, the screens' last responses and the queue. The open screen, List / By goal and each goal's Show all stay.
+2. **The wording is as written** in items 1, 2 and 4.

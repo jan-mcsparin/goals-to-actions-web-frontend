@@ -66,6 +66,6 @@ const { data: overview, message } = useLoaded('aspirations', getAspirations, LOA
 - [ ] A failed load never empties a screen that has something to show.
 - [ ] Tests and docs updated.
 
-## Open questions
+## Settled with Jan, 2026-11-20
 
-1. **How long is a stored response kept?** Recommended: until a fresh one replaces it or sign-out clears it. At one person's volume there's nothing to expire.
+1. **A stored response is kept until a fresh one replaces it or sign-out clears it.** Nothing expires.
