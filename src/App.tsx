@@ -12,7 +12,7 @@ import { DataRevision, useRevisionCounter } from './hooks/dataRevision.ts'
 import { useFleetingMessage } from './hooks/useFleetingMessage.ts'
 import { useNavigation, type Screen } from './hooks/useNavigation.ts'
 import { useQueue } from './hooks/useQueue.ts'
-import { useSession } from './hooks/useSession.ts'
+import { useSession, type UseSession } from './hooks/useSession.ts'
 import { Aspiration } from './screens/Aspiration.tsx'
 import { Aspirations } from './screens/Aspirations.tsx'
 import { Day } from './screens/Day.tsx'
@@ -66,17 +66,12 @@ function App() {
     setConfirmation(line)
   }
 
-  const { waiting } = useQueue()
-
   if (session.status === 'signedOut') return <SignIn session={session} />
-  const ended = session.status === 'sessionEnded'
 
   return (
     <DataRevision value={revision}>
       <div className="app">
-        {ended && !session.askingToSignIn && (
-          <SignedOutBanner waiting={waiting} busy={session.busy} onSignIn={session.signIn} />
-        )}
+        {session.status === 'sessionEnded' && <SessionEnded session={session} />}
         {/* Only the open screen: a screen that fails to draw leaves the tab bar
             and + working, and any other screen starts fresh. */}
         <ErrorBoundary key={JSON.stringify(current)}>
@@ -140,16 +135,27 @@ function App() {
           onChanged={bump}
           onClose={() => setAdding(undefined)}
         />
-        <SessionEndedSheet
-          open={ended && session.askingToSignIn}
-          waiting={waiting}
-          busy={session.busy}
-          message={session.message}
-          onSignIn={session.signIn}
-          onNotNow={session.notNow}
-        />
       </div>
     </DataRevision>
+  )
+}
+
+// The session ended over what's stored: the sheet, or after Not now the banner,
+// each with the count waiting. Its own component, so only it follows the queue.
+function SessionEnded({ session }: { session: UseSession }) {
+  const { waiting } = useQueue()
+  return (
+    <>
+      {!session.askingToSignIn && <SignedOutBanner waiting={waiting} busy={session.busy} onSignIn={session.signIn} />}
+      <SessionEndedSheet
+        open={session.askingToSignIn}
+        waiting={waiting}
+        busy={session.busy}
+        message={session.message}
+        onSignIn={session.signIn}
+        onNotNow={session.notNow}
+      />
+    </>
   )
 }
 
