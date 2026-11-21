@@ -19,10 +19,14 @@ type Entry = { order: number; change: Change; confirmedAt: number | null }
 
 type Listener = () => void
 
+// What screens read, one object per change to the queue, so React can tell when it moved.
+export type QueueState = { changes: Change[]; waiting: number; stalled: boolean }
+
 let entries: Entry[] = []
 let loading: Promise<void> | undefined
 let sending: Promise<void> | undefined
 let stalled = false
+let state: QueueState = { changes: [], waiting: 0, stalled: false }
 const listeners = new Set<Listener>()
 const emptiedListeners = new Set<Listener>()
 
@@ -32,6 +36,7 @@ export function resetQueue(): void {
   loading = undefined
   sending = undefined
   stalled = false
+  state = { changes: [], waiting: 0, stalled: false }
   queueIsSending(Promise.resolve())
 }
 
@@ -53,7 +58,13 @@ export function loadQueue(): Promise<void> {
 
 // Every change not yet settled, in order: what the screen replays.
 export function queued(): Change[] {
-  return entries.map((entry) => entry.change)
+  return state.changes
+}
+
+// The same, with the count waiting and whether a send failed, as one object that's
+// replaced only when something changed (for useSyncExternalStore).
+export function queueState(): QueueState {
+  return state
 }
 
 // Not yet confirmed.
@@ -132,11 +143,12 @@ async function sendAll(): Promise<void> {
     if (!next) break
     try {
       await send(next.change)
-      confirm(next)
       stalled = false
+      confirm(next)
       sent = true
     } catch (error) {
       if (error instanceof NotFoundError || error instanceof RefusedError) {
+        stalled = false
         drop(next)
         sent = true
         continue
@@ -193,5 +205,6 @@ function forget(entry: Entry) {
 }
 
 function tell() {
+  state = { changes: entries.map((entry) => entry.change), waiting: waitingCount(), stalled: isStalled() }
   for (const listener of listeners) listener()
 }
