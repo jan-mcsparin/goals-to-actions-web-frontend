@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addAspiration, addTask, createGoal, getAspirations, getBank, getDay, getGoal } from '../api/client.ts'
+import { addAspiration, addTask, createGoal, getAspirations, getGoal } from '../api/client.ts'
+import { readBank, readDay } from '../test/plan.ts'
 import { resetStore, store } from '../api/mockStore.ts'
 import type { Task } from '../api/types.ts'
 import { NEW_ASPIRATION } from '../domain/add.ts'
@@ -102,7 +103,7 @@ describe('useAdd', () => {
     await act(async () => result.current.save())
 
     expect(onSaved).toHaveBeenCalledWith("Added to this week's bank.")
-    expect((await getBank()).tasks.map((task) => task.title)).toContain('Fill out my ballot')
+    expect((await readBank()).tasks.map((task) => task.title)).toContain('Fill out my ballot')
   })
 
   it('saves onto today when "On today" is chosen', async () => {
@@ -112,7 +113,7 @@ describe('useAdd', () => {
     await act(async () => result.current.save())
 
     expect(onSaved).toHaveBeenCalledWith('Added to today.')
-    expect((await getDay(TODAY)).tasks.map((task) => task.title)).toContain('Call the vet')
+    expect((await readDay(TODAY)).tasks.map((task) => task.title)).toContain('Call the vet')
   })
 
   it('says where a task due in a later week waits', async () => {
@@ -295,7 +296,7 @@ describe('useAdd on the Goal tab', () => {
 
     await act(async () => result.current.save())
 
-    expect((await getBank()).tasks.filter((task) => task.title === 'Be strong 2')).toHaveLength(3)
+    expect((await readBank()).tasks.filter((task) => task.title === 'Be strong 2')).toHaveLength(3)
   })
 
   it('keeps the goal typed when switching tabs', () => {

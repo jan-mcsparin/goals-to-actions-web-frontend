@@ -1,8 +1,8 @@
-// What the Week screen shows, worked out from a WeekPlan: progress and pacing
+// What the Week screen shows, worked out from the week read: progress and pacing
 // per goal, a line per day, and which days a bank task can go on.
 import { addDays, fromLocalDay, toLocalDay } from '../api/dates.ts'
-import type { Goal, Task, WeekPlan } from '../api/types.ts'
-import { goalSubline, goalsByPriority, inDayOrder, timeLabel } from './today.ts'
+import type { Task, Week, WeekGoal } from '../api/types.ts'
+import { inDayOrder, timeLabel } from './today.ts'
 import { isDone, isOnDay, isPlanned } from './tasks'
 
 export type Pacing = {
@@ -48,20 +48,30 @@ export function daysLeftLabel(count: number): string {
   return `${count} ${count === 1 ? 'day' : 'days'} left`
 }
 
-export function weekProgress(plan: WeekPlan, today: string): ProgressRow[] {
-  const left = daysLeft(plan.weekOf, today)
-  return goalsByPriority(plan).flatMap((goal) => {
-    const target = goal.weeklyTarget
-    if (!target || goal.type !== 'building' || goal.status !== 'active') return []
-    const goalTasks = plan.tasks.filter((task) => task.goalId === goal.id)
-    const done = goalTasks.filter(isDone).length
-    const plannedAhead = goalTasks.filter((task) => isPlannedOnOrAfter(task, today)).length
-    return [progressRow(goal, plan, { done, plannedAhead, target: target.sessions, daysLeft: left })]
+// Done and the target are the API's; this only words the pacing from the tasks still ahead.
+export function weekProgress(plan: Week, today: string): ProgressRow[] {
+  const left = daysLeft(plan.week, today)
+  return byPriority(plan.goals).map((goal) => {
+    const plannedAhead = plan.tasks.filter((task) => task.goalId === goal.id && isPlannedOnOrAfter(task, today)).length
+    const pacing = { done: goal.progress.done, plannedAhead, target: goal.progress.of, daysLeft: left }
+    return {
+      goalId: goal.id,
+      title: goal.aspiration ? `${goal.label} · ${goal.aspiration.name}` : goal.label,
+      done: pacing.done,
+      target: pacing.target,
+      pacing: pacingLine(pacing),
+    }
   })
 }
 
-export function daySummaries(plan: WeekPlan, today: string): DaySummary[] {
-  return daysOf(plan.weekOf).map((date) => {
+// In their aspiration's priority order; goals under none, or a retired one, last.
+function byPriority(goals: WeekGoal[]): WeekGoal[] {
+  const priorityOf = (goal: WeekGoal) => goal.aspiration?.position ?? Infinity
+  return [...goals].sort((a, b) => priorityOf(a) - priorityOf(b))
+}
+
+export function daySummaries(plan: Week, today: string): DaySummary[] {
+  return daysOf(plan.week).map((date) => {
     const tasks = inDayOrder(
       plan.tasks.filter((task) => isOnDay(task, date)),
     )
@@ -107,23 +117,13 @@ function isPlannedOnOrAfter(task: Task, today: string): boolean {
   return isPlanned(task) && task.plannedDay !== null && task.plannedDay >= today
 }
 
-function progressRow(goal: Goal, plan: WeekPlan, pacing: Pacing): ProgressRow {
-  return {
-    goalId: goal.id,
-    title: goalSubline(goal, plan.aspirations),
-    done: pacing.done,
-    target: pacing.target,
-    pacing: pacingLine(pacing),
-  }
-}
-
 function summaryTitle(task: Task): string {
   return task.timeOfDay ? `${task.title} ${timeLabel(task.timeOfDay)}` : task.title
 }
 
 // What the wrap-up sheet lists: each unfinished task by what closing the week does to it, as the
 // API says in `atClose` (the phone doesn't work this out).
-export function wrapUpLists(plan: WeekPlan): { carriesOver: Task[]; ends: Task[] } {
+export function wrapUpLists(plan: Week): { carriesOver: Task[]; ends: Task[] } {
   return {
     carriesOver: plan.tasks.filter((task) => task.atClose === 'carriesOver'),
     ends: plan.tasks.filter((task) => task.atClose === 'ends'),

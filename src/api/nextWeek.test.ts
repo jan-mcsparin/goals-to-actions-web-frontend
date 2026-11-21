@@ -2,14 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   answerStillMatters,
   checkOffTask,
-  getBank,
-  getDay,
   getWeek,
-  NotFoundError,
   placeTask,
   wrapUpWeek,
 } from './client.ts'
 import { resetStore } from './mockStore.ts'
+import { readBank, readDay } from '../test/plan.ts'
 import { checkOffAt, isInBank } from '../domain/tasks.ts'
 
 const THIS_WEEK = '2026-11-09'
@@ -37,8 +35,9 @@ describe('getWeek and next week', () => {
   it('says this week is current, and that next week is not open yet, on a Wednesday', async () => {
     const week = await getWeek()
 
-    expect(week).toMatchObject({ weekOf: THIS_WEEK, isCurrent: true, nextWeekOpen: false })
-    await expect(getWeek(NEXT_WEEK)).rejects.toThrow(NotFoundError)
+    expect(week).toMatchObject({ week: THIS_WEEK, isCurrent: true, nextWeekOpen: false })
+    // As the API does: a week not open yet reads with nothing in it, not as missing.
+    expect(await getWeek(NEXT_WEEK)).toMatchObject({ week: NEXT_WEEK, isCurrent: false, tasks: [] })
   })
 
   it('opens next week from 6 p.m. on Sunday, not before', async () => {
@@ -54,7 +53,7 @@ describe('getWeek and next week', () => {
 
     const next = await getWeek(NEXT_WEEK)
 
-    expect(next).toMatchObject({ weekOf: NEXT_WEEK, isCurrent: false, nextWeekOpen: true })
+    expect(next).toMatchObject({ week: NEXT_WEEK, isCurrent: false, nextWeekOpen: true })
     expect(next.tasks.length).toBeGreaterThan(0)
     expect(next.tasks.every((task) => task.week === NEXT_WEEK && isInBank(task))).toBe(true)
     expect(next.goals.length).toBeGreaterThan(0)
@@ -63,18 +62,18 @@ describe('getWeek and next week', () => {
   it("keeps next week's tasks out of this week's bank", async () => {
     at(SUNDAY_EVENING)
 
-    const bank = await getBank()
+    const bank = await readBank()
 
     expect(bank.tasks.every((task) => task.week === THIS_WEEK)).toBe(true)
   })
 
-  it("reads next week's bank once it's open, and not before", async () => {
-    await expect(getBank(NEXT_WEEK)).rejects.toThrow(NotFoundError)
+  it("reads next week's bank once it's open, and empty before", async () => {
+    expect((await readBank(NEXT_WEEK)).tasks).toEqual([])
 
     at(SUNDAY_EVENING)
-    const bank = await getBank(NEXT_WEEK)
+    const bank = await readBank(NEXT_WEEK)
 
-    expect(bank.weekOf).toBe(NEXT_WEEK)
+    expect(bank.week).toBe(NEXT_WEEK)
     expect(bank.tasks.length).toBeGreaterThan(0)
     expect(bank.tasks.every((task) => task.week === NEXT_WEEK)).toBe(true)
   })
@@ -112,11 +111,19 @@ describe('wrapUpWeek', () => {
 
     const next = await wrapUpWeek(THIS_WEEK)
 
-    expect(next).toMatchObject({ weekOf: NEXT_WEEK, isCurrent: true })
+    expect(next).toMatchObject({ week: NEXT_WEEK, isCurrent: true })
     const dentist = next.tasks.find((task) => task.id === 'task-dentist')
     expect(dentist).toMatchObject({ week: NEXT_WEEK, plannedDay: null, carriedOver: 3, state: 'open' })
     expect(next.tasks.map((task) => task.id)).not.toContain('task-lift-bank')
-    expect((await getWeek()).weekOf).toBe(NEXT_WEEK)
+    expect((await getWeek()).week).toBe(NEXT_WEEK)
+  })
+
+  // Today on that Sunday reads the week it's in, which has just closed.
+  it('still reads the week it closed, as no longer current', async () => {
+    at(SUNDAY_EVENING)
+    await wrapUpWeek(THIS_WEEK)
+
+    expect(await getWeek(THIS_WEEK)).toMatchObject({ week: THIS_WEEK, isCurrent: false })
   })
 
   it('changes nothing when sent again', async () => {
@@ -137,11 +144,11 @@ describe('wrapUpWeek', () => {
 
 describe('answerStillMatters', () => {
   it("is listed with the day's plan, whichever day it's on", async () => {
-    const day = await getDay('2026-11-11')
+    const day = await readDay('2026-11-11')
 
     expect(day.stillMatters.map((task) => task.id)).toEqual(['task-dentist'])
     await answerStillMatters('task-dentist', { answer: 'keep' })
-    expect((await getDay('2026-11-11')).stillMatters).toEqual([])
+    expect((await readDay('2026-11-11')).stillMatters).toEqual([])
   })
 
   it('marks a task that rolled over twice', async () => {

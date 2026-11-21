@@ -10,12 +10,11 @@ type BankSheetProps = {
   open: boolean
   title: string
   rows?: TaskRow[]
-  message?: string
   onPick: (taskId: string) => void
   onClose: () => void
 }
 
-export function BankSheet({ open, title, rows, message, onPick, onClose }: BankSheetProps) {
+export function BankSheet({ open, title, rows, onPick, onClose }: BankSheetProps) {
   const dialog = useModalDialog(open)
   const backdropClose = useBackdropClose(onClose)
   const titleId = useId()
@@ -28,12 +27,7 @@ export function BankSheet({ open, title, rows, message, onPick, onClose }: BankS
           Close
         </button>
       </header>
-      {message && (
-        <p className="sheet-note" role="status">
-          {message}
-        </p>
-      )}
-      {!message && !rows && <p className="sheet-note">Loading…</p>}
+      {!rows && <p className="sheet-note">Loading…</p>}
       {rows && rows.length === 0 && <p className="sheet-note">Nothing in the bank.</p>}
       {rows && rows.length > 0 && (
         <ul className="bank-sheet-list">

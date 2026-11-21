@@ -1,23 +1,17 @@
-// Rules for the Add sheet: where a new task goes, the line confirming it, how
+// Rules for the Add sheet: what a new task sends, the line confirming it, how
 // a goal's sentence splits, the Recurring tab's choices, and when a form is
-// ready to save.
+// ready to save. Which week a new task goes in is the server's (ADR-008).
 import { mondayOfDay } from '../api/dates.ts'
 import type { Aspiration, Goal, GoalType, NewGoal, NewRecurringItem, NewTask, Schedule, Task } from '../api/types.ts'
 import { dayLabel, isWithinGoal, parsedTarget, type TargetDraft } from './goalDetail.ts'
 import { ordinal, repeatText, weekdayName, type Weekday } from './recurring.ts'
 import { isPlanned, weekOf } from './tasks'
 
-// This week's Monday, or the Monday of the due date's week when that's later.
-export function taskWeek(dueDate: string | undefined, today: string): string {
-  const thisWeek = mondayOfDay(today)
-  if (!dueDate) return thisWeek
-  const dueWeek = mondayOfDay(dueDate)
-  return dueWeek > thisWeek ? dueWeek : thisWeek
-}
-
+// As the server placed it. One due beyond the open weeks waits with no week until its week opens.
 export function taskConfirmation(task: Pick<Task, 'state' | 'plannedDay' | 'week'>, today: string): string {
   if (isPlanned(task)) return 'Added to today.'
   const week = weekOf(task)
+  if (week === null) return "Saved. It joins the week it's due."
   if (week !== null && week > mondayOfDay(today)) return `Saved for the week of ${dayLabel(week, today)}.`
   return "Added to this week's bank."
 }
@@ -42,9 +36,11 @@ export function emptyTaskDraft(placement: Placement): TaskDraft {
   return { title: '', goalId: '', dueDate: '', timeKind: '', time: '', placement }
 }
 
-// A time of day needs both "by" or "at" and a time; half of one is left out.
-export function taskInput(draft: TaskDraft): NewTask {
-  const input: NewTask = { title: draft.title, onToday: draft.placement === 'onToday' }
+// A time of day needs both "by" or "at" and a time; half of one is left out. "On today" sends
+// today as its day; the bank sends none.
+export function taskInput(draft: TaskDraft, today: string): NewTask {
+  const input: NewTask = { title: draft.title }
+  if (draft.placement === 'onToday') input.day = today
   if (draft.goalId) input.goalId = draft.goalId
   if (draft.dueDate) input.dueDate = draft.dueDate
   if (draft.timeKind && draft.time) input.timeOfDay = { kind: draft.timeKind, time: draft.time }

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { getWeek, placeTask, wrapUpWeek } from '../api/client.ts'
 import { mondayOfDay, weekAfter } from '../api/dates.ts'
-import type { Task, WeekPlan } from '../api/types.ts'
+import type { Task, Week } from '../api/types.ts'
 import {
   daySummaries,
   pickableDays,
@@ -46,11 +46,11 @@ export type UseWeek = {
 }
 
 // The current week, and next week once it's open.
-type Weeks = { current: WeekPlan; next?: WeekPlan }
+type Weeks = { current: Week; next?: Week }
 
 async function loadWeeks(): Promise<Weeks> {
   const current = await getWeek()
-  return current.nextWeekOpen ? { current, next: await getWeek(weekAfter(current.weekOf)) } : { current }
+  return current.nextWeekOpen ? { current, next: await getWeek(weekAfter(current.week)) } : { current }
 }
 
 export function useWeek(today: string): UseWeek {
@@ -88,7 +88,7 @@ export function useWeek(today: string): UseWeek {
   function confirmWrapUp() {
     if (!weeks) return
     setMessage(undefined)
-    wrapUpWeek(weeks.current.weekOf)
+    wrapUpWeek(weeks.current.week)
       .then((current) => {
         setWeeks({ current })
         setView('this')
@@ -113,16 +113,16 @@ export function useWeek(today: string): UseWeek {
     confirm: confirmWrapUp,
   }
   const monday = view === 'next' ? weekAfter(mondayOfDay(today)) : mondayOfDay(today)
-  const range = weekRange(plan?.weekOf ?? monday)
+  const range = weekRange(plan?.week ?? monday)
   const title = view === 'next' ? 'Next week' : 'This week'
   return { title, range, week: plan && viewOf(plan, today), message, view, canViewNext, setView, place, wrapUp }
 }
 
-function viewOf(plan: WeekPlan, today: string): WeekView {
+function viewOf(plan: Week, today: string): WeekView {
   return {
     progress: weekProgress(plan, today),
     days: daySummaries(plan, today),
     bank: plan.tasks.filter(isInBank),
-    pickableDays: pickableDays(plan.weekOf, today),
+    pickableDays: pickableDays(plan.week, today),
   }
 }

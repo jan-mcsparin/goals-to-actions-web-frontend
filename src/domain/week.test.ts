@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { countTarget, GOAL_DEFAULTS, type TargetFor, withTargets } from '../test/goals.ts'
-import type { Aspiration, Goal, RecurringItem, Task, WeekPlan } from '../api/types.ts'
+import { countTarget } from '../test/goals.ts'
+import type { Task, Week, WeekGoal } from '../api/types.ts'
 import { daySummaries, pacingLine, pickableDays, weekProgress, weekRange, wrapUpLists } from './week.ts'
 import { aTask } from '../test/tasks.ts'
 
@@ -11,33 +11,19 @@ function task(id: string, plannedDay: string | undefined, fields: Partial<Task> 
   return aTask(id, { week: MONDAY, plannedDay: plannedDay ?? null, ...fields })
 }
 
-const fit: Aspiration = { id: 'asp-fit', name: 'Be fit', why: null, position: 1, status: 'active', createdAt: '2026-10-01T09:00:00Z', retiredOn: null }
-const strong: Goal = {
-  ...GOAL_DEFAULTS,
-  id: 'goal-strong',
-  label: 'Be strong',
-  measurableLine: '-',
-  type: 'building',
-  status: 'active',
-  startDate: '2026-10-05',
-  aspirationId: 'asp-fit',
-}
-const reading: Goal = { ...strong, id: 'goal-read', label: 'Read more', aspirationId: null }
-const trash: RecurringItem = {
-  id: 'rec-trash',
-  name: 'Take out the trash',
-  aspirationId: null,
-  fromGoalId: null,
-  schedule: { kind: 'weekly', weekday: 'tuesday' },
-  startsOn: '2026-10-01',
-  active: true,
-  createdAt: '2026-10-01T09:00:00Z',
-}
+const fit = { id: 'asp-fit', name: 'Be fit', position: 1 }
 const lifting = countTarget('goal-strong', 3, 'lifting sessions')
 
-// Targets are given per goal and put on their goals.
-function week(tasks: Task[], weeklyTargets: TargetFor[] = [lifting]): WeekPlan {
-  return { weekOf: MONDAY, isCurrent: true, nextWeekOpen: false, tasks, goals: withTargets([strong, reading], weeklyTargets), aspirations: [fit], recurringItems: [trash] }
+// A bar on Week as the API sends it: the goal's target that week and how far along it is.
+function weekGoal(id: string, label: string, aspiration: WeekGoal['aspiration'], done = 0): WeekGoal {
+  const { goalId: _goalId, ...weeklyTarget } = { ...lifting, goalId: id }
+  return { id, label, aspiration, weeklyTarget, progress: { done, of: weeklyTarget.sessions } }
+}
+
+const strong = weekGoal('goal-strong', 'Be strong', fit)
+
+function week(tasks: Task[], goals: WeekGoal[] = [strong]): Week {
+  return { week: MONDAY, isCurrent: true, nextWeekOpen: false, tasks, goals, days: [], quittingGoals: [] }
 }
 
 describe('pacingLine', () => {
@@ -52,14 +38,17 @@ describe('pacingLine', () => {
 })
 
 describe('weekProgress', () => {
-  it("counts the goal's done tasks and paces against the rest of the week", () => {
-    const plan = week([
-      task('Lift Mon', MONDAY, { goalId: 'goal-strong', state: 'done' }),
-      task('Lift Tue', '2026-11-10', { goalId: 'goal-strong' }),
-      task('Lift Wed', WEDNESDAY, { goalId: 'goal-strong' }),
-      task('Lift bank', undefined, { goalId: 'goal-strong' }),
-      task('Read', WEDNESDAY, { goalId: 'goal-read', state: 'done' }),
-    ])
+  // Done and the target are the API's (the week's goals); only the pacing is worked out here.
+  it("takes the goal's progress from the week and paces against the rest of the week", () => {
+    const plan = week(
+      [
+        task('Lift Mon', MONDAY, { goalId: 'goal-strong', state: 'done' }),
+        task('Lift Tue', '2026-11-10', { goalId: 'goal-strong' }),
+        task('Lift Wed', WEDNESDAY, { goalId: 'goal-strong' }),
+        task('Lift bank', undefined, { goalId: 'goal-strong' }),
+      ],
+      [weekGoal('goal-strong', 'Be strong', fit, 1)],
+    )
 
     expect(weekProgress(plan, WEDNESDAY)).toEqual([
       { goalId: 'goal-strong', title: 'Be strong · Be fit', done: 1, target: 3, pacing: '5 days left · 1 more to plan' },
@@ -72,33 +61,23 @@ describe('weekProgress', () => {
     ])
   })
 
-  // A goal carries its target whatever its status, and a paused goal can
-  // still be in the week through its done or set-aside tasks.
-  it('leaves out a goal that is not active', () => {
-    const plan = week([task('Lift Mon', MONDAY, { goalId: 'goal-strong', state: 'done' })])
-    plan.goals = plan.goals.map((goal) => ({ ...goal, status: 'paused' }))
+  it('titles a goal with no aspiration by its label alone', () => {
+    const [row] = weekProgress(week([], [weekGoal('goal-read', 'Read more', null)]), WEDNESDAY)
 
-    expect(weekProgress(plan, WEDNESDAY)).toEqual([])
+    expect(row.title).toBe('Read more')
   })
 
-  it('orders goals by aspiration priority, as the By goal view does', () => {
-    const builder: Aspiration = { ...fit, id: 'asp-build', name: 'Be a builder', position: 0 }
-    const proto: Goal = { ...strong, id: 'goal-proto', label: 'Prototype', aspirationId: 'asp-build' }
-    const target = (goalId: string): TargetFor => ({ ...lifting, goalId })
-    const targets = [target('goal-read'), target('goal-strong'), target('goal-proto')]
-    const plan: WeekPlan = {
-      ...week([], targets),
-      goals: withTargets([strong, reading, proto], targets),
-      aspirations: [fit, builder],
-    }
+  it('orders goals by aspiration priority, as the By goal view does; retired and none go last', () => {
+    const builder = { id: 'asp-build', name: 'Be a builder', position: 0 }
+    const retired = { id: 'asp-old', name: 'Old', position: null }
+    const plan = week([], [
+      weekGoal('goal-read', 'Read more', null),
+      weekGoal('goal-old', 'Old goal', retired),
+      strong,
+      weekGoal('goal-proto', 'Prototype', builder),
+    ])
 
-    expect(weekProgress(plan, WEDNESDAY).map((row) => row.goalId)).toEqual(['goal-proto', 'goal-strong', 'goal-read'])
-  })
-
-  it('leaves out goals that are not building goals', () => {
-    const plan = { ...week([]), goals: [{ ...strong, type: 'oneOff' as const }] }
-
-    expect(weekProgress(plan, WEDNESDAY)).toEqual([])
+    expect(weekProgress(plan, WEDNESDAY).map((row) => row.goalId)).toEqual(['goal-proto', 'goal-strong', 'goal-read', 'goal-old'])
   })
 })
 
@@ -106,7 +85,7 @@ describe('daySummaries', () => {
   const plan = week([
     task('Lift', MONDAY, { state: 'done' }),
     task('Laundry', MONDAY, { state: 'done' }),
-    task('Take out the trash', '2026-11-10', { timeOfDay: { kind: 'by', time: '07:00' }, recurringItemId: 'rec-trash' }),
+    task('Take out the trash', '2026-11-10', { timeOfDay: { kind: 'by', time: '07:00' }, recurringItemId: 'rec-trash', fixedDay: true }),
     task('Pay rent', '2026-11-10'),
     task('Lift: bench day', WEDNESDAY, { timeOfDay: { kind: 'at', time: '18:00' } }),
     task('Back in the bank', undefined),

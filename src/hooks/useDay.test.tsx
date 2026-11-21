@@ -1,9 +1,9 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addTask, checkOffTask, getDay, placeTask, moveTaskToBank, swapTasks, uncheckTask } from '../api/client.ts'
+import { addTask, checkOffTask, getWeek, placeTask, moveTaskToBank, swapTasks, uncheckTask } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
-import type { DayPlan, Task } from '../api/types.ts'
+import type { Task, Week } from '../api/types.ts'
 import { DataRevision } from './dataRevision.ts'
 import { useDay, type UseDay } from './useDay.ts'
 import { aTask, whereIs } from '../test/tasks.ts'
@@ -18,7 +18,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
   return {
     ...actual,
-    getDay: vi.fn(actual.getDay),
+    getWeek: vi.fn(actual.getWeek),
     checkOffTask: vi.fn(actual.checkOffTask),
     uncheckTask: vi.fn(actual.uncheckTask),
     placeTask: vi.fn(actual.placeTask),
@@ -166,7 +166,6 @@ describe('useDay pull', () => {
     const save = deferred<Task>()
     vi.mocked(placeTask).mockReturnValueOnce(save.promise)
     const { result } = await renderLoaded()
-    await act(async () => result.current.loadBank())
 
     act(() => result.current.pull('task-garage-shelves'))
 
@@ -181,7 +180,6 @@ describe('useDay pull', () => {
   it('puts the task back in the bank and says so calmly when the save fails', async () => {
     vi.mocked(placeTask).mockRejectedValueOnce(new Error('offline'))
     const { result } = await renderLoaded()
-    await act(async () => result.current.loadBank())
 
     await act(async () => result.current.pull('task-garage-shelves'))
 
@@ -231,13 +229,12 @@ describe('useDay swap', () => {
   it('puts the bank task in the swapped task\'s place at once', async () => {
     vi.mocked(swapTasks).mockReturnValueOnce(new Promise(() => {}))
     const { result } = await renderLoaded()
-    await act(async () => result.current.loadBank())
     const before = taskIdsInOrder(result.current)
 
-    act(() => result.current.swap('task-laundry', 'task-dentist'))
+    act(() => result.current.swap('task-ballot', 'task-dentist'))
 
     expect(taskIdsInOrder(result.current)).toEqual(
-      before?.map((id) => (id === 'task-laundry' ? 'task-dentist' : id)),
+      before?.map((id) => (id === 'task-ballot' ? 'task-dentist' : id)),
     )
     expect(result.current.bankRows?.map((row) => row.task.id)).not.toContain('task-dentist')
   })
@@ -245,7 +242,6 @@ describe('useDay swap', () => {
   it('sends the week and the day the bank task takes', async () => {
     vi.mocked(swapTasks).mockReturnValueOnce(new Promise(() => {}))
     const { result } = await renderLoaded()
-    await act(async () => result.current.loadBank())
 
     act(() => result.current.swap('task-laundry', 'task-dentist'))
 
@@ -259,7 +255,6 @@ describe('useDay swap', () => {
   it('undoes both sides and says so calmly when the save fails', async () => {
     vi.mocked(swapTasks).mockRejectedValueOnce(new Error('offline'))
     const { result } = await renderLoaded()
-    await act(async () => result.current.loadBank())
     const before = taskIdsInOrder(result.current)
 
     await act(async () => result.current.swap('task-laundry', 'task-dentist'))
@@ -274,7 +269,6 @@ describe('useDay on another day', () => {
   it('pulls a bank task onto that day, placed by hand', async () => {
     const hook = renderHook(() => useDay('2026-11-12', '2026-11-11'))
     await waitFor(() => expect(hook.result.current.day).toBeDefined())
-    await act(async () => hook.result.current.loadBank())
 
     await act(async () => hook.result.current.pull('task-lift-bank'))
 
@@ -307,7 +301,7 @@ describe('useDay when the data revision changes', () => {
   it('loads the day again, showing the old one until the new one arrives', async () => {
     const hook = renderWithRevision()
     await waitFor(() => expect(hook.result.current.day).toBeDefined())
-    await addTask({ title: 'Call the vet', onToday: true })
+    await addTask({ title: 'Call the vet', day: '2026-11-11' })
 
     act(() => hook.bump())
 
@@ -318,11 +312,13 @@ describe('useDay when the data revision changes', () => {
   it('settles on the newest load when two overlap', async () => {
     const hook = renderWithRevision()
     await waitFor(() => expect(hook.result.current.day).toBeDefined())
-    const loaded = await getDay('2026-11-11')
-    const withTitle = (title: string): DayPlan => ({ ...loaded, tasks: [{ ...loaded.tasks[0], title }] })
-    const older = deferred<DayPlan>()
-    const newer = deferred<DayPlan>()
-    vi.mocked(getDay).mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise)
+    // useDay reads the day's week now, not the day.
+    const loaded = await getWeek('2026-11-09')
+    const onTheDay = loaded.tasks.find((task) => task.plannedDay === '2026-11-11')!
+    const withTitle = (title: string): Week => ({ ...loaded, tasks: [{ ...onTheDay, title }] })
+    const older = deferred<Week>()
+    const newer = deferred<Week>()
+    vi.mocked(getWeek).mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise)
 
     act(() => hook.bump())
     act(() => hook.bump())

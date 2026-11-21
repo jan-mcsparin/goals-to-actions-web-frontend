@@ -2,7 +2,8 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addRecurringItem, addTask, getAspirations, getBank, getDay } from '../api/client.ts'
+import { addRecurringItem, addTask, getAspirations } from '../api/client.ts'
+import { readBank, readDay } from '../test/plan.ts'
 import { resetStore, store } from '../api/mockStore.ts'
 import type { AddOrigin, OnSaved } from '../hooks/useAdd.ts'
 import { AddSheet } from './AddSheet.tsx'
@@ -90,7 +91,7 @@ describe('AddSheet', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(onSaved).toHaveBeenCalledWith("Added to this week's bank.")
-    expect((await getBank()).tasks.map((task) => task.title)).toContain('Fill out my ballot')
+    expect((await readBank()).tasks.map((task) => task.title)).toContain('Fill out my ballot')
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
@@ -107,7 +108,7 @@ describe('AddSheet', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(onSaved).toHaveBeenCalledWith('Added to today.')
-    const added = (await getDay(TODAY)).tasks.find((task) => task.title === 'Book a gym class')
+    const added = (await readDay(TODAY)).tasks.find((task) => task.title === 'Book a gym class')
     expect(added).toMatchObject({
       goalId: 'goal-strong',
       dueDate: '2026-11-13',

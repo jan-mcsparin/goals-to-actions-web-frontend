@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { countTarget, GOAL_DEFAULTS, listed, type MilestoneFor, type TargetFor, withTargets } from '../test/goals.ts'
+import { countTarget, GOAL_DEFAULTS, listed, type MilestoneFor, type TargetFor, weekGoal, withTargets } from '../test/goals.ts'
 import type {
   Aspiration,
   AspirationDetail,
   Goal,
   MilestoneStatus,
   RecurringItem,
-  Task,
 } from '../api/types.ts'
 import {
   aspirationPage,
@@ -17,11 +16,9 @@ import {
   type ActivePage,
   type RetiredPage,
 } from './aspiration.ts'
-import { aTask } from '../test/tasks.ts'
 
 // Wednesday 11 Nov 2026.
 const TODAY = '2026-11-11'
-const WEEK_OF = '2026-11-09'
 
 function aspiration(extra: Partial<Aspiration> = {}): Aspiration {
   return { id: 'fit', name: 'Be fit', why: null, position: 1, status: 'active', createdAt: '2026-10-01T09:00:00Z', retiredOn: null, ...extra }
@@ -49,18 +46,6 @@ function target(goalId: string, sessions: number, unit = 'sessions'): TargetFor 
   return countTarget(goalId, sessions, unit)
 }
 
-function tasks(goalId: string, ...kinds: ('done' | 'planned' | 'inBank')[]): Task[] {
-  return kinds.map((kind, index) =>
-    aTask(`${goalId}-task-${index}`, {
-      title: 'A session',
-      state: kind === 'done' ? 'done' : 'open',
-      week: WEEK_OF,
-      plannedDay: kind === 'inBank' ? null : WEEK_OF,
-      goalId,
-    }),
-  )
-}
-
 function recurring(name: string, active = true): RecurringItem {
   return { id: `rec-${name}`, name, aspirationId: 'fit', fromGoalId: null, schedule: { kind: 'flexible', times: 1, period: 'week' }, startsOn: '2026-10-01', active, createdAt: '2026-10-01T09:00:00Z' }
 }
@@ -77,7 +62,7 @@ function detailOf({ goals = [], milestones = [], weeklyTargets, ...parts }: Deta
   return {
     aspiration: aspiration(),
     recurringItems: [],
-    weekTasks: [],
+    weekGoals: [],
     activeCount: 1,
     ...parts,
     goals: listed(withTargets(goals, weeklyTargets), milestones),
@@ -110,7 +95,7 @@ describe('aspirationPage, active', () => {
     const page = activePage({
       goals: [goal('strong'), goal('endurance')],
       weeklyTargets: [target('strong', 3), target('endurance', 2)],
-      weekTasks: [...tasks('strong', 'done', 'planned'), ...tasks('endurance', 'done')],
+      weekGoals: [weekGoal('strong', 'fit', 1, 3), weekGoal('endurance', 'fit', 1, 2)],
     })
 
     expect(page.week).toEqual({ done: 2, total: 5, label: '2 of 5 · 5 days left' })
@@ -118,7 +103,7 @@ describe('aspirationPage, active', () => {
 
   it('says "1 day left" on Sunday', () => {
     const page = aspirationPage(
-      detailOf({ goals: [goal('strong')], weeklyTargets: [target('strong', 3)] }),
+      detailOf({ goals: [goal('strong')], weeklyTargets: [target('strong', 3)], weekGoals: [weekGoal('strong', 'fit', 0, 3)] }),
       '2026-11-15',
     ) as ActivePage
 
@@ -165,10 +150,18 @@ describe('aspirationPage, active', () => {
     const page = activePage({
       goals: [goal('strong')],
       weeklyTargets: [target('strong', 3, 'lifting sessions')],
-      weekTasks: tasks('strong', 'done', 'planned', 'inBank'),
+      weekGoals: [weekGoal('strong', 'fit', 1, 3, 'lifting sessions')],
     })
 
     expect(page.goals[0].weekLine).toBe('This week: 1 of 3 lifting sessions')
+  })
+
+  // A goal made once next week is open gets a target that starts next week, so this week's
+  // read doesn't list it.
+  it('says when a target starts next week, for a goal not on this week', () => {
+    const page = activePage({ goals: [goal('strong')], weeklyTargets: [target('strong', 3, 'lifting sessions')] })
+
+    expect(page.goals[0].weekLine).toBe('From next week: 3 lifting sessions')
   })
 
   it('says "No weekly target yet" for a building goal without one', () => {

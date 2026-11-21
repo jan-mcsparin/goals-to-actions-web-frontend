@@ -42,7 +42,7 @@ const NOTHING: AspirationsOverview = {
   aspirations: [],
   goals: [],
   recurringItems: [],
-  weekTasks: [],
+  weekGoals: [],
 }
 
 function goalRows(card: HTMLElement) {

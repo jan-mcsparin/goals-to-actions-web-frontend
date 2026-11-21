@@ -36,24 +36,30 @@ export function upkeepView(upkeep: Upkeep, today: string): UpkeepView {
   }
 }
 
-// "Today", "Thursday", "In the bank", or "Week of Nov 23" for a later week.
+// "Today", "Thursday", "In the bank", "Week of Nov 23" for a later week, or "Later" for one
+// waiting for its week to open (the upcoming list).
 export function whereLabel(task: Task, today: string): string {
   const week = weekOf(task)
+  if (week === null) return 'Later'
   if (week !== null && week > mondayOfDay(today)) return `Week of ${shortDate(week)}`
   if (task.plannedDay === null) return 'In the bank'
   if (task.plannedDay === today) return 'Today'
   return fromLocalDay(task.plannedDay).toLocaleDateString('en-US', { weekday: 'long' })
 }
 
-// By week; within a week, tasks on a day (in day order) come before the bank.
+// By week, those with no week yet last; within a week, tasks on a day (in day order) come
+// before the bank.
 function inPlanOrder(tasks: Task[]): Task[] {
   return [...tasks].sort(
     (a, b) =>
-      (weekOf(a) ?? '').localeCompare(weekOf(b) ?? '') ||
+      (weekOf(a) ?? NO_WEEK).localeCompare(weekOf(b) ?? NO_WEEK) ||
       Number(a.plannedDay === null) - Number(b.plannedDay === null) ||
       (a.plannedDay ?? '').localeCompare(b.plannedDay ?? ''),
   )
 }
+
+// Sorts after every real week.
+const NO_WEEK = '9999-12-31'
 
 function shortDate(day: string): string {
   return fromLocalDay(day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })

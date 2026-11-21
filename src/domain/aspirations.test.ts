@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { countTarget, GOAL_DEFAULTS, listed, type MilestoneFor, type TargetFor, withTargets } from '../test/goals.ts'
+import { countTarget, GOAL_DEFAULTS, listed, type MilestoneFor, type TargetFor, weekGoal, withTargets } from '../test/goals.ts'
 import type {
   Aspiration,
   AspirationsOverview,
   Goal,
   ListedGoal,
   RecurringItem,
-  Task,
 } from '../api/types.ts'
 import {
   aspirationCards,
@@ -18,9 +17,7 @@ import {
   upkeepLine,
   weekCount,
 } from './aspirations.ts'
-import { aTask } from '../test/tasks.ts'
 
-const WEEK_OF = '2026-11-09'
 
 function aspiration(id: string, position: number, extra: Partial<Aspiration> = {}): Aspiration {
   return { id, name: id, why: null, position, status: 'active', createdAt: '2026-10-01T09:00:00Z', retiredOn: null, ...extra }
@@ -44,18 +41,6 @@ function target(goalId: string, sessions: number): TargetFor {
   return countTarget(goalId, sessions)
 }
 
-function tasks(goalId: string, ...kinds: ('done' | 'planned' | 'inBank')[]): Task[] {
-  return kinds.map((kind, index) =>
-    aTask(`${goalId}-task-${index}`, {
-      title: 'A session',
-      state: kind === 'done' ? 'done' : 'open',
-      week: WEEK_OF,
-      plannedDay: kind === 'inBank' ? null : WEEK_OF,
-      goalId,
-    }),
-  )
-}
-
 function recurring(name: string, aspirationId: string | null = null, active = true): RecurringItem {
   return { id: `rec-${name}`, name, aspirationId: aspirationId, fromGoalId: null, schedule: { kind: 'flexible', times: 1, period: 'week' }, startsOn: '2026-10-01', active, createdAt: '2026-10-01T09:00:00Z' }
 }
@@ -72,7 +57,7 @@ function overviewOf({ goals = [], milestones = [], weeklyTargets, ...parts }: Ov
   return {
     aspirations: [aspiration('fit', 1)],
     recurringItems: [],
-    weekTasks: [],
+    weekGoals: [],
     ...parts,
     goals: listed(withTargets(goals, weeklyTargets), milestones),
   }
@@ -146,7 +131,7 @@ describe('aspirationCards', () => {
         aspirations: [aspiration('fit', 1), aspiration('home', 2)],
         goals: [goal('strong'), goal('garage', { aspirationId: 'home', type: 'oneOff' })],
         weeklyTargets: [target('strong', 3)],
-        weekTasks: tasks('strong', 'done'),
+        weekGoals: [weekGoal('strong', 'fit', 1, 3)],
       }),
     )
 
@@ -183,54 +168,31 @@ describe('goalProgress', () => {
   })
 })
 
+// The bars read the week's goals (the API's): only active building goals with a target that
+// week are on it, so paused goals and goals with no target never reach weekCount.
 describe('weekCount', () => {
-  it("sums the targets and the done tasks of the aspiration's goals", () => {
-    const count = weekCount(
-      'fit',
-      overviewOf({
-        goals: [goal('strong'), goal('endurance')],
-        weeklyTargets: [target('strong', 3), target('endurance', 2)],
-        weekTasks: [...tasks('strong', 'done', 'planned', 'inBank'), ...tasks('endurance', 'done', 'inBank')],
-      }),
-    )
+  it("sums the done sessions and targets of the aspiration's goals on the week", () => {
+    const count = weekCount('fit', { weekGoals: [weekGoal('strong', 'fit', 1, 3), weekGoal('endurance', 'fit', 1, 2)] })
 
     expect(count).toEqual({ done: 2, total: 5, label: '2 of 5 this week' })
   })
 
   it("caps each goal at its own target, so one goal can't hide another", () => {
-    const count = weekCount(
-      'fit',
-      overviewOf({
-        goals: [goal('strong'), goal('endurance')],
-        weeklyTargets: [target('strong', 3), target('endurance', 2)],
-        weekTasks: tasks('endurance', 'done', 'done', 'done', 'done'),
-      }),
-    )
+    const count = weekCount('fit', { weekGoals: [weekGoal('strong', 'fit', 0, 3), weekGoal('endurance', 'fit', 4, 2)] })
 
     expect(count?.label).toBe('2 of 5 this week')
   })
 
-  it('leaves out paused goals, goals with no target, other aspirations and goals that are not building goals', () => {
-    const count = weekCount(
-      'fit',
-      overviewOf({
-        goals: [
-          goal('strong'),
-          goal('look-good'),
-          goal('mobility', { status: 'paused' }),
-          goal('cook', { aspirationId: 'home' }),
-          goal('race', { type: 'oneOff' }),
-        ],
-        weeklyTargets: [target('strong', 3), target('mobility', 4), target('cook', 5), target('race', 1)],
-        weekTasks: [...tasks('strong', 'done'), ...tasks('mobility', 'done'), ...tasks('cook', 'done')],
-      }),
-    )
+  it("leaves out other aspirations' goals and goals under none", () => {
+    const count = weekCount('fit', {
+      weekGoals: [weekGoal('strong', 'fit', 1, 3), weekGoal('cook', 'home', 1, 5), weekGoal('read', null, 1, 4)],
+    })
 
     expect(count?.label).toBe('1 of 3 this week')
   })
 
-  it('gives nothing when no goal has a target', () => {
-    expect(weekCount('fit', overviewOf({ goals: [goal('look-good')] }))).toBeUndefined()
+  it('gives nothing when none of its goals is on the week', () => {
+    expect(weekCount('fit', { weekGoals: [weekGoal('cook', 'home', 1, 5)] })).toBeUndefined()
   })
 })
 

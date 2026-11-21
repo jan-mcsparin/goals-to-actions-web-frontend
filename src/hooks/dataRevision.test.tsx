@@ -5,7 +5,6 @@ import {
   addTask,
   getAspiration,
   getAspirations,
-  getDay,
   getGoal,
   getUpkeep,
   getWeek,
@@ -13,7 +12,7 @@ import {
   updateAspiration,
 } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
-import type { WeekPlan } from '../api/types.ts'
+import type { Week } from '../api/types.ts'
 import { DataRevision, useDataRevision, useRevisionCounter } from './dataRevision.ts'
 import { useAspiration } from './useAspiration.ts'
 import { useAspirations } from './useAspirations.ts'
@@ -26,7 +25,6 @@ vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
   return {
     ...actual,
-    getDay: vi.fn(actual.getDay),
     getWeek: vi.fn(actual.getWeek),
     getAspirations: vi.fn(actual.getAspirations),
     getAspiration: vi.fn(actual.getAspiration),
@@ -109,7 +107,7 @@ describe('useAspirations when the data revision changes', () => {
 })
 
 describe.each([
-  ['useDay', getDay, () => useDay(TODAY, TODAY)],
+  ['useDay', getWeek, () => useDay(TODAY, TODAY)],
   ['useWeek', getWeek, () => useWeek(TODAY)],
   ['useAspirations', getAspirations, () => useAspirations()],
   ['useAspiration', getAspiration, () => useAspiration('asp-fit', TODAY)],
@@ -135,7 +133,7 @@ describe('useWeek after a failed save', () => {
     await act(async () => hook.result.current.place(hook.result.current.week!.bank[0].id, TODAY))
     expect(hook.result.current.message).toBe("Couldn't save that. Try again.")
     const reloaded = await getWeek()
-    let finishReload!: (plan: WeekPlan) => void
+    let finishReload!: (plan: Week) => void
     vi.mocked(getWeek).mockReturnValueOnce(new Promise((resolve) => (finishReload = resolve)))
 
     act(() => hook.bump())

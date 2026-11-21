@@ -1,11 +1,11 @@
 // The functions screens and hooks call. They read the in-memory mock store,
-// except that with the switch on real (mode.ts) the aspiration and goal ones
-// call the API instead (realAspirations.ts, realGoals.ts), with the same
+// except that with the switch on real (mode.ts) the ones on the API call it
+// instead (realAspirations.ts, realGoals.ts, realPlan.ts), with the same
 // signatures.
 import { addDays, fromLocalDay, mondayOf, toLocalDay, weekAfter } from './dates.ts'
-import { taskWeek } from '../domain/add.ts'
-import { checkedOff, inTheBank, isInBank, isPlanned, placedOnDay, uncheckedOff } from '../domain/tasks.ts'
+import { checkedOff, inTheBank, isDone, isInBank, isPlanned, placedOnDay, uncheckedOff } from '../domain/tasks.ts'
 import { isWithinGoal, MOST_SESSIONS, nextMilestone, pushedDates } from '../domain/goalDetail.ts'
+import { isFixedDay } from '../domain/recurring.ts'
 import { isIntensity } from '../domain/settings.ts'
 import { NotFoundError, SignedOutError } from './errors.ts'
 import { newDeviceId } from './ids.ts'
@@ -14,13 +14,12 @@ import { store } from './mockStore.ts'
 import { realApi } from './mode.ts'
 import * as real from './realAspirations.ts'
 import * as realGoals from './realGoals.ts'
+import * as realPlan from './realPlan.ts'
 import type {
   Aspiration,
   AspirationDetail,
   AspirationsOverview,
-  Bank,
   CheckOff,
-  DayPlan,
   Goal,
   GoalDetail,
   GoalStatus,
@@ -37,22 +36,17 @@ import type {
   StillMattersAnswer,
   Task,
   Upkeep,
-  WeekPlan,
+  Week,
+  WeekGoal,
   WeeklyTarget,
   WeeklyTargetInput,
 } from './types.ts'
 
 export { NotFoundError, SignedOutError }
 
-// Set-aside tasks keep their day but don't show on it.
-export async function getDay(date: string): Promise<DayPlan> {
-  const tasks = shown(store.tasks.filter((task) => task.plannedDay === date))
-  const stillMatters = shown(store.tasks.filter((task) => task.week === thisWeek() && task.stillMatters))
-  return structuredClone({ date, tasks, stillMatters, ...recordsReferencedBy(tasks) })
-}
-
 // Keeps the moment and day it's given: they're what the phone saw at the tap.
 export async function checkOffTask(taskId: string, checkOff: CheckOff): Promise<Task> {
+  if (realApi) return realPlan.checkOffTask(taskId, checkOff)
   const task = findTask(taskId)
   if (task.week !== null && task.week > thisWeek()) throw new Error("Can't check off a task in a week that hasn't started")
   replaceTask(task, checkedOff(task, checkOff))
@@ -60,6 +54,7 @@ export async function checkOffTask(taskId: string, checkOff: CheckOff): Promise<
 }
 
 export async function uncheckTask(taskId: string): Promise<Task> {
+  if (realApi) return realPlan.uncheckTask(taskId)
   const task = findTask(taskId)
   if (task.state !== 'done') throw new Error(`Task ${taskId} is not done`)
 
@@ -67,30 +62,60 @@ export async function uncheckTask(taskId: string): Promise<Task> {
   return taskOut(task)
 }
 
-// The current week, or next week once it's open. Anything else isn't there to read.
-export async function getWeek(week: string = thisWeek()): Promise<WeekPlan> {
+// Any week, as the API reads it: one that hasn't opened yet has nothing in it (the mock keeps
+// next week's tasks ready before then). Its goals are the active building goals with a target
+// that week.
+export async function getWeek(asked?: string): Promise<Week> {
+  if (realApi) return realPlan.getWeek(asked)
+  const week = asked ?? thisWeek()
   const current = thisWeek()
   const isCurrent = week === current
   const open = nextWeekOpen()
-  if (!isCurrent && !(open && week === weekAfter(current))) throw new NotFoundError(`No week ${week}`)
+  const notOpenYet = week > current && !(open && week === weekAfter(current))
 
-  const tasks = shown(store.tasks.filter((task) => task.week === week))
-  const targetGoalIds = store.goals
-    .filter((goal) => goal.status === 'active' && latestTarget(goal.id))
-    .map((goal) => goal.id)
+  const tasks = notOpenYet ? [] : shown(store.tasks.filter((task) => task.week === week))
   return structuredClone({
-    weekOf: week,
+    week,
     isCurrent,
     nextWeekOpen: open,
     tasks,
-    ...recordsReferencedBy(tasks, targetGoalIds),
+    goals: weekGoals(week, tasks),
+    days: dayMarks(week, tasks),
+    quittingGoals: [],
+  })
+}
+
+// The current week's goals, as its read sends them.
+function currentWeekGoals(): WeekGoal[] {
+  const week = thisWeek()
+  return weekGoals(week, shown(store.tasks.filter((task) => task.week === week)))
+}
+
+function weekGoals(week: string, tasks: Task[]): WeekGoal[] {
+  return store.goals.flatMap((goal) => {
+    const weeklyTarget = targetIn(goal.id, week)
+    if (goal.status !== 'active' || goal.type !== 'building' || !weeklyTarget) return []
+    const done = tasks.filter((task) => task.goalId === goal.id && isDone(task)).length
+    return [{ id: goal.id, label: goal.label, aspiration: aspirationOf({ goalId: goal.id }), weeklyTarget, progress: { done, of: weeklyTarget.sessions } }]
+  })
+}
+
+// Tasks a day holds at each intensity, as the API counts them: open or done, on the day.
+const CAPS: Record<Intensity, number> = { easingOff: 3, normal: 4, goingHard: 6 }
+
+function dayMarks(week: string, tasks: Task[]): Week['days'] {
+  const cap = CAPS[store.settings.intensity]
+  return Array.from({ length: 7 }, (_, offset) => {
+    const day = toLocalDay(addDays(fromLocalDay(week), offset))
+    return { day, cap, full: tasks.filter((task) => task.plannedDay === day).length >= cap }
   })
 }
 
 // Closes the current week early, once next week is open, as the API does: what carries over
 // goes to next week's bank, the rest ends, and next week becomes the current one. Sent again,
 // it changes nothing.
-export async function wrapUpWeek(week: string): Promise<WeekPlan> {
+export async function wrapUpWeek(week: string): Promise<Week> {
+  if (realApi) return realPlan.wrapUpWeek(week)
   const current = thisWeek()
   if (week < current) return getWeek()
   if (week > current) throw new Error('Only the current week can be wrapped up')
@@ -110,6 +135,7 @@ export async function wrapUpWeek(week: string): Promise<WeekPlan> {
 
 // Keep it, put it on a day, or drop it. Each ends the question.
 export async function answerStillMatters(taskId: string, answer: StillMattersAnswer): Promise<Task> {
+  if (realApi) return realPlan.answerStillMatters(taskId, answer)
   const task = findTask(taskId)
   if (!task.stillMatters) throw new Error(`Task ${taskId} isn't asking`)
   if (answer.answer === 'schedule') {
@@ -125,28 +151,23 @@ export async function answerStillMatters(taskId: string, answer: StillMattersAns
 
 export async function getAspirations(): Promise<AspirationsOverview> {
   if (realApi) return real.getAspirations()
-  const weekOf = thisWeek()
   return structuredClone({
     aspirations: store.aspirations,
     goals: store.goals.map(listedGoal),
     recurringItems: store.recurringItems.filter((item) => item.active),
-    weekTasks: shown(store.tasks.filter((task) => task.week === weekOf && task.goalId !== null)),
+    weekGoals: currentWeekGoals(),
   })
 }
 
 export async function getAspiration(aspirationId: string): Promise<AspirationDetail> {
   if (realApi) return real.getAspiration(aspirationId)
   const aspiration = findAspiration(aspirationId)
-  const weekOf = thisWeek()
   const goals = store.goals.filter((goal) => goal.aspirationId === aspirationId)
-  const goalIds = new Set(goals.map((goal) => goal.id))
   return structuredClone({
     aspiration,
     goals: goals.map(listedGoal),
     recurringItems: store.recurringItems.filter((item) => item.aspirationId === aspirationId),
-    weekTasks: shown(
-      store.tasks.filter((task) => task.week === weekOf && task.goalId !== null && goalIds.has(task.goalId)),
-    ),
+    weekGoals: currentWeekGoals().filter((goal) => goal.aspiration?.id === aspirationId),
     activeCount: activeAspirations().length,
   })
 }
@@ -379,6 +400,7 @@ export async function bringBackAspiration(aspirationId: string): Promise<Aspirat
 }
 
 export async function getUpkeep(): Promise<Upkeep> {
+  if (realApi) return realPlan.getUpkeep()
   const weekOf = thisWeek()
   return structuredClone({
     recurringItems: store.recurringItems.filter((item) => item.active && item.aspirationId === null),
@@ -397,19 +419,11 @@ export async function setIntensity(intensity: Intensity): Promise<Settings> {
   return structuredClone(store.settings)
 }
 
-// The current week's bank, or next week's once it's open.
-export async function getBank(week: string = thisWeek()): Promise<Bank> {
-  if (week !== thisWeek() && !(nextWeekOpen() && week === weekAfter(thisWeek()))) {
-    throw new NotFoundError(`No week ${week}`)
-  }
-  const weekOf = week
-  const tasks = shown(store.tasks.filter((task) => isInBank(task) && !task.setAside && task.week === weekOf))
-  return structuredClone({ weekOf, tasks, ...recordsReferencedBy(tasks) })
-}
-
-// In the bank of this week, or of its due week when that's later. With
-// onToday it goes on today's plan, placed by hand, whatever its due date.
+// In the bank of this week, or of its due week when that's later. With a day that's still
+// allowed (today or later, in an open week) it goes on that day, placed by hand, whatever its
+// due date; a day no longer allowed saves it in this week's bank, as the API does.
 export async function addTask(task: NewTask): Promise<Task> {
+  if (realApi) return realPlan.addTask(task)
   const title = task.title.trim()
   if (!title) throw new Error('A task needs a title')
   if (task.goalId) findActiveGoal(task.goalId)
@@ -418,14 +432,30 @@ export async function addTask(task: NewTask): Promise<Task> {
   const added = newStoredTask({
     title,
     origin: 'byHand',
-    week: taskWeek(task.dueDate, today),
+    week: taskWeek(task.dueDate),
     goalId: task.goalId ?? null,
     dueDate: task.dueDate ?? null,
     timeOfDay: task.timeOfDay ? { ...task.timeOfDay } : null,
   })
-  if (task.onToday) replaceTask(added, placedOnDay({ ...added, week: thisWeek() }, today))
+  const dayWeek = task.day ? toLocalDay(mondayOf(fromLocalDay(task.day))) : null
+  if (task.day && dayWeek && task.day >= today && isOpenWeek(dayWeek)) {
+    replaceTask(added, placedOnDay({ ...added, week: dayWeek }, task.day))
+  }
   store.tasks.push(added)
   return taskOut(added)
+}
+
+// This week's Monday, or the Monday of the due date's week when that's later. The server
+// decides this (ADR-008); the mock only imitates it.
+function taskWeek(dueDate: string | null | undefined): string {
+  const current = thisWeek()
+  if (!dueDate) return current
+  const dueWeek = toLocalDay(mondayOf(fromLocalDay(dueDate)))
+  return dueWeek > current ? dueWeek : current
+}
+
+function isOpenWeek(week: string): boolean {
+  return week === thisWeek() || (nextWeekOpen() && week === weekAfter(thisWeek()))
 }
 
 // The planner's stand-in adds no more than one task a day, so a typo in a
@@ -492,6 +522,7 @@ export async function addAspiration(aspiration: NewAspiration): Promise<Aspirati
 // Active from now. Without an aspiration it belongs to Keep life running.
 // Its tasks are the planner's, so none are added here.
 export async function addRecurringItem(item: NewRecurringItem): Promise<RecurringItem> {
+  if (realApi) return realPlan.createRecurringItem(item)
   const name = item.name.trim()
   if (!name) throw new Error('A recurring item needs a name')
   if (item.aspirationId) findActiveAspiration(item.aspirationId)
@@ -513,6 +544,7 @@ export async function addRecurringItem(item: NewRecurringItem): Promise<Recurrin
 // Back to the bank, in the week the change was made in; the day is cleared and the rollover
 // count stays. Refused once the task has left that week, as the API does (a 409).
 export async function moveTaskToBank(taskId: string, week: string): Promise<Task> {
+  if (realApi) return realPlan.moveTaskToBank(taskId, week)
   const task = findPlannedTask(taskId)
   checkWeek(task, week)
   replaceTask(task, inTheBank(task))
@@ -521,6 +553,7 @@ export async function moveTaskToBank(taskId: string, week: string): Promise<Task
 
 // Onto a day of its week, placed by hand.
 export async function placeTask(taskId: string, week: string, day: string): Promise<Task> {
+  if (realApi) return realPlan.placeTask(taskId, week, day)
   const task = findBankTask(taskId)
   checkWeek(task, week)
   checkDay(day, week)
@@ -534,6 +567,7 @@ export async function swapTasks(
   taskId: string,
   { week, bankTaskId, day }: { week: string; bankTaskId: string; day: string },
 ): Promise<{ toBank: Task; placed: Task }> {
+  if (realApi) return realPlan.swapTasks(taskId, { week, bankTaskId, day })
   const toBank = findPlannedTask(taskId)
   const placed = findBankTask(bankTaskId)
   checkWeek(toBank, week)
@@ -558,9 +592,30 @@ function replaceTask(stored: StoredTask, next: Task) {
   Object.assign(stored, next)
 }
 
-// A task as the API sends it: without what only the mock keeps, and with what closing would do.
+// A task as the API sends it: without what only the mock keeps, and with its goal's label and
+// aspiration, what closing would do, and whether it stays on its day.
 function taskOut({ setAside: _setAside, ...task }: StoredTask): Task {
-  return structuredClone({ ...task, atClose: atCloseOf(task) })
+  return structuredClone({
+    ...task,
+    goalLabel: store.goals.find((goal) => goal.id === task.goalId)?.label ?? null,
+    atClose: atCloseOf(task),
+    aspiration: aspirationOf(task),
+    fixedDay: isFixedDayTask(task),
+  })
+}
+
+// Its goal's aspiration, or for a recurring item's task with no goal, the item's.
+function aspirationOf(task: Pick<Task, 'goalId'> & Partial<Pick<Task, 'recurringItemId'>>): Task['aspiration'] {
+  const goal = store.goals.find((candidate) => candidate.id === task.goalId)
+  const item = goal ? undefined : store.recurringItems.find((candidate) => candidate.id === task.recurringItemId)
+  const aspirationId = goal ? goal.aspirationId : item?.aspirationId
+  const aspiration = store.aspirations.find((candidate) => candidate.id === aspirationId)
+  return aspiration ? { id: aspiration.id, name: aspiration.name, position: aspiration.position } : null
+}
+
+function isFixedDayTask(task: Pick<Task, 'recurringItemId'>): boolean {
+  const item = store.recurringItems.find((candidate) => candidate.id === task.recurringItemId)
+  return item !== undefined && isFixedDay(item.schedule)
 }
 
 // What closing its week does to a task that's still open: by-hand and fixed-day tasks carry
@@ -587,7 +642,9 @@ function newStoredTask(fields: Pick<StoredTask, 'title' | 'origin'> & Partial<St
     state: 'open',
     goalId: null,
     goalLabel: null,
+    aspiration: null,
     recurringItemId: null,
+    fixedDay: false,
     dueDate: null,
     timeOfDay: null,
     valueLogged: null,
@@ -658,6 +715,16 @@ function progressOf(goal: StoredGoal): ListedGoal['progress'] {
 }
 
 // A target change adds a row, or updates this week's; the latest is the one shown.
+// The target in force in a week: the latest that starts by then.
+function targetIn(goalId: string, week: string): WeeklyTarget | undefined {
+  const row = store.weeklyTargets
+    .filter((target) => target.goalId === goalId && target.effectiveFrom <= week)
+    .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0]
+  if (!row) return undefined
+  const { goalId: _goalId, ...target } = row
+  return target
+}
+
 function latestTarget(goalId: string): WeeklyTarget | undefined {
   const row = store.weeklyTargets
     .filter((target) => target.goalId === goalId)
@@ -798,17 +865,3 @@ function findTask(taskId: string): StoredTask {
   return task
 }
 
-// The goals, recurring items and aspirations behind these tasks, plus any
-// extra goals asked for (a goal with a weekly target but no tasks yet).
-function recordsReferencedBy(tasks: Task[], extraGoalIds: string[] = []) {
-  const goalIds = new Set([...tasks.flatMap((task) => task.goalId ?? []), ...extraGoalIds])
-  const goals = store.goals.filter((goal) => goalIds.has(goal.id)).map(goalOut)
-  const recurringItems = store.recurringItems.filter((item) =>
-    tasks.some((task) => task.recurringItemId === item.id),
-  )
-  const aspirationIds = new Set(
-    [...goals, ...recurringItems].flatMap((record) => record.aspirationId ?? []),
-  )
-  const aspirations = store.aspirations.filter((aspiration) => aspirationIds.has(aspiration.id))
-  return { goals, recurringItems, aspirations }
-}

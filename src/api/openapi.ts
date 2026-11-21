@@ -1398,6 +1398,25 @@ export interface components {
             week: string;
         };
         /**
+         * PlanAspiration
+         * @description The aspiration a task is under, so the phone can order and label the plan from the week
+         *     read alone.
+         */
+        PlanAspiration: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Position
+             * @description Its priority; empty once it's retired.
+             */
+            position: number | null;
+        };
+        /**
          * Progress
          * @description "2 of 6": the goal's milestones plus one for the goal. A reached goal counts complete:
          *     milestones never checked in were passed on the way.
@@ -1613,6 +1632,8 @@ export interface components {
         };
         /** Task */
         Task: {
+            /** @description Its goal's aspiration, or for a recurring item's task with no goal, the item's. Empty when it's under none. */
+            aspiration: components["schemas"]["PlanAspiration"] | null;
             /**
              * Atclose
              * @description What closing its week does to it if it's still unfinished: it carries over to next week's bank, or ends with the week. Empty when it's done, closed, set aside or has no row in play. The wrap-up sheet reads this.
@@ -1629,6 +1650,11 @@ export interface components {
             completedOn: string | null;
             /** Duedate */
             dueDate: string | null;
+            /**
+             * Fixedday
+             * @description From a weekly or monthly recurring item, in the week it was due: it stays on its day. One that carried over is placed like any task.
+             */
+            fixedDay: boolean;
             /** Goalid */
             goalId: string | null;
             /** Goallabel */
@@ -1782,6 +1808,8 @@ export interface components {
          * @description A bar on Week: a goal's target that week and how far along it is.
          */
         WeekGoal: {
+            /** @description The aspiration it's under. Empty when it's under none. */
+            aspiration: components["schemas"]["PlanAspiration"] | null;
             /**
              * Id
              * Format: uuid

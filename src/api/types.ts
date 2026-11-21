@@ -57,14 +57,9 @@ export type Task = Schemas['Task']
 // What "Still matter?" sends: keep it, put it on a day (as placeTask does), or drop it.
 export type StillMattersAnswer = Schemas['KeepIt'] | Schemas['ScheduleIt'] | Schemas['DropIt']
 
-// What the Add sheet sends to addTask. Not stored as is: the API places it.
-export type NewTask = {
-  title: string
-  goalId?: string
-  dueDate?: string
-  timeOfDay?: TimeOfDay
-  onToday?: boolean
-}
+// What the Add sheet sends to addTask. With a day it's placed there by hand; a day no longer
+// allowed, or none, saves it in a bank. The server picks the week from the due date.
+export type NewTask = Schemas['NewTask']
 
 // What the Add sheet sends to createGoal. A building goal sends its target too.
 export type NewGoal = Schemas['NewGoal']
@@ -84,37 +79,12 @@ export type NewRecurringItem = Schemas['NewRecurringItem']
 export type Settings = Schemas['Settings']
 export type Intensity = Settings['intensity']
 
-export type DayPlan = {
-  date: string
-  tasks: Task[]
-  // The tasks asking "Still matter?", wherever they sit this week; Today shows them.
-  stillMatters: Task[]
-  goals: Goal[]
-  aspirations: Aspiration[]
-  recurringItems: RecurringItem[]
-}
-
-// Every task in a week (planned, done and in the bank), with what they
-// reference, and every active goal with a weekly target.
-// isCurrent and nextWeekOpen are as the API's week read sends them.
-export type WeekPlan = {
-  weekOf: string
-  isCurrent: boolean
-  nextWeekOpen: boolean
-  tasks: Task[]
-  goals: Goal[]
-  aspirations: Aspiration[]
-  recurringItems: RecurringItem[]
-}
-
-// This week's tasks not yet on a day, with what they reference (like DayPlan).
-export type Bank = {
-  weekOf: string
-  tasks: Task[]
-  goals: Goal[]
-  aspirations: Aspiration[]
-  recurringItems: RecurringItem[]
-}
+// The plan read (ADR-010): every task in a week, on a day then in the bank, done ones
+// included; each active building goal with a target that week and its progress; each day's
+// cap and whether it's full; and the quitting goals' days (#37). Today, any day and the bank
+// are drawn from it.
+export type Week = Schemas['Week']
+export type WeekGoal = Schemas['WeekGoal']
 
 // Everything the Aspirations tab shows, as records. Ordering, grouping and
 // counting are left to domain/aspirations.ts.
@@ -122,7 +92,7 @@ export type AspirationsOverview = {
   aspirations: Aspiration[] // active and retired
   goals: ListedGoal[] // every status
   recurringItems: RecurringItem[] // active ones
-  weekTasks: Task[] // this week's tasks that belong to a goal
+  weekGoals: WeekGoal[] // the current week's goals, as its read sends them, with their progress
 }
 
 // One aspiration's page, as records. Laid out by domain/aspiration.ts.
@@ -130,7 +100,7 @@ export type AspirationDetail = {
   aspiration: Aspiration
   goals: ListedGoal[] // its goals, every status
   recurringItems: RecurringItem[] // its items, active or not
-  weekTasks: Task[] // this week's tasks for its goals
+  weekGoals: WeekGoal[] // the current week's goals under it, with their progress
   activeCount: number // active aspirations, for "1st of 3"
 }
 
