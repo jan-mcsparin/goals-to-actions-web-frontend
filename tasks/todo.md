@@ -2,7 +2,7 @@
 
 Plan: [`plan.md`](plan.md).
 
-- [ ] 1. Refusals are typed (`RefusedError`, `request.ts`, the mock)
+- [x] 1. Refusals are typed (`RefusedError`, `request.ts`, the mock)
 - [ ] 2. The store (`storage/planStore.ts`)
 - [ ] 3. Replay rules (`domain/replay.ts`)
 - [ ] 4. The queue (`api/queue.ts`, `api/sendOrder.ts`, `addTask` with an id)

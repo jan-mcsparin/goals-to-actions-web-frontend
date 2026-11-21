@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { NotFoundError, SignedOutError } from './errors.ts'
+import { NotFoundError, RefusedError, SignedOutError } from './errors.ts'
 import { request } from './request.ts'
 import { onSignedOut, signedIn } from './session.ts'
 
@@ -60,13 +60,23 @@ describe('request', () => {
     await expect(request('PATCH', '/aspirations/a1', { name: 'x' })).rejects.toBeInstanceOf(NotFoundError)
   })
 
-  it.each([403, 409, 422, 500])('turns a %i into a failed request, not NotFoundError', async (status) => {
+  it('turns a 409 into RefusedError, with the reason the API gave', async () => {
+    fetchMock.mockResolvedValue(respond(409, { detail: 'The task has moved on to another week.' }))
+
+    const refused = request('POST', '/tasks/t1/place', { week: '2026-11-09', day: '2026-11-11' })
+
+    await expect(refused).rejects.toBeInstanceOf(RefusedError)
+    await expect(refused).rejects.toThrow('409')
+  })
+
+  it.each([403, 422, 500])('turns a %i into a failed request, neither NotFoundError nor RefusedError', async (status) => {
     fetchMock.mockResolvedValue(respond(status, { detail: 'No' }))
 
     const failure = request('POST', '/aspirations/reorder', { ids: [] })
 
     await expect(failure).rejects.toThrow(String(status))
     await expect(failure).rejects.not.toBeInstanceOf(NotFoundError)
+    await expect(failure).rejects.not.toBeInstanceOf(RefusedError)
   })
 
   it('turns a network failure into a failed request, not NotFoundError', async () => {
