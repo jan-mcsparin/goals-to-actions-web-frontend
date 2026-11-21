@@ -13,7 +13,7 @@ This part stores nothing on the phone and queues nothing. A change still shows o
 1. **Real is the default.** `npm run dev` and `npm run build` talk to the API. The mock is chosen with `VITE_API=mock`: `npm run dev:mock` for the click-through, and every test run (set in `vite.config.ts`'s `test.env`). `dev:real` goes.
 2. **Settings on the API.** `getSettings` reads `GET /settings`, `setIntensity` sends `PUT /settings/intensity`, in a new `api/realSettings.ts`. The screen doesn't change.
 3. **Each read once.** Opening a screen or the Add sheet sends each `GET` it needs once (not counting React's development double-run). The Add sheet's pickers read aspirations and goals only, not the whole Aspirations tab (recurring items and the week as well).
-4. **The mock stays as it is** (decision 1 below). Shared decision 23 changes from "shrinks when real is the default" to "stays for tests and `dev:mock`".
+4. **The mock stays as it is** (settled 1 below). Shared decision 23 changes from "shrinks when real is the default" to "stays for tests and `dev:mock`".
 
 ### Moved out of #43
 
@@ -82,7 +82,7 @@ export async function setIntensity(intensity: Intensity): Promise<Settings> {
 - [ ] Each screen and the Add sheet read each list once.
 - [ ] README, CLAUDE.md and decision 23 say how the modes work now.
 
-## Open questions
+## Settled with Jan, 2026-11-20
 
-1. **Keep the mock whole?** Decision 23 said it shrinks to what tests need once real is the default. Recommended: keep it as it is. Tests and the click-through use all of it, shrinking it is work with nothing to show, and it can go later if it gets in the way.
-2. **Where do the double reads come from?** Seen in #40's checks; not traced yet. Recommended: the plan's first task traces them with the network log (likely the Add sheet's full `getAspirations`, and the reload after a save on top of the screen's own read), and the fix follows what that finds.
+1. **The mock stays whole.** Tests and the click-through use all of it; it can go later if it gets in the way.
+2. **The double reads are traced first,** with the network log, in the plan's first task; the fix follows what that finds.
