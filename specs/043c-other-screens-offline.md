@@ -16,6 +16,7 @@ Every screen opens at once from what it last showed, and can be read offline: As
 ### Accepted until later
 
 - A screen never opened on this phone shows the ordinary load failure offline.
+- A change on one screen reaches another screen's stored response only when that screen reads again: after renaming an aspiration, the Aspirations tab opens with the old name and shows the new one once its read lands (offline, it keeps the old one).
 - Stored responses are cleared on sign-out (part d).
 
 ## Scope
@@ -74,7 +75,7 @@ const { data: overview, message } = useLoaded('aspirations', getAspirations, LOA
 
 - **The empty tab was nothing to show, not the dismiss.** `useLoaded` already kept data on a failed load, and with data the message isn't sticky. The tab went empty when a first load failed with nothing loaded; a stored response gives it something to show. A screen never opened on this phone still shows the failure alone (accepted above).
 - **A record that's gone forgets its stored response:** a 404 deletes it, and it isn't shown.
-- **Only reads are stored.** A screen's own optimistic changes aren't; the next read replaces them.
+- **What a screen shows is what's stored**, its saves included (found in review: storing only reads left a renamed aspiration opening with its old name). It's kept under the key it came from, so while another id loads, the old one's data is never stored under the new id.
 - **Found in the browser check:** offline, the load fails before the store answers, and the first version then dropped the stored response. Only a fresh response (or a 404) now outranks it; a regression test covers it.
 - The database is version 2 (adds `responses`); the upgrade creates whichever store is missing.
 

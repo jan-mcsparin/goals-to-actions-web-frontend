@@ -9,7 +9,7 @@ Every read other than the week keeps its last response on the phone. A screen sh
 ## Architecture decisions
 
 - **A third shelf** in `storage/planStore.ts`: `responses`, keyed by the read (`aspirations`, `aspiration/<id>`, `goal/<id>`, `upkeep`, `settings`). Same database, version 2 (the upgrade adds the missing store). `clear()` empties it too, ready for part d.
-- **`useLoaded(key, load, loadFailed)`**: reads the stored response for `key` and shows it unless the fresh load has already landed; stores each fresh load; on 404 deletes the stored one (so a gone record doesn't keep opening). Any storage failure is ignored and the screen works as now. Only reads are stored; a screen's own optimistic changes aren't, and the next read replaces them.
+- **`useLoaded(key, load, loadFailed)`**: reads the stored response for `key` and shows it unless the fresh load has already landed; stores each fresh load; on 404 deletes the stored one (so a gone record doesn't keep opening). Any storage failure is ignored and the screen works as now. What the screen shows is stored, its saves included, under the key it came from (settled in review).
 - **The empty tab traced:** `useLoaded` already keeps data on a failed load, and with data the message isn't sticky, so dismissing it leaves the screen. The tab went empty only because a failed first load had nothing to show and the message was all there was. With a stored response there is something to show. A screen never opened on this phone still shows the load failure alone (accepted in the spec).
 
 ## Tasks
