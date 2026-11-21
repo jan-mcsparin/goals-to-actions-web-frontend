@@ -6,7 +6,8 @@
 // A step that doesn't finish says so calmly, never as an error.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { onSignedOut, signedIn as countSignIn, signIns } from '../api/session.ts'
-import { anythingStored } from '../api/stored.ts'
+import { flush, waitingCount } from '../api/queue.ts'
+import { anythingStored, clearStored } from '../api/stored.ts'
 import * as passkeys from '../api/signIn.ts'
 import type { SignInOutcome } from '../api/signIn.ts'
 import type { PasskeyOptions } from '../api/types.ts'
@@ -28,6 +29,8 @@ export type UseSession = {
   step: SignInStep
   busy: boolean
   message?: string
+  // Signing out found changes it couldn't send: the sheet warns with the count.
+  unsent?: number
   signIn: () => Promise<void>
   notNow: () => void
   enterCode: () => void
@@ -35,6 +38,7 @@ export type UseSession = {
   addPasskey: () => Promise<void>
   back: () => void
   signOut: () => Promise<void>
+  cancelSignOut: () => void
 }
 
 // `onSignedIn` runs after each sign-in: App loads the open screen again.
@@ -44,6 +48,8 @@ export function useSession(onSignedIn: () => void): UseSession {
   const [step, setStep] = useState<SignInStep>('signIn')
   const [message, setMessage] = useState<string>()
   const [busy, setBusy] = useState(false)
+  const [unsent, setUnsent] = useState<number>()
+  const signingOut = useRef(false)
   const busyRef = useRef(false)
   const redeemed = useRef<PasskeyOptions>(undefined)
   // Not signed in, whichever way: a later 401 changes nothing.
@@ -54,9 +60,11 @@ export function useSession(onSignedIn: () => void): UseSession {
   useEffect(
     () =>
       onSignedOut(() => {
+        // Signing out says so itself, with the warning.
+        if (signingOut.current) return
         const at = signIns()
         void anythingStored().then((stored) => {
-          if (signIns() !== at || ended.current) return
+          if (signIns() !== at || ended.current || signingOut.current) return
           ended.current = true
           setStatus(stored ? 'sessionEnded' : 'signedOut')
           setAskingToSignIn(stored)
@@ -151,19 +159,55 @@ export function useSession(onSignedIn: () => void): UseSession {
     setStep('signIn')
   }
 
-  // #43: send the queue first, warn if changes can't be sent, then clear what's
-  // stored on the phone. Signed out either way: the cookie may be gone already.
+  // Sends what waits first. If some can't go, the sheet warns and nothing is
+  // cleared until the person signs out anyway. Then everything stored is
+  // cleared (ADR-012). Signed out either way: the cookie may be gone already.
   const signOut = () =>
     run(async () => {
+      signingOut.current = true
       try {
-        await passkeys.signOut()
-      } catch {
-        // Nothing to tell: the session ends on its own in time.
+        if (unsent === undefined) {
+          await flush()
+          const waiting = waitingCount()
+          if (waiting > 0) {
+            setUnsent(waiting)
+            return
+          }
+        }
+        try {
+          await passkeys.signOut()
+        } catch {
+          // Nothing to tell: the session ends on its own in time.
+        }
+        await clearStored()
+        ended.current = true
+        setUnsent(undefined)
+        setStep('signIn')
+        setStatus('signedOut')
+      } finally {
+        signingOut.current = false
       }
-      ended.current = true
-      setStep('signIn')
-      setStatus('signedOut')
     })
 
-  return { status, askingToSignIn, step, busy, message, signIn, notNow, enterCode, submitCode, addPasskey, back, signOut }
+  // The sheet closed: next time, it sends again before warning.
+  function cancelSignOut() {
+    setUnsent(undefined)
+  }
+
+  return {
+    status,
+    askingToSignIn,
+    step,
+    busy,
+    message,
+    unsent,
+    signIn,
+    notNow,
+    enterCode,
+    submitCode,
+    addPasskey,
+    back,
+    signOut,
+    cancelSignOut,
+  }
 }

@@ -14,9 +14,12 @@ type SettingsProps = {
   onBack: () => void
   onSignOut: () => void
   signingOut?: boolean
+  // Changes signing out couldn't send (useSession).
+  unsent?: number
+  onCancelSignOut?: () => void
 }
 
-export function Settings({ onBack, onSignOut, signingOut }: SettingsProps) {
+export function Settings({ onBack, onSignOut, signingOut, unsent, onCancelSignOut }: SettingsProps) {
   const [askingToSignOut, setAskingToSignOut] = useState(false)
   const { loaded, intensity, chooseIntensity, exportData, message } = useSettings()
   // With nothing loaded, the message stays.
@@ -82,7 +85,16 @@ export function Settings({ onBack, onSignOut, signingOut }: SettingsProps) {
         </button>
       </section>
 
-      <SignOutSheet open={askingToSignOut} busy={signingOut} onSignOut={onSignOut} onClose={() => setAskingToSignOut(false)} />
+      <SignOutSheet
+        open={askingToSignOut}
+        busy={signingOut}
+        unsent={unsent}
+        onSignOut={onSignOut}
+        onClose={() => {
+          setAskingToSignOut(false)
+          onCancelSignOut?.()
+        }}
+      />
       <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
     </main>
   )

@@ -18,6 +18,7 @@ function session(step: SignInStep, overrides: Partial<UseSession> = {}): UseSess
     addPasskey: vi.fn(async () => {}),
     back: vi.fn(),
     signOut: vi.fn(async () => {}),
+    cancelSignOut: vi.fn(),
     ...overrides,
   }
 }

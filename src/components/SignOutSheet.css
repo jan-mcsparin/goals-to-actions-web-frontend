@@ -1,0 +1,6 @@
+/* Changes that would be lost: a warm note, never an error's red. */
+.sign-out-warning {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, #d9822b 14%, var(--bg));
+}

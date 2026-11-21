@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { checkOffTask } from '../api/client.ts'
 import { SignedOutError } from '../api/errors.ts'
-import { enqueue, resetQueue } from '../api/queue.ts'
+import { enqueue, resetQueue, waitingCount } from '../api/queue.ts'
 import { signedOut, signIns } from '../api/session.ts'
 import type { Change } from '../domain/replay.ts'
 import { planStore, resetPlanStore } from '../storage/planStore.ts'
@@ -310,6 +310,74 @@ describe('useSession', () => {
   })
 
   describe('signing out', () => {
+    it('sends what waits first, then clears every store and the queue', async () => {
+      vi.mocked(checkOffTask).mockResolvedValue({} as never)
+      await planStore().weeks.put('2026-11-16', {} as never)
+      await planStore().responses.put('goal/g1', {})
+      await enqueue(CHANGE)
+      const { result } = renderHook(() => useSession(onSignedIn))
+
+      await act(() => result.current.signOut())
+
+      expect(checkOffTask).toHaveBeenCalledWith('t1', expect.anything())
+      expect(result.current.status).toBe('signedOut')
+      expect(await planStore().weeks.entries()).toEqual([])
+      expect(await planStore().responses.entries()).toEqual([])
+      expect(await planStore().queue.entries()).toEqual([])
+      expect(waitingCount()).toBe(0)
+    })
+
+    it('warns when changes can’t be sent, and clears nothing until signed out anyway', async () => {
+      vi.mocked(checkOffTask).mockRejectedValue(new Error('Failed to fetch'))
+      await enqueue(CHANGE)
+      const { result } = renderHook(() => useSession(onSignedIn))
+
+      await act(() => result.current.signOut())
+
+      expect(result.current.unsent).toBe(1)
+      expect(result.current.status).toBe('signedIn')
+      expect(signOut).not.toHaveBeenCalled()
+      expect(await planStore().queue.entries()).toHaveLength(1)
+
+      await act(() => result.current.signOut())
+
+      expect(signOut).toHaveBeenCalledTimes(1)
+      expect(result.current.status).toBe('signedOut')
+      expect(result.current.unsent).toBeUndefined()
+      expect(await planStore().queue.entries()).toEqual([])
+      expect(waitingCount()).toBe(0)
+    })
+
+    it('forgets the warning when the sheet is closed, and sends again next time', async () => {
+      vi.mocked(checkOffTask).mockRejectedValue(new Error('Failed to fetch'))
+      await enqueue(CHANGE)
+      const { result } = renderHook(() => useSession(onSignedIn))
+      await act(() => result.current.signOut())
+
+      act(() => result.current.cancelSignOut())
+      expect(result.current.unsent).toBeUndefined()
+      vi.mocked(checkOffTask).mockClear().mockResolvedValue({} as never)
+      await act(() => result.current.signOut())
+
+      expect(checkOffTask).toHaveBeenCalledTimes(1)
+      expect(result.current.status).toBe('signedOut')
+    })
+
+    it('doesn’t open the session-ended sheet for a 401 while sending', async () => {
+      vi.mocked(checkOffTask).mockImplementation(async () => {
+        signedOut()
+        throw new SignedOutError('not signed in')
+      })
+      await enqueue(CHANGE)
+      const { result } = renderHook(() => useSession(onSignedIn))
+
+      await act(() => result.current.signOut())
+
+      expect(result.current.status).toBe('signedIn')
+      expect(result.current.askingToSignIn).toBe(false)
+      expect(result.current.unsent).toBe(1)
+    })
+
     it('ends the session and shows the first step', async () => {
       const { result } = renderHook(() => useSession(onSignedIn))
 

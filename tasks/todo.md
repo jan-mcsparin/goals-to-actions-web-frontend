@@ -2,6 +2,6 @@
 
 - [x] 1. Clearing what's stored
 - [x] 2. Session ended vs signed out
-- [ ] 3. Sign-out sends first
+- [x] 3. Sign-out sends first
 - [ ] 4. Sheet, banner and App
 - [ ] 5. Docs and the browser check
