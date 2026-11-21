@@ -1,6 +1,6 @@
 # Spec: Other screens offline (#43, part c)
 
-Status: draft 2026-11-20. Part c of [#43](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/43): a [real by default](043a-real-by-default.md) → b [stored week and queue](043b-stored-week-and-queue.md) → **c other screens offline** → d [sign-in around the queue](043d-sign-in-around-the-queue.md). Depends on part a and on part b's storage. [ADR-010](../../docs/adr/0010-week-document-and-replayed-queue.md): "The last response of every other read, so any screen opens instantly and can be read offline."
+Status: built 2026-11-20; plan in [`../tasks/plan.md`](../tasks/plan.md). Part c of [#43](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/43): a [real by default](043a-real-by-default.md) → b [stored week and queue](043b-stored-week-and-queue.md) → **c other screens offline** → d [sign-in around the queue](043d-sign-in-around-the-queue.md). Depends on part a and on part b's storage. [ADR-010](../../docs/adr/0010-week-document-and-replayed-queue.md): "The last response of every other read, so any screen opens instantly and can be read offline."
 
 ## Objective
 
@@ -61,11 +61,29 @@ const { data: overview, message } = useLoaded('aspirations', getAspirations, LOA
 
 ## Success criteria
 
-- [ ] Each screen opens from its last response, then refreshes.
-- [ ] Each can be read offline once opened online.
-- [ ] A failed load never empties a screen that has something to show.
-- [ ] Tests and docs updated.
+- [x] Each screen opens from its last response, then refreshes.
+- [x] Each can be read offline once opened online.
+- [x] A failed load never empties a screen that has something to show.
+- [x] Tests and docs updated.
 
 ## Settled with Jan, 2026-11-20
 
 1. **A stored response is kept until a fresh one replaces it or sign-out clears it.** Nothing expires.
+
+## Built differently, or noted while building
+
+- **The empty tab was nothing to show, not the dismiss.** `useLoaded` already kept data on a failed load, and with data the message isn't sticky. The tab went empty when a first load failed with nothing loaded; a stored response gives it something to show. A screen never opened on this phone still shows the failure alone (accepted above).
+- **A record that's gone forgets its stored response:** a 404 deletes it, and it isn't shown.
+- **Only reads are stored.** A screen's own optimistic changes aren't; the next read replaces them.
+- **Found in the browser check:** offline, the load fails before the store answers, and the first version then dropped the stored response. Only a fresh response (or a 404) now outranks it; a regression test covers it.
+- The database is version 2 (adds `responses`); the upgrade creates whichever store is missing.
+
+## Checked, 2026-11-20
+
+By a Sonnet agent with Chrome DevTools at 390×844, against the local API:
+
+- **Online:** Aspirations, Be fit's page, a goal, Keep life running and Settings each loaded and stored their response (`aspirations`, `aspiration/<id>`, `goal/<id>`, `upkeep`, `settings`); the database was at version 2.
+- **Offline** (gone offline after loading; the dev server has no service worker, so an offline reload isn't possible there): each screen showed what it last showed, with its "Couldn't load …" message; tapping the message left the screen as it was, the Aspirations tab included.
+- **A write offline:** intensity showed "Couldn't save that. Try again." and stayed on Normal.
+- **Back online:** fresh reads, no console errors from the app.
+- Not checked: an offline reload of the installed app (with #8's phone checks), and upgrading a real version-1 database.
