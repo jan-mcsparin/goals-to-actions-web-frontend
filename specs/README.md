@@ -56,6 +56,18 @@ The API is built in twelve slices ([its map](../../api/specs/README.md)). After 
 
 Build order: 043a → 043b → 043c → 043d. #43's quitting-goal and delete criteria move to #37 and #38, which build those screens. Its phone checks go with #8.
 
+### After #43 (drafted 2026-11-20)
+
+What the earlier steps left of #17, #37 and #38. Each is a draft until its plan is written.
+
+| Module id | Spec | Issue | Responsibility | Depends on |
+|---|---|---|---|---|
+| `every-failed-save` | [017](017-every-failed-save.md) | #17 | Every failed save shows its message; the screen ends on the server's record | 043c |
+| `quitting-goal-daily-answer` | [037](037-quitting-goal-daily-answer.md) | #37 | A quitting goal's daily answer and urge rating, on Today and its page, queued offline | 043b |
+| `delete-mistakes` | [038](038-delete-mistakes.md) | #38 | Delete on tasks, milestones, goals, aspirations and recurring items | #76 for recurring items (038, decision 2) |
+
+Suggested order: 017 (small, and it changes the save hooks the other two build on) → 037 → 038.
+
 ## Decisions shared by these specs
 
 Settled with Jan on 2026-11-10:
