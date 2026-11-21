@@ -5,7 +5,7 @@ Plan: [`plan.md`](plan.md).
 - [x] 1. Refusals are typed (`RefusedError`, `request.ts`, the mock)
 - [x] 2. The store (`storage/planStore.ts`)
 - [x] 3. Replay rules (`domain/replay.ts`)
-- [ ] 4. The queue (`api/queue.ts`, `api/sendOrder.ts`, `addTask` with an id)
+- [x] 4. The queue (`api/queue.ts`, `api/sendOrder.ts`, `addTask` with an id)
 - [ ] 5. The stored week hook (`hooks/useStoredWeek.ts`)
 - [ ] 6. Today and a day on the queue (`useDay`)
 - [ ] 7. Week on the queue (`useWeek`)

@@ -432,14 +432,17 @@ export async function setIntensity(intensity: Intensity): Promise<Settings> {
 // In the bank of this week, or of its due week when that's later. With a day that's still
 // allowed (today or later, in an open week) it goes on that day, placed by hand, whatever its
 // due date; a day no longer allowed saves it in this week's bank, as the API does.
-export async function addTask(task: NewTask): Promise<Task> {
-  if (realApi) return realPlan.addTask(task)
+export async function addTask(task: NewTask, taskId = newDeviceId()): Promise<Task> {
+  if (realApi) return realPlan.addTask(task, taskId)
+  const existing = store.tasks.find((candidate) => candidate.id === taskId)
+  if (existing) return taskOut(existing)
   const title = task.title.trim()
   if (!title) throw new Error('A task needs a title')
   if (task.goalId) findActiveGoal(task.goalId)
 
   const today = toLocalDay(new Date())
   const added = newStoredTask({
+    id: taskId,
     title,
     origin: 'byHand',
     week: taskWeek(task.dueDate),

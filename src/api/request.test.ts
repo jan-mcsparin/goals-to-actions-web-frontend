@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NotFoundError, RefusedError, SignedOutError } from './errors.ts'
 import { request } from './request.ts'
 import { onSignedOut, signedIn } from './session.ts'
+import { queueIsSending } from './sendOrder.ts'
 
 function respond(status: number, body?: unknown) {
   return new Response(body === undefined ? null : JSON.stringify(body), {
@@ -124,5 +125,48 @@ describe('request', () => {
       await expect(request('POST', '/sign-in/finish', {})).rejects.toBeInstanceOf(SignedOutError)
       expect(listener).not.toHaveBeenCalled()
     })
+  })
+})
+
+describe('the order of writes', () => {
+  afterEach(() => {
+    queueIsSending(Promise.resolve())
+  })
+
+  function sendingUntilAnswered() {
+    let answer = () => {}
+    queueIsSending(new Promise<void>((resolve) => (answer = resolve)))
+    return () => answer()
+  }
+
+  it("holds a write until the queue's send under way is answered", async () => {
+    fetchMock.mockImplementation(async () => respond(200, {}))
+    const answer = sendingUntilAnswered()
+
+    const write = request('PUT', '/settings/intensity', { intensity: 'normal' })
+    await Promise.resolve()
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    answer()
+    await write
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("doesn't hold a read, or the queue's own write", async () => {
+    fetchMock.mockImplementation(async () => respond(200, {}))
+    sendingUntilAnswered()
+
+    await request('GET', '/settings')
+    await request('POST', '/tasks/t1/uncheck', undefined, { queued: true })
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it("gives the queue's own write a time limit, so a dead connection can't hold the queue", async () => {
+    fetchMock.mockImplementation(async () => respond(200, {}))
+
+    await request('POST', '/tasks/t1/uncheck', undefined, { queued: true })
+
+    expect(fetchMock.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal)
   })
 })

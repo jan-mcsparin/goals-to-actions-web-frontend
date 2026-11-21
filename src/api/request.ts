@@ -5,11 +5,20 @@
 // where it means the code or passkey didn't work. Any other failure, a network
 // one included, is a plain Error, which screens report as a failed request.
 import { NotFoundError, RefusedError, SignedOutError } from './errors.ts'
+import { afterQueue } from './sendOrder.ts'
 import { signedOut, signIns } from './session.ts'
 
 export type Method = 'GET' | 'PUT' | 'PATCH' | 'POST'
 
-export async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
+// `queued`: one of the queue's own writes (api/queue.ts). Every other write
+// waits for the queue's send under way first; the queue's own get a time limit,
+// so a connection that never answers can't hold the queue.
+export type RequestOptions = { queued?: boolean }
+
+const QUEUED_TIME_LIMIT_MS = 20_000
+
+export async function request<T>(method: Method, path: string, body?: unknown, { queued = false }: RequestOptions = {}): Promise<T> {
+  if (method !== 'GET' && !queued) await afterQueue()
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'X-Time-Zone': Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -21,6 +30,7 @@ export async function request<T>(method: Method, path: string, body?: unknown): 
     method,
     headers,
     ...(body !== undefined && { body: JSON.stringify(body) }),
+    ...(queued && { signal: AbortSignal.timeout(QUEUED_TIME_LIMIT_MS) }),
   })
   if (response.status === 401) {
     // The sign-in routes (signIn.ts) answer 401 when a code or passkey didn't

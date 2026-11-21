@@ -1357,6 +1357,15 @@ describe('addTask', () => {
     expect((await addTask({ title: 'Fill out my ballot' })).id).toMatch(UUID_V4)
   })
 
+  it('keeps the id it is given, and adds nothing the second time', async () => {
+    const first = await addTask({ title: 'Fill out my ballot' }, 'task-new')
+    const again = await addTask({ title: 'Fill out my ballot' }, 'task-new')
+
+    expect(first.id).toBe('task-new')
+    expect(again).toEqual(first)
+    expect(store.tasks.filter((task) => task.id === 'task-new')).toHaveLength(1)
+  })
+
   it("stores a task with only a title in this week's bank", async () => {
     const task = await addTask({ title: '  Fill out my ballot  ' })
 
