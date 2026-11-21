@@ -1,8 +1,14 @@
-# Tasks: Real by default (#43a)
+# Tasks: The stored week and the queue (#43b)
 
 Plan: [`plan.md`](plan.md).
 
-- [x] 1. Real by default (`mode.ts`, scripts, `test.env`, README, CLAUDE.md, decision 23)
-- [x] 2. Settings on the API (`realSettings.ts`, `client.ts`)
-- [x] 3. The Add sheet reads its choices only (`getChoices`, `useAdd`)
-- [x] 4. Checked in the browser; spec marked built
+- [ ] 1. Refusals are typed (`RefusedError`, `request.ts`, the mock)
+- [ ] 2. The store (`storage/planStore.ts`)
+- [ ] 3. Replay rules (`domain/replay.ts`)
+- [ ] 4. The queue (`api/queue.ts`, `api/sendOrder.ts`, `addTask` with an id)
+- [ ] 5. The stored week hook (`hooks/useStoredWeek.ts`)
+- [ ] 6. Today and a day on the queue (`useDay`)
+- [ ] 7. Week on the queue (`useWeek`)
+- [ ] 8. Add a task on the queue (`useAdd`)
+- [ ] 9. The quiet line and the triggers
+- [ ] 10. Docs and the browser check
