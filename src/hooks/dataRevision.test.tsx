@@ -8,7 +8,7 @@ import {
   getGoal,
   getUpkeep,
   getWeek,
-  placeTask,
+  wrapUpWeek,
   updateAspiration,
 } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
@@ -30,7 +30,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     getAspiration: vi.fn(actual.getAspiration),
     getUpkeep: vi.fn(actual.getUpkeep),
     getGoal: vi.fn(actual.getGoal),
-    placeTask: vi.fn(actual.placeTask),
+    wrapUpWeek: vi.fn(actual.wrapUpWeek),
   }
 })
 
@@ -127,11 +127,13 @@ describe.each([
 
 describe('useWeek after a failed save', () => {
   it('keeps the save message through a reload, since the reload does not redo the save', async () => {
-    const hook = renderWithRevision(() => useWeek(TODAY))
+    // Sunday evening, so the week can be wrapped up; placing a task is queued and never fails.
+    vi.setSystemTime(new Date(2026, 10, 15, 18, 0))
+    const hook = renderWithRevision(() => useWeek('2026-11-15'))
     await waitFor(() => expect(hook.result.current.week).toBeDefined())
-    vi.mocked(placeTask).mockRejectedValueOnce(new Error('offline'))
-    await act(async () => hook.result.current.place(hook.result.current.week!.bank[0].id, TODAY))
-    expect(hook.result.current.message).toBe("Couldn't save that. Try again.")
+    vi.mocked(wrapUpWeek).mockRejectedValueOnce(new Error('offline'))
+    await act(async () => hook.result.current.wrapUp.confirm())
+    expect(hook.result.current.message).toBe("Couldn't wrap up the week. Nothing changed.")
     const reloaded = await getWeek()
     let finishReload!: (plan: Week) => void
     vi.mocked(getWeek).mockReturnValueOnce(new Promise((resolve) => (finishReload = resolve)))
@@ -139,6 +141,6 @@ describe('useWeek after a failed save', () => {
     act(() => hook.bump())
     await act(async () => finishReload(reloaded))
 
-    expect(hook.result.current.message).toBe("Couldn't save that. Try again.")
+    expect(hook.result.current.message).toBe("Couldn't wrap up the week. Nothing changed.")
   })
 })
