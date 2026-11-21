@@ -1652,7 +1652,7 @@ export interface components {
             dueDate: string | null;
             /**
              * Fixedday
-             * @description From a weekly or monthly recurring item: it stays on its day.
+             * @description From a weekly or monthly recurring item, in the week it was due: it stays on its day. One that carried over is placed like any task.
              */
             fixedDay: boolean;
             /** Goalid */
@@ -1808,6 +1808,7 @@ export interface components {
          * @description A bar on Week: a goal's target that week and how far along it is.
          */
         WeekGoal: {
+            /** @description The aspiration it's under. Empty when it's under none. */
             aspiration: components["schemas"]["PlanAspiration"] | null;
             /**
              * Id
