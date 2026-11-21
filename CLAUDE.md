@@ -11,9 +11,9 @@ React + Vite + TypeScript, client-rendered, no SSR. PWA via vite-plugin-pwa (man
 ```
 src/
   config.ts        APP_NAME and other product constants (the only place the name appears in code)
-  api/             API client functions + types. openapi.ts is generated; realAspirations.ts, realGoals.ts and realPlan.ts are the parts on the real API; signIn.ts signs in with a passkey
+  api/             API client functions + types. openapi.ts is generated; realAspirations.ts, realGoals.ts, realPlan.ts and realSettings.ts are the parts on the real API; queue.ts sends the queued plan changes in order (ADR-010); signIn.ts signs in with a passkey
   domain/          plain TS: what screens show, drawn from what the API sends (a day and the bank from the week, grouping, wording, pacing lines), and how a change shows before the API answers. No planning or rollover rules: the server owns those (ADR-008). No React imports. Unit-tested.
-  storage/         On-device storage: Today's view choice and the open screen (localStorage) now; IndexedDB plan cache + offline queue later, once there's an API
+  storage/         On-device storage: the week documents and the queue in IndexedDB (planStore.ts, memory where there's none, as in tests); Today's view choice, the open screen and the like in localStorage
   hooks/           React hooks wrapping api/, domain/ and storage/
   screens/         Day (Today and any opened day), Week, Aspirations, Aspiration, Upkeep (Keep life running), GoalDetail, Settings, SignIn (in place of the app while signed out); Add is a sheet
   components/      presentational pieces only
@@ -22,7 +22,7 @@ src/
 ## Rules
 
 - **Product name in one place:** `src/config.ts` exports `APP_NAME`; the PWA manifest `name`/`short_name` in `vite.config.ts` reads it. Don't hard-code the name anywhere else.
-- **Instant open (ADR-004):** precache the app shell; render Today from IndexedDB first, then refresh in the background; optimistic check-offs with a queue flushed on open (no background sync on Safari); persist current screen and view toggle.
+- **Instant open (ADR-004, ADR-010):** precache the app shell; Today, a day, the bank and Week show the stored week first, then the fresh read (`hooks/useStoredWeeks.ts`), with the queue's changes replayed on top (`domain/replay.ts`). Check off, uncheck, place, back to bank, swap and add a task go through `api/queue.ts`, never straight to the client; nothing else is queued. Persist current screen and view toggle.
 - **Navigation goes through `useNavigation()`** (`hooks/useNavigation.ts`). No router yet: the open screen is state, remembered in `localStorage`. Adding real URLs later means changing that hook and `App.tsx`, not the screens.
 - **Keep logic out of components.** Components render; `domain/` and `hooks/` decide.
 - **Mock data for tests and the click-through:** screens call the same `api/` functions either way. Mock data follows `../docs/data-model.md` and the "Be fit / Be strong" example.
