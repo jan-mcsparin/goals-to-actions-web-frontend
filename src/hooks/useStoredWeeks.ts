@@ -26,6 +26,8 @@ export type StoredWeeks = {
   setMessage: Dispatch<SetStateAction<string | undefined>>
   // Weeks the server sent back from a write (wrap-up): shown and stored.
   keep: (weeks: Week[]) => void
+  // Read again, after a write that isn't queued (Still matter?).
+  reload: () => void
 }
 
 type FromServer = { read: WeeksRead; weeks: Week[] }
@@ -34,6 +36,7 @@ export function useStoredWeeks(read: WeeksRead, loadFailed: string): StoredWeeks
   const [server, setServer] = useState<FromServer>()
   const [message, setMessage] = useState<string>()
   const [emptied, setEmptied] = useState(0)
+  const [asked, setAsked] = useState(0)
   const revision = useDataRevision()
   const { changes } = useQueue()
 
@@ -68,7 +71,7 @@ export function useStoredWeeks(read: WeeksRead, loadFailed: string): StoredWeeks
     return () => {
       current = false
     }
-  }, [read, revision, emptied, loadFailed])
+  }, [read, revision, emptied, asked, loadFailed])
 
   const keep = useCallback(
     (weeks: Week[]) => {
@@ -78,8 +81,10 @@ export function useStoredWeeks(read: WeeksRead, loadFailed: string): StoredWeeks
     [read],
   )
 
+  const reload = useCallback(() => setAsked((count) => count + 1), [])
+
   const shown = server?.read === read ? server.weeks : undefined
-  return { weeks: shown?.map((week) => replay(week, changes)), message, setMessage, keep }
+  return { weeks: shown?.map((week) => replay(week, changes)), message, setMessage, keep, reload }
 }
 
 // A copy for next time; if it can't be written, the screen still has it.

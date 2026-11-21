@@ -24,6 +24,7 @@ export type QueueState = { changes: Change[]; waiting: number; stalled: boolean 
 
 let entries: Entry[] = []
 let loading: Promise<void> | undefined
+let loaded = false
 let sending: Promise<void> | undefined
 let stalled = false
 let state: QueueState = { changes: [], waiting: 0, stalled: false }
@@ -34,6 +35,7 @@ const emptiedListeners = new Set<Listener>()
 export function resetQueue(): void {
   entries = []
   loading = undefined
+  loaded = false
   sending = undefined
   stalled = false
   state = { changes: [], waiting: 0, stalled: false }
@@ -48,10 +50,12 @@ export function loadQueue(): Promise<void> {
       const known = new Set(entries.map((entry) => entry.order))
       const restored = kept.map(([, entry]) => entry as Entry).filter((entry) => !known.has(entry.order))
       entries = [...restored, ...entries].sort((a, b) => a.order - b.order)
+      loaded = true
       tell()
     })
     .catch(() => {
       // Nothing kept, or nothing readable: the queue starts empty.
+      loaded = true
     })
   return loading
 }
@@ -88,8 +92,15 @@ export function onEmptied(listener: Listener): () => void {
   return () => emptiedListeners.delete(listener)
 }
 
-export async function enqueue(change: Change): Promise<void> {
-  await loadQueue()
+// At once once the queue is loaded, so the screen shows the change on the tap
+// itself; the first change of a session may wait for what the phone kept.
+export function enqueue(change: Change): Promise<void> {
+  if (!loaded) return loadQueue().then(() => add(change))
+  add(change)
+  return Promise.resolve()
+}
+
+function add(change: Change) {
   const order = (entries.at(-1)?.order ?? 0) + 1
   const entry: Entry = { order, change, confirmedAt: null }
   entries = [...entries, entry]

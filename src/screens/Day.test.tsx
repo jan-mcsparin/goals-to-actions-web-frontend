@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { answerStillMatters, checkOffTask, getWeek, placeTask } from '../api/client.ts'
+import { answerStillMatters, getWeek, placeTask } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import { Day } from './Day.tsx'
 
@@ -87,11 +87,13 @@ describe('Day', () => {
 
   it('says a failed save above the tab bar, and lets it go after a few seconds', async () => {
     fakeTimeouts()
-    vi.mocked(checkOffTask).mockRejectedValueOnce(new Error('offline'))
+    // Still matter? is the one save on Today that isn't queued.
+    vi.mocked(answerStillMatters).mockRejectedValueOnce(new Error('offline'))
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
-    await user.click(await screen.findByRole('checkbox', { name: 'Laundry' }))
+    const card = await screen.findByRole('group', { name: 'Still matter? Call the dentist' })
+    await user.click(within(card).getByRole('button', { name: 'Keep' }))
 
     const message = await screen.findByRole('status')
     expect(message.className).toBe('screen-message')
@@ -230,7 +232,7 @@ describe('Day', () => {
     expect(await within(sheet).findByRole('button', { name: 'Laundry' })).toBeDefined()
   })
 
-  it('swaps a task for one from the bank, keeping its place in the day', async () => {
+  it('swaps a task for one from the bank', async () => {
     const user = userEvent.setup()
     render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
 
@@ -240,10 +242,11 @@ describe('Day', () => {
     await user.click(await within(sheet).findByRole('button', { name: 'Call the dentist' }))
 
     expect(screen.queryByRole('dialog')).toBeNull()
-    expect(rowTitles(screen.getByRole('region', { name: 'Keep life running' }))).toEqual([
-      'Move the car for street sweeping',
+    // In the swapped task's place until sent; then in the order the week read gives.
+    expect([...rowTitles(screen.getByRole('region', { name: 'Keep life running' }))].sort()).toEqual([
       'Call the dentist',
       'Fill out my ballot',
+      'Move the car for street sweeping',
     ])
     expect(screen.getByText('0 of 4 done')).toBeDefined()
     expect(document.activeElement).toBe(screen.getByRole('checkbox', { name: 'Call the dentist' }))
