@@ -110,6 +110,35 @@ describe('useLoaded', () => {
     expect(result.current.data).toBeUndefined()
   })
 
+  it('stores what the screen shows after a change, such as a save', async () => {
+    const load = async () => ({ name: 'Be fit' })
+    const { result } = renderHook(() => useLoaded('aspiration/a1', load, LOAD_FAILED))
+    await waitFor(() => expect(result.current.data).toEqual({ name: 'Be fit' }))
+
+    act(() => result.current.setData({ name: 'Be fit and strong' }))
+
+    await waitFor(async () =>
+      expect(await planStore().responses.get('aspiration/a1')).toEqual({ name: 'Be fit and strong' }),
+    )
+  })
+
+  it("never stores one id's data under another id while the new one loads", async () => {
+    const loads: Record<string, () => Promise<{ name: string }>> = {
+      'goal/g1': async () => ({ name: 'Run a 10k' }),
+      'goal/g2': () => new Promise(() => {}),
+    }
+    const { result, rerender } = renderHook(({ key }) => useLoaded(key, loads[key], LOAD_FAILED), {
+      initialProps: { key: 'goal/g1' },
+    })
+    await waitFor(() => expect(result.current.data).toEqual({ name: 'Run a 10k' }))
+
+    rerender({ key: 'goal/g2' })
+    act(() => result.current.setData({ name: 'Run a half' }))
+    await act(async () => {})
+
+    expect(await planStore().responses.get('goal/g2')).toBeUndefined()
+  })
+
   it('works as before when storage fails', async () => {
     const { responses } = planStore()
     vi.spyOn(responses, 'get').mockRejectedValue(new Error('no storage'))
