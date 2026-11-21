@@ -1,0 +1,17 @@
+.session-ended-status:empty {
+  display: none;
+}
+
+.session-ended-status {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.625rem;
+  background: color-mix(in srgb, var(--text) 6%, var(--bg));
+}
+
+.session-ended-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 1.25rem;
+}

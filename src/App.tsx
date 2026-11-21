@@ -4,11 +4,14 @@ import { flush, installTriggers } from './api/queue.ts'
 import { AddSheet } from './components/AddSheet.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import { ScreenMessage } from './components/ScreenMessage.tsx'
+import { SessionEndedSheet } from './components/SessionEndedSheet.tsx'
+import { SignedOutBanner } from './components/SignedOutBanner.tsx'
 import { TabBar } from './components/TabBar.tsx'
 import { addOriginFor, type AddOrigin } from './hooks/useAdd.ts'
 import { DataRevision, useRevisionCounter } from './hooks/dataRevision.ts'
 import { useFleetingMessage } from './hooks/useFleetingMessage.ts'
 import { useNavigation, type Screen } from './hooks/useNavigation.ts'
+import { useQueue } from './hooks/useQueue.ts'
 import { useSession } from './hooks/useSession.ts'
 import { Aspiration } from './screens/Aspiration.tsx'
 import { Aspirations } from './screens/Aspirations.tsx'
@@ -32,8 +35,10 @@ function App() {
   const { revision, bump } = useRevisionCounter()
   const [confirmation, setConfirmation] = useState<string>()
   const shownConfirmation = useFleetingMessage(confirmation)
-  // Signed out, the sign-in page takes the app's place; signing in sends what
-  // waited (ADR-010), then loads the open screen again.
+  // Signed out with nothing stored, the sign-in page takes the app's place. A
+  // session that ended over what's stored keeps the screen, with a sheet, then
+  // a banner (ADR-012). Signing in sends what waited (ADR-010), then loads the
+  // open screen again.
   const session = useSession(
     useCallback(() => {
       void flush().finally(bump)
@@ -61,11 +66,17 @@ function App() {
     setConfirmation(line)
   }
 
-  if (session.status !== 'signedIn') return <SignIn session={session} />
+  const { waiting } = useQueue()
+
+  if (session.status === 'signedOut') return <SignIn session={session} />
+  const ended = session.status === 'sessionEnded'
 
   return (
     <DataRevision value={revision}>
       <div className="app">
+        {ended && !session.askingToSignIn && (
+          <SignedOutBanner waiting={waiting} busy={session.busy} onSignIn={session.signIn} />
+        )}
         {/* Only the open screen: a screen that fails to draw leaves the tab bar
             and + working, and any other screen starts fresh. */}
         <ErrorBoundary key={JSON.stringify(current)}>
@@ -128,6 +139,14 @@ function App() {
           onSaved={saved}
           onChanged={bump}
           onClose={() => setAdding(undefined)}
+        />
+        <SessionEndedSheet
+          open={ended && session.askingToSignIn}
+          waiting={waiting}
+          busy={session.busy}
+          message={session.message}
+          onSignIn={session.signIn}
+          onNotNow={session.notNow}
         />
       </div>
     </DataRevision>

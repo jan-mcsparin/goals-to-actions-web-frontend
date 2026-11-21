@@ -6,6 +6,7 @@ import { enqueue, flush } from './api/queue.ts'
 import { resetStore, store } from './api/mockStore.ts'
 import { signedOut } from './api/session.ts'
 import App from './App.tsx'
+import { planStore } from './storage/planStore.ts'
 
 vi.mock('./api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./api/client.ts')>()
@@ -684,10 +685,11 @@ describe('the queue', () => {
 })
 
 describe('signing in', () => {
-  it('shows the sign-in page in place of the app after a 401, and the open screen once signed in', async () => {
+  it('shows the sign-in page in place of the app after a 401 with nothing stored, and the open screen once signed in', async () => {
     const user = userEvent.setup()
     render(<App />)
     await screen.findByRole('heading', { level: 1, name: 'Today · Wednesday' })
+    await planStore().clear()
 
     await act(async () => signedOut())
 
@@ -697,6 +699,33 @@ describe('signing in', () => {
     await user.click(screen.getByRole('button', { name: 'Sign in with Face ID' }))
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Today · Wednesday' })).toBeDefined()
+  })
+})
+
+describe('a session that ends over what is stored', () => {
+  it('keeps the screen, asks with the count, leaves a banner after Not now, and sends once signed in', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await screen.findByRole('heading', { level: 1, name: 'Today · Wednesday' })
+    vi.mocked(uncheckTask).mockRejectedValueOnce(new Error('POST /tasks/t1/uncheck: 401'))
+    await act(async () => enqueue({ kind: 'uncheck', id: 'c1', taskId: 'no-such-task' }))
+
+    await act(async () => signedOut())
+
+    const sheet = await screen.findByRole('dialog', { name: 'Sign in to keep saving' })
+    expect(sheet.textContent).toContain('1 change will send as soon as you’re back in.')
+    expect(screen.getByRole('heading', { level: 1, name: 'Today · Wednesday' })).toBeDefined()
+
+    await user.click(within(sheet).getByRole('button', { name: 'Not now' }))
+    expect(screen.queryByRole('dialog', { name: 'Sign in to keep saving' })).toBeNull()
+    expect(screen.getByText('Not signed in · 1 change waiting')).toBeDefined()
+
+    vi.mocked(uncheckTask).mockClear()
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    await waitFor(() => expect(uncheckTask).toHaveBeenCalledWith('no-such-task'))
+    await waitFor(() => expect(screen.queryByText(/Not signed in/)).toBeNull())
+    expect(screen.getByRole('heading', { level: 1, name: 'Today · Wednesday' })).toBeDefined()
   })
 })
 
