@@ -69,6 +69,20 @@ What the earlier steps left of #17, #37 and #38, and #76, which 038 needs. Each 
 
 Order: 017 (small, and it changes the save hooks the others build on) → 037 → 076 → 038.
 
+### Scheduling and other weeks (drafted 2026-11-23)
+
+From the [brief](../../docs/briefs/scheduling-and-other-weeks.md), after step 5 and before infra. Each needs an API piece first ([its map](../../api/specs/README.md), modules 13 to 15).
+
+| Module id | Spec | Issue | Responsibility | Depends on |
+|---|---|---|---|---|
+| `on-a-day` | [079](079-on-a-day.md) | #79 | The Add sheet's When: On today · In the bank · On a day | API #50 |
+| `any-week` | to come | #80 | Week's ‹ › arrows, any week, counts line and bars | API #51 |
+| `move-and-remove` | to come | #82 | A future day's set items moved or removed | API #50, #51 |
+| `late-check-offs` | to come | #81 | Tick off a past day's tasks | API #51 |
+| `coming-up` | to come | #83 | The Coming up page, linked from Week and Today | API #52 |
+
+Order: 079 → 080 and 082 → 081 → 083.
+
 ## Decisions shared by these specs
 
 Settled with Jan on 2026-11-10:
