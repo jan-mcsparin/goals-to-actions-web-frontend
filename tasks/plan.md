@@ -1,25 +1,25 @@
-# Implementation Plan: Sign-in around the queue (#43, part d)
+# Implementation Plan: Report every failed save (#17)
 
-Spec: [`../specs/043d-sign-in-around-the-queue.md`](../specs/043d-sign-in-around-the-queue.md). Issue: [#43](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/43) (part d of four; closes it). Tasks: [`todo.md`](todo.md). Design: ADR-010, ADR-012, sign-in sketch panels 4 and 5. (Plans for 043a–c are in git history.)
+Spec: [`../specs/017-every-failed-save.md`](../specs/017-every-failed-save.md). Issue: [#17](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/17) (closes it, settled 2). Tasks: [`todo.md`](todo.md). (Plans for earlier specs are in git history.)
 
 ## Overview
 
-A 401 keeps the app on what the phone has stored, with a sheet asking to sign in; Not now leaves a banner. Signing out on purpose sends the queue first, warns when it can't, then clears ADR-012's list.
+Every save that fails, and isn't queued, shows "Couldn't save that. Try again." each time. Once no saves are left on their way, the screen reads its record again from the API instead of putting back a guess.
 
 ## Architecture decisions
 
-- **Three session states** in `useSession`: `signedIn`, `sessionEnded` (a 401 with anything stored: a week, a last response or a queued change), `signedOut` (a 401 with nothing stored: first sign-in, or after sign-out). App stays mounted for `sessionEnded`; the sign-in page only for `signedOut`.
-- **Not now** is session state: later 401s (each new change tries to send) keep the banner and don't reopen the sheet.
-- **The banner's Sign in** opens the passkey directly. If it doesn't finish, the sheet opens again with the calm line, so the message has somewhere to show.
-- **After signing in**, App awaits `flush()` and then reloads the open screen.
-- **Sign-out**: tapping Sign out sends the queue. If changes are still waiting, the sheet shows the warning with the count and the button reads **Sign out anyway**; nothing is cleared until that second tap. Closing the sheet forgets the warning. A 401 while signing out doesn't open the session-ended sheet.
-- **Clearing** (`storage/clearStored.ts` or in `queue.ts`): `planStore().clear()` plus a new `discardQueue()` that empties the queue held in memory. A failed clear still signs out. Open screen, view toggle and Show all stay (settled 1).
-- Sheet and banner copy as the spec: "Sign in to keep saving" title; "Everything you did is safe on this phone: 3 changes will send as soon as you're back in." (sentence left out at 0; "1 change"). Banner "Not signed in · 3 changes waiting · Sign in" ("· N changes waiting" left out at 0). Banner sits under the screen's header, as sketched.
+- **`useFleetingMessage(message, { sticky, onGone })`**: `onGone` is called when the message fades or is tapped. Each screen hook exposes `clearMessage()`, and each screen passes it as `onGone`. That's every screen that shows a message (Day, Week, Upkeep, Aspirations, Aspiration, Goal detail, Settings), so the same text set again shows again. App's own confirmation is a different message and stays as it is.
+- **`useLoaded` gains `reload()`**. It runs the screen's load again through the same path, so the stored response and "only the newest load lands" still apply. A failed load no longer replaces a message that's already showing. A failed reload after a failed save keeps "Couldn't save that", as `useGoal` does today. When nothing is showing, the load message shows as before.
+- **Shared helper `hooks/useSavesOnTheirWay.ts`**: `track(save)` clears the message, counts the save, and shows SAVE_FAILED if it fails. Once the count reaches 0 and a failure happened, it calls `reload()` once. If a save starts while that reload is still on its way, one more reload runs when the saves are done, so the reload can't wipe a change from the screen.
+- **`useAspiration`** (edit, move) and **`useSettings`** (intensity): `latestSave` and the rollback go. They now use the helper. **`useGoal`**: its optimistic saves use the helper and reload only when none are left. The `lastSave` guard stays, so a slow save doesn't flash over a newer one. `saveThenReload`, `retire` and `bringBack` stay as they are.
+- `useSettings.exportData` sets the message directly. The clear-then-set workaround goes.
 
 ## Tasks
 
-1. **Clearing what's stored.** `discardQueue()` in `api/queue.ts`; one `clearStored()` that empties every shelf and the queue. Tests. (XS)
-2. **Session ended vs signed out.** `useSession`: the three states, Not now, banner sign-in reopening the sheet on failure; App flushes then reloads after sign-in. Tests in `useSession.test.tsx`. (M)
-3. **Sign-out sends first.** `useSession.signOut`: flush, warn with the count, sign out anyway, clear, signed out; 401s ignored meanwhile. `SignOutSheet` warning and button. Tests (hook and Settings). (M)
-4. **Sheet, banner and App.** `SessionEndedSheet.tsx`, `SignedOutBanner.tsx`; App keeps the screen on a session end. Copy tests with 0, 1 and 3 waiting. (M)
-5. **Docs and the browser check.** `docs/screens/README.md#sign-in` (built), ADR-012 if anything differs, CLAUDE.md; a Sonnet agent runs the spec's manual check at phone width against the local API; spec Checked and built. (S)
+1. **`onGone` in `useFleetingMessage`.** Tests: called when the message fades and when it's tapped. (XS)
+2. **Every screen hands over `onGone`.** Each hook gains `clearMessage`. Screens pass it, and the `exportData` workaround goes. Tests: Settings export shows twice, and the same save failure shown twice on a screen. (S)
+3. **`reload()` in `useLoaded`.** Tests: a reload brings the fresh record; a failed reload keeps the data and the save message. (S)
+4. **`useSavesOnTheirWay` and `useAspiration`.** Tests: an edit that fails after a later save succeeded ends on the API's name, with the message. Two moves at the same instant end on the API's order. Two saves failing more than 5 s apart show the message for each (fake timers, with `useFleetingMessage`). (M)
+5. **`useSettings` intensity.** Test: two quick taps, the first failing, end on the API's intensity, with the message. (S)
+6. **`useGoal`.** Test: a save that fails while a second is on its way doesn't wipe the second from the screen. (S)
+7. **Docs and check.** Update `docs/screens/README.md` Settings ("comes back from the API"), the spec (built), the specs README, and the issue checklist. A Sonnet agent checks phone width. (S)

@@ -1,7 +1,9 @@
-# 043d: Sign-in around the queue
+# 017: Report every failed save
 
-- [x] 1. Clearing what's stored
-- [x] 2. Session ended vs signed out
-- [x] 3. Sign-out sends first
-- [x] 4. Sheet, banner and App
-- [x] 5. Docs and the browser check
+- [ ] 1. onGone in useFleetingMessage
+- [ ] 2. Every screen hands over onGone
+- [ ] 3. reload() in useLoaded
+- [ ] 4. useSavesOnTheirWay and useAspiration
+- [ ] 5. useSettings intensity
+- [ ] 6. useGoal
+- [ ] 7. Docs and check
