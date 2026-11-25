@@ -548,8 +548,9 @@ export async function addTask(task: NewTask, taskId = newDeviceId()): Promise<Ta
     dueDate: task.dueDate ?? null,
     timeOfDay: task.timeOfDay ? { ...task.timeOfDay } : null,
   })
+  // A day from today on is pinned there by hand, in any week from this one on, open or not.
   const dayWeek = task.day ? toLocalDay(mondayOf(fromLocalDay(task.day))) : null
-  if (task.day && dayWeek && task.day >= today && isOpenWeek(dayWeek)) {
+  if (task.day && dayWeek && task.day >= today && dayWeek >= thisWeek()) {
     replaceTask(added, placedOnDay({ ...added, week: dayWeek }, task.day))
   }
   store.tasks.push(added)
@@ -563,10 +564,6 @@ function taskWeek(dueDate: string | null | undefined): string {
   if (!dueDate) return current
   const dueWeek = toLocalDay(mondayOf(fromLocalDay(dueDate)))
   return dueWeek > current ? dueWeek : current
-}
-
-function isOpenWeek(week: string): boolean {
-  return week === thisWeek() || (nextWeekOpen() && week === weekAfter(thisWeek()))
 }
 
 // The planner's stand-in adds no more than one task a day, so a typo in a
