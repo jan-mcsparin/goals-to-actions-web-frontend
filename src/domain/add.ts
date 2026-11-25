@@ -2,7 +2,18 @@
 // a goal's sentence splits, the Recurring tab's choices, and when a form is
 // ready to save. Which week a new task goes in is the server's (ADR-008).
 import { mondayOfDay } from '../api/dates.ts'
-import type { Aspiration, Goal, GoalType, NewGoal, NewRecurringItem, NewTask, Schedule, Task } from '../api/types.ts'
+import type {
+  Aspiration,
+  Goal,
+  GoalType,
+  NewGoal,
+  NewRecurringItem,
+  NewTask,
+  RecurringItem,
+  RecurringItemEdit,
+  Schedule,
+  Task,
+} from '../api/types.ts'
 import { dayLabel, isWithinGoal, parsedTarget, type TargetDraft } from './goalDetail.ts'
 import { ordinal, repeatText, weekdayName, type Weekday } from './recurring.ts'
 import { isPlanned, weekOf } from './tasks'
@@ -237,6 +248,38 @@ export function recurringInput(draft: RecurringDraft, today: string): NewRecurri
     schedule: scheduleOf(draft.fixedDay ? draft.fixed : draft.flexible),
     startsOn: today,
   }
+}
+
+// An item as the form shows it, to edit. The picker it doesn't use keeps its default, so
+// switching between Fixed day and Flexible starts somewhere.
+export function recurringDraftOf(item: RecurringItem): RecurringDraft {
+  const empty = emptyRecurringDraft(item.aspirationId ?? '')
+  const fixedDay = item.schedule.kind !== 'flexible'
+  const value = optionValue(item.schedule)
+  return {
+    ...empty,
+    name: item.name,
+    fixedDay,
+    ...(fixedDay ? { fixed: value } : { flexible: value }),
+  }
+}
+
+// Sent whole. The start stays as the item has it: the API doesn't need a new one when the
+// day changes. The goal it came from isn't part of an edit.
+export function recurringEditInput(draft: RecurringDraft, item: Pick<RecurringItem, 'startsOn'>): RecurringItemEdit {
+  const { name, aspirationId, schedule } = recurringInput(draft, item.startsOn)
+  return { name, aspirationId, schedule, startsOn: item.startsOn }
+}
+
+// Named, and different from the item in its name, repeat or aspiration.
+export function recurringEditReady(draft: RecurringDraft, item: RecurringItem): boolean {
+  if (!recurringReady(draft)) return false
+  const edit = recurringEditInput(draft, item)
+  return (
+    edit.name !== item.name ||
+    edit.aspirationId !== item.aspirationId ||
+    optionValue(edit.schedule) !== optionValue(item.schedule)
+  )
 }
 
 export const RECURRING_CONFIRMATION = "Added. It will show up in the plan when it's next due."

@@ -180,10 +180,13 @@ describe('aspirationPage, active', () => {
     expect(page.goals[2].progress).toBe('Paused')
   })
 
-  it('lists its active recurring items with their repeat rule', () => {
+  it('lists its recurring items with their repeat rule, paused ones too', () => {
     const page = activePage({ recurringItems: [recurring('Stretch'), recurring('Old', false)] })
 
-    expect(page.recurring).toEqual([{ itemId: 'rec-Stretch', name: 'Stretch', repeat: 'Once a week', paused: false }])
+    expect(page.recurring).toEqual([
+      { itemId: 'rec-Stretch', name: 'Stretch', repeat: 'Once a week', paused: false },
+      { itemId: 'rec-Old', name: 'Old', repeat: 'Once a week', paused: true },
+    ])
   })
 
   it('lists past goals as Reached or Ended', () => {

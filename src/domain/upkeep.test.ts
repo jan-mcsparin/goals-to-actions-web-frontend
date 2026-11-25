@@ -31,6 +31,12 @@ describe('upkeepView', () => {
     expect(view.recurring).toEqual([{ id: 'rec-rent', name: 'Pay rent', repeat: 'Monthly on the 1st' }])
   })
 
+  it('says Paused in place of the repeat for an item that is off', () => {
+    const view = upkeepView({ recurringItems: [{ ...rent, active: false }], tasks: [] }, WEDNESDAY)
+
+    expect(view.recurring).toEqual([{ id: 'rec-rent', name: 'Pay rent', repeat: 'Paused' }])
+  })
+
   it('says where each task sits: a day, the bank, or a later week', () => {
     const tasks = [
       onDay('Groceries', '2026-11-12'),

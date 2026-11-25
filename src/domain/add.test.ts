@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GOAL_DEFAULTS } from '../test/goals.ts'
-import type { Aspiration, Goal } from '../api/types.ts'
+import type { Aspiration, Goal, RecurringItem, Schedule } from '../api/types.ts'
 import {
   aspirationChoices,
   aspirationReady,
@@ -16,6 +16,9 @@ import {
   MONTH_DAY_OPTIONS,
   NEW_ASPIRATION,
   needsLineField,
+  recurringDraftOf,
+  recurringEditInput,
+  recurringEditReady,
   recurringInput,
   recurringReady,
   scheduleOf,
@@ -416,5 +419,74 @@ describe('recurringInput', () => {
       schedule: { kind: 'flexible', times: 3, period: 'week' },
       startsOn: WEDNESDAY,
     })
+  })
+})
+
+describe('editing a recurring item', () => {
+  const trash: RecurringItem = {
+    id: 'rec-trash',
+    name: 'Take out the trash',
+    aspirationId: 'asp-home',
+    fromGoalId: null,
+    schedule: { kind: 'weekly', weekday: 'tuesday' },
+    startsOn: '2026-10-01',
+    active: true,
+    createdAt: '2026-10-01T09:00:00Z',
+  }
+
+  const schedules: Schedule[] = [
+    { kind: 'weekly', weekday: 'sunday' },
+    { kind: 'monthly', dayOfMonth: 28 },
+    ...FLEXIBLE_OPTIONS.map((option) => scheduleOf(option.value)),
+  ]
+
+  it.each(schedules.map((schedule) => [repeatText(schedule), schedule] as const))(
+    'fills the form from %s and sends the same schedule back',
+    (_text, schedule) => {
+      const item = { ...trash, schedule }
+
+      expect(recurringEditInput(recurringDraftOf(item), item).schedule).toEqual(schedule)
+    },
+  )
+
+  it('fills in the name, Fixed day or Flexible, and the aspiration', () => {
+    expect(recurringDraftOf(trash)).toMatchObject({ name: 'Take out the trash', fixedDay: true, aspirationId: 'asp-home' })
+    expect(recurringDraftOf({ ...trash, aspirationId: null, schedule: { kind: 'flexible', times: 2, period: 'week' } })).toMatchObject({
+      fixedDay: false,
+      aspirationId: '',
+    })
+  })
+
+  it('keeps the start it has, and sends no goal it came from', () => {
+    const fromAGoal = { ...trash, fromGoalId: 'goal-strong' }
+    const draft = { ...recurringDraftOf(fromAGoal), name: '  Trash and recycling ', fixed: WEEKDAY_OPTIONS[2].value, aspirationId: '' }
+
+    expect(recurringEditInput(draft, fromAGoal)).toEqual({
+      name: 'Trash and recycling',
+      aspirationId: null,
+      schedule: { kind: 'weekly', weekday: 'wednesday' },
+      startsOn: '2026-10-01',
+    })
+  })
+
+  it('is ready to save only once something has changed', () => {
+    const draft = recurringDraftOf(trash)
+
+    expect(recurringEditReady(draft, trash)).toBe(false)
+    expect(recurringEditReady({ ...draft, name: 'Trash and recycling' }, trash)).toBe(true)
+    expect(recurringEditReady({ ...draft, fixed: WEEKDAY_OPTIONS[3].value }, trash)).toBe(true)
+    expect(recurringEditReady({ ...draft, fixedDay: false }, trash)).toBe(true)
+    expect(recurringEditReady({ ...draft, aspirationId: '' }, trash)).toBe(true)
+  })
+
+  it('counts neither spaces round the name nor the other picker as a change', () => {
+    const draft = recurringDraftOf(trash)
+
+    expect(recurringEditReady({ ...draft, name: ' Take out the trash ' }, trash)).toBe(false)
+    expect(recurringEditReady({ ...draft, flexible: FLEXIBLE_OPTIONS[3].value }, trash)).toBe(false)
+  })
+
+  it('needs a name', () => {
+    expect(recurringEditReady({ ...recurringDraftOf(trash), name: '  ' }, trash)).toBe(false)
   })
 })

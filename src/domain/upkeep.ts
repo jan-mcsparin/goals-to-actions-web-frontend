@@ -1,5 +1,5 @@
 // What the Keep life running page shows, worked out from an Upkeep: the
-// recurring items under no aspiration, and the loose tasks still to do with
+// recurring items under no aspiration (a paused one reads "Paused"), and the loose tasks still to do with
 // where each one sits.
 import { fromLocalDay, mondayOfDay } from '../api/dates.ts'
 import type { Task, Upkeep } from '../api/types.ts'
@@ -26,7 +26,11 @@ export type UpkeepView = {
 
 export function upkeepView(upkeep: Upkeep, today: string): UpkeepView {
   return {
-    recurring: upkeep.recurringItems.map(({ id, name, schedule }) => ({ id, name, repeat: repeatText(schedule) })),
+    recurring: upkeep.recurringItems.map(({ id, name, schedule, active }) => ({
+      id,
+      name,
+      repeat: active ? repeatText(schedule) : 'Paused',
+    })),
     todo: inPlanOrder(upkeep.tasks).map((task) => ({
       taskId: task.id,
       title: task.title,
