@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { BankSheet } from '../components/BankSheet.tsx'
 import { DayPickerSheet } from '../components/DayPickerSheet.tsx'
+import { QuitDayRow } from '../components/QuitDayRow.tsx'
 import { StillMattersCard } from '../components/StillMattersCard.tsx'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import { TaskRow } from '../components/TaskRow.tsx'
@@ -34,6 +35,9 @@ export function Day({ date, today, onBack }: DayProps) {
     pull,
     sendToBank,
     swap,
+    answerQuitDay,
+    clearQuitDay,
+    rateUrge,
   } = useDay(date, today)
   // With nothing loaded, the message is all there is, so it stays.
   const shownMessage = useFleetingMessage(message, { sticky: !day, onGone: clearMessage })
@@ -74,7 +78,7 @@ export function Day({ date, today, onBack }: DayProps) {
     )
   }
 
-  const { isToday, canPlace, canCheckOff, progress, sections } = day
+  const { isToday, canPlace, canCheckOff, progress, sections, quitRows } = day
   const isEmpty = progress.total === 0
   const emptyLine = isToday ? 'Nothing planned today. The day is yours.' : 'Nothing planned. The day is yours.'
   const swapTask = canPlace
@@ -107,23 +111,41 @@ export function Day({ date, today, onBack }: DayProps) {
       {isEmpty ? (
         <p className="today-empty">{emptyLine}</p>
       ) : (
-        <>
-          {sections.map((section) => (
-            <TaskGroup
-              key={section.id}
-              section={section}
-              doneLabel={isToday ? 'done today' : 'done this day'}
-              canCheck={canCheckOff}
-              onToggle={toggleDone}
-              onSendToBank={sendToBank}
-              onSwap={swapTask}
+        sections.map((section) => (
+          <TaskGroup
+            key={section.id}
+            section={section}
+            doneLabel={isToday ? 'done today' : 'done this day'}
+            canCheck={canCheckOff}
+            onToggle={toggleDone}
+            onSendToBank={sendToBank}
+            onSwap={swapTask}
+          />
+        ))
+      )}
+
+      {quitRows.length > 0 && (
+        <div className="today-quit">
+          {quitRows.map((row) => (
+            <QuitDayRow
+              key={row.goalId}
+              label={row.label}
+              answer={row.answer}
+              answerLabel={row.answerLabel}
+              urge={row.urge}
+              onAnswer={(held) => answerQuitDay(row.goalId, held)}
+              onClear={() => clearQuitDay(row.goalId)}
+              onRate={(level) => rateUrge(row.goalId, level)}
             />
           ))}
-          <section className="today-free-time" aria-labelledby="free-time">
-            <h2 id="free-time">Free time</h2>
-            <p className="today-free">The rest is yours.</p>
-          </section>
-        </>
+        </div>
+      )}
+
+      {!isEmpty && (
+        <section className="today-free-time" aria-labelledby="free-time">
+          <h2 id="free-time">Free time</h2>
+          <p className="today-free">The rest is yours.</p>
+        </section>
       )}
 
       {canPlace && (

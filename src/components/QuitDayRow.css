@@ -1,0 +1,63 @@
+/* Quiet on purpose: a row, not a card or a prompt. */
+.quit-day {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  padding: 0.25rem 0;
+}
+
+.quit-day-label {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+.quit-day-choices,
+.quit-day-urge {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.quit-day-urge {
+  flex-basis: 100%;
+  justify-content: flex-end;
+}
+
+.quit-day button {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.quit-day button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.quit-day .quit-day-answer {
+  border-color: transparent;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.quit-day .quit-day-clear {
+  border-color: transparent;
+  color: var(--muted);
+}
+
+.quit-day-urge button {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.quit-day button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

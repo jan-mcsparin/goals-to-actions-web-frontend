@@ -112,3 +112,10 @@
   color: var(--text);
   font: inherit;
 }
+
+.today-quit {
+  display: flex;
+  flex-direction: column;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+}

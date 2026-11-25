@@ -2,14 +2,14 @@
 // matter?" cards and the bank are all drawn from the day's week (ADR-010): the week the phone
 // stored, then the fresh read, with the queue's changes replayed on top. Check off, uncheck,
 // pull, back to the bank and swap go into the queue and show at once; they never go back on
-// a failed send, they wait. "Still matter?" needs a connection: its card goes at once, and
+// a failed send, they wait. So do a quitting goal's answer and urge rating. "Still matter?" needs a connection: its card goes at once, and
 // comes back if the answer can't be saved. Rules come from domain/.
 import { useMemo, useState } from 'react'
 import { answerStillMatters, getWeek } from '../api/client.ts'
 import { mondayOfDay } from '../api/dates.ts'
 import { newDeviceId } from '../api/ids.ts'
 import { enqueue } from '../api/queue.ts'
-import type { StillMattersAnswer, Task } from '../api/types.ts'
+import type { StillMattersAnswer, Task, UrgeLevel, Week } from '../api/types.ts'
 import {
   bankOf,
   bankRows,
@@ -23,6 +23,7 @@ import {
   type TaskRow,
   waitingLine,
 } from '../domain/today.ts'
+import { quitRows, type QuitRow } from '../domain/quitting.ts'
 import { checkOffAt, isDone, weekOf } from '../domain/tasks'
 import { pickableDays, type PickableDay } from '../domain/week.ts'
 import { planStore } from '../storage/planStore.ts'
@@ -42,6 +43,8 @@ export type DayView = {
   canCheckOff: boolean
   progress: { done: number; total: number }
   sections: Section[]
+  // A quitting goal's held-or-not for the day; none on a future day. Not tasks: never counted.
+  quitRows: QuitRow[]
 }
 
 // Today's "Still matter?" card for one task, and what each answer does.
@@ -73,6 +76,11 @@ export type UseDay = {
   pull: (bankTaskId: string) => void
   sendToBank: (taskId: string) => void
   swap: (taskId: string, bankTaskId: string) => void
+  answerQuitDay: (goalId: string, held: boolean) => void
+  // Back to unknown: the answer and its urge rating.
+  clearQuitDay: (goalId: string) => void
+  // null clears the rating.
+  rateUrge: (goalId: string, level: UrgeLevel | null) => void
 }
 
 // The day's week: what the phone has of it, and the fresh read.
@@ -141,6 +149,27 @@ export function useDay(date: string, today: string): UseDay {
     void enqueue({ kind: 'swap', id: newDeviceId(), taskId, week: taskWeek, bankTaskId, day: plan.date })
   }
 
+  function answerQuitDay(goalId: string, held: boolean) {
+    setMessage(undefined)
+    void enqueue({ kind: 'answerQuitDay', id: newDeviceId(), goalId, day: date, held })
+  }
+
+  function clearQuitDay(goalId: string) {
+    const row = week && quitRows(week, date, today).find((candidate) => candidate.goalId === goalId)
+    setMessage(undefined)
+    void enqueue({ kind: 'clearQuitDay', id: newDeviceId(), goalId, day: date })
+    if (row?.urge) void enqueue({ kind: 'clearUrgeRating', id: newDeviceId(), goalId, day: date })
+  }
+
+  function rateUrge(goalId: string, level: UrgeLevel | null) {
+    setMessage(undefined)
+    void enqueue(
+      level === null
+        ? { kind: 'clearUrgeRating', id: newDeviceId(), goalId, day: date }
+        : { kind: 'rateUrge', id: newDeviceId(), goalId, day: date, level },
+    )
+  }
+
   // The card goes at once; the week is read again once the answer is saved, so a day or a
   // drop shows where it lands. If it can't be saved, the card comes back.
   function answer(task: Task, reply: StillMattersAnswer) {
@@ -175,7 +204,7 @@ export function useDay(date: string, today: string): UseDay {
   const asked = (plan?.stillMatters ?? []).filter((task) => !notNow.includes(task.id) && !answering.includes(task.id))
   return {
     heading: dayHeading(date, today),
-    day: plan && viewOf(plan, view, today),
+    day: plan && week && viewOf(plan, week, view, today),
     asking: date === today ? asked.map(askAbout) : [],
     waiting: date === today && queue.stalled ? waitingLine(queue.waiting) : undefined,
     message,
@@ -187,10 +216,13 @@ export function useDay(date: string, today: string): UseDay {
     pull,
     sendToBank,
     swap,
+    answerQuitDay,
+    clearQuitDay,
+    rateUrge,
   }
 }
 
-function viewOf(plan: Day, view: TodayViewMode, today: string): DayView {
+function viewOf(plan: Day, week: Week, view: TodayViewMode, today: string): DayView {
   const sections = view === 'byGoal' ? groupByGoal(plan) : groupForList(plan)
   return {
     isToday: plan.date === today,
@@ -198,5 +230,6 @@ function viewOf(plan: Day, view: TodayViewMode, today: string): DayView {
     canCheckOff: mondayOfDay(plan.date) <= mondayOfDay(today),
     progress: progress(plan),
     sections,
+    quitRows: quitRows(week, plan.date, today),
   }
 }

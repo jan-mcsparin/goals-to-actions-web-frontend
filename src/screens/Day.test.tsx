@@ -1,7 +1,17 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { answerStillMatters, checkOffTask, getWeek, placeTask } from '../api/client.ts'
+import {
+  answerQuitDay,
+  answerStillMatters,
+  checkOffTask,
+  clearQuitDay,
+  clearUrgeRating,
+  createGoal,
+  getWeek,
+  placeTask,
+  rateUrge,
+} from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import { Day } from './Day.tsx'
 
@@ -15,6 +25,10 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     moveTaskToBank: vi.fn(actual.moveTaskToBank),
     swapTasks: vi.fn(actual.swapTasks),
     answerStillMatters: vi.fn(actual.answerStillMatters),
+    answerQuitDay: vi.fn(actual.answerQuitDay),
+    clearQuitDay: vi.fn(actual.clearQuitDay),
+    rateUrge: vi.fn(actual.rateUrge),
+    clearUrgeRating: vi.fn(actual.clearUrgeRating),
   }
 })
 
@@ -425,6 +439,106 @@ describe('Day', () => {
     expect(screen.getByRole('button', { name: 'Pull from bank' })).toBeDefined()
     expect(screen.queryByRole('progressbar')).toBeNull()
     expect(screen.queryByText(/done$/)).toBeNull()
+  })
+})
+
+describe("Day, a quitting goal's answer", () => {
+  let goalId: string
+  const row = () => screen.findByRole('group', { name: 'Quit sugar' })
+
+  beforeEach(async () => {
+    goalId = (await createGoal({ label: 'Quit sugar', measurableLine: '30 days', type: 'quitting', startDate: '2026-11-07' })).id
+    for (const send of [answerQuitDay, clearQuitDay, rateUrge, clearUrgeRating]) vi.mocked(send).mockClear()
+  })
+
+  it('answers Held with one tap, under the tasks, without counting it as a task', async () => {
+    const user = userEvent.setup()
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+    const quit = await row()
+
+    expect(within(quit).queryByRole('group', { name: 'Urge' })).toBeNull()
+    await user.click(within(quit).getByRole('button', { name: 'Held' }))
+
+    expect(within(quit).getByRole('button', { name: 'Change: Held' })).toBeDefined()
+    expect(answerQuitDay).toHaveBeenCalledWith(goalId, WEDNESDAY_DAY, true)
+    expect(screen.getByText('0 of 4 done')).toBeDefined()
+    const freeTime = screen.getByRole('region', { name: 'Free time' })
+    expect(quit.compareDocumentPosition(freeTime) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('offers the urge once answered, and a second tap on the level clears it', async () => {
+    const user = userEvent.setup()
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+    const quit = await row()
+    await user.click(within(quit).getByRole('button', { name: 'Slipped' }))
+    const urge = within(quit).getByRole('group', { name: 'Urge' })
+
+    expect(within(urge).getAllByRole('button').map((button) => button.textContent)).toEqual(['Low', 'Some', 'Strong'])
+    await user.click(within(urge).getByRole('button', { name: 'Some' }))
+    expect(within(urge).getByRole('button', { name: 'Some' }).getAttribute('aria-pressed')).toBe('true')
+    expect(rateUrge).toHaveBeenCalledWith(goalId, WEDNESDAY_DAY, 'some')
+
+    await user.click(within(urge).getByRole('button', { name: 'Some' }))
+    expect(within(urge).getByRole('button', { name: 'Some' }).getAttribute('aria-pressed')).toBe('false')
+    expect(clearUrgeRating).toHaveBeenCalledWith(goalId, WEDNESDAY_DAY)
+  })
+
+  it('changes the answer, and clears it with its urge back to unknown', async () => {
+    const user = userEvent.setup()
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+    const quit = await row()
+    await user.click(within(quit).getByRole('button', { name: 'Held' }))
+    await user.click(within(quit).getByRole('button', { name: 'Low' }))
+
+    await user.click(within(quit).getByRole('button', { name: 'Change: Held' }))
+    await user.click(within(quit).getByRole('button', { name: 'Slipped' }))
+    expect(answerQuitDay).toHaveBeenLastCalledWith(goalId, WEDNESDAY_DAY, false)
+    expect(within(quit).getByRole('button', { name: 'Change: Slipped' })).toBeDefined()
+
+    await user.click(within(quit).getByRole('button', { name: 'Change: Slipped' }))
+    await user.click(within(quit).getByRole('button', { name: 'Clear' }))
+
+    expect(clearQuitDay).toHaveBeenCalledWith(goalId, WEDNESDAY_DAY)
+    expect(clearUrgeRating).toHaveBeenCalledWith(goalId, WEDNESDAY_DAY)
+    expect(within(quit).getByRole('button', { name: 'Held' })).toBeDefined()
+    expect(within(quit).queryByRole('group', { name: 'Urge' })).toBeNull()
+  })
+
+  it('answers an opened past day for that day', async () => {
+    const user = userEvent.setup()
+    render(<Day date="2026-11-09" today={WEDNESDAY_DAY} />)
+
+    await user.click(within(await row()).getByRole('button', { name: 'Held' }))
+
+    expect(answerQuitDay).toHaveBeenCalledWith(goalId, '2026-11-09', true)
+  })
+
+  it('offers nothing on a future day', async () => {
+    render(<Day date="2026-11-13" today={WEDNESDAY_DAY} />)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Friday · Nov 13' })).toBeDefined()
+    expect(screen.queryByRole('group', { name: 'Quit sugar' })).toBeNull()
+  })
+
+  it('shows on a day with nothing planned', async () => {
+    const week = await getWeek('2026-11-09')
+    vi.mocked(getWeek).mockResolvedValueOnce({ ...week, tasks: week.tasks.filter((task) => task.plannedDay !== WEDNESDAY_DAY) })
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+
+    expect(await screen.findByText('Nothing planned today. The day is yours.')).toBeDefined()
+    expect(await row()).toBeDefined()
+  })
+
+  it('shows the answer at once while it waits to send', async () => {
+    vi.mocked(answerQuitDay).mockRejectedValueOnce(new Error('offline'))
+    const user = userEvent.setup()
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+    const quit = await row()
+
+    await user.click(within(quit).getByRole('button', { name: 'Held' }))
+
+    expect(within(quit).getByRole('button', { name: 'Change: Held' })).toBeDefined()
+    expect(await screen.findByText('1 change waiting to send')).toBeDefined()
   })
 })
 
