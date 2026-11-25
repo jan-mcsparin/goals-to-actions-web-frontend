@@ -7,6 +7,9 @@ import {
   rateUrge,
   addMilestone,
   addRecurringItem,
+  turnOffRecurringItem,
+  turnOnRecurringItem,
+  updateRecurringItem,
   addTask,
   bringBackAspiration,
   checkIn,
@@ -1277,12 +1280,12 @@ describe('bringBackAspiration', () => {
 })
 
 describe('getUpkeep', () => {
-  it('returns the active recurring items with no aspiration', async () => {
+  it('returns the recurring items with no aspiration, paused ones too', async () => {
     expect(ids((await getUpkeep()).recurringItems)).toEqual(['rec-rent'])
 
     store.recurringItems.find((item) => item.id === 'rec-rent')!.active = false
 
-    expect((await getUpkeep()).recurringItems).toEqual([])
+    expect((await getUpkeep()).recurringItems).toMatchObject([{ id: 'rec-rent', active: false }])
   })
 
   it('returns tasks with no goal and no recurring item that are still to do', async () => {
@@ -1876,5 +1879,67 @@ describe('the mock or real switch', () => {
       'POST /api/weeks/2026-11-09/wrap-up',
       'PUT /api/recurring-items/{id}',
     ])
+  })
+})
+
+describe('updateRecurringItem', () => {
+  const edit = { name: '  Trash and recycling ', aspirationId: null, schedule: { kind: 'weekly', weekday: 'wednesday' }, startsOn: '2026-10-01' } as const
+
+  it('changes the item and moves it under no aspiration', async () => {
+    const item = await updateRecurringItem('rec-trash', edit)
+
+    expect(item).toMatchObject({ id: 'rec-trash', name: 'Trash and recycling', aspirationId: null, schedule: edit.schedule, active: true })
+    expect(ids((await getUpkeep()).recurringItems)).toContain('rec-trash')
+    expect(ids((await getAspiration('asp-home')).recurringItems)).not.toContain('rec-trash')
+    expectConsistentStore()
+  })
+
+  it('renames its open tasks', async () => {
+    await updateRecurringItem('rec-trash', edit)
+
+    const renamed = store.tasks.filter((task) => task.recurringItemId === 'rec-trash' && task.state === 'open')
+    expect(renamed.length).toBeGreaterThan(0)
+    expect(renamed.every((task) => task.title === 'Trash and recycling')).toBe(true)
+  })
+
+  it.each([
+    ['a blank name', 'rec-trash', { ...edit, name: '  ' }],
+    ['an unknown item', 'rec-nope', edit],
+    ['a retired aspiration', 'rec-trash', { ...edit, aspirationId: 'asp-spanish' }],
+  ])('rejects %s and changes nothing', async (_case, itemId, rejected) => {
+    const before = structuredClone(store.recurringItems)
+
+    await expect(updateRecurringItem(itemId, rejected)).rejects.toThrow()
+    expect(store.recurringItems).toEqual(before)
+  })
+})
+
+describe('turnOffRecurringItem and turnOnRecurringItem', () => {
+  function openTasksOf(itemId: string, week: string) {
+    return store.tasks.filter((task) => task.recurringItemId === itemId && task.week === week && task.state === 'open')
+  }
+
+  it('sets its open tasks aside this week, and keeps it listed as off', async () => {
+    const item = await turnOffRecurringItem('rec-trash')
+
+    expect(item.active).toBe(false)
+    expect(openTasksOf('rec-trash', '2026-11-09').every((task) => task.setAside)).toBe(true)
+    expect((await getAspiration('asp-home')).recurringItems.find((row) => row.id === 'rec-trash')?.active).toBe(false)
+  })
+
+  it('brings them back to the bank when turned on', async () => {
+    await turnOffRecurringItem('rec-trash')
+
+    const item = await turnOnRecurringItem('rec-trash')
+
+    expect(item.active).toBe(true)
+    const back = openTasksOf('rec-trash', '2026-11-09')
+    expect(back.length).toBeGreaterThan(0)
+    expect(back.every((task) => !task.setAside && task.plannedDay === null)).toBe(true)
+  })
+
+  it('rejects an unknown item', async () => {
+    await expect(turnOffRecurringItem('rec-nope')).rejects.toThrow()
+    await expect(turnOnRecurringItem('rec-nope')).rejects.toThrow()
   })
 })

@@ -5,7 +5,17 @@ import { mondayOfDay, toLocalDay, weekAfter } from './dates.ts'
 import { newDeviceId } from './ids.ts'
 import { request } from './request.ts'
 import type { components } from './openapi.ts'
-import type { CheckOff, NewRecurringItem, NewTask, RecurringItem, StillMattersAnswer, Task, Upkeep, Week } from './types.ts'
+import type {
+  CheckOff,
+  NewRecurringItem,
+  NewTask,
+  RecurringItem,
+  RecurringItemEdit,
+  StillMattersAnswer,
+  Task,
+  Upkeep,
+  Week,
+} from './types.ts'
 
 type RecurringItemList = components['schemas']['RecurringItemList']
 type Upcoming = components['schemas']['Upcoming']
@@ -69,19 +79,33 @@ export async function createRecurringItem(item: NewRecurringItem): Promise<Recur
   return request('PUT', `/recurring-items/${newDeviceId()}`, item)
 }
 
+// Sent whole. The API moves this week's open tasks to follow it (API #49).
+export async function updateRecurringItem(itemId: string, edit: RecurringItemEdit): Promise<RecurringItem> {
+  return request('PATCH', `/recurring-items/${itemId}`, edit)
+}
+
+// Its open tasks leave the days and the bank of every open week; turned on, they come back to the bank.
+export async function turnOffRecurringItem(itemId: string): Promise<RecurringItem> {
+  return request('POST', `/recurring-items/${itemId}/turn-off`)
+}
+
+export async function turnOnRecurringItem(itemId: string): Promise<RecurringItem> {
+  return request('POST', `/recurring-items/${itemId}/turn-on`)
+}
+
 // Open tasks with a due date and no week yet: they join a week's bank when it opens.
 export async function getUpcoming(): Promise<Task[]> {
   return (await request<Upcoming>('GET', '/tasks/upcoming')).tasks
 }
 
-// Keep life running: the items under no aspiration that are on, and the open tasks with no
+// Keep life running: the items under no aspiration, on and off, and the open tasks with no
 // goal and no item, from the open weeks and the upcoming list.
 export async function getUpkeep(): Promise<Upkeep> {
   const [items, current, upcoming] = await Promise.all([listRecurringItems(), getWeek(), getUpcoming()])
   const next = current.nextWeekOpen ? await getWeek(weekAfter(current.week)) : undefined
   const tasks = [...current.tasks, ...(next?.tasks ?? []), ...upcoming]
   return {
-    recurringItems: items.filter((item) => item.active && item.aspirationId === null),
+    recurringItems: items.filter((item) => item.aspirationId === null),
     tasks: tasks.filter((task) => task.state === 'open' && task.goalId === null && task.recurringItemId === null),
   }
 }

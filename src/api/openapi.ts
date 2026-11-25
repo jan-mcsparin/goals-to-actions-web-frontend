@@ -483,7 +483,13 @@ export interface paths {
         delete: operations["deleteRecurringItem"];
         options?: never;
         head?: never;
-        /** Update Recurring Item */
+        /**
+         * Update Recurring Item
+         * @description Changes the item, sent whole. Its open tasks are renamed. When the schedule changes,
+         *     this week's tasks, and next week's once it's open, follow it: a fixed-day task moves to
+         *     its new day from today on, missing ones are added on later days, and extra open ones are
+         *     removed. A task placed by hand or done stays.
+         */
         patch: operations["updateRecurringItem"];
         trace?: never;
     };
@@ -3432,7 +3438,9 @@ export interface operations {
     updateRecurringItem: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "x-time-zone": string;
+            };
             path: {
                 item_id: string;
             };

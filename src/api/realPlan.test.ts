@@ -7,6 +7,9 @@ import {
   answerStillMatters,
   checkOffTask,
   createRecurringItem,
+  turnOffRecurringItem,
+  turnOnRecurringItem,
+  updateRecurringItem,
   getUpcoming,
   getUpkeep,
   getWeek,
@@ -154,6 +157,22 @@ describe('recurring items', () => {
     expect(String(url).replace('/api/recurring-items/', '')).toMatch(UUID_V4)
     expect(body).toEqual(chosen)
   })
+
+  it('sends an edit whole, to the item', async () => {
+    const edit = { name: 'Trash and recycling', aspirationId: null, schedule: { kind: 'weekly', weekday: 'wednesday' }, startsOn: '2026-11-16' } as const
+    answerWith(item('trash', edit))
+
+    expect((await updateRecurringItem('trash', edit)).name).toBe('Trash and recycling')
+    expect(sent()).toEqual({ url: '/api/recurring-items/trash', method: 'PATCH', body: edit })
+  })
+
+  it('turns one off and on', async () => {
+    await turnOffRecurringItem('trash')
+    await turnOnRecurringItem('trash')
+
+    expect(sent(0)).toEqual({ url: '/api/recurring-items/trash/turn-off', method: 'POST', body: undefined })
+    expect(sent(1)).toEqual({ url: '/api/recurring-items/trash/turn-on', method: 'POST', body: undefined })
+  })
 })
 
 describe('getUpcoming', () => {
@@ -191,12 +210,12 @@ describe('getUpkeep', () => {
     })
   }
 
-  it('keeps the items that are on with no aspiration, and the open loose tasks', async () => {
+  it('keeps the items with no aspiration, on and off, and the open loose tasks', async () => {
     serve({ nextWeekOpen: false })
 
     const upkeep = await getUpkeep()
 
-    expect(upkeep.recurringItems.map((found) => found.id)).toEqual(['trash'])
+    expect(upkeep.recurringItems.map((found) => found.id)).toEqual(['trash', 'rent'])
     expect(upkeep.tasks.map((task) => task.id)).toEqual(['groceries', 'passport'])
     expect(fetchMock.mock.calls.map(([url]) => url)).not.toContain('/api/weeks/2026-11-23')
   })
