@@ -9,14 +9,15 @@ type TaskRowProps = {
   onToggle: () => void
   onSendToBank: () => void
   onSwap?: () => void
+  onDelete?: () => void
   // False for a task in a week that hasn't started: it can be moved, not checked off.
   canCheck?: boolean
 }
 
 // The whole row is the checkbox, so a tap anywhere on it checks the task off.
-// Done tasks have no menu (tapping again undoes them), and neither do
-// fixed-day items, which stay on their day.
-export function TaskRow({ row, onToggle, onSendToBank, onSwap, canCheck = true }: TaskRowProps) {
+// Done tasks have no menu (tapping again undoes them). A fixed-day item stays
+// on its day, so its menu only deletes.
+export function TaskRow({ row, onToggle, onSendToBank, onSwap, onDelete, canCheck = true }: TaskRowProps) {
   const { task, timeLabel, subline } = row
   const done = isDone(task)
   const titleId = `task-${task.id}-title`
@@ -54,7 +55,14 @@ export function TaskRow({ row, onToggle, onSendToBank, onSwap, canCheck = true }
           </span>
         )}
       </button>
-      {!done && !row.fixed && <TaskMenu taskTitle={task.title} onSendToBank={onSendToBank} onSwap={onSwap} />}
+      {!done && (onDelete || !row.fixed) && (
+        <TaskMenu
+          taskTitle={task.title}
+          onSendToBank={row.fixed ? undefined : onSendToBank}
+          onSwap={row.fixed ? undefined : onSwap}
+          onDelete={onDelete}
+        />
+      )}
     </li>
   )
 }

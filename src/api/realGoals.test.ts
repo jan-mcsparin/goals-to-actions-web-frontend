@@ -8,6 +8,8 @@ import {
   rateUrge,
   checkIn,
   createGoal,
+  deleteGoal,
+  deleteMilestone,
   endGoal,
   getGoal,
   goAgain,
@@ -132,5 +134,19 @@ describe('writes', () => {
       { url: '/api/goals/g1/urges/2026-11-10', method: 'PUT', body: { level: 'strong' } },
       { url: '/api/goals/g1/urges/2026-11-10/clear', method: 'POST', body: undefined },
     ])
+  })
+})
+
+describe('deleteGoal and deleteMilestone', () => {
+  it('deletes a goal', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }))
+
+    await expect(deleteGoal('g1')).resolves.toBeUndefined()
+    expect(sent()).toEqual({ url: '/api/goals/g1', method: 'DELETE', body: undefined })
+  })
+
+  it("deletes a milestone and returns the goal's page", async () => {
+    expect(await deleteMilestone('m1')).toEqual(ANSWER)
+    expect(sent()).toEqual({ url: '/api/milestones/m1', method: 'DELETE', body: undefined })
   })
 })

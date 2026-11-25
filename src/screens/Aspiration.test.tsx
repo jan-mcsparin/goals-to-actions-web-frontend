@@ -1,9 +1,12 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getAspiration, turnOnRecurringItem, updateAspiration } from '../api/client.ts'
+import { deleteAspiration, getAspiration, getWeek, turnOnRecurringItem, updateAspiration } from '../api/client.ts'
 import { resetStore, store } from '../api/mockStore.ts'
+import { planStore } from '../storage/planStore.ts'
 import { Aspiration } from './Aspiration.tsx'
+import { Aspirations } from './Aspirations.tsx'
+import { Upkeep } from './Upkeep.tsx'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
@@ -12,6 +15,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     getAspiration: vi.fn(actual.getAspiration),
     updateAspiration: vi.fn(actual.updateAspiration),
     turnOnRecurringItem: vi.fn(actual.turnOnRecurringItem),
+    deleteAspiration: vi.fn(actual.deleteAspiration),
   }
 })
 
@@ -448,5 +452,75 @@ describe('Aspiration page, a recurring item', () => {
 
     const recurring = await screen.findByRole('region', { name: 'Recurring' })
     expect(within(recurring).queryByRole('button')).toBeNull()
+  })
+})
+
+describe('Aspiration, deleting it', () => {
+  async function askToDelete(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole('button', { name: 'Edit name and why' }))
+    const sheet = screen.getByRole('dialog', { name: 'Edit name and why' })
+    const buttons = within(sheet).getAllByRole('button')
+    expect(buttons.at(-1)?.textContent).toBe('Delete aspiration')
+    await user.click(within(sheet).getByRole('button', { name: 'Delete aspiration' }))
+  }
+
+  it('asks once from the bottom of its edit sheet, then goes to the tab', async () => {
+    const user = userEvent.setup()
+    const { onBack } = renderPage()
+
+    await askToDelete(user)
+    const asking = screen.getByRole('dialog', {
+      name: 'Delete “Be fit”? Its goals and recurring items stay, with no aspiration.',
+    })
+    expect(deleteAspiration).not.toHaveBeenCalled()
+    await user.click(within(asking).getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => expect(onBack).toHaveBeenCalledOnce())
+    expect(deleteAspiration).toHaveBeenCalledExactlyOnceWith('asp-fit')
+    expect(await planStore().responses.get('aspiration/asp-fit')).toBeUndefined()
+  })
+
+  it('leaves its goals under Other goals and its items on Keep life running', async () => {
+    const user = userEvent.setup()
+    const { onBack } = renderPage()
+
+    await askToDelete(user)
+    await user.click(within(screen.getByRole('dialog', { name: /^Delete “Be fit”/ })).getByRole('button', { name: 'Delete' }))
+    await waitFor(() => expect(onBack).toHaveBeenCalled())
+    cleanup()
+
+    render(<Aspirations onOpenAspiration={vi.fn()} onOpenGoal={vi.fn()} onOpenUpkeep={vi.fn()} onOpenSettings={vi.fn()} />)
+    const other = await screen.findByRole('region', { name: 'Other goals' })
+    expect(within(other).getByText('Be strong')).toBeDefined()
+    expect(screen.queryByRole('region', { name: 'Be fit' })).toBeNull()
+
+    render(<Upkeep today={TODAY} onBack={vi.fn()} />)
+    expect(await screen.findByText('Stretch')).toBeDefined()
+  })
+
+  it("stays, with a message, when it can't be deleted", async () => {
+    vi.mocked(deleteAspiration).mockRejectedValueOnce(new Error('offline'))
+    const user = userEvent.setup()
+    const { onBack } = renderPage()
+
+    await askToDelete(user)
+    await user.click(within(screen.getByRole('dialog', { name: /^Delete “Be fit”/ })).getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText("Couldn't delete that. Try again.")).toBeDefined()
+    expect(onBack).not.toHaveBeenCalled()
+  })
+})
+
+describe('Aspiration, deleting a recurring item', () => {
+  it('takes it off the page, and its open tasks off the week', async () => {
+    const user = userEvent.setup()
+    renderPage('asp-home')
+
+    await user.click(await screen.findByRole('button', { name: /^Laundry/ }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Edit recurring item' })).getByRole('button', { name: 'Delete' }))
+    await user.click(within(screen.getByRole('dialog', { name: /^Delete “Laundry”/ })).getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^Laundry/ })).toBeNull())
+    expect((await getWeek()).tasks.some((task) => task.title === 'Laundry' && task.state === 'open')).toBe(false)
   })
 })

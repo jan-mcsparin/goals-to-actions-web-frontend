@@ -1,8 +1,9 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { answerQuitDay, createGoal, getGoal, setWeeklyTarget } from '../api/client.ts'
+import { answerQuitDay, createGoal, deleteGoal, deleteMilestone, getGoal, getWeek, NotFoundError, setWeeklyTarget } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
+import { planStore } from '../storage/planStore.ts'
 import type { GoalOrigin } from '../hooks/useNavigation.ts'
 import { GoalDetail } from './GoalDetail.tsx'
 
@@ -13,6 +14,8 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     getGoal: vi.fn(actual.getGoal),
     setWeeklyTarget: vi.fn(actual.setWeeklyTarget),
     answerQuitDay: vi.fn(actual.answerQuitDay),
+    deleteMilestone: vi.fn(actual.deleteMilestone),
+    deleteGoal: vi.fn(actual.deleteGoal),
   }
 })
 
@@ -423,6 +426,7 @@ describe('GoalDetail, checking in', () => {
     renderGoal('goal-garage', { screen: 'aspirations' })
 
     await user.click(await screen.findByRole('button', { name: /^Put up the shelves/ }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Put up the shelves' })).getByRole('button', { name: 'Check in' }))
     const sheet = screen.getByRole('dialog', { name: 'Put up the shelves' })
     await user.click(within(sheet).getByRole('button', { name: 'Done' }))
 
@@ -438,6 +442,129 @@ describe('GoalDetail, checking in', () => {
     await screen.findByRole('region', { name: 'Not yet' })
     await user.click(screen.getByRole('button', { name: 'Show all 6' }))
     expect(document.body.textContent).not.toMatch(/missed|failed|behind|overdue/i)
+  })
+})
+
+describe('GoalDetail, deleting a milestone', () => {
+  it('opens a small sheet from any milestone row, with Check in only when it can be checked in', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    const rows = within(await timeline()).getAllByRole('button').filter((button) => button.closest('.is-milestone'))
+    expect(rows.length).toBeGreaterThan(1)
+    await user.click(rows[0])
+    const first = screen.getByRole('dialog')
+    expect(within(first).queryByRole('button', { name: 'Check in' })).toBeNull()
+    expect(within(first).getByRole('button', { name: 'Delete milestone' })).toBeDefined()
+    await user.click(within(first).getByRole('button', { name: 'Close' }))
+
+    const next = rows.find((row) => row.closest('.is-next'))!
+    await user.click(next)
+    expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Check in' })).toBeDefined()
+  })
+
+  it('asks once, then takes the milestone off the timeline and the count', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+    const region = await timeline()
+    const count = within(region).getByText(/ of \d+ hit$/).textContent!
+    const total = Number(count.match(/of (\d+)/)![1])
+
+    const next = within(region).getAllByRole('button').find((button) => button.closest('.is-next'))!
+    await user.click(next)
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete milestone' }))
+    const asking = screen.getByRole('dialog', { name: 'Delete this milestone? Its check-ins go with it.' })
+    expect(deleteMilestone).not.toHaveBeenCalled()
+    await user.click(within(asking).getByRole('button', { name: 'Delete' }))
+
+    expect(await within(region).findByText(`1 of ${total - 1} hit`)).toBeDefined()
+    expect(deleteMilestone).toHaveBeenCalledOnce()
+  })
+
+  it('says step on a one-off goal', async () => {
+    const user = userEvent.setup()
+    renderGoal('goal-garage', { screen: 'aspirations' })
+
+    await user.click(await screen.findByRole('button', { name: /^Put up the shelves/ }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete step' }))
+
+    expect(screen.getByRole('dialog', { name: 'Delete this step? Its check-ins go with it.' })).toBeDefined()
+  })
+
+  it("keeps the milestone, with a message, when it can't be deleted", async () => {
+    vi.mocked(deleteMilestone).mockRejectedValueOnce(new Error('offline'))
+    const user = userEvent.setup()
+    renderGoal()
+    const region = await timeline()
+    const count = within(region).getByText(/ of \d+ hit$/).textContent
+
+    const next = within(region).getAllByRole('button').find((button) => button.closest('.is-next'))!
+    await user.click(next)
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete milestone' }))
+    await user.click(within(screen.getByRole('dialog', { name: /^Delete this milestone/ })).getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText("Couldn't delete that. Try again.")).toBeDefined()
+    expect(within(region).getByText(count!)).toBeDefined()
+  })
+})
+
+describe('GoalDetail, deleting the goal', () => {
+  async function askToDelete(user: ReturnType<typeof userEvent.setup>) {
+    const actions = await screen.findAllByRole('button', { name: /^(Pause|Resume|End goal|Delete goal)$/ })
+    expect(actions.at(-1)?.textContent).toBe('Delete goal')
+    await user.click(screen.getByRole('button', { name: 'Delete goal' }))
+  }
+
+  it('asks once, saying there is no undo, then goes back, its tasks gone from the week', async () => {
+    const user = userEvent.setup()
+    const { onBack } = renderGoal()
+
+    await askToDelete(user)
+    const asking = screen.getByRole('dialog', {
+      name: "Delete “Be strong”? Its tasks, milestones and check-ins go with it. There's no undo.",
+    })
+    expect(deleteGoal).not.toHaveBeenCalled()
+    await user.click(within(asking).getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => expect(onBack).toHaveBeenCalledOnce())
+    expect(deleteGoal).toHaveBeenCalledExactlyOnceWith('goal-strong')
+    await expect(getGoal('goal-strong')).rejects.toBeInstanceOf(NotFoundError)
+    expect((await getWeek()).tasks.some((task) => task.goalId === 'goal-strong')).toBe(false)
+    expect(await planStore().responses.get('goal/goal-strong')).toBeUndefined()
+  })
+
+  it('is offered on a goal that has ended', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    await user.click(await screen.findByRole('button', { name: 'End goal' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'End goal' })).getByRole('button', { name: 'End it for now' }))
+
+    expect(await screen.findByRole('button', { name: 'Delete goal' })).toBeDefined()
+  })
+
+  it('sends nothing on Cancel', async () => {
+    const user = userEvent.setup()
+    const { onBack } = renderGoal()
+
+    await askToDelete(user)
+    await user.click(within(screen.getByRole('dialog', { name: /^Delete “Be strong”/ })).getByRole('button', { name: 'Cancel' }))
+
+    expect(deleteGoal).not.toHaveBeenCalled()
+    expect(onBack).not.toHaveBeenCalled()
+  })
+
+  it("stays, with a message, when it can't be deleted", async () => {
+    vi.mocked(deleteGoal).mockRejectedValueOnce(new Error('offline'))
+    const user = userEvent.setup()
+    const { onBack } = renderGoal()
+
+    await askToDelete(user)
+    await user.click(within(screen.getByRole('dialog', { name: /^Delete “Be strong”/ })).getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText("Couldn't delete that. Try again.")).toBeDefined()
+    expect(onBack).not.toHaveBeenCalled()
+    expect(screen.getByRole('heading', { level: 1, name: 'Be strong' })).toBeDefined()
   })
 })
 

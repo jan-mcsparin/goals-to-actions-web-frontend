@@ -108,3 +108,8 @@ function nameAndWhy(name: string, why?: string | null) {
   if (!trimmed) throw new Error('An aspiration needs a name')
   return { name: trimmed, why: why?.trim() || null }
 }
+
+// For a mistake (spec 038): not queued. Its goals and recurring items stay, with no aspiration.
+export async function deleteAspiration(aspirationId: string): Promise<void> {
+  return request('DELETE', `/aspirations/${aspirationId}`)
+}

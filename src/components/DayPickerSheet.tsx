@@ -11,9 +11,11 @@ type DayPickerSheetProps = {
   days: PickableDay[]
   onPick: (date: string) => void
   onClose: () => void
+  // A bank task made by mistake (spec 038): offered under the days.
+  onDelete?: () => void
 }
 
-export function DayPickerSheet({ open, taskTitle, days, onPick, onClose }: DayPickerSheetProps) {
+export function DayPickerSheet({ open, taskTitle, days, onPick, onClose, onDelete }: DayPickerSheetProps) {
   const dialog = useModalDialog(open)
   const backdropClose = useBackdropClose(onClose)
   const titleId = useId()
@@ -36,6 +38,11 @@ export function DayPickerSheet({ open, taskTitle, days, onPick, onClose }: DayPi
           </li>
         ))}
       </ul>
+      {onDelete && (
+        <button type="button" className="sheet-delete" onClick={onDelete}>
+          Delete (made by mistake)
+        </button>
+      )}
     </dialog>
   )
 }

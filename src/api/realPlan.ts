@@ -109,3 +109,13 @@ export async function getUpkeep(): Promise<Upkeep> {
     tasks: tasks.filter((task) => task.state === 'open' && task.goalId === null && task.recurringItemId === null),
   }
 }
+
+// For a mistake (spec 038): not queued. The API decides what goes with each (api/specs/delete.md).
+export async function deleteTask(taskId: string): Promise<void> {
+  return request('DELETE', `/tasks/${taskId}`)
+}
+
+// Its open tasks go with it; the done ones stay in history.
+export async function deleteRecurringItem(itemId: string): Promise<void> {
+  return request('DELETE', `/recurring-items/${itemId}`)
+}

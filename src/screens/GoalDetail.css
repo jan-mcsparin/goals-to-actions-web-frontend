@@ -315,6 +315,13 @@
   gap: 0 1.5rem;
 }
 
+/* Last on the page and quiet: for a goal made by mistake (spec 038). */
+.goal-delete {
+  display: block;
+  margin-top: 1.5rem;
+  color: var(--muted);
+}
+
 /* Passed on the way to a reached goal: filled, but softer than a hit. */
 .timeline-row.is-passed::before {
   border-color: var(--muted);

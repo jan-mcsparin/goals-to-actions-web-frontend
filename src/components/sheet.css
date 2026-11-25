@@ -48,6 +48,26 @@
   margin: 1rem 0 0;
 }
 
+/* Delete, last in a sheet and set apart: plain text, never a red button (spec 038). */
+.sheet-delete {
+  display: block;
+  min-height: 2.75rem;
+  margin-top: 1.25rem;
+  padding: 0.75rem 0 0;
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  text-align: left;
+}
+
+.sheet-delete:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* A sheet's title can take focus when it opens (so the keyboard waits), but
    isn't something to tab to; no ring for that. */
 .sheet-header h2[tabindex='-1']:focus {

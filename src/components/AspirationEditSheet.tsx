@@ -10,11 +10,13 @@ type AspirationEditSheetProps = {
   initial?: NameAndWhy
   onSave: (changes: NameAndWhy) => void
   onClose: () => void
+  // An aspiration made by mistake (spec 038): offered at the bottom.
+  onDelete?: () => void
 }
 
 // The fields live inside only while the sheet is open, so each opening starts
 // from the saved name and why.
-export function AspirationEditSheet({ open, initial, onSave, onClose }: AspirationEditSheetProps) {
+export function AspirationEditSheet({ open, initial, onSave, onClose, onDelete }: AspirationEditSheetProps) {
   const dialog = useModalDialog(open)
   const backdropClose = useBackdropClose(onClose)
   const titleId = useId()
@@ -25,6 +27,11 @@ export function AspirationEditSheet({ open, initial, onSave, onClose }: Aspirati
         <h2 id={titleId}>Edit name and why</h2>
       </header>
       {open && initial && <EditForm initial={initial} onSave={onSave} onCancel={onClose} />}
+      {open && onDelete && (
+        <button type="button" className="sheet-delete" onClick={onDelete}>
+          Delete aspiration
+        </button>
+      )}
     </dialog>
   )
 }

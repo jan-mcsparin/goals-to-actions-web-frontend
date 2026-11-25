@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import type { Task } from '../api/types.ts'
 import { DayPickerSheet } from '../components/DayPickerSheet.tsx'
+import { DeleteSheet } from '../components/DeleteSheet.tsx'
+import { deleteTaskLine } from '../domain/deleting.ts'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import type { DaySummary, ProgressRow } from '../domain/week.ts'
 import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
@@ -17,7 +19,7 @@ type WeekProps = {
 }
 
 export function Week({ today, onOpenDay }: WeekProps) {
-  const { title, range, week, message, clearMessage, view, canViewNext, setView, place, wrapUp } = useWeek(today)
+  const { title, range, week, message, clearMessage, view, canViewNext, setView, place, deleting, wrapUp } = useWeek(today)
   const [wrapping, setWrapping] = useState(false)
   const [placing, setPlacing] = useState<Task>()
   // With nothing loaded, the message is all there is, so it stays.
@@ -102,6 +104,17 @@ export function Week({ today, onOpenDay }: WeekProps) {
           setPlacing(undefined)
         }}
         onClose={() => setPlacing(undefined)}
+        onDelete={() => {
+          if (placing) deleting.ask(placing)
+          setPlacing(undefined)
+        }}
+      />
+
+      <DeleteSheet
+        open={deleting.asking !== undefined}
+        question={deleting.asking ? deleteTaskLine(deleting.asking.title) : ''}
+        onDelete={() => void deleting.confirm()}
+        onClose={deleting.cancel}
       />
 
       <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />

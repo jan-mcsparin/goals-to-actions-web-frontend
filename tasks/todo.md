@@ -1,8 +1,11 @@
-# 076: Edit a recurring item
+# 038: Delete what was made by mistake
 
 - [x] 1. Client functions and the mock
-- [x] 2. The draft, the edit body, "changed", and "Paused" rows
-- [x] 3. The hook and the sheet
-- [x] 4. Keep life running opens the sheet
-- [x] 5. An aspiration's page opens the sheet
-- [x] 6. Docs and the check
+- [x] 2. The wording, the hook and the sheet
+- [x] 3. Delete a task on Today and an opened day
+- [x] 4. Delete a bank task on Week
+- [x] 5. Delete a milestone
+- [x] 6. Delete a goal
+- [x] 7. Delete an aspiration
+- [x] 8. Delete a recurring item
+- [x] 9. Docs and the check

@@ -1,13 +1,18 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getUpkeep, updateRecurringItem } from '../api/client.ts'
+import { deleteRecurringItem, getUpkeep, updateRecurringItem } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import { Upkeep } from './Upkeep.tsx'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
-  return { ...actual, getUpkeep: vi.fn(actual.getUpkeep), updateRecurringItem: vi.fn(actual.updateRecurringItem) }
+  return {
+    ...actual,
+    deleteRecurringItem: vi.fn(actual.deleteRecurringItem),
+    getUpkeep: vi.fn(actual.getUpkeep),
+    updateRecurringItem: vi.fn(actual.updateRecurringItem),
+  }
 })
 
 const WEDNESDAY_DAY = '2026-11-11'
@@ -179,5 +184,32 @@ describe('Keep life running, a recurring item', () => {
 
     expect(await within(sheet).findByText("Couldn't save that. Try again.")).toBeDefined()
     expect((within(sheet).getByLabelText('Name') as HTMLInputElement).value).toBe('Pay rent and utilities')
+  })
+
+  it('deletes it, last in the sheet under Pause, after asking once', async () => {
+    const { user, recurring, sheet } = await openRent()
+
+    const buttons = within(sheet).getAllByRole('button')
+    expect(buttons.slice(-2).map((button) => button.textContent)).toEqual(['Pause', 'Delete'])
+    await user.click(within(sheet).getByRole('button', { name: 'Delete' }))
+    const asking = screen.getByRole('dialog', {
+      name: 'Delete “Pay rent”? Its open tasks go with it; the ones done stay in your history.',
+    })
+    expect(deleteRecurringItem).not.toHaveBeenCalled()
+    await user.click(within(asking).getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => expect(within(recurring).getByText('No recurring items.')).toBeDefined())
+    expect(deleteRecurringItem).toHaveBeenCalledExactlyOnceWith('rec-rent')
+  })
+
+  it("comes back to its sheet with a message when it can't be deleted", async () => {
+    vi.mocked(deleteRecurringItem).mockRejectedValueOnce(new Error('offline'))
+    const { user, recurring, sheet } = await openRent()
+
+    await user.click(within(sheet).getByRole('button', { name: 'Delete' }))
+    await user.click(within(screen.getByRole('dialog', { name: /^Delete “Pay rent”/ })).getByRole('button', { name: 'Delete' }))
+
+    expect(await within(sheet).findByText("Couldn't delete that. Try again.")).toBeDefined()
+    expect(rows(recurring)).toEqual([['Pay rent', 'Monthly on the 1st']])
   })
 })

@@ -3,6 +3,7 @@ import { NotFoundError } from './errors.ts'
 import {
   addAspiration,
   bringBackAspiration,
+  deleteAspiration,
   getAspiration,
   getAspirations,
   getChoices,
@@ -273,5 +274,14 @@ describe('bringBackAspiration', () => {
 
     expect(sent()).toEqual({ url: '/api/aspirations/spanish/bring-back', method: 'POST', body: undefined })
     expect(saved.position).toBe(3)
+  })
+})
+
+describe('deleteAspiration', () => {
+  it('deletes an aspiration', async () => {
+    fetchMock.mockImplementationOnce(async () => new Response(null, { status: 204 }))
+
+    await expect(deleteAspiration('a1')).resolves.toBeUndefined()
+    expect(sent()).toEqual({ url: '/api/aspirations/a1', method: 'DELETE', body: undefined })
   })
 })
