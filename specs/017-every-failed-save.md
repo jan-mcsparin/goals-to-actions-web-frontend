@@ -1,6 +1,6 @@
 # Spec: Report every failed save
 
-Status: draft 2026-11-20; questions settled with Jan the same day. Issue: [#17](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/17). Step 5 of the front-end hookup. The issue's comments hold the design (2026-11-12). This spec checks it against what has changed since: the plan screens' saves now go through the queue (043b), and every other screen opens from its stored response (043c).
+Status: built 2026-11-25; plan in [`../tasks/plan.md`](../tasks/plan.md). Questions settled with Jan 2026-11-20. Issue: [#17](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/17). Step 5 of the front-end hookup. The issue's comments hold the design (2026-11-12). This spec checks it against what has changed since: the plan screens' saves now go through the queue (043b), and every other screen opens from its stored response (043c).
 
 ## Objective
 
@@ -24,7 +24,7 @@ Every save that fails shows "Couldn't save that. Try again.", and the screen end
 **In:**
 
 - `src/hooks/useLoaded.ts` (`reload`), `useFleetingMessage.ts` (`onGone`), `useAspiration.ts`, `useSettings.ts`, `useGoal.ts`; each screen that passes a message to `useFleetingMessage` hands over `onGone`.
-- A small shared helper for "count saves on their way, reload after a failure", if the three hooks share enough of it (name to settle in the plan).
+- A small shared helper for "count saves on their way, reload after a failure": `hooks/useSavesOnTheirWay.ts`.
 - Docs: the issue's own checklist; `docs/screens/README.md` only if a screen's described behavior changes (Settings says "A failed save puts back the earlier choice"; after this, the earlier choice comes back from the API).
 
 **Out:**
@@ -61,10 +61,10 @@ No browser check is needed beyond the agent's usual pass at phone width: with th
 
 ## Success criteria
 
-- [ ] Every failed save on the aspiration page, Settings and a goal's page shows the message, and the page ends on what the API has.
-- [ ] `latestSave` is gone from `useAspiration` and `useSettings`; `useGoal` reloads only once its saves are done.
-- [ ] The same message failing twice shows twice.
-- [ ] The issue's hook tests added.
+- [x] Every failed save on the aspiration page, Settings and a goal's page shows the message, and the page ends on what the API has.
+- [x] `latestSave` is gone from `useAspiration` and `useSettings`; `useGoal` reloads only once its saves are done.
+- [x] The same message failing twice shows twice.
+- [x] The issue's hook tests added.
 
 ## Settled with Jan, 2026-11-20
 

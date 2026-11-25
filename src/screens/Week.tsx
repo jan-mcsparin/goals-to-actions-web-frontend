@@ -17,11 +17,11 @@ type WeekProps = {
 }
 
 export function Week({ today, onOpenDay }: WeekProps) {
-  const { title, range, week, message, view, canViewNext, setView, place, wrapUp } = useWeek(today)
+  const { title, range, week, message, clearMessage, view, canViewNext, setView, place, wrapUp } = useWeek(today)
   const [wrapping, setWrapping] = useState(false)
   const [placing, setPlacing] = useState<Task>()
   // With nothing loaded, the message is all there is, so it stays.
-  const shownMessage = useFleetingMessage(message, { sticky: !week })
+  const shownMessage = useFleetingMessage(message, { sticky: !week, onGone: clearMessage })
 
   if (!week) {
     return (

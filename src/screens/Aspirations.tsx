@@ -16,9 +16,9 @@ const EMPTY = 'Nothing here yet. Start with one sentence: a goal, or who you wan
 const PRIORITY_HINT = 'In order of priority. The first comes first when goals compete for time. Add one with +.'
 
 export function Aspirations({ onOpenAspiration, onOpenGoal, onOpenUpkeep, onOpenSettings }: AspirationsProps) {
-  const { view, message } = useAspirations()
+  const { view, message, clearMessage } = useAspirations()
   // With nothing loaded, the message is all there is, so it stays.
-  const shownMessage = useFleetingMessage(message, { sticky: !view })
+  const shownMessage = useFleetingMessage(message, { sticky: !view, onGone: clearMessage })
 
   return (
     <main className="aspirations" aria-busy={!view && !message}>

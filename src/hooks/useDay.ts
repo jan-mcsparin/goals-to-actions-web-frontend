@@ -63,6 +63,9 @@ export type UseDay = {
   // On Today only, while changes wait after a failed send: "3 changes waiting to send".
   waiting?: string
   message?: string
+  // Lets the message go once it has gone from the screen, so the same text set
+  // again shows again.
+  clearMessage: () => void
   view: TodayViewMode
   setView: (view: TodayViewMode) => void
   toggleDone: (taskId: string) => void
@@ -176,6 +179,7 @@ export function useDay(date: string, today: string): UseDay {
     asking: date === today ? asked.map(askAbout) : [],
     waiting: date === today && queue.stalled ? waitingLine(queue.waiting) : undefined,
     message,
+    clearMessage: () => setMessage(undefined),
     view,
     setView,
     toggleDone,

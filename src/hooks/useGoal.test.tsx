@@ -220,6 +220,31 @@ describe('useGoal, saving', () => {
     })
     expect(vi.mocked(getGoal).mock.calls.length).toBeGreaterThanOrEqual(2)
   })
+
+  it("keeps a save on its way on screen when another fails, then reads the goal once it's done", async () => {
+    const actual = await vi.importActual<typeof import('../api/client.ts')>('../api/client.ts')
+    let finishMilestone: () => void = () => {}
+    vi.mocked(addMilestone).mockImplementationOnce(
+      (goalId, milestone) =>
+        new Promise<void>((resolve) => (finishMilestone = resolve)).then(() => actual.addMilestone(goalId, milestone)),
+    )
+    vi.mocked(setWeeklyTarget).mockRejectedValueOnce(new Error('offline'))
+    const { result } = await loaded()
+    const loads = vi.mocked(getGoal).mock.calls.length
+
+    act(() => result.current.addMilestone({ measurableLine: 'Bench 172', targetDate: '' }))
+    await act(async () => result.current.setTarget({ sessions: '4', unit: 'lifting sessions' }))
+
+    expect(result.current.message).toBe("Couldn't save that. Try again.")
+    expect(result.current.page?.timeline.count).toBe('1 of 7 hit')
+    expect(getGoal).toHaveBeenCalledTimes(loads)
+
+    await act(async () => finishMilestone())
+
+    await waitFor(() => expect(getGoal).toHaveBeenCalledTimes(loads + 1))
+    await waitFor(() => expect(targetLine(result.current.page)).toBe('3 lifting sessions'))
+    expect(result.current.page?.timeline.count).toBe('1 of 7 hit')
+  })
 })
 
 describe('useGoal, checking in', () => {

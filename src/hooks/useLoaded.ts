@@ -10,7 +10,11 @@
 // when it lands. What the screen shows is what's kept, saves included, so it
 // reopens as it was left. The store is only a copy: when it fails, the screen
 // works without it.
-import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
+//
+// `reload()` reads the record again, as after a failed save, the same way: the
+// newest read lands, and a failed one keeps what's shown. A failed load never
+// replaces a message already showing, such as a failed save's.
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { NotFoundError, SignedOutError } from '../api/client.ts'
 import { planStore } from '../storage/planStore.ts'
 import { useDataRevision } from './dataRevision.ts'
@@ -21,6 +25,7 @@ export type Loaded<T> = {
   message?: string
   setMessage: Dispatch<SetStateAction<string | undefined>>
   notFound: boolean
+  reload: () => Promise<void>
 }
 
 // `load` must be stable: a module function, or wrapped in useCallback with the
@@ -34,49 +39,80 @@ export function useLoaded<T>(key: string, load: () => Promise<T>, loadFailed: st
   const [message, setMessage] = useState<string>()
   const [notFound, setNotFound] = useState(false)
   const revision = useDataRevision()
+  // Counts every read, so only the newest one lands.
+  const newestRead = useRef(0)
+
+  const landed = useCallback(
+    (loaded: T) => {
+      setData(loaded)
+      setDataKey(key)
+      setMessage((shown) => (shown === loadFailed ? undefined : shown))
+    },
+    [key, loadFailed],
+  )
+
+  const failed = useCallback(
+    (error: unknown) => {
+      if (error instanceof SignedOutError) return
+      if (error instanceof NotFoundError) setNotFound(true)
+      else setMessage((shown) => shown ?? loadFailed)
+    },
+    [loadFailed],
+  )
+
+  const forgetIfGone = useCallback(
+    (error: unknown) => {
+      if (error instanceof NotFoundError) planStore().responses.delete(key).catch(() => {})
+    },
+    [key],
+  )
+
+  async function reload() {
+    const read = ++newestRead.current
+    try {
+      const loaded = await load()
+      if (read === newestRead.current) landed(loaded)
+    } catch (error) {
+      forgetIfGone(error)
+      if (read === newestRead.current) failed(error)
+    }
+  }
 
   useEffect(() => {
+    const read = ++newestRead.current
     let current = true
     // Only a fresh response, or word that the record is gone, outranks the
     // stored one; a failed load (as offline, often before the store has
     // answered) leaves the stored one to show.
-    let landed = false
+    let freshArrived = false
     const { responses } = planStore()
     responses
       .get(key)
       .then((stored) => {
-        if (!current || landed || stored === undefined) return
+        if (!current || freshArrived || stored === undefined) return
         setData((shown) => shown ?? (stored as T))
         setDataKey((shownKey) => shownKey ?? key)
       })
       .catch(() => {})
     load()
       .then((loaded) => {
-        landed = true
-        if (!current) return
-        setData(loaded)
-        setDataKey(key)
-        setMessage((shown) => (shown === loadFailed ? undefined : shown))
+        freshArrived = true
+        if (current && read === newestRead.current) landed(loaded)
       })
       .catch((error: unknown) => {
-        if (error instanceof NotFoundError) {
-          landed = true
-          responses.delete(key).catch(() => {})
-        }
-        if (!current) return
-        if (error instanceof SignedOutError) return
-        if (error instanceof NotFoundError) setNotFound(true)
-        else setMessage(loadFailed)
+        if (error instanceof NotFoundError) freshArrived = true
+        forgetIfGone(error)
+        if (current && read === newestRead.current) failed(error)
       })
     return () => {
       current = false
     }
-  }, [key, load, loadFailed, revision])
+  }, [key, load, revision, landed, failed, forgetIfGone])
 
   useEffect(() => {
     if (dataKey === undefined || data === undefined) return
     planStore().responses.put(dataKey, data).catch(() => {})
   }, [dataKey, data])
 
-  return { data, setData, message, setMessage, notFound }
+  return { data, setData, message, setMessage, notFound, reload }
 }

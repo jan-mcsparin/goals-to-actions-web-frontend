@@ -26,6 +26,7 @@ export function Day({ date, today, onBack }: DayProps) {
     asking,
     waiting,
     message,
+    clearMessage,
     view,
     setView,
     toggleDone,
@@ -35,7 +36,7 @@ export function Day({ date, today, onBack }: DayProps) {
     swap,
   } = useDay(date, today)
   // With nothing loaded, the message is all there is, so it stays.
-  const shownMessage = useFleetingMessage(message, { sticky: !day })
+  const shownMessage = useFleetingMessage(message, { sticky: !day, onGone: clearMessage })
   const [sheet, setSheet] = useState<Sheet>()
   const [rescheduling, setRescheduling] = useState<StillMattersAsk>()
   const focusAfterSwap = useRef<string>(undefined)

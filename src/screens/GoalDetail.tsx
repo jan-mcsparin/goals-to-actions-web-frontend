@@ -39,9 +39,9 @@ type CheckInTarget = { milestoneId?: string; measurableLine: string }
 
 export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNotFound }: GoalDetailProps) {
   const goal = useGoal(goalId, from, today)
-  const { page, backTo, timeline, message, notFound, expand, collapse } = goal
+  const { page, backTo, timeline, message, clearMessage, notFound, expand, collapse } = goal
   // With nothing loaded, the message is all there is, so it stays.
-  const shownMessage = useFleetingMessage(message, { sticky: !page })
+  const shownMessage = useFleetingMessage(message, { sticky: !page, onGone: clearMessage })
   const [sheet, setSheet] = useState<OpenSheet>()
   const [checkingIn, setCheckingIn] = useState<CheckInTarget>()
   const steps = page?.timeline.heading === 'Steps'

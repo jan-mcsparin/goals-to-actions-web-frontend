@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getSettings, setIntensity } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { Settings } from '../api/types.ts'
+import { useFleetingMessage } from './useFleetingMessage.ts'
 import { useSettings } from './useSettings.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
@@ -53,17 +54,17 @@ describe('useSettings', () => {
     expect(await getSettings()).toMatchObject({ intensity: 'goingHard' })
   })
 
-  it('goes back to the earlier intensity, with a message, when the save fails', async () => {
+  it('ends on the intensity the API has, with a message, when the save fails', async () => {
     vi.mocked(setIntensity).mockRejectedValueOnce(new Error('offline'))
     const { result } = await loaded()
 
     act(() => result.current.chooseIntensity('easingOff'))
 
     await waitFor(() => expect(result.current.message).toBe("Couldn't save that. Try again."))
-    expect(result.current.intensity).toBe('normal')
+    await waitFor(() => expect(result.current.intensity).toBe('normal'))
   })
 
-  it('keeps the newest choice when an earlier save fails after it', async () => {
+  it("ends on the API's intensity, with a message, when the first of two quick taps fails", async () => {
     let failFirst: (reason: Error) => void = () => {}
     vi.mocked(setIntensity).mockImplementationOnce(
       () => new Promise<Settings>((_resolve, reject) => (failFirst = reject)),
@@ -74,8 +75,9 @@ describe('useSettings', () => {
     act(() => result.current.chooseIntensity('goingHard'))
     await act(async () => failFirst(new Error('offline')))
 
-    expect(result.current.intensity).toBe('goingHard')
-    expect(result.current.message).toBeUndefined()
+    await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(result.current.intensity).toBe('goingHard'))
+    expect(result.current.message).toBe("Couldn't save that. Try again.")
   })
 
   it('says export is coming later', async () => {
@@ -84,6 +86,24 @@ describe('useSettings', () => {
     act(() => result.current.exportData())
 
     await waitFor(() => expect(result.current.message).toBe('Coming later.'))
+  })
+
+  it('says export is coming later again on a second tap, once the first has gone', async () => {
+    const { result } = renderHook(() => {
+      const settings = useSettings()
+      const shown = useFleetingMessage(settings.message, { onGone: settings.clearMessage })
+      return { settings, shown }
+    })
+    await waitFor(() => expect(result.current.settings.loaded).toBe(true))
+    vi.useFakeTimers()
+
+    act(() => result.current.settings.exportData())
+    expect(result.current.shown.shown).toBe('Coming later.')
+    act(() => vi.advanceTimersByTime(5000))
+    expect(result.current.shown.shown).toBeUndefined()
+
+    act(() => result.current.settings.exportData())
+    expect(result.current.shown.shown).toBe('Coming later.')
   })
 
   it('says so when settings fail to load', async () => {
