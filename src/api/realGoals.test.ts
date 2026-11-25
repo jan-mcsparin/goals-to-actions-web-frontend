@@ -2,6 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NotFoundError } from './errors.ts'
 import {
   addMilestone,
+  answerQuitDay,
+  clearQuitDay,
+  clearUrgeRating,
+  rateUrge,
   checkIn,
   createGoal,
   endGoal,
@@ -114,5 +118,19 @@ describe('writes', () => {
     expect(sent(0)).toMatchObject({ method: 'PUT', body: { goalId: 'g1', milestoneId: 'm1', outcome: 'hit', result: 'Bench 155' } })
     expect(sent(1).body).toEqual({ goalId: 'g1', milestoneId: null, outcome: 'notYet', result: null })
     expect(sent(1).url).not.toBe(sent(0).url)
+  })
+
+  it("answers, rates and clears a quitting goal's day", async () => {
+    await answerQuitDay('g1', '2026-11-10', false)
+    await clearQuitDay('g1', '2026-11-10')
+    await rateUrge('g1', '2026-11-10', 'strong')
+    await clearUrgeRating('g1', '2026-11-10')
+
+    expect([0, 1, 2, 3].map(sent)).toEqual([
+      { url: '/api/goals/g1/quit-days/2026-11-10', method: 'PUT', body: { held: false } },
+      { url: '/api/goals/g1/quit-days/2026-11-10/clear', method: 'POST', body: undefined },
+      { url: '/api/goals/g1/urges/2026-11-10', method: 'PUT', body: { level: 'strong' } },
+      { url: '/api/goals/g1/urges/2026-11-10/clear', method: 'POST', body: undefined },
+    ])
   })
 })

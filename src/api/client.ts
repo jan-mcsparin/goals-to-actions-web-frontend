@@ -29,6 +29,7 @@ import type {
   ListedGoal,
   Milestone,
   MilestoneEdit,
+  QuitDay,
   NewAspiration,
   NewGoal,
   NewRecurringItem,
@@ -38,6 +39,7 @@ import type {
   StillMattersAnswer,
   Task,
   Upkeep,
+  UrgeLevel,
   Week,
   WeekGoal,
   WeeklyTarget,
@@ -338,6 +340,27 @@ export async function endGoal(goalId: string): Promise<Goal> {
 export async function markGoalReached(goalId: string): Promise<Goal> {
   if (realApi) return realGoals.markGoalReached(goalId)
   return changeStatus(goalId, ['active', 'paused'], 'reached', (goal) => finish(goal, 'reached'))
+}
+
+// A quitting goal's day, held or not, and its urge. Queued writes (api/queue.ts).
+export async function answerQuitDay(goalId: string, day: string, held: boolean): Promise<QuitDay> {
+  if (realApi) return realGoals.answerQuitDay(goalId, day, held)
+  return { goalId, day, held, urge: null }
+}
+
+export async function clearQuitDay(goalId: string, day: string): Promise<QuitDay> {
+  if (realApi) return realGoals.clearQuitDay(goalId, day)
+  return { goalId, day, held: null, urge: null }
+}
+
+export async function rateUrge(goalId: string, day: string, level: UrgeLevel): Promise<QuitDay> {
+  if (realApi) return realGoals.rateUrge(goalId, day, level)
+  return { goalId, day, held: null, urge: level }
+}
+
+export async function clearUrgeRating(goalId: string, day: string): Promise<QuitDay> {
+  if (realApi) return realGoals.clearUrgeRating(goalId, day)
+  return { goalId, day, held: null, urge: null }
 }
 
 // A blank why is null; anything not given stays as it was.

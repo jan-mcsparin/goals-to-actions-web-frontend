@@ -1,6 +1,6 @@
 // The changes made on the plan, kept on the phone and sent in order (ADR-010).
-// Check off, uncheck, place, back to the bank, swap and add a task go through
-// here; screens show the stored week with `queued()` replayed on top.
+// Check off, uncheck, place, back to the bank, swap, add a task, and a quitting
+// goal's answers and urge ratings go through here; screens show the stored week with `queued()` replayed on top.
 //
 // Sending: one at a time, the next only after the last is answered. A 404 or a
 // 409 drops the change; anything else (no network, a 5xx, a 401, 403 or 422)
@@ -9,7 +9,18 @@
 //
 // A confirmed change stays, marked with when it was confirmed, until a week read
 // that started after that has landed (`settle`), so the screen never flickers back.
-import { addTask, checkOffTask, moveTaskToBank, placeTask, swapTasks, uncheckTask } from './client.ts'
+import {
+  addTask,
+  answerQuitDay,
+  checkOffTask,
+  clearQuitDay,
+  clearUrgeRating,
+  moveTaskToBank,
+  placeTask,
+  rateUrge,
+  swapTasks,
+  uncheckTask,
+} from './client.ts'
 import { NotFoundError, RefusedError } from './errors.ts'
 import { queueIsSending } from './sendOrder.ts'
 import type { Change } from '../domain/replay.ts'
@@ -200,6 +211,14 @@ function send(change: Change): Promise<unknown> {
       return swapTasks(change.taskId, { week: change.week, bankTaskId: change.bankTaskId, day: change.day })
     case 'addTask':
       return addTask(change.task, change.taskId)
+    case 'answerQuitDay':
+      return answerQuitDay(change.goalId, change.day, change.held)
+    case 'clearQuitDay':
+      return clearQuitDay(change.goalId, change.day)
+    case 'rateUrge':
+      return rateUrge(change.goalId, change.day, change.level)
+    case 'clearUrgeRating':
+      return clearUrgeRating(change.goalId, change.day)
   }
 }
 

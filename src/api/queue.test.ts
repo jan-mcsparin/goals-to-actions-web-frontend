@@ -1,5 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addTask, checkOffTask, moveTaskToBank, placeTask, swapTasks, uncheckTask } from './client.ts'
+import {
+  addTask,
+  answerQuitDay,
+  checkOffTask,
+  clearQuitDay,
+  clearUrgeRating,
+  moveTaskToBank,
+  placeTask,
+  rateUrge,
+  swapTasks,
+  uncheckTask,
+} from './client.ts'
 import { NotFoundError, RefusedError, SignedOutError } from './errors.ts'
 import {
   enqueue,
@@ -28,6 +39,10 @@ vi.mock('./client.ts', async (importOriginal) => {
     placeTask: vi.fn(),
     moveTaskToBank: vi.fn(),
     swapTasks: vi.fn(),
+    answerQuitDay: vi.fn(),
+    clearQuitDay: vi.fn(),
+    rateUrge: vi.fn(),
+    clearUrgeRating: vi.fn(),
   }
 })
 
@@ -36,7 +51,7 @@ const CHECK_OFF = { completedAt: '2026-11-11T16:00:00.000Z', completedOn: '2026-
 
 const checkOff = (id: string, taskId = 't1'): Change => ({ kind: 'checkOff', id, taskId, checkOff: CHECK_OFF })
 
-const sends = [addTask, checkOffTask, uncheckTask, placeTask, moveTaskToBank, swapTasks]
+const sends = [addTask, checkOffTask, uncheckTask, placeTask, moveTaskToBank, swapTasks, answerQuitDay, clearQuitDay, rateUrge, clearUrgeRating]
 
 beforeEach(() => {
   resetPlanStore()
@@ -65,6 +80,20 @@ describe('enqueue and send', () => {
     expect(moveTaskToBank).toHaveBeenCalledWith('t1', WEEK)
     expect(swapTasks).toHaveBeenCalledWith('t1', { week: WEEK, bankTaskId: 't2', day: '2026-11-12' })
     expect(addTask).toHaveBeenCalledWith(task, 't3')
+    expect(waitingCount()).toBe(0)
+  })
+
+  it("sends a quitting goal's answers and ratings as their requests", async () => {
+    await enqueue({ kind: 'answerQuitDay', id: 'c1', goalId: 'g1', day: '2026-11-10', held: true })
+    await enqueue({ kind: 'clearQuitDay', id: 'c2', goalId: 'g1', day: '2026-11-10' })
+    await enqueue({ kind: 'rateUrge', id: 'c3', goalId: 'g1', day: '2026-11-10', level: 'low' })
+    await enqueue({ kind: 'clearUrgeRating', id: 'c4', goalId: 'g1', day: '2026-11-10' })
+    await flush()
+
+    expect(answerQuitDay).toHaveBeenCalledWith('g1', '2026-11-10', true)
+    expect(clearQuitDay).toHaveBeenCalledWith('g1', '2026-11-10')
+    expect(rateUrge).toHaveBeenCalledWith('g1', '2026-11-10', 'low')
+    expect(clearUrgeRating).toHaveBeenCalledWith('g1', '2026-11-10')
     expect(waitingCount()).toBe(0)
   })
 
