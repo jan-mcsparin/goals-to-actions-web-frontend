@@ -1,13 +1,18 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getAspiration, updateAspiration } from '../api/client.ts'
+import { getAspiration, turnOnRecurringItem, updateAspiration } from '../api/client.ts'
 import { resetStore, store } from '../api/mockStore.ts'
 import { Aspiration } from './Aspiration.tsx'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
-  return { ...actual, getAspiration: vi.fn(actual.getAspiration), updateAspiration: vi.fn(actual.updateAspiration) }
+  return {
+    ...actual,
+    getAspiration: vi.fn(actual.getAspiration),
+    updateAspiration: vi.fn(actual.updateAspiration),
+    turnOnRecurringItem: vi.fn(actual.turnOnRecurringItem),
+  }
 })
 
 const TODAY = '2026-11-11'
@@ -380,5 +385,68 @@ describe('Aspiration, not there', () => {
 
     await vi.waitFor(() => expect(onBack).toHaveBeenCalled())
     expect(screen.queryByRole('status')).toBeNull()
+  })
+})
+
+describe('Aspiration page, a recurring item', () => {
+  function recurringRows(region: HTMLElement) {
+    return within(region).getAllByRole('listitem').map((row) => row.textContent)
+  }
+
+  async function openStretch() {
+    const user = userEvent.setup()
+    renderPage()
+    const recurring = await screen.findByRole('region', { name: 'Recurring' })
+    await user.click(within(recurring).getByRole('button', { name: /Stretch/ }))
+    return { user, recurring, sheet: screen.getByRole('dialog', { name: 'Edit recurring item' }) }
+  }
+
+  it('opens filled in, as Flexible under this aspiration', async () => {
+    const { sheet } = await openStretch()
+
+    expect((within(sheet).getByLabelText('Name') as HTMLInputElement).value).toBe('Stretch')
+    expect((within(sheet).getByLabelText('How often') as HTMLSelectElement).value).toBe('flexible:3:week')
+    await waitFor(() => expect((within(sheet).getByLabelText('Under an aspiration (optional)') as HTMLSelectElement).value).toBe('asp-fit'))
+  })
+
+  it('saves a new repeat and shows it on the row', async () => {
+    const { user, recurring, sheet } = await openStretch()
+
+    await user.click(within(sheet).getByRole('button', { name: 'Fixed day' }))
+    await user.selectOptions(within(sheet).getByLabelText('Day'), 'weekly:thursday')
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(recurringRows(recurring)).toEqual(['StretchEvery Thursday', 'HockeyEvery Sunday']))
+  })
+
+  it('takes it off the page once it moves to Keep life running', async () => {
+    const { user, recurring, sheet } = await openStretch()
+
+    await user.selectOptions(within(sheet).getByLabelText('Under an aspiration (optional)'), '')
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(recurringRows(recurring)).toEqual(['HockeyEvery Sunday']))
+  })
+
+  it('pauses it, keeps it listed as Paused, and resumes it', async () => {
+    const { user, recurring, sheet } = await openStretch()
+
+    await user.click(within(sheet).getByRole('button', { name: 'Pause' }))
+    await waitFor(() => expect(recurringRows(recurring)).toEqual(['StretchPaused', 'HockeyEvery Sunday']))
+
+    await user.click(within(recurring).getByRole('button', { name: /Stretch/ }))
+    await user.click(within(sheet).getByRole('button', { name: 'Resume' }))
+
+    await waitFor(() => expect(recurringRows(recurring)).toEqual(['Stretch3 times a week', 'HockeyEvery Sunday']))
+    expect(turnOnRecurringItem).toHaveBeenCalledWith('rec-stretch')
+  })
+
+  it('leaves the rows of a retired aspiration closed', async () => {
+    const stretch = store.recurringItems.find((item) => item.id === 'rec-stretch')!
+    store.recurringItems.push({ ...stretch, id: 'rec-flashcards', name: 'Flashcards', aspirationId: 'asp-spanish', active: false })
+    renderPage('asp-spanish')
+
+    const recurring = await screen.findByRole('region', { name: 'Recurring' })
+    expect(within(recurring).queryByRole('button')).toBeNull()
   })
 })

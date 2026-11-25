@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react'
 import { AspirationEditSheet } from '../components/AspirationEditSheet.tsx'
 import { BackLink } from '../components/BackLink.tsx'
+import { RecurringEditSheet } from '../components/RecurringEditSheet.tsx'
 import { RetireSheet } from '../components/RetireSheet.tsx'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import '../components/progressBar.css'
 import type { ActivePage, GoalCard, PastGoalRow, RecurringRow, RetiredPage } from '../domain/aspiration.ts'
 import { useAspiration } from '../hooks/useAspiration.ts'
 import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
+import { useRecurringEdit } from '../hooks/useRecurringEdit.ts'
 import './Aspiration.css'
 
 type AspirationProps = {
@@ -34,10 +36,9 @@ export function Aspiration({
   onAddGoal,
   onAddRecurring,
 }: AspirationProps) {
-  const { page, editing, message, clearMessage, notFound, edit, retire, bringBack, move } = useAspiration(
-    aspirationId,
-    today,
-  )
+  const { page, editing, message, clearMessage, notFound, edit, retire, bringBack, move, recurringItems, reload } =
+    useAspiration(aspirationId, today)
+  const recurringEdit = useRecurringEdit(recurringItems, reload)
   // With nothing loaded, the message is all there is, so it stays.
   const shownMessage = useFleetingMessage(message, { sticky: !page, onGone: clearMessage })
   const [sheet, setSheet] = useState<OpenSheet>()
@@ -73,6 +74,7 @@ export function Aspiration({
           onAddRecurring={onAddRecurring}
           onMove={move}
           onOpenSheet={setSheet}
+          onOpenRecurring={recurringEdit.open}
         />
       )}
       {page?.kind === 'retired' && <Retired page={page} onOpenGoal={onOpenGoal} onBringBack={bringBack} />}
@@ -100,6 +102,7 @@ export function Aspiration({
       )}
 
       <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
+      <RecurringEditSheet edit={recurringEdit} />
     </main>
   )
 }
@@ -111,9 +114,10 @@ type ActiveProps = {
   onAddRecurring: () => void
   onMove: (direction: 'up' | 'down') => void
   onOpenSheet: (sheet: OpenSheet) => void
+  onOpenRecurring: (itemId: string) => void
 }
 
-function Active({ page, onOpenGoal, onAddGoal, onAddRecurring, onMove, onOpenSheet }: ActiveProps) {
+function Active({ page, onOpenGoal, onAddGoal, onAddRecurring, onMove, onOpenSheet, onOpenRecurring }: ActiveProps) {
   return (
     <>
       {page.week && (
@@ -146,7 +150,7 @@ function Active({ page, onOpenGoal, onAddGoal, onAddRecurring, onMove, onOpenShe
         + Add a goal for {page.name}
       </button>
 
-      <RecurringSection rows={page.recurring} />
+      <RecurringSection rows={page.recurring} onOpen={onOpenRecurring} />
       <button type="button" className="aspiration-action aspiration-add" onClick={onAddRecurring}>
         + Add recurring
       </button>
@@ -251,7 +255,8 @@ function GoalCards({ cards, onOpenGoal }: { cards: GoalCard[]; onOpenGoal: (goal
   )
 }
 
-function RecurringSection({ rows }: { rows: RecurringRow[] }) {
+// On an active aspiration each row opens its item; a retired one's only show (spec 076).
+function RecurringSection({ rows, onOpen }: { rows: RecurringRow[]; onOpen?: (itemId: string) => void }) {
   if (rows.length === 0) return null
   return (
     <section className="aspiration-section" aria-labelledby="aspiration-recurring">
@@ -259,12 +264,26 @@ function RecurringSection({ rows }: { rows: RecurringRow[] }) {
       <ul className="aspiration-rows">
         {rows.map((row) => (
           <li key={row.itemId}>
-            <span>{row.name}</span>
-            <span className="aspiration-row-detail">{row.paused ? 'Paused' : row.repeat}</span>
+            {onOpen ? (
+              <button type="button" className="aspiration-row-button" onClick={() => onOpen(row.itemId)}>
+                <RecurringRowText row={row} />
+              </button>
+            ) : (
+              <RecurringRowText row={row} />
+            )}
           </li>
         ))}
       </ul>
     </section>
+  )
+}
+
+function RecurringRowText({ row }: { row: RecurringRow }) {
+  return (
+    <>
+      <span>{row.name}</span>
+      <span className="aspiration-row-detail">{row.paused ? 'Paused' : row.repeat}</span>
+    </>
   )
 }
 

@@ -11,7 +11,7 @@ import {
   retireAspiration,
   updateAspiration,
 } from '../api/client.ts'
-import type { AspirationDetail } from '../api/types.ts'
+import type { AspirationDetail, RecurringItem } from '../api/types.ts'
 import {
   aspirationPage,
   canSaveName,
@@ -38,6 +38,9 @@ export type UseAspiration = {
   retire: (itsWork: ItsWork) => Promise<boolean>
   bringBack: () => Promise<void>
   move: (direction: 'up' | 'down') => void
+  // For a recurring item's edit sheet (useRecurringEdit).
+  recurringItems?: RecurringItem[]
+  reload: () => Promise<void>
 }
 
 export function useAspiration(aspirationId: string, today: string): UseAspiration {
@@ -115,5 +118,7 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
     retire,
     bringBack,
     move,
+    recurringItems: detail?.recurringItems,
+    reload,
   }
 }
