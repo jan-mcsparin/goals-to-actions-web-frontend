@@ -1,6 +1,6 @@
 # Spec: Delete what was made by mistake
 
-Status: draft 2026-11-20; questions settled with Jan the same day. Its recurring-item delete waits for #76 (decision 2). Issue: [#38](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/38). Step 5 of the front-end hookup. The API side is built ([`api/specs/delete.md`](../../api/specs/delete.md)): five `DELETE` routes, and the server decides what goes with each.
+Status: built 2026-11-25 (plan in `tasks/plan.md`); questions settled with Jan on 2026-11-20, and the plan's on 2026-11-25. Issue: [#38](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/38). Step 5 of the front-end hookup. The API side is built ([`api/specs/delete.md`](../../api/specs/delete.md)): five `DELETE` routes, and the server decides what goes with each.
 
 ## Objective
 
@@ -67,12 +67,12 @@ As spec 042. Sheets use the native `<dialog>` pattern (`components/sheet.css`, `
 
 ## Success criteria
 
-- [ ] Delete is offered, quietly, on a task, a milestone, a goal, an aspiration and a recurring item.
-- [ ] It asks once, saying what goes with it.
-- [ ] A deleted thing disappears from every screen and count.
-- [ ] Deleting an aspiration leaves its goals and recurring items without an aspiration.
-- [ ] Delete and Drop are worded so they can't be confused.
-- [ ] API client functions, mock and tests added; docs updated.
+- [x] Delete is offered, quietly, on a task, a milestone, a goal, an aspiration and a recurring item.
+- [x] It asks once, saying what goes with it.
+- [x] A deleted thing disappears from every screen and count.
+- [x] Deleting an aspiration leaves its goals and recurring items without an aspiration.
+- [x] Delete and Drop are worded so they can't be confused.
+- [x] API client functions, mock and tests added; docs updated.
 
 ## Settled with Jan, 2026-11-20
 
@@ -83,3 +83,13 @@ All as recommended.
 3. **The wording in item 2.** Recommended as written: name the thing, say what goes with it, and say "There's no undo" only for a goal, where the most goes with it. The front end doesn't know how many tasks a goal has without another read, so there are no counts.
 4. **Telling Delete from Drop.** Drop is offered only on the "Still matter?" card, never in a task's menu, so the two never sit side by side. Recommended: the menu item reads **Delete (made by mistake)** and the sheet doesn't mention Drop. The alternative adds a line to the task sheet: "To decide not to do it, wait for Still matter? and Drop it.", which explains more but reads like a lesson.
 5. **Deleting a task the app placed** (a goal session or a recurring task). The API deletes it, and its period's number stays taken, so it isn't made again (`api/specs/delete.md`). Recommended: offer Delete on these too, with the same sheet, since the API allows it and one made by a mistaken target is still a mistake.
+
+## Settled while planning, 2026-11-25
+
+- **A fixed-day task's ⋯ menu holds only Delete.** Moving one for a single week (a holiday moves trash day) goes in #82's spec and joins that menu; the API refuses it today.
+- **A goal's Delete shows in every state**, and **a task's on past days too**, wherever its menu shows.
+- **Every milestone row opens a small sheet** (Check in when it can be, and Delete); the goal's own row still opens Check in directly.
+
+## Checked
+
+By a Sonnet agent at 390px against the local API, 2026-11-25, on items named "Verification: …": a task deleted from Today (Delete last in its menu; Cancel changed nothing; the count dropped) and one from the Week bank's sheet; a fixed-day task's menu held only Delete; a milestone deleted from its row's sheet (Check in only on Next), the count and Next moved on; a recurring item deleted from an aspiration's page and a fixed one from Keep life running, their tasks gone from Week; a goal deleted ("There's no undo."), back to where it was opened, its tasks gone from Week and Today; an aspiration deleted, landing on the tab with its goal under Other goals. Offline, Delete kept the task with "Couldn't delete that. Try again." Every sheet put Cancel first. No horizontal scroll and no app errors in the console. Left in place: one goal, "Verification" (line "orphan goal"), under Other goals.

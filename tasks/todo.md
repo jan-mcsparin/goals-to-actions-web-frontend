@@ -8,4 +8,4 @@
 - [x] 6. Delete a goal
 - [x] 7. Delete an aspiration
 - [x] 8. Delete a recurring item
-- [ ] 9. Docs and the check
+- [x] 9. Docs and the check
