@@ -1,6 +1,6 @@
 # Spec: A quitting goal's daily answer and urge rating
 
-Status: draft 2026-11-20; questions settled with Jan the same day. Issue: [#37](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/37). Step 5 of the front-end hookup. The API side is built ([`api/specs/quitting-goals.md`](../../api/specs/quitting-goals.md)), and ADR-010 already puts both writes in the queue ([043b](043b-stored-week-and-queue.md) left them for this spec to add).
+Status: built 2026-11-25; questions settled with Jan 2026-11-20. Issue: [#37](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/37). Step 5 of the front-end hookup. The API side is built ([`api/specs/quitting-goals.md`](../../api/specs/quitting-goals.md)), and ADR-010 already puts both writes in the queue ([043b](043b-stored-week-and-queue.md) left them for this spec to add).
 
 ## Objective
 
@@ -62,13 +62,13 @@ As spec 042: logic in `domain/` and hooks, components only render. Any sheet use
 
 ## Success criteria
 
-- [ ] Any day from the goal's start to today can be answered, changed and cleared, from Today, an opened day or the goal page.
-- [ ] An urge rating sits beside the answer, optional, changeable and clearable.
-- [ ] A day with no answer reads as unknown, and nothing asks about it.
-- [ ] The row isn't counted in the day's tasks, the cap or the bank.
-- [ ] The goal page shows the current run and recent urge ratings, from the API's record.
-- [ ] Answers and ratings work offline through the queue.
-- [ ] API client functions, mock and tests added; docs updated.
+- [x] Any day from the goal's start to today can be answered, changed and cleared, from Today, an opened day or the goal page.
+- [x] An urge rating sits beside the answer, optional, changeable and clearable.
+- [x] A day with no answer reads as unknown, and nothing asks about it.
+- [x] The row isn't counted in the day's tasks, the cap or the bank.
+- [x] The goal page shows the current run and recent urge ratings, from the API's record.
+- [x] Answers and ratings work offline through the queue.
+- [x] API client functions, mock and tests added; docs updated.
 
 ## Settled with Jan, 2026-11-20
 
@@ -79,3 +79,12 @@ As recommended, except decision 2.
 3. **When the urge rating shows** ("on some days"). Recommended: **once a day is answered, always offered and never asked**: Low · Some · Strong beside the answer, which the person can ignore. The alternative, showing it only on some days (every third day, say), is the app deciding when to ask, and that is close to a prompt.
 4. **The goal page offline.** Recommended: answers given there go through the queue like Today's. The day shows its answer at once, and the run's number waits for the next read, since only the server works it out. The alternative, working the run out on the phone, duplicates a server rule (ADR-008).
 5. **"The urge has stayed low."** Recommended: **leave it out** for now. The API doesn't send it, and the person marks the goal reached either way. It can come with a later API change if wanted.
+
+## What changed while building
+
+Settled with Jan when the plan was written (2026-11-25):
+
+- **Clear means back to unknown:** clearing an answer also clears that day's urge rating, so a hidden rating can't come back when the day is answered again.
+- **The row shows on a day with nothing planned,** below "Nothing planned".
+- The component is `components/QuitDayRow.tsx`; the goal page's day opens `components/QuitDaySheet.tsx` with the same controls. A run with no held days reads "No days held yet".
+- The mock has no quitting goal of its own: make one with the Add sheet to try it with `npm run dev:mock`.
