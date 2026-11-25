@@ -29,6 +29,8 @@ import type {
   ListedGoal,
   Milestone,
   MilestoneEdit,
+  QuitDay,
+  QuitRecord,
   NewAspiration,
   NewGoal,
   NewRecurringItem,
@@ -38,8 +40,10 @@ import type {
   StillMattersAnswer,
   Task,
   Upkeep,
+  UrgeLevel,
   Week,
   WeekGoal,
+  WeekQuitGoal,
   WeeklyTarget,
   WeeklyTargetInput,
 } from './types.ts'
@@ -83,7 +87,7 @@ export async function getWeek(asked?: string): Promise<Week> {
     tasks,
     goals: weekGoals(week, tasks),
     days: dayMarks(week, tasks),
-    quittingGoals: [],
+    quittingGoals: weekQuitGoals(week),
   })
 }
 
@@ -194,8 +198,7 @@ export async function getGoal(goalId: string): Promise<GoalDetail> {
     weekProgress: null,
     steps: [],
     latest: latestResult(goalId),
-    // Not kept by the mock until a quitting goal's record is built (#37).
-    quitRecord: null,
+    quitRecord: quitRecordOf(goal),
   })
 }
 
@@ -338,6 +341,100 @@ export async function endGoal(goalId: string): Promise<Goal> {
 export async function markGoalReached(goalId: string): Promise<Goal> {
   if (realApi) return realGoals.markGoalReached(goalId)
   return changeStatus(goalId, ['active', 'paused'], 'reached', (goal) => finish(goal, 'reached'))
+}
+
+// A quitting goal's day, held or not, and its urge, for any day from its start to today (or
+// the day it ended). Queued writes (api/queue.ts); each returns the whole day.
+export async function answerQuitDay(goalId: string, day: string, held: boolean): Promise<QuitDay> {
+  if (realApi) return realGoals.answerQuitDay(goalId, day, held)
+  return changeQuitDay(goalId, day, { held })
+}
+
+export async function clearQuitDay(goalId: string, day: string): Promise<QuitDay> {
+  if (realApi) return realGoals.clearQuitDay(goalId, day)
+  return changeQuitDay(goalId, day, { held: null })
+}
+
+export async function rateUrge(goalId: string, day: string, level: UrgeLevel): Promise<QuitDay> {
+  if (realApi) return realGoals.rateUrge(goalId, day, level)
+  return changeQuitDay(goalId, day, { urge: level })
+}
+
+export async function clearUrgeRating(goalId: string, day: string): Promise<QuitDay> {
+  if (realApi) return realGoals.clearUrgeRating(goalId, day)
+  return changeQuitDay(goalId, day, { urge: null })
+}
+
+function changeQuitDay(goalId: string, day: string, change: Partial<Pick<QuitDay, 'held' | 'urge'>>): QuitDay {
+  const goal = findGoal(goalId)
+  if (goal.type !== 'quitting') throw new RefusedError('Only a quitting goal has a daily record.')
+  if (day < goal.startDate) throw new RefusedError('That day is before the goal started.')
+  if (day > toLocalDay(new Date())) throw new RefusedError("That day hasn't come yet.")
+  if (day > lastQuitDay(goal)) throw new RefusedError('That day is after the goal ended.')
+
+  const changed = { ...quitDayOf(goalId, day), ...change }
+  store.quitDays = [
+    ...store.quitDays.filter((row) => !(row.goalId === goalId && row.day === day)),
+    ...(changed.held === null && changed.urge === null ? [] : [changed]),
+  ]
+  return structuredClone(changed)
+}
+
+function quitDayOf(goalId: string, day: string): QuitDay {
+  return store.quitDays.find((row) => row.goalId === goalId && row.day === day) ?? { goalId, day, held: null, urge: null }
+}
+
+// Today, or the day the goal ended or was reached.
+function lastQuitDay(goal: StoredGoal): string {
+  const today = toLocalDay(new Date())
+  return goal.endedOn !== null && goal.endedOn < today ? goal.endedOn : today
+}
+
+const RECENT_QUIT_DAYS = 28
+
+// As the API works it out: the last 28 days, newest first; the held answers since the last
+// no (or the start); and the days before the last one in that run with no answer.
+function quitRecordOf(goal: StoredGoal): QuitRecord | null {
+  if (goal.type !== 'quitting') return null
+  const through = lastQuitDay(goal)
+  const answers = store.quitDays.filter((row) => row.goalId === goal.id && row.held !== null && row.day <= through)
+  const lastNo = answers.filter((row) => row.held === false).map((row) => row.day).sort().at(-1)
+  const first = lastNo ? dayAfter(lastNo) : goal.startDate
+  const runDays = daysFrom(first, through).slice(0, -1)
+  const answered = new Set(answers.map((row) => row.day))
+  const shownFrom = [goal.startDate, dayBefore(through, RECENT_QUIT_DAYS - 1)].sort().at(-1)!
+  return {
+    days: daysFrom(shownFrom, through).reverse().map((day) => quitDayOf(goal.id, day)),
+    heldRun: answers.filter((row) => row.held && row.day >= first).length,
+    unknownInRun: runDays.filter((day) => !answered.has(day)).length,
+  }
+}
+
+// Each active quitting goal started by the week's end, with its days that week from its start.
+function weekQuitGoals(week: string): WeekQuitGoal[] {
+  const days = daysFrom(week, dayBefore(weekAfter(week), 1))
+  return store.goals
+    .filter((goal) => goal.type === 'quitting' && goal.status === 'active' && goal.startDate <= days[6])
+    .map((goal) => ({
+      id: goal.id,
+      label: goal.label,
+      days: days.filter((day) => day >= goal.startDate).map((day) => quitDayOf(goal.id, day)),
+    }))
+}
+
+// Every day from `first` to `last`, both kept; none when `last` is before `first`.
+function daysFrom(first: string, last: string): string[] {
+  const days: string[] = []
+  for (let day = first; day <= last; day = dayAfter(day)) days.push(day)
+  return days
+}
+
+function dayAfter(day: string): string {
+  return toLocalDay(addDays(fromLocalDay(day), 1))
+}
+
+function dayBefore(day: string, count: number): string {
+  return toLocalDay(addDays(fromLocalDay(day), -count))
 }
 
 // A blank why is null; anything not given stays as it was.

@@ -326,3 +326,44 @@
   color: var(--muted);
   font-size: 0.875rem;
 }
+
+.goal-record {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.goal-record-day {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.75rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.goal-record-day:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.goal-record-date {
+  flex: 1 1 7rem;
+}
+
+.goal-record-answer[data-answered='false'] {
+  color: var(--muted);
+}
+
+.goal-record-urge {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 0.875rem;
+}

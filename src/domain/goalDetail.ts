@@ -5,6 +5,7 @@
 // Nothing here paces or warns: a passed date reads like any other.
 import { addDays, fromLocalDay, mondayOfDay, toLocalDay } from '../api/dates.ts'
 import type { AspirationRef, Goal, GoalDetail, GoalType, Milestone, MilestoneStatus, WeeklyTargetInput } from '../api/types.ts'
+import { recordDays, runLine, type RecordDay } from './quitting.ts'
 
 export type Header = {
   goalId: string
@@ -75,10 +76,14 @@ export type NotYetCard = {
   progress?: string
 }
 
+// A quitting goal's record: "12 days held" and its last days, newest first.
+export type RecordSection = { runLine: string; days: RecordDay[] }
+
 type PageBase = {
   header: Header
   started?: Started
   timeline: Timeline
+  record?: RecordSection
 }
 
 // The dates a milestone can have: from the goal's start to its deadline.
@@ -111,7 +116,8 @@ export type GoalPage = CurrentPage | ReachedPage | EndedPage
 export function goalPage(detail: GoalDetail, today: string): GoalPage {
   const { goal } = detail
   const started = startedLines(detail)
-  const base = { header: header(detail), ...(started && { started }), timeline: timeline(detail) }
+  const record = detail.quitRecord && { runLine: runLine(detail.quitRecord), days: recordDays(detail.quitRecord, today) }
+  const base = { header: header(detail), ...(started && { started }), timeline: timeline(detail), ...(record && { record }) }
 
   if (goal.status === 'reached' || goal.status === 'ended') {
     if (!goal.endedOn) throw new Error(`Goal ${goal.id} is ${goal.status} but has no endedOn`)
@@ -493,8 +499,9 @@ export function nextMilestone<M extends Pick<Milestone, 'status'>>(milestones: M
   return milestones.find((milestone) => milestone.status !== 'hit')
 }
 
-function targetSection({ goal, goal: { weeklyTarget } }: GoalDetail): TargetSection | undefined {
-  if (goal.type === 'quitting') return { kind: 'note', line: `Since ${shortDate(goal.startDate)}` }
+// A quitting goal's record takes the place of when it started.
+function targetSection({ goal, goal: { weeklyTarget }, quitRecord }: GoalDetail): TargetSection | undefined {
+  if (goal.type === 'quitting') return quitRecord ? undefined : { kind: 'note', line: `Since ${shortDate(goal.startDate)}` }
   if (goal.type === 'oneOff') return goal.deadline ? { kind: 'note', line: `Deadline: ${shortDate(goal.deadline)}` } : undefined
   if (!weeklyTarget) return { kind: 'weekly', line: 'No weekly target yet', action: 'Set' }
   return { kind: 'weekly', line: `${weeklyTarget.sessions} ${weeklyTarget.unit}`, action: 'Edit' }

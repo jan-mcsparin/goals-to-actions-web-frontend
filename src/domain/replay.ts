@@ -3,7 +3,7 @@
 // change; a rule does nothing when its task isn't in the week. The stored week
 // is never changed: each rule returns a new one.
 import { mondayOfDay, weekAfter } from '../api/dates.ts'
-import type { CheckOff, NewTask, Task, Week } from '../api/types.ts'
+import type { CheckOff, NewTask, QuitDay, Task, UrgeLevel, Week } from '../api/types.ts'
 import { checkedOff, inTheBank, placedOnDay, uncheckedOff } from './tasks.ts'
 
 // Where a new task is expected to go: a week's bank (no day), or a day in it.
@@ -18,6 +18,14 @@ export type Change =
   | { kind: 'toBank'; id: string; taskId: string; week: string }
   | { kind: 'swap'; id: string; taskId: string; week: string; bankTaskId: string; day: string }
   | { kind: 'addTask'; id: string; taskId: string; task: NewTask; goalLabel: string | null; place: Place | null }
+  | QuitChange
+
+// A quitting goal's day: each states its end result, so sending it twice is the same.
+export type QuitChange =
+  | { kind: 'answerQuitDay'; id: string; goalId: string; day: string; held: boolean }
+  | { kind: 'clearQuitDay'; id: string; goalId: string; day: string }
+  | { kind: 'rateUrge'; id: string; goalId: string; day: string; level: UrgeLevel }
+  | { kind: 'clearUrgeRating'; id: string; goalId: string; day: string }
 
 export function replay(week: Week, changes: Change[]): Week {
   return changes.reduce(applyChange, week)
@@ -37,6 +45,39 @@ function applyChange(week: Week, change: Change): Week {
       return change.week === week.week ? swapped(week, change.taskId, change.bankTaskId, change.day) : week
     case 'addTask':
       return added(week, change)
+    default:
+      return withQuitDay(week, change)
+  }
+}
+
+// The day as the change leaves it; the goal's other days, and other goals, as they were.
+export function quitDayAfter(day: QuitDay, change: QuitChange): QuitDay {
+  switch (change.kind) {
+    case 'answerQuitDay':
+      return { ...day, held: change.held }
+    case 'clearQuitDay':
+      return { ...day, held: null }
+    case 'rateUrge':
+      return { ...day, urge: change.level }
+    case 'clearUrgeRating':
+      return { ...day, urge: null }
+  }
+}
+
+export function isQuitChange(change: Change): change is QuitChange {
+  return ['answerQuitDay', 'clearQuitDay', 'rateUrge', 'clearUrgeRating'].includes(change.kind)
+}
+
+function withQuitDay(week: Week, change: QuitChange): Week {
+  const goal = week.quittingGoals.find((candidate) => candidate.id === change.goalId)
+  if (!goal?.days.some((day) => day.day === change.day)) return week
+  return {
+    ...week,
+    quittingGoals: week.quittingGoals.map((candidate) =>
+      candidate === goal
+        ? { ...goal, days: goal.days.map((day) => (day.day === change.day ? quitDayAfter(day, change) : day)) }
+        : candidate,
+    ),
   }
 }
 

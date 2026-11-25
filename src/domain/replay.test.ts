@@ -106,6 +106,44 @@ describe('replay', () => {
     ])
     expect(replay(weekOf([laundry], { week: NEXT }), [add]).tasks).toHaveLength(1)
   })
+
+  describe('a quitting goal\'s days', () => {
+    const MON = '2026-11-09'
+    const TUE = '2026-11-10'
+    const quitting = {
+      id: 'sugar',
+      label: 'Quit sugar',
+      days: [
+        { goalId: 'sugar', day: MON, held: true, urge: 'some' as const },
+        { goalId: 'sugar', day: TUE, held: null, urge: null },
+      ],
+    }
+    const daysOf = (week: Week) => week.quittingGoals[0].days.map(({ held, urge }) => ({ held, urge }))
+
+    it('answers, rates, and clears each, leaving the other half of the day', () => {
+      const shown = replay(weekOf([], { quittingGoals: [quitting] }), [
+        { kind: 'answerQuitDay', id: 'c1', goalId: 'sugar', day: TUE, held: false },
+        { kind: 'rateUrge', id: 'c2', goalId: 'sugar', day: TUE, level: 'strong' },
+        { kind: 'clearQuitDay', id: 'c3', goalId: 'sugar', day: MON },
+      ])
+      expect(daysOf(shown)).toEqual([
+        { held: null, urge: 'some' },
+        { held: false, urge: 'strong' },
+      ])
+
+      const cleared = replay(shown, [{ kind: 'clearUrgeRating', id: 'c4', goalId: 'sugar', day: TUE }])
+      expect(daysOf(cleared)[1]).toEqual({ held: false, urge: null })
+    })
+
+    it('does nothing when the goal or the day is not in the week', () => {
+      const week = weekOf([], { quittingGoals: [quitting] })
+      const shown = replay(week, [
+        { kind: 'answerQuitDay', id: 'c1', goalId: 'smoking', day: MON, held: true },
+        { kind: 'answerQuitDay', id: 'c2', goalId: 'sugar', day: '2026-11-02', held: true },
+      ])
+      expect(shown).toEqual(week)
+    })
+  })
 })
 
 describe('predictedPlace', () => {

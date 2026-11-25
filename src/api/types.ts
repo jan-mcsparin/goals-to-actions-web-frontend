@@ -86,6 +86,16 @@ export type Intensity = Settings['intensity']
 export type Week = Schemas['Week']
 export type WeekGoal = Schemas['WeekGoal']
 
+// A quitting goal's day: held or not, and the urge, each empty when not given. Empty is
+// unknown, never a slip. The week read carries each active quitting goal's days of the week.
+export type QuitDay = Schemas['QuitDay']
+export type UrgeLevel = NonNullable<QuitDay['urge']>
+export type WeekQuitGoal = Schemas['WeekQuitGoal']
+
+// The goal page's record: the last 28 days, newest first; the held answers since the last
+// no; and the days before today in that run with no answer.
+export type QuitRecord = Schemas['QuitRecord']
+
 // What the Add sheet's pickers offer: aspirations and goals, as their lists send them.
 export type AddChoices = {
   aspirations: Aspiration[] // active and retired; the picker keeps the active ones
