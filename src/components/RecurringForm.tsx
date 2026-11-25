@@ -18,13 +18,24 @@ type RecurringFormProps = {
   message?: string
   onChange: (changes: Partial<RecurringDraft>) => void
   onSave: () => void
+  // Shown when editing: Cancel beside Save.
+  onCancel?: () => void
 }
 
-// The Add sheet's Recurring tab: a name, a fixed day (a weekday or a day of
+// The Add sheet's Recurring tab, and the edit sheet's form (RecurringEditSheet): a name, a fixed day (a weekday or a day of
 // the month) or a flexible rhythm, and, optionally, an aspiration; with none
 // it belongs to Keep life running. Opened on this tab, the sheet focuses
 // Fixed day (AddSheet), so no keyboard comes up until a field is tapped.
-export function RecurringForm({ draft, aspirations, aspirationsMessage, canSave, message, onChange, onSave }: RecurringFormProps) {
+export function RecurringForm({
+  draft,
+  aspirations,
+  aspirationsMessage,
+  canSave,
+  message,
+  onChange,
+  onSave,
+  onCancel,
+}: RecurringFormProps) {
   const nameId = useId()
   const repeatId = useId()
   const aspirationId = useId()
@@ -105,6 +116,11 @@ export function RecurringForm({ draft, aspirations, aspirationsMessage, canSave,
       )}
 
       <div className="edit-form-actions">
+        {onCancel && (
+          <button type="button" className="edit-form-cancel" onClick={onCancel}>
+            Cancel
+          </button>
+        )}
         <button type="submit" className="edit-form-save" disabled={!canSave}>
           Save
         </button>

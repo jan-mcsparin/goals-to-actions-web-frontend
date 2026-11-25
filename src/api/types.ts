@@ -73,6 +73,8 @@ export type NewAspiration = Schemas['AspirationInput']
 // What the Add sheet sends to addRecurringItem. Without an aspiration it
 // belongs to Keep life running.
 export type NewRecurringItem = Schemas['NewRecurringItem']
+// What an edit sends, whole: the goal it came from and whether it's on don't change here.
+export type RecurringItemEdit = Schemas['RecurringItemEdit']
 
 // Free time has no setting: it's whatever the intensity's task cap leaves open.
 // Weeks always start Monday, so that's no setting either.
@@ -128,6 +130,6 @@ export type AspirationRef = Schemas['AspirationRef']
 
 // Keep life running: what has to happen but rolls up to no goal or aspiration.
 export type Upkeep = {
-  recurringItems: RecurringItem[] // active, with no aspiration
+  recurringItems: RecurringItem[] // with no aspiration, on and off
   tasks: Task[] // not done, no goal and no recurring item, this week and later
 }

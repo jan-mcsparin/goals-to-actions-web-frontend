@@ -1,13 +1,13 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getUpkeep } from '../api/client.ts'
+import { getUpkeep, updateRecurringItem } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import { Upkeep } from './Upkeep.tsx'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
-  return { ...actual, getUpkeep: vi.fn(actual.getUpkeep) }
+  return { ...actual, getUpkeep: vi.fn(actual.getUpkeep), updateRecurringItem: vi.fn(actual.updateRecurringItem) }
 })
 
 const WEDNESDAY_DAY = '2026-11-11'
@@ -70,15 +70,17 @@ describe('Keep life running', () => {
     expect(todo.map(([title]) => title)).not.toContain('Lift: bench day')
   })
 
-  it('only shows: the one control on the page is the way back', async () => {
+  it('opens only recurring items: the tasks just show, besides the way back', async () => {
     const user = userEvent.setup()
     const onBack = vi.fn()
     render(<Upkeep today={WEDNESDAY_DAY} onBack={onBack} />)
     await screen.findByRole('region', { name: 'To do' })
 
-    expect(screen.getAllByRole('button').map((button) => button.getAttribute('aria-label'))).toEqual([
+    expect(screen.getAllByRole('button').map((button) => button.getAttribute('aria-label') ?? button.textContent)).toEqual([
       'Back to Aspirations',
+      'Pay rentMonthly on the 1st',
     ])
+    expect(within(screen.getByRole('region', { name: 'To do' })).queryByRole('button')).toBeNull()
     expect(screen.queryByRole('checkbox')).toBeNull()
     expect(screen.queryByRole('link')).toBeNull()
 
@@ -116,5 +118,66 @@ describe('Keep life running', () => {
 
     await user.click(message)
     expect(screen.queryByRole('status')).toBeNull()
+  })
+})
+
+describe('Keep life running, a recurring item', () => {
+  async function openRent() {
+    const user = userEvent.setup()
+    render(<Upkeep today={WEDNESDAY_DAY} onBack={() => {}} />)
+    const recurring = await screen.findByRole('region', { name: 'Recurring' })
+    await user.click(within(recurring).getByRole('button', { name: /Pay rent/ }))
+    return { user, recurring, sheet: screen.getByRole('dialog', { name: 'Edit recurring item' }) }
+  }
+
+  it('opens filled in, with Save off until something changes', async () => {
+    const { user, sheet } = await openRent()
+
+    expect((within(sheet).getByLabelText('Name') as HTMLInputElement).value).toBe('Pay rent')
+    expect((within(sheet).getByLabelText('Day') as HTMLSelectElement).value).toBe('monthly:1')
+    const save = within(sheet).getByRole('button', { name: 'Save' }) as HTMLButtonElement
+    expect(save.disabled).toBe(true)
+
+    await user.type(within(sheet).getByLabelText('Name'), ' and utilities')
+
+    expect(save.disabled).toBe(false)
+  })
+
+  it('saves a new name and shows it on the row', async () => {
+    const { user, recurring, sheet } = await openRent()
+
+    await user.type(within(sheet).getByLabelText('Name'), ' and utilities')
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(rows(recurring)).toEqual([['Pay rent and utilities', 'Monthly on the 1st']]))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('takes the row off the list once it moves under an aspiration', async () => {
+    const { user, recurring, sheet } = await openRent()
+
+    await user.selectOptions(within(sheet).getByLabelText('Under an aspiration (optional)'), await within(sheet).findByRole('option', { name: 'Be fit' }))
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(within(recurring).getByText('No recurring items.')).toBeDefined())
+  })
+
+  it('pauses it at once, and keeps it listed as Paused', async () => {
+    const { user, recurring, sheet } = await openRent()
+
+    await user.click(within(sheet).getByRole('button', { name: 'Pause' }))
+
+    await waitFor(() => expect(rows(recurring)).toEqual([['Pay rent', 'Paused']]))
+  })
+
+  it('keeps the sheet and what was typed when the save fails', async () => {
+    vi.mocked(updateRecurringItem).mockRejectedValueOnce(new Error('offline'))
+    const { user, sheet } = await openRent()
+
+    await user.type(within(sheet).getByLabelText('Name'), ' and utilities')
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }))
+
+    expect(await within(sheet).findByText("Couldn't save that. Try again.")).toBeDefined()
+    expect((within(sheet).getByLabelText('Name') as HTMLInputElement).value).toBe('Pay rent and utilities')
   })
 })

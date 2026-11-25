@@ -36,6 +36,7 @@ import type {
   NewRecurringItem,
   NewTask,
   RecurringItem,
+  RecurringItemEdit,
   Settings,
   StillMattersAnswer,
   Task,
@@ -508,7 +509,7 @@ export async function getUpkeep(): Promise<Upkeep> {
   if (realApi) return realPlan.getUpkeep()
   const weekOf = thisWeek()
   return structuredClone({
-    recurringItems: store.recurringItems.filter((item) => item.active && item.aspirationId === null),
+    recurringItems: store.recurringItems.filter((item) => item.aspirationId === null),
     tasks: shown(store.tasks.filter((task) => isLoose(task) && isWaiting(task) && (task.week ?? '') >= weekOf)),
   })
 }
@@ -649,6 +650,51 @@ export async function addRecurringItem(item: NewRecurringItem): Promise<Recurrin
   }
   store.recurringItems.push(added)
   return structuredClone(added)
+}
+
+// The item changes and its open tasks take the new name. Where they sit is left as it is:
+// the API moves them to follow a new repeat (API #49), and nothing here needs that imitated.
+export async function updateRecurringItem(itemId: string, edit: RecurringItemEdit): Promise<RecurringItem> {
+  if (realApi) return realPlan.updateRecurringItem(itemId, edit)
+  const item = findRecurringItem(itemId)
+  const name = edit.name.trim()
+  if (!name) throw new Error('A recurring item needs a name')
+  if (edit.aspirationId) findActiveAspiration(edit.aspirationId)
+
+  Object.assign(item, { name, aspirationId: edit.aspirationId ?? null, schedule: edit.schedule, startsOn: edit.startsOn })
+  for (const task of store.tasks) {
+    if (task.recurringItemId === itemId && task.state === 'open') task.title = name
+  }
+  return structuredClone(item)
+}
+
+// Off: its waiting tasks this week are set aside, keeping their day, as when a goal pauses.
+export async function turnOffRecurringItem(itemId: string): Promise<RecurringItem> {
+  if (realApi) return realPlan.turnOffRecurringItem(itemId)
+  const item = findRecurringItem(itemId)
+  pauseWork([], [item])
+  return structuredClone(item)
+}
+
+// On again: its set-aside tasks this week go back to the bank.
+export async function turnOnRecurringItem(itemId: string): Promise<RecurringItem> {
+  if (realApi) return realPlan.turnOnRecurringItem(itemId)
+  const item = findRecurringItem(itemId)
+  const weekOf = thisWeek()
+  for (const task of store.tasks) {
+    if (task.recurringItemId === itemId && task.week === weekOf && task.setAside) {
+      task.setAside = false
+      replaceTask(task, inTheBank(task))
+    }
+  }
+  item.active = true
+  return structuredClone(item)
+}
+
+function findRecurringItem(itemId: string): RecurringItem {
+  const item = store.recurringItems.find((candidate) => candidate.id === itemId)
+  if (!item) throw new NotFoundError(`No recurring item with id ${itemId}`)
+  return item
 }
 
 // Back to the bank, in the week the change was made in; the day is cleared and the rollover

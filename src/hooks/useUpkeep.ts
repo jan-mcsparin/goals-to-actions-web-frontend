@@ -1,6 +1,7 @@
 // The Keep life running page, ready to render. Loads through the API client;
 // the rows come from domain/upkeep.ts.
 import { getUpkeep } from '../api/client.ts'
+import type { RecurringItem } from '../api/types.ts'
 import { upkeepView, type UpkeepView } from '../domain/upkeep.ts'
 import { useLoaded } from './useLoaded.ts'
 
@@ -12,10 +13,19 @@ export type UseUpkeep = {
   // Lets the message go once it has gone from the screen, so the same text set
   // again shows again.
   clearMessage: () => void
+  // For the recurring item's edit sheet (useRecurringEdit).
+  recurringItems?: RecurringItem[]
+  reload: () => Promise<void>
 }
 
 export function useUpkeep(today: string): UseUpkeep {
-  const { data: upkeep, message, setMessage } = useLoaded('upkeep', getUpkeep, LOAD_FAILED)
+  const { data: upkeep, message, setMessage, reload } = useLoaded('upkeep', getUpkeep, LOAD_FAILED)
 
-  return { view: upkeep && upkeepView(upkeep, today), message, clearMessage: () => setMessage(undefined) }
+  return {
+    view: upkeep && upkeepView(upkeep, today),
+    message,
+    clearMessage: () => setMessage(undefined),
+    recurringItems: upkeep?.recurringItems,
+    reload,
+  }
 }

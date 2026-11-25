@@ -1,8 +1,10 @@
-// Keep life running: what has to happen, under no goal. The page only shows;
-// checking off and placing happen on Today and Week.
+// Keep life running: what has to happen, under no goal. A recurring item opens to be edited;
+// the tasks only show, and checking off and placing happen on Today and Week.
 import { BackLink } from '../components/BackLink.tsx'
+import { RecurringEditSheet } from '../components/RecurringEditSheet.tsx'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
+import { useRecurringEdit } from '../hooks/useRecurringEdit.ts'
 import { useUpkeep } from '../hooks/useUpkeep.ts'
 import './Upkeep.css'
 
@@ -12,7 +14,8 @@ type UpkeepProps = {
 }
 
 export function Upkeep({ today, onBack }: UpkeepProps) {
-  const { view, message, clearMessage } = useUpkeep(today)
+  const { view, message, clearMessage, recurringItems, reload } = useUpkeep(today)
+  const recurringEdit = useRecurringEdit(recurringItems, reload)
   // With nothing loaded, the message is all there is, so it stays.
   const shownMessage = useFleetingMessage(message, { sticky: !view, onGone: clearMessage })
 
@@ -34,8 +37,10 @@ export function Upkeep({ today, onBack }: UpkeepProps) {
               <ul className="upkeep-list">
                 {view.recurring.map((item) => (
                   <li key={item.id}>
-                    <span className="upkeep-title">{item.name}</span>
-                    <span className="upkeep-detail">{item.repeat}</span>
+                    <button type="button" className="upkeep-row" onClick={() => recurringEdit.open(item.id)}>
+                      <span className="upkeep-title">{item.name}</span>
+                      <span className="upkeep-detail">{item.repeat}</span>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -61,6 +66,7 @@ export function Upkeep({ today, onBack }: UpkeepProps) {
       )}
 
       <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
+      <RecurringEditSheet edit={recurringEdit} />
     </main>
   )
 }

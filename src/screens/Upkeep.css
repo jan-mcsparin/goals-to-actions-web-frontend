@@ -22,8 +22,9 @@
   list-style: none;
 }
 
-/* The title wraps; where it sits keeps its width. */
-.upkeep-list li {
+/* The title wraps; where it sits keeps its width. A recurring row is a button that opens it. */
+.upkeep-list li:not(:has(button)),
+.upkeep-row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -43,4 +44,21 @@
   color: var(--muted);
   font-size: 0.875rem;
   white-space: nowrap;
+}
+
+.upkeep-row {
+  width: 100%;
+  border-top: none;
+  border-right: none;
+  border-left: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.upkeep-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
 }

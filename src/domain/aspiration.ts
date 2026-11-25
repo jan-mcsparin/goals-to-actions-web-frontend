@@ -100,7 +100,7 @@ export function aspirationPage(detail: AspirationDetail, today: string): Aspirat
     }),
     activeGoalsLine: `${active.length} active`,
     goals: [...active, ...paused].map((goal) => goalCard(goal, detail)),
-    recurring: detail.recurringItems.filter((item) => item.active).map((item) => recurringRow(item, false)),
+    recurring: detail.recurringItems.map((item) => recurringRow(item, !item.active)),
     pastGoals,
     priority: {
       line: priorityLine(position, detail.activeCount),

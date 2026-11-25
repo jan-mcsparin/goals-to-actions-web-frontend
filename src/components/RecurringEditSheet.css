@@ -1,0 +1,23 @@
+/* Under the form: Pause or Resume, and room for Delete (038). */
+.recurring-edit-more {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.recurring-edit-action {
+  min-height: 2.75rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+}
+
+.recurring-edit-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

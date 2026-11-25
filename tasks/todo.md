@@ -1,8 +1,8 @@
-# 037: A quitting goal's daily answer and urge rating
+# 076: Edit a recurring item
 
-- [x] 1. Queue kinds and real client functions
-- [x] 2. The mock's quit days
-- [x] 3. domain/quitting.ts
-- [x] 4. The row on Today and an opened day
-- [x] 5. The goal page's record
-- [x] 6. Docs and check
+- [x] 1. Client functions and the mock
+- [x] 2. The draft, the edit body, "changed", and "Paused" rows
+- [x] 3. The hook and the sheet
+- [x] 4. Keep life running opens the sheet
+- [x] 5. An aspiration's page opens the sheet
+- [x] 6. Docs and the check

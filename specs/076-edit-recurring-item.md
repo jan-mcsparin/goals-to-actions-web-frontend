@@ -1,6 +1,6 @@
 # Spec: Edit a recurring item
 
-Status: draft 2026-11-20; questions settled with Jan the same day. Waits for API [#49](https://github.com/jan-mcsparin/goals-to-actions-api/issues/49), which makes an edit move this week's work. Issue: [#76](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/76). Step 5 of the front-end hookup, built before [038](038-delete-mistakes.md), whose recurring-item delete goes in this spec's sheet (038, decision 2). The API side is built ([`api/specs/recurring-items.md`](../../api/specs/recurring-items.md)): `updateRecurringItem`, `turnOffRecurringItem` and `turnOnRecurringItem`.
+Status: built 2026-11-25; questions settled with Jan 2026-11-20. API [#49](https://github.com/jan-mcsparin/goals-to-actions-api/issues/49), which makes an edit move this week's work, came first. Issue: [#76](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/76). Step 5 of the front-end hookup, built before [038](038-delete-mistakes.md), whose recurring-item delete goes in this spec's sheet (038, decision 2). The API side is built ([`api/specs/recurring-items.md`](../../api/specs/recurring-items.md)): `updateRecurringItem`, `turnOffRecurringItem` and `turnOnRecurringItem`.
 
 ## Objective
 
@@ -82,11 +82,11 @@ As spec 042: the draft and its wording in `domain/`, the save in a hook, the she
 
 ## Success criteria
 
-- [ ] A recurring item opens for editing from an aspiration's page and from Keep life running.
-- [ ] Its name, repeat (fixed day or flexible) and aspiration (or none) can be changed and saved, with `updateRecurringItem`.
-- [ ] After an edit, Today and Week show this week's tasks where the API moved them.
-- [ ] It can be paused and resumed; a paused item stays listed as "Paused".
-- [ ] API client functions, mock and tests added; `docs/flows.md` and `docs/screens/README.md` updated.
+- [x] A recurring item opens for editing from an aspiration's page and from Keep life running.
+- [x] Its name, repeat (fixed day or flexible) and aspiration (or none) can be changed and saved, with `updateRecurringItem`.
+- [x] After an edit, Today and Week show this week's tasks where the API moved them.
+- [x] It can be paused and resumed; a paused item stays listed as "Paused".
+- [x] API client functions, mock and tests added; `docs/flows.md` and `docs/screens/README.md` updated.
 
 ## Settled with Jan, 2026-11-20
 
@@ -97,3 +97,16 @@ As recommended, except decision 3.
 3. **The issue says the week places changed work as it arrives.** The API as built does the opposite: "An edit to a recurring item makes nothing and moves nothing; it takes effect from the item's next period" (`api/specs/week-turnover.md`). Recommended: follow the API. **Settled: an edit moves this week's work,** an API change first ([API #49](https://github.com/jan-mcsparin/goals-to-actions-api/issues/49)). Only tasks the app placed, or still in the bank, move. A task whose old day has passed moves only if it isn't done and the new day is today or later. A flexible count change acts like a weekly target change.
 4. **Pause/Resume, or Turn off / Turn on.** The API and flows say "turn off". The aspiration page already shows "Paused". Recommended: **Pause / Resume and "Paused"**, matching goals and what's on screen.
 5. **The retired aspiration's paused items** (see Accepted until later). Recommended: leave them out until someone needs to resume one from there.
+
+## What changed while building
+
+Settled with Jan when the plan was written (2026-11-25):
+
+- **Pause and Resume close the sheet,** like Save; the row then reads "Paused" or its repeat.
+- **The sheet offers only the Add sheet's repeats.** An item with one the API allows but the Add sheet doesn't offer (twice every two weeks, say) couldn't be shown; none can be made in the app today.
+- **The mock's edit renames the item's open tasks but moves none:** where they go is the API's, and nothing tested here needs it imitated.
+- The hook is `hooks/useRecurringEdit.ts`, the sheet `components/RecurringEditSheet.tsx`; `RecurringForm` gained an optional Cancel.
+
+## Checked
+
+By a Sonnet agent at 390px against the local API, 2026-11-25, on "Verification: water the plants": a rename renamed its open task; a new day moved its task (Friday to Saturday); Fixed to Flexible 2 times a week gave 2 tasks; moving it under Be fit and back moved its row each way; Pause cleared its tasks from the days and the bank and Resume brought 2 back to the bank; offline, Save kept the sheet, the typed name and "Couldn't save that. Try again." No horizontal scroll and no app errors in the console. The item is left in place, on.
