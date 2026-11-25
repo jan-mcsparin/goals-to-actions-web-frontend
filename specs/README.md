@@ -75,7 +75,7 @@ From the [brief](../../docs/briefs/scheduling-and-other-weeks.md), after step 5 
 
 | Module id | Spec | Issue | Responsibility | Depends on |
 |---|---|---|---|---|
-| `on-a-day` | [079](079-on-a-day.md) | #79 | The Add sheet's When: On today · In the bank · On a day | API #50 |
+| `on-a-day` | [079](079-on-a-day.md) | #79 | The Add sheet's When: On today · In the bank · On a day (done) | API #50 |
 | `any-week` | to come | #80 | Week's ‹ › arrows, any week, counts line and bars | API #51 |
 | `move-and-remove` | to come | #82 | A future day's set items moved or removed | API #50, #51 |
 | `late-check-offs` | to come | #81 | Tick off a past day's tasks | API #51 |

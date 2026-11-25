@@ -1,6 +1,6 @@
 # Spec: On a day, in the Add sheet
 
-Status: draft 2026-11-23; decision 3 settled with Jan the same day. Issue: [#79](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/79). The first front-end piece of the scheduling brief. Needs API [#50](https://github.com/jan-mcsparin/goals-to-actions-api/issues/50) ([`api/specs/on-a-day.md`](../../api/specs/on-a-day.md)). Built after step 5 (017 → 037 → 076 → 038).
+Status: built 2026-11-25 (plan in `tasks/plan.md`); decision 3 settled with Jan on 2026-11-23, decisions 1 and 2 and the form's order (Goal last) on 2026-11-25. Issue: [#79](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/79). The first front-end piece of the scheduling brief. Needs API [#50](https://github.com/jan-mcsparin/goals-to-actions-api/issues/50) ([`api/specs/on-a-day.md`](../../api/specs/on-a-day.md)). Built after step 5 (017 → 037 → 076 → 038).
 
 ## Objective
 
@@ -26,7 +26,7 @@ References: [brief](../../docs/briefs/scheduling-and-other-weeks.md) ("On a day"
 **In:**
 
 - `src/domain/add.ts`: `Placement` gains `'onADay'`; `TaskDraft` gains `day` and `atTime`; `taskInput` sends `day` and the "at" time for On a day, and leaves out the due date and time of day; `taskReady` needs a day for On a day; `taskConfirmation` gains "Set for Sat, Dec 12." (with `dayLabel` or a short weekday-and-date helper beside it).
-- `src/components/TaskForm.tsx` (and `AddSheet.css`): the segmented When, the Day and Time row, the note. Moved above Due date, as in the design.
+- `src/components/TaskForm.tsx` (and `AddSheet.css`): the segmented When, the Day and Time row, the note. When goes under the title, as in the design, and Goal last.
 - `src/hooks/useAdd.ts`: the confirmation for a queued add with a day beyond the stored weeks.
 - `src/api/mockStore.ts` or `mockData.ts`: a later week's pinned task.
 - `src/api/openapi.ts` regenerated (descriptions only).
@@ -95,3 +95,7 @@ export function taskInput(draft: TaskDraft, today: string): NewTask {
 ## Open questions
 
 None.
+
+## Checked
+
+By a Sonnet agent at 390px against the local API, 2026-11-25, on tasks named "Verification: …". Opened from Today, the form read Title, When (On today selected), Due date, Time of day, Goal; opened from Week, In the bank was selected. On a day swapped in Day and Time (optional) side by side with the note. Save stayed off until there was a day, and switching back and forth kept both sides. "Verification: dentist" on Dec 16 at 3 p.m. said "Set for Wed, Dec 16.", sent `day` and an "at" time with no due date, and came back as a hand-placed row in the week of Dec 14, not shown on Today or Week. A day of today said "Added to today."; In the bank and On today read as before. No horizontal scroll and no app errors in the console. Left in place: "Verification: dentist" (Dec 16), "Verification: today on a day", "Verification: bank" and "Verification: on today" (maybe two of the last).

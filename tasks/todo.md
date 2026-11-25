@@ -4,4 +4,4 @@
 - [x] 2. The mock places a later week's day
 - [x] 3. The form
 - [x] 4. A queued add past the stored weeks
-- [ ] 5. Types, docs and the check
+- [x] 5. Types, docs and the check
