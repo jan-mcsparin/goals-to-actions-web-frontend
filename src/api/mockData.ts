@@ -5,6 +5,7 @@ import type {
   Aspiration,
   Goal,
   Milestone,
+  QuitDay,
   RecurringItem,
   Settings,
   Task,
@@ -38,6 +39,10 @@ export type StoredCheckIn = {
 // out when it's read, as the API does.
 export type StoredTask = Task & { setAside: boolean }
 
+// A quitting goal's day, as the API's quit_days and urge_ratings rows together: one per
+// goal and day, kept while either half is given.
+export type StoredQuitDay = QuitDay
+
 export type MockData = {
   aspirations: Aspiration[]
   goals: StoredGoal[]
@@ -46,6 +51,7 @@ export type MockData = {
   weeklyTargets: StoredWeeklyTarget[]
   recurringItems: RecurringItem[]
   tasks: StoredTask[]
+  quitDays: StoredQuitDay[]
   settings: Settings
   // The last week wrapped up early, as the API's closed_through_week: the week after it is
   // current even on the Sunday evening before it starts.
@@ -473,7 +479,7 @@ export function buildMockData(today: Date): MockData {
 
   const settings: Settings = { intensity: 'normal' }
 
-  return { aspirations, goals, milestones, checkIns, weeklyTargets, recurringItems, tasks, settings, closedThrough: null }
+  return { aspirations, goals, milestones, checkIns, weeklyTargets, recurringItems, tasks, quitDays: [], settings, closedThrough: null }
 }
 
 type TaskFields = Pick<StoredTask, 'id' | 'title'> & Partial<StoredTask>

@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   addAspiration,
+  answerQuitDay,
+  clearQuitDay,
+  clearUrgeRating,
+  rateUrge,
   addMilestone,
   addRecurringItem,
   addTask,
@@ -37,7 +41,7 @@ import {
 import type { StoredTask, StoredWeeklyTarget } from './mockData.ts'
 import { resetStore, store } from './mockStore.ts'
 import { readBank, readDay } from '../test/plan.ts'
-import type { Goal, ListedGoal, NewRecurringItem, Task, WeeklyTargetInput } from './types.ts'
+import type { Goal, ListedGoal, NewGoal, NewRecurringItem, Task, WeeklyTargetInput } from './types.ts'
 import { aTask, whereIs } from '../test/tasks.ts'
 
 // A task as the mock stores it.
@@ -1558,6 +1562,87 @@ describe('createGoal', () => {
 
     await expect(createGoal({ ...BE_STRONG_2, ...changes })).rejects.toBeInstanceOf(error)
     expect({ goals: store.goals, tasks: store.tasks, weeklyTargets: store.weeklyTargets }).toEqual(before)
+  })
+})
+
+describe("a quitting goal's days", () => {
+  // Started the Saturday before this week, so the run spans two weeks.
+  async function quitSugar(fields: Partial<NewGoal> = {}): Promise<Goal> {
+    return createGoal({ label: 'Quit sugar', measurableLine: '30 days', type: 'quitting', startDate: '2026-11-07', ...fields })
+  }
+
+  it('answers, changes, rates and clears a day, as the API returns it', async () => {
+    const goal = await quitSugar()
+
+    expect(await answerQuitDay(goal.id, '2026-11-10', true)).toEqual({ goalId: goal.id, day: '2026-11-10', held: true, urge: null })
+    expect(await rateUrge(goal.id, '2026-11-10', 'some')).toMatchObject({ held: true, urge: 'some' })
+    expect(await answerQuitDay(goal.id, '2026-11-10', false)).toMatchObject({ held: false, urge: 'some' })
+    expect(await clearQuitDay(goal.id, '2026-11-10')).toMatchObject({ held: null, urge: 'some' })
+    expect(await clearUrgeRating(goal.id, '2026-11-10')).toMatchObject({ held: null, urge: null })
+  })
+
+  it("puts each active quitting goal's days of the week, from its start, in the week read", async () => {
+    const goal = await quitSugar({ startDate: '2026-11-10' })
+    await answerQuitDay(goal.id, '2026-11-10', true)
+    await rateUrge(goal.id, WEDNESDAY_DAY, 'low')
+
+    const week = await getWeek()
+
+    expect(week.quittingGoals).toEqual([
+      {
+        id: goal.id,
+        label: 'Quit sugar',
+        days: ['2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'].map((day) => ({
+          goalId: goal.id,
+          day,
+          held: day === '2026-11-10' ? true : null,
+          urge: day === WEDNESDAY_DAY ? 'low' : null,
+        })),
+      },
+    ])
+    await pauseGoal(goal.id)
+    expect((await getWeek()).quittingGoals).toEqual([])
+  })
+
+  it('keeps the record on the goal read: the last days newest first, the run, and its unanswered days', async () => {
+    const goal = await quitSugar()
+    await answerQuitDay(goal.id, '2026-11-07', true)
+    await answerQuitDay(goal.id, '2026-11-08', false)
+    await answerQuitDay(goal.id, '2026-11-09', true)
+    await answerQuitDay(goal.id, WEDNESDAY_DAY, true)
+    await rateUrge(goal.id, '2026-11-09', 'strong')
+
+    const record = (await getGoal(goal.id)).quitRecord
+
+    expect(record?.days.map((day) => [day.day, day.held, day.urge])).toEqual([
+      [WEDNESDAY_DAY, true, null],
+      ['2026-11-10', null, null],
+      ['2026-11-09', true, 'strong'],
+      ['2026-11-08', false, null],
+      ['2026-11-07', true, null],
+    ])
+    expect(record).toMatchObject({ heldRun: 2, unknownInRun: 1 })
+    expect((await getGoal('goal-strong')).quitRecord).toBeNull()
+  })
+
+  it('shows 28 days at most, and counts the run from the start with no no', async () => {
+    const goal = await quitSugar({ startDate: '2026-10-01' })
+    await answerQuitDay(goal.id, '2026-10-02', true)
+
+    const record = (await getGoal(goal.id)).quitRecord
+
+    expect(record?.days).toHaveLength(28)
+    expect(record?.days.at(-1)?.day).toBe('2026-10-15')
+    expect(record).toMatchObject({ heldRun: 1, unknownInRun: 40 })
+  })
+
+  it('refuses a day before the start or after today, and a goal that is not quitting', async () => {
+    const goal = await quitSugar()
+
+    await expect(answerQuitDay(goal.id, '2026-11-06', true)).rejects.toThrow(RefusedError)
+    await expect(rateUrge(goal.id, '2026-11-12', 'low')).rejects.toThrow(RefusedError)
+    await expect(answerQuitDay('goal-strong', WEDNESDAY_DAY, true)).rejects.toThrow(RefusedError)
+    await expect(clearQuitDay('nope', WEDNESDAY_DAY)).rejects.toThrow(NotFoundError)
   })
 })
 
