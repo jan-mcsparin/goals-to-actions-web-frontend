@@ -1,7 +1,7 @@
 // Rules for the Add sheet: what a new task sends, the line confirming it, how
 // a goal's sentence splits, the Recurring tab's choices, and when a form is
 // ready to save. Which week a new task goes in is the server's (ADR-008).
-import { mondayOfDay } from '../api/dates.ts'
+import { fromLocalDay, mondayOfDay } from '../api/dates.ts'
 import type {
   Aspiration,
   Goal,
@@ -20,20 +20,35 @@ import { isPlanned, weekOf } from './tasks'
 
 // As the server placed it. One due beyond the open weeks waits with no week until its week opens.
 export function taskConfirmation(task: Pick<Task, 'state' | 'plannedDay' | 'week'>, today: string): string {
-  if (isPlanned(task)) return 'Added to today.'
+  if (isPlanned(task)) return task.plannedDay === today ? 'Added to today.' : `Set for ${weekdayAndDate(task.plannedDay!, today)}.`
   const week = weekOf(task)
   if (week === null) return "Saved. It joins the week it's due."
   if (week !== null && week > mondayOfDay(today)) return `Saved for the week of ${dayLabel(week, today)}.`
   return "Added to this week's bank."
 }
 
-export function taskReady(draft: { title: string }): boolean {
+// "Sat, Dec 12", with the year when it isn't this year's.
+function weekdayAndDate(day: string, today: string): string {
+  const date = fromLocalDay(day)
+  const sameYear = date.getFullYear() === fromLocalDay(today).getFullYear()
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    ...(!sameYear && { year: 'numeric' }),
+  })
+}
+
+// A title, and on a day, the day.
+export function taskReady(draft: Pick<TaskDraft, 'title' | 'placement' | 'day'>): boolean {
+  if (draft.placement === 'onADay' && !draft.day) return false
   return draft.title.trim() !== ''
 }
 
-export type Placement = 'inBank' | 'onToday'
+export type Placement = 'onToday' | 'inBank' | 'onADay'
 
-// The Task form as typed. Empty strings are fields left blank.
+// The Task form as typed. Empty strings are fields left blank. Day and atTime are On a day's;
+// dueDate, timeKind and time the other two's. Each keeps what was typed when the choice changes.
 export type TaskDraft = {
   title: string
   goalId: string
@@ -41,18 +56,26 @@ export type TaskDraft = {
   timeKind: '' | 'by' | 'at'
   time: string
   placement: Placement
+  day: string
+  atTime: string
 }
 
 export function emptyTaskDraft(placement: Placement): TaskDraft {
-  return { title: '', goalId: '', dueDate: '', timeKind: '', time: '', placement }
+  return { title: '', goalId: '', dueDate: '', timeKind: '', time: '', placement, day: '', atTime: '' }
 }
 
-// A time of day needs both "by" or "at" and a time; half of one is left out. "On today" sends
-// today as its day; the bank sends none.
+// Only what the chosen place shows is sent. On a day sends its day and an "at" time; the day is
+// the constraint, so no due date. A time of day needs both "by" or "at" and a time; half of one
+// is left out. "On today" sends today as its day; the bank sends none.
 export function taskInput(draft: TaskDraft, today: string): NewTask {
   const input: NewTask = { title: draft.title }
-  if (draft.placement === 'onToday') input.day = today
   if (draft.goalId) input.goalId = draft.goalId
+  if (draft.placement === 'onADay') {
+    input.day = draft.day
+    if (draft.atTime) input.timeOfDay = { kind: 'at', time: draft.atTime }
+    return input
+  }
+  if (draft.placement === 'onToday') input.day = today
   if (draft.dueDate) input.dueDate = draft.dueDate
   if (draft.timeKind && draft.time) input.timeOfDay = { kind: draft.timeKind, time: draft.time }
   return input
