@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { BankSheet } from '../components/BankSheet.tsx'
 import { DayPickerSheet } from '../components/DayPickerSheet.tsx'
+import { DeleteSheet } from '../components/DeleteSheet.tsx'
 import { QuitDayRow } from '../components/QuitDayRow.tsx'
 import { StillMattersCard } from '../components/StillMattersCard.tsx'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
@@ -9,6 +10,7 @@ import { ViewToggle, type ViewOption } from '../components/ViewToggle.tsx'
 import type { TodayViewMode } from '../storage/viewPreference.ts'
 import '../components/progressBar.css'
 import type { Task } from '../api/types.ts'
+import { deleteTaskLine } from '../domain/deleting.ts'
 import type { Section } from '../domain/today.ts'
 import { useDay, type StillMattersAsk } from '../hooks/useDay.ts'
 import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
@@ -35,6 +37,7 @@ export function Day({ date, today, onBack }: DayProps) {
     pull,
     sendToBank,
     swap,
+    deleting,
     answerQuitDay,
     clearQuitDay,
     rateUrge,
@@ -120,6 +123,7 @@ export function Day({ date, today, onBack }: DayProps) {
             onToggle={toggleDone}
             onSendToBank={sendToBank}
             onSwap={swapTask}
+            onDelete={deleting.ask}
           />
         ))
       )}
@@ -173,6 +177,13 @@ export function Day({ date, today, onBack }: DayProps) {
         onClose={() => setRescheduling(undefined)}
       />
 
+      <DeleteSheet
+        open={deleting.asking !== undefined}
+        question={deleting.asking ? deleteTaskLine(deleting.asking.title) : ''}
+        onDelete={() => void deleting.confirm()}
+        onClose={deleting.cancel}
+      />
+
       <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
     </main>
   )
@@ -220,9 +231,10 @@ type TaskGroupProps = {
   onToggle: (taskId: string) => void
   onSendToBank: (taskId: string) => void
   onSwap?: (task: Task) => void
+  onDelete: (task: Task) => void
 }
 
-function TaskGroup({ section, doneLabel, canCheck, onToggle, onSendToBank, onSwap }: TaskGroupProps) {
+function TaskGroup({ section, doneLabel, canCheck, onToggle, onSendToBank, onSwap, onDelete }: TaskGroupProps) {
   const headingId = `group-${section.id}`
   return (
     <section className="today-group" aria-labelledby={headingId}>
@@ -244,6 +256,7 @@ function TaskGroup({ section, doneLabel, canCheck, onToggle, onSendToBank, onSwa
             onToggle={() => onToggle(row.task.id)}
             onSendToBank={() => onSendToBank(row.task.id)}
             onSwap={onSwap && (() => onSwap(row.task))}
+            onDelete={() => onDelete(row.task)}
           />
         ))}
       </ul>

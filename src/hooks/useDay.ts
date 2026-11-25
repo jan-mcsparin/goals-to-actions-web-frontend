@@ -5,7 +5,7 @@
 // a failed send, they wait. So do a quitting goal's answer and urge rating. "Still matter?" needs a connection: its card goes at once, and
 // comes back if the answer can't be saved. Rules come from domain/.
 import { useMemo, useState } from 'react'
-import { answerStillMatters, getWeek } from '../api/client.ts'
+import { answerStillMatters, deleteTask, getWeek } from '../api/client.ts'
 import { mondayOfDay } from '../api/dates.ts'
 import { newDeviceId } from '../api/ids.ts'
 import { enqueue } from '../api/queue.ts'
@@ -29,6 +29,7 @@ import { pickableDays, type PickableDay } from '../domain/week.ts'
 import { planStore } from '../storage/planStore.ts'
 import { readNotNow, saveNotNow } from '../storage/stillMattersNotNow.ts'
 import { readTodayView, saveTodayView, type TodayViewMode } from '../storage/viewPreference.ts'
+import { useDelete, type UseDelete } from './useDelete.ts'
 import { useQueue } from './useQueue.ts'
 import { useStoredWeeks, type WeeksRead } from './useStoredWeeks.ts'
 
@@ -76,6 +77,8 @@ export type UseDay = {
   pull: (bankTaskId: string) => void
   sendToBank: (taskId: string) => void
   swap: (taskId: string, bankTaskId: string) => void
+  // A task made by mistake: asked once, then sent; the week is read again once it's gone.
+  deleting: UseDelete<Task>
   answerQuitDay: (goalId: string, held: boolean) => void
   // Back to unknown: the answer and its urge rating.
   clearQuitDay: (goalId: string) => void
@@ -106,6 +109,11 @@ export function useDay(date: string, today: string): UseDay {
   const week = weeks?.[0]
   const plan = week && dayOf(week, date)
   const bank = week && bankOf(week)
+  const deleting = useDelete<Task>({
+    send: (task) => deleteTask(task.id),
+    done: reload,
+    failed: setMessage,
+  })
 
   function setView(next: TodayViewMode) {
     setViewState(next)
@@ -216,6 +224,7 @@ export function useDay(date: string, today: string): UseDay {
     pull,
     sendToBank,
     swap,
+    deleting,
     answerQuitDay,
     clearQuitDay,
     rateUrge,

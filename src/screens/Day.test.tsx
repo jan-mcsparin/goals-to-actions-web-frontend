@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -8,6 +8,7 @@ import {
   clearQuitDay,
   clearUrgeRating,
   createGoal,
+  deleteTask,
   getWeek,
   placeTask,
   rateUrge,
@@ -24,6 +25,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     placeTask: vi.fn(actual.placeTask),
     moveTaskToBank: vi.fn(actual.moveTaskToBank),
     swapTasks: vi.fn(actual.swapTasks),
+    deleteTask: vi.fn(actual.deleteTask),
     answerStillMatters: vi.fn(actual.answerStillMatters),
     answerQuitDay: vi.fn(actual.answerQuitDay),
     clearQuitDay: vi.fn(actual.clearQuitDay),
@@ -386,12 +388,15 @@ describe('Day', () => {
     expect(trash.getAttribute('aria-checked')).toBe('true')
   })
 
-  it('keeps fixed-day items in place: no menu, but they can still be checked off', async () => {
+  it('keeps fixed-day items in place: their menu only deletes, and they can still be checked off', async () => {
     const user = userEvent.setup()
     render(<Day date="2026-11-10" today={WEDNESDAY_DAY} />)
 
     const trash = await screen.findByRole('checkbox', { name: 'Take out the trash' })
-    expect(screen.queryByRole('button', { name: 'More for Take out the trash' })).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'More for Take out the trash' }))
+    expect(screen.queryByRole('button', { name: 'Back to bank' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Delete (made by mistake)' })).toBeDefined()
+    await user.keyboard('{Escape}')
     await user.click(trash)
     expect(trash.getAttribute('aria-checked')).toBe('true')
   })
@@ -650,5 +655,62 @@ describe('Day, Still matter?', () => {
     render(<Day date="2026-11-12" today="2026-11-12" />)
 
     expect(await asking()).toBeDefined()
+  })
+
+  describe('deleting a task made by mistake', () => {
+    async function askToDelete(user: ReturnType<typeof userEvent.setup>, title: string) {
+      await user.click(await screen.findByRole('button', { name: `More for ${title}` }))
+      const actions = screen.getAllByRole('button').filter((button) => button.closest('.task-menu-actions'))
+      expect(actions.at(-1)?.textContent).toBe('Delete (made by mistake)')
+      await user.click(screen.getByRole('button', { name: 'Delete (made by mistake)' }))
+    }
+
+    it('asks once, naming the task, then takes it off the day and the count', async () => {
+      const user = userEvent.setup()
+      render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+
+      await askToDelete(user, 'Fill out my ballot')
+      expect(screen.getByRole('heading', { name: 'Delete “Fill out my ballot”? It goes as if it was never made.' })).toBeDefined()
+      expect(deleteTask).not.toHaveBeenCalled()
+      await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+      await waitFor(() => expect(screen.queryByRole('checkbox', { name: 'Fill out my ballot' })).toBeNull())
+      expect(deleteTask).toHaveBeenCalledExactlyOnceWith('task-ballot')
+      expect(screen.getByText('0 of 3 done')).toBeDefined()
+    })
+
+    it('sends nothing on Cancel', async () => {
+      const user = userEvent.setup()
+      render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+
+      await askToDelete(user, 'Fill out my ballot')
+      await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+      expect(deleteTask).not.toHaveBeenCalled()
+      expect(screen.getByRole('checkbox', { name: 'Fill out my ballot' })).toBeDefined()
+    })
+
+    it('keeps the task, with a message, when it can\'t be deleted', async () => {
+      vi.mocked(deleteTask).mockRejectedValueOnce(new Error('offline'))
+      const user = userEvent.setup()
+      render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+
+      await askToDelete(user, 'Fill out my ballot')
+      await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+      expect(await screen.findByText("Couldn't delete that. Try again.")).toBeDefined()
+      expect(screen.getByRole('checkbox', { name: 'Fill out my ballot' })).toBeDefined()
+      expect(screen.getByText('0 of 4 done')).toBeDefined()
+    })
+
+    it('deletes a fixed-day task the app placed', async () => {
+      const user = userEvent.setup()
+      render(<Day date="2026-11-10" today={WEDNESDAY_DAY} />)
+
+      await askToDelete(user, 'Take out the trash')
+      await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+      await waitFor(() => expect(screen.queryByRole('checkbox', { name: 'Take out the trash' })).toBeNull())
+    })
   })
 })

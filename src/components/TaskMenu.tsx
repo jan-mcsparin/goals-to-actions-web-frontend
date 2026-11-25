@@ -3,14 +3,17 @@ import './TaskMenu.css'
 
 type TaskMenuProps = {
   taskTitle: string
-  onSendToBank: () => void
+  // Left out for a fixed-day task, which stays on its day.
+  onSendToBank?: () => void
   onSwap?: () => void
+  // Always last: for a task made by mistake (spec 038).
+  onDelete?: () => void
 }
 
-// A disclosure: "⋯" shows two actions below it. The first tap anywhere else
+// A disclosure: "⋯" shows its actions below it, Delete always last. The first tap anywhere else
 // only closes it, so it can't also check off a task or open another menu.
 // Escape closes it and puts focus back on the button.
-export function TaskMenu({ taskTitle, onSendToBank, onSwap }: TaskMenuProps) {
+export function TaskMenu({ taskTitle, onSendToBank, onSwap, onDelete }: TaskMenuProps) {
   const [open, setOpen] = useState(false)
   const container = useRef<HTMLDivElement>(null)
   const toggle = useRef<HTMLButtonElement>(null)
@@ -55,12 +58,19 @@ export function TaskMenu({ taskTitle, onSendToBank, onSwap }: TaskMenuProps) {
       </button>
       {open && (
         <div id={actionsId} className="task-menu-actions">
-          <button type="button" onClick={() => choose(onSendToBank)}>
-            Back to bank
-          </button>
+          {onSendToBank && (
+            <button type="button" onClick={() => choose(onSendToBank)}>
+              Back to bank
+            </button>
+          )}
           {onSwap && (
             <button type="button" onClick={() => choose(onSwap)}>
               Swap
+            </button>
+          )}
+          {onDelete && (
+            <button type="button" onClick={() => choose(onDelete)}>
+              Delete (made by mistake)
             </button>
           )}
         </div>
