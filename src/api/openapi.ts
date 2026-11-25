@@ -1360,7 +1360,7 @@ export interface components {
         NewTask: {
             /**
              * Day
-             * @description A day to put it on, placed by hand. A day no longer allowed (a past day, or one outside the open weeks) saves it in the current week's bank instead.
+             * @description A day from today on, in this week or a later one. The task is placed there by hand. A day before today goes to the current week's bank.
              */
             day?: string | null;
             /** Duedate */
@@ -1394,6 +1394,7 @@ export interface components {
             /**
              * Day
              * Format: date
+             * @description A day from today on. A task added by hand can go to another week; a generated one stays in its own.
              */
             day: string;
             /**
