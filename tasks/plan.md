@@ -1,38 +1,41 @@
-# Implementation Plan: A quitting goal's daily answer and urge rating (#37)
+# Implementation Plan: Edit a recurring item (#76)
 
-Spec: [`../specs/037-quitting-goal-daily-answer.md`](../specs/037-quitting-goal-daily-answer.md). Issue: [#37](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/37). Tasks: [`todo.md`](todo.md). (Plans for earlier specs are in git history.)
+Spec: [`../specs/076-edit-recurring-item.md`](../specs/076-edit-recurring-item.md). Issue: [#76](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/76). Tasks: [`todo.md`](todo.md). (Plans for earlier specs are in git history.)
 
 ## Overview
 
-A quiet Held / Slipped row per active quitting goal on Today and an opened day, an optional Low · Some · Strong urge rating once answered, and the goal page's record ("12 days held", the last 28 days). Every answer and rating goes through the queue, so it shows at once and works offline.
+A recurring row on an active aspiration's page or on Keep life running opens a sheet: the Add sheet's recurring form, filled in, with Save and Cancel, and Pause or Resume below it. Saving and pausing wait for the server (not queued); the list is then read again. A paused item stays listed as "Paused". API #49 is built, so an edit moves this week's work on the server; the phone only reads it again.
 
 ## Architecture decisions
 
-- **Four queue kinds** in `domain/replay.ts`'s `Change`: `answerQuitDay { goalId, day, held }`, `clearQuitDay { goalId, day }`, `rateUrge { goalId, day, level }`, `clearUrgeRating { goalId, day }`. Each states its end result, so sending twice is harmless. A 409 (day before the start, in the future, after the end) drops it, as now. Replay sets the day in `week.quittingGoals[].days`; it does nothing when the goal or day isn't in the week.
-- **Client functions** in `realGoals.ts` (`PUT /goals/{id}/quit-days/{day}`, `POST …/clear`, `PUT /goals/{id}/urges/{day}`, `POST …/clear`), marked queued like the plan writes, with mock twins in `client.ts`. The mock keeps quit days in `store.quitDays` (one row per goal and day, `held` and `urge`) and builds `quittingGoals` and `quitRecord` the API's way: run = held answers since the last no; `unknownInRun` = unanswered days before today inside the run.
-- **`domain/quitting.ts`** (new, no React): a day's row (`unanswered` / `held` / `slipped`, urge, or nothing for a future day), the run line ("12 days held", "12 days held · 2 not answered"), the 28 days' wording (Held, Slipped, a dash; with the urge), and `withQueuedQuitDays(record, goalId, changes)`, the same rules over the goal read's record.
-- **Clear means back to unknown:** clearing an answer also clears its urge rating when there is one (two queued changes). Otherwise a hidden rating would come back when the day is answered again.
-- **Today and an opened day:** `useDay` returns `quitRows` from the replayed week and `answerQuitDay(goalId, held)`, `clearQuitDay(goalId)`, `rateUrge(goalId, level | null)`. Rows sit under the tasks (above Free time), are never counted in progress, and show on an empty day too. `components/QuitDayRow.tsx` renders one: unanswered shows Held and Slipped; answered shows the answer as a button that opens Held · Slipped · Clear, plus Low · Some · Strong (tapping the chosen level clears it).
-- **Goal page:** `useGoal` replays the queue's quit changes over `quitRecord` (via `useQueue`) and reads the goal again on `onEmptied`, so the run's number is always the server's (decision 4). `goalPage` swaps "Since Nov 3" for the run line and adds the 28 days. Tapping a day opens `QuitDaySheet` (native `<dialog>`, `useModalDialog`) holding the same `QuitDayRow` controls for that day.
+- **Client functions** in `realPlan.ts`: `updateRecurringItem(id, edit)` (`PATCH /recurring-items/{id}`, the whole `RecurringItemEdit`), `turnOffRecurringItem(id)`, `turnOnRecurringItem(id)` (`POST …/turn-off`, `…/turn-on`). Not queued. Mock twins in `client.ts`. Types regenerated from `../api/openapi.json` first (it also carries 038's delete, unused here).
+- **The mock** keeps it small: an edit changes the item and renames its open tasks; turning off sets its waiting tasks aside in the current week (as `pauseWork` does for a retired aspiration's items); turning on returns them to the bank. It doesn't move tasks between days on an edit: the API decides that, and no test or click-through needs the mock to imitate it.
+- **`getUpkeep` keeps paused items** (real and mock), so Keep life running lists them. An active aspiration's page lists its paused items too (`domain/aspiration.ts`, which today drops them on the active page).
+- **`domain/add.ts`:** `recurringDraftOf(item)` (the inverse of `scheduleOf`; the picker not in use keeps its default), `recurringEditInput(draft, item)` (keeps the item's `startsOn`; `fromGoalId` isn't part of `RecurringItemEdit`), and `recurringChanged(draft, item)`. Rows read "Paused" in place of the repeat (`domain/upkeep.ts` gains `paused` like the aspiration row).
+- **`hooks/useRecurringEdit.ts`:** takes the items on the screen and the screen's `reload`. `open(itemId)`, `close()`, and while open: `draft`, `change`, `canSave` (changed and named), `paused`, `message`, `save()`, `pause()`, `resume()`. Each write waits for the server; on success the sheet closes (save) or shows the new state (pause/resume), and the screen reads its record again. On failure the sheet stays with what was typed and "Couldn't save that. Try again." A second tap while a write is on its way does nothing. The aspiration picker's choices come from `getChoices()` when the sheet opens, as the Add sheet loads them.
+- **Today and Week** need nothing new: they show the stored week, then read it fresh when opened (043b), which carries the API's moves.
+- **`components/RecurringEditSheet.tsx`:** native `<dialog>` (`useModalDialog`, `useBackdropClose`), titled "Edit recurring", holding `RecurringForm` filled in, then Pause or Resume. `RecurringForm` gains an optional `onCancel` (shows Cancel beside Save). The sheet's bottom leaves room for 038's Delete under Pause.
+- **Screens:** rows become buttons (`Aspiration.tsx`'s `RecurringSection` on the active page only; `Upkeep.tsx`). The retired page's rows stay plain (spec, Accepted until later).
 
 ## Tasks
 
-1. **Queue kinds and real client functions.** `Change` gains the four kinds; replay rules over the week; `queue.ts` sends them; `realGoals.ts` functions with mock stubs. Tests: each rule, a rule with no matching goal or day; queue sends each to the right function; the real functions' requests. (M)
-2. **The mock's quit days.** `store.quitDays`; the four writes (refused before the start, in the future, on a non-quitting goal); `quittingGoals` in the week read; `quitRecord` in the goal read. Tests in `client.test.ts`: answer, change, clear, rate; the run and `unknownInRun`; a building goal refused. (M)
-3. **`domain/quitting.ts`.** Row state, run line, 28 days' wording, `withQueuedQuitDays`. Unit tests, including "a gap reads as a dash, never a slip". (S)
-4. **The row on Today and an opened day.** `useDay`, `QuitDayRow`, `Day.tsx`, CSS. Tests: answer, change, clear (clears the urge too), rate and unrate on Today; an opened past day; nothing on a future day; "1 of 4 done" unchanged; no row for a building or one-off goal. (M)
-5. **The goal page's record.** `goalDetail.ts`, `useGoal`, `GoalDetail.tsx`, `QuitDaySheet`. Tests: run line with and without unknown days; the 28 days; answering a day two weeks back shows at once and the goal is read again once the queue empties. (M)
-6. **Docs and check.** This repo's `CLAUDE.md` (what's queued), `../docs/screens/README.md` (Today, Goal detail, "Not yet on screen"), `../docs/flows.md` flow 2 if needed, ADR-010 "Built" notes, spec status, specs README. Sonnet agent runs the manual checks at phone width against the local API. (S)
+1. **Client functions and the mock.** Regenerate types; `updateRecurringItem`, `turnOffRecurringItem`, `turnOnRecurringItem` real and mock; `getUpkeep` keeps paused items. Tests: the real requests; the mock's edit renames open tasks, off sets them aside, on brings them back to the bank; Keep life running includes a paused item. Files: `api/openapi.ts`, `api/realPlan.ts`(+test), `api/client.ts`(+test). (M)
+2. **The draft, the edit body, "changed", and "Paused" rows.** `domain/add.ts`: `recurringDraftOf`, `recurringEditInput`, `recurringChanged`; `domain/upkeep.ts`: paused rows read "Paused"; `domain/aspiration.ts`: the active page keeps paused items. Tests: each schedule kind round-trips; `startsOn` kept; each field counts as a change; paused rows on both lists. (M)
+3. **The hook and the sheet.** `hooks/useRecurringEdit.ts`, `components/RecurringEditSheet.tsx`, `RecurringForm`'s Cancel. Tests (hook): opens filled in; Save off until changed; save sends the body, closes and reloads; a failure keeps the draft with the message; pause and resume call the API and reload; a second tap while saving does nothing. (M)
+4. **Keep life running opens the sheet.** `useUpkeep` exposes `reload` and the items; `Upkeep.tsx` rows become buttons. Tests (screen): a row opens the sheet filled in; renaming saves and the row shows the new name; moving it under an aspiration takes it off the list; pause shows "Paused". (S)
+5. **An aspiration's page opens the sheet.** `useAspiration` passes `reload` and its items; `Aspiration.tsx`'s active page rows become buttons. Tests (screen): row opens the sheet; a new repeat shows on the row; moving to none takes it off the page; pause and resume; a failed save keeps the sheet and its text. (S)
+6. **Docs and the check.** `../docs/screens/README.md` (Aspiration and Keep life running: rows open the sheet; paused rows); `docs/flows.md` already says what an edit does (API #49). Spec 076 marked built, specs index updated. A Sonnet agent runs the spec's manual checks at phone width against the local API. (S)
 
-## Checkpoints
+### Checkpoints
 
-- After 1–3: tests, lint and build pass; `npm run dev:mock` week read carries quit days.
-- After 4–5: whole suite; the click-through answers from Today and the goal page.
-- After 6: Sonnet agent's manual run; PR "Closes #37".
+- After 2: tests, lint and build pass.
+- After 5: the full suite, lint and build; the sheet works in `npm run dev:mock`.
+- After 6: the Sonnet agent's check; PR "Closes #76". The docs change goes in its own PR in the parent repo.
 
 ## Risks
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Goal page replays a change the week read never settles (no week read while there) | Low: the change states its end result, so it matches the server's | Overlay only; `onEmptied` reload brings the server's run |
-| The week read's days list may leave out future days | Low | The row shows nothing for a future day either way |
+| `scheduleOf` has no option for a schedule the API holds (a monthly day past 28, a flexible count beyond the options) | Med: the sheet couldn't show it | `recurringDraftOf` falls back to the defaults only if the value has no option; tests cover each offered schedule. Items are only made through the Add sheet today, so none should exist |
+| The aspiration choices fail to load | Low | As the Add sheet: the picker offers None and the item's own aspiration, with the Add sheet's note |
+| Today briefly shows the stored week before the fresh read | Low | That's ADR-010's design; the fresh read lands within the load |
