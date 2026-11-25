@@ -2,7 +2,8 @@
 // revision changes, keeping what's shown meanwhile. Only the newest load lands.
 // The screen's one message slot lives here too: a failed load fills it, and a
 // later load that works clears it, but leaves a save message alone (the reload
-// doesn't redo the save). A record that isn't there is reported as notFound.
+// doesn't redo the save). A record that isn't there is reported as notFound, and
+// `forget()` drops the kept response once the record has been deleted (spec 038).
 // Signed out says nothing here: the sign-in page is the message.
 //
 // Each read's last response is kept on the phone under `key` (ADR-010), so the
@@ -26,6 +27,7 @@ export type Loaded<T> = {
   setMessage: Dispatch<SetStateAction<string | undefined>>
   notFound: boolean
   reload: () => Promise<void>
+  forget: () => Promise<void>
 }
 
 // `load` must be stable: a module function, or wrapped in useCallback with the
@@ -114,5 +116,10 @@ export function useLoaded<T>(key: string, load: () => Promise<T>, loadFailed: st
     planStore().responses.put(dataKey, data).catch(() => {})
   }, [dataKey, data])
 
-  return { data, setData, message, setMessage, notFound, reload }
+  async function forget() {
+    ++newestRead.current // a read still on its way lands nothing
+    await planStore().responses.delete(key).catch(() => {})
+  }
+
+  return { data, setData, message, setMessage, notFound, reload, forget }
 }

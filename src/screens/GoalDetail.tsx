@@ -22,7 +22,7 @@ import {
   type RecordSection,
   type ShownRow,
 } from '../domain/goalDetail.ts'
-import { deleteMilestoneLine } from '../domain/deleting.ts'
+import { deleteGoalLine, deleteMilestoneLine } from '../domain/deleting.ts'
 import { useGoal, type ShownTimeline } from '../hooks/useGoal.ts'
 import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
 import type { GoalOrigin } from '../hooks/useNavigation.ts'
@@ -71,6 +71,11 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
   useEffect(() => {
     if (notFound) onNotFound()
   }, [notFound, onNotFound])
+
+  // Deleted: back to where it was opened from.
+  useEffect(() => {
+    if (goal.deleted) onBack()
+  }, [goal.deleted, onBack])
 
   function closeSheet() {
     setSheet(undefined)
@@ -149,6 +154,9 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
               </button>
             </div>
           )}
+          <button type="button" className="goal-action goal-delete" onClick={() => goal.deletingGoal.ask(goalId)}>
+            Delete goal
+          </button>
         </>
       )}
 
@@ -185,6 +193,12 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
           if (openedMilestone) goal.deletingMilestone.ask(openedMilestone.milestoneId)
         }}
         onClose={closeMilestoneSheet}
+      />
+      <DeleteSheet
+        open={goal.deletingGoal.asking !== undefined}
+        question={page ? deleteGoalLine(page.header.label) : ''}
+        onDelete={() => void goal.deletingGoal.confirm()}
+        onClose={goal.deletingGoal.cancel}
       />
       <DeleteSheet
         open={goal.deletingMilestone.asking !== undefined}

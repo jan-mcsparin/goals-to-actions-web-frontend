@@ -1,8 +1,9 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { answerQuitDay, createGoal, deleteMilestone, getGoal, setWeeklyTarget } from '../api/client.ts'
+import { answerQuitDay, createGoal, deleteGoal, deleteMilestone, getGoal, getWeek, NotFoundError, setWeeklyTarget } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
+import { planStore } from '../storage/planStore.ts'
 import type { GoalOrigin } from '../hooks/useNavigation.ts'
 import { GoalDetail } from './GoalDetail.tsx'
 
@@ -14,6 +15,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     setWeeklyTarget: vi.fn(actual.setWeeklyTarget),
     answerQuitDay: vi.fn(actual.answerQuitDay),
     deleteMilestone: vi.fn(actual.deleteMilestone),
+    deleteGoal: vi.fn(actual.deleteGoal),
   }
 })
 
@@ -503,6 +505,66 @@ describe('GoalDetail, deleting a milestone', () => {
 
     expect(await screen.findByText("Couldn't delete that. Try again.")).toBeDefined()
     expect(within(region).getByText(count!)).toBeDefined()
+  })
+})
+
+describe('GoalDetail, deleting the goal', () => {
+  async function askToDelete(user: ReturnType<typeof userEvent.setup>) {
+    const actions = await screen.findAllByRole('button', { name: /^(Pause|Resume|End goal|Delete goal)$/ })
+    expect(actions.at(-1)?.textContent).toBe('Delete goal')
+    await user.click(screen.getByRole('button', { name: 'Delete goal' }))
+  }
+
+  it('asks once, saying there is no undo, then goes back, its tasks gone from the week', async () => {
+    const user = userEvent.setup()
+    const { onBack } = renderGoal()
+
+    await askToDelete(user)
+    const asking = screen.getByRole('dialog', {
+      name: "Delete “Be strong”? Its tasks, milestones and check-ins go with it. There's no undo.",
+    })
+    expect(deleteGoal).not.toHaveBeenCalled()
+    await user.click(within(asking).getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => expect(onBack).toHaveBeenCalledOnce())
+    expect(deleteGoal).toHaveBeenCalledExactlyOnceWith('goal-strong')
+    await expect(getGoal('goal-strong')).rejects.toBeInstanceOf(NotFoundError)
+    expect((await getWeek()).tasks.some((task) => task.goalId === 'goal-strong')).toBe(false)
+    expect(await planStore().responses.get('goal/goal-strong')).toBeUndefined()
+  })
+
+  it('is offered on a goal that has ended', async () => {
+    const user = userEvent.setup()
+    renderGoal()
+
+    await user.click(await screen.findByRole('button', { name: 'End goal' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'End goal' })).getByRole('button', { name: 'End it for now' }))
+
+    expect(await screen.findByRole('button', { name: 'Delete goal' })).toBeDefined()
+  })
+
+  it('sends nothing on Cancel', async () => {
+    const user = userEvent.setup()
+    const { onBack } = renderGoal()
+
+    await askToDelete(user)
+    await user.click(within(screen.getByRole('dialog', { name: /^Delete “Be strong”/ })).getByRole('button', { name: 'Cancel' }))
+
+    expect(deleteGoal).not.toHaveBeenCalled()
+    expect(onBack).not.toHaveBeenCalled()
+  })
+
+  it("stays, with a message, when it can't be deleted", async () => {
+    vi.mocked(deleteGoal).mockRejectedValueOnce(new Error('offline'))
+    const user = userEvent.setup()
+    const { onBack } = renderGoal()
+
+    await askToDelete(user)
+    await user.click(within(screen.getByRole('dialog', { name: /^Delete “Be strong”/ })).getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText("Couldn't delete that. Try again.")).toBeDefined()
+    expect(onBack).not.toHaveBeenCalled()
+    expect(screen.getByRole('heading', { level: 1, name: 'Be strong' })).toBeDefined()
   })
 })
 
