@@ -1,7 +1,7 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { deleteAspiration, getAspiration, turnOnRecurringItem, updateAspiration } from '../api/client.ts'
+import { deleteAspiration, getAspiration, getWeek, turnOnRecurringItem, updateAspiration } from '../api/client.ts'
 import { resetStore, store } from '../api/mockStore.ts'
 import { planStore } from '../storage/planStore.ts'
 import { Aspiration } from './Aspiration.tsx'
@@ -508,5 +508,19 @@ describe('Aspiration, deleting it', () => {
 
     expect(await screen.findByText("Couldn't delete that. Try again.")).toBeDefined()
     expect(onBack).not.toHaveBeenCalled()
+  })
+})
+
+describe('Aspiration, deleting a recurring item', () => {
+  it('takes it off the page, and its open tasks off the week', async () => {
+    const user = userEvent.setup()
+    renderPage('asp-home')
+
+    await user.click(await screen.findByRole('button', { name: /^Laundry/ }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Edit recurring item' })).getByRole('button', { name: 'Delete' }))
+    await user.click(within(screen.getByRole('dialog', { name: /^Delete “Laundry”/ })).getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^Laundry/ })).toBeNull())
+    expect((await getWeek()).tasks.some((task) => task.title === 'Laundry' && task.state === 'open')).toBe(false)
   })
 })

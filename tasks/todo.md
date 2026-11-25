@@ -7,5 +7,5 @@
 - [x] 5. Delete a milestone
 - [x] 6. Delete a goal
 - [x] 7. Delete an aspiration
-- [ ] 8. Delete a recurring item
+- [x] 8. Delete a recurring item
 - [ ] 9. Docs and the check
