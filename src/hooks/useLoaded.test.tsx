@@ -151,3 +151,69 @@ describe('useLoaded', () => {
     expect(result.current.message).toBeUndefined()
   })
 })
+
+describe('useLoaded reload', () => {
+  it('reads the record again and shows the fresh one', async () => {
+    let name = 'Before'
+    const load = async () => ({ name })
+    const { result } = renderHook(() => useLoaded('goal/g1', load, LOAD_FAILED))
+    await waitFor(() => expect(result.current.data).toEqual({ name: 'Before' }))
+
+    name = 'After'
+    await act(async () => result.current.reload())
+
+    expect(result.current.data).toEqual({ name: 'After' })
+    await waitFor(async () => expect(await planStore().responses.get('goal/g1')).toEqual({ name: 'After' }))
+  })
+
+  it("keeps what's shown, and the save's message, when the reload fails", async () => {
+    let fails = false
+    const load = () => (fails ? Promise.reject(new TypeError('Failed to fetch')) : Promise.resolve({ name: 'Shown' }))
+    const { result } = renderHook(() => useLoaded('goal/g1', load, LOAD_FAILED))
+    await waitFor(() => expect(result.current.data).toEqual({ name: 'Shown' }))
+
+    act(() => result.current.setMessage("Couldn't save that. Try again."))
+    fails = true
+    await act(async () => result.current.reload())
+
+    expect(result.current.data).toEqual({ name: 'Shown' })
+    expect(result.current.message).toBe("Couldn't save that. Try again.")
+  })
+
+  it('says the load failed when the reload fails with nothing else to say', async () => {
+    let fails = false
+    const load = () => (fails ? Promise.reject(new TypeError('Failed to fetch')) : Promise.resolve({ name: 'Shown' }))
+    const { result } = renderHook(() => useLoaded('goal/g1', load, LOAD_FAILED))
+    await waitFor(() => expect(result.current.data).toEqual({ name: 'Shown' }))
+
+    fails = true
+    await act(async () => result.current.reload())
+
+    expect(result.current.message).toBe(LOAD_FAILED)
+  })
+
+  it('lets only the newest reload land', async () => {
+    const answers = [deferred<{ name: string }>(), deferred<{ name: string }>()]
+    let loads = 0
+    const load = () => (loads++ === 0 ? Promise.resolve({ name: 'First' }) : answers[loads - 2].promise)
+    const { result } = renderHook(() => useLoaded('goal/g1', load, LOAD_FAILED))
+    await waitFor(() => expect(result.current.data).toEqual({ name: 'First' }))
+
+    let older!: Promise<void>
+    let newer!: Promise<void>
+    act(() => {
+      older = result.current.reload()
+      newer = result.current.reload()
+    })
+    await act(async () => {
+      answers[1].resolve({ name: 'Newer' })
+      await newer
+    })
+    await act(async () => {
+      answers[0].resolve({ name: 'Older' })
+      await older
+    })
+
+    expect(result.current.data).toEqual({ name: 'Newer' })
+  })
+})
