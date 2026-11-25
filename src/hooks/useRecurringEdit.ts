@@ -48,7 +48,6 @@ export function useRecurringEdit(items: RecurringItem[] | undefined, reload: () 
   useEffect(() => {
     if (itemId === undefined) return
     let current = true
-    setChoicesFailed(false)
     getChoices()
       .then((choices) => current && setAspirations(aspirationChoices(choices.aspirations)))
       .catch(() => current && setChoicesFailed(true))
@@ -63,6 +62,7 @@ export function useRecurringEdit(items: RecurringItem[] | undefined, reload: () 
     setItemId(id)
     setDraft(recurringDraftOf(opening))
     setMessage(undefined)
+    setChoicesFailed(false)
   }
 
   function close() {
