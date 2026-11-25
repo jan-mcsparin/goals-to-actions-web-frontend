@@ -6,4 +6,4 @@
 - [x] 4. useSavesOnTheirWay and useAspiration
 - [x] 5. useSettings intensity
 - [x] 6. useGoal
-- [ ] 7. Docs and check
+- [x] 7. Docs and check
