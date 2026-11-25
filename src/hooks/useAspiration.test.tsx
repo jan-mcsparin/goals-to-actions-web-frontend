@@ -10,6 +10,7 @@ import {
 import { resetStore } from '../api/mockStore.ts'
 import type { ActivePage } from '../domain/aspiration.ts'
 import { useAspiration } from './useAspiration.ts'
+import { useFleetingMessage } from './useFleetingMessage.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
@@ -195,5 +196,73 @@ describe('useAspiration', () => {
 
     await waitFor(() => expect(result.current.message).toBe("Couldn't load this aspiration. Try again in a moment."))
     expect(result.current.notFound).toBe(false)
+  })
+})
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
+describe('useAspiration, saves that overlap', () => {
+  it("ends on the API's aspiration, with a message, when an edit fails after a later save worked", async () => {
+    const editing = deferred<never>()
+    vi.mocked(updateAspiration).mockReturnValueOnce(editing.promise)
+    const { result } = renderHook(() => useAspiration('asp-fit', TODAY))
+    await waitFor(() => expect(result.current.page).toBeDefined())
+
+    act(() => result.current.edit({ name: 'Be fit for life', why: '' }))
+    await act(async () => result.current.move('down'))
+    await act(async () => editing.reject(new Error('offline')))
+
+    await waitFor(() => expect(result.current.page).toMatchObject({ name: 'Be fit' }))
+    expect(priorityOf(result.current.page).line).toBe('2nd of 2 aspirations')
+    expect(result.current.message).toBe("Couldn't save that. Try again.")
+  })
+
+  it("ends on the API's order when two moves go at the same instant", async () => {
+    const { result } = renderHook(() => useAspiration('asp-fit', TODAY))
+    await waitFor(() => expect(result.current.page).toBeDefined())
+
+    // Both read the same page; the API refuses the second, as it's already last.
+    await act(async () => {
+      result.current.move('down')
+      result.current.move('down')
+    })
+
+    await waitFor(() => expect(result.current.message).toBe("Couldn't save that. Try again."))
+    await waitFor(() => expect(priorityOf(result.current.page).line).toBe('2nd of 2 aspirations'))
+  })
+
+  it('shows the message for each of two saves failing more than 5 s apart', async () => {
+    const editing = deferred<never>()
+    const moving = deferred<never>()
+    vi.mocked(updateAspiration).mockReturnValueOnce(editing.promise)
+    vi.mocked(moveAspiration).mockReturnValueOnce(moving.promise)
+    const { result } = renderHook(() => {
+      const aspiration = useAspiration('asp-fit', TODAY)
+      const shown = useFleetingMessage(aspiration.message, { onGone: aspiration.clearMessage })
+      return { aspiration, shown }
+    })
+    await waitFor(() => expect(result.current.aspiration.page).toBeDefined())
+    vi.useFakeTimers()
+
+    act(() => {
+      result.current.aspiration.edit({ name: 'Be fit for life', why: '' })
+      result.current.aspiration.move('down')
+    })
+    await act(async () => editing.reject(new Error('offline')))
+    expect(result.current.shown.shown).toBe("Couldn't save that. Try again.")
+
+    act(() => vi.advanceTimersByTime(6000))
+    expect(result.current.shown.shown).toBeUndefined()
+
+    await act(async () => moving.reject(new Error('offline')))
+    expect(result.current.shown.shown).toBe("Couldn't save that. Try again.")
   })
 })

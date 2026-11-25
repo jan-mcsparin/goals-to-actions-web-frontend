@@ -1,7 +1,8 @@
 // One aspiration's page, ready to render, plus the ways to manage it. Loads
 // through the API client; the layout comes from domain/aspiration.ts. An
 // aspiration that isn't there is reported as not found, so the screen can go
-// back quietly. Changes show at once and roll back if the save fails.
+// back quietly. Changes show at once; if a save fails, the page is read again
+// once the saves on their way are done (useSavesOnTheirWay).
 import { useCallback, useRef } from 'react'
 import {
   bringBackAspiration,
@@ -20,9 +21,9 @@ import {
   type NameAndWhy,
 } from '../domain/aspiration.ts'
 import { useLoaded } from './useLoaded.ts'
+import { SAVE_FAILED, useSavesOnTheirWay } from './useSavesOnTheirWay.ts'
 
 const LOAD_FAILED = "Couldn't load this aspiration. Try again in a moment."
-const SAVE_FAILED = "Couldn't save that. Try again."
 
 export type UseAspiration = {
   page?: AspirationPage
@@ -40,27 +41,18 @@ export type UseAspiration = {
 }
 
 export function useAspiration(aspirationId: string, today: string): UseAspiration {
-  const { data: detail, setData: setDetail, message, setMessage, notFound } = useLoaded(
+  const { data: detail, setData: setDetail, message, setMessage, notFound, reload } = useLoaded(
     `aspiration/${aspirationId}`,
     useCallback(() => getAspiration(aspirationId), [aspirationId]),
     LOAD_FAILED,
   )
-  const latestSave = useRef(0)
+  const track = useSavesOnTheirWay(reload, setMessage)
   const bringingBack = useRef(false)
 
-  // Shows the change, saves it, and puts back what was there if the save
-  // fails. Only the newest save may roll back, so quick taps settle on the last.
   function saveOptimistically(change: (before: AspirationDetail) => AspirationDetail, save: () => Promise<unknown>) {
     if (!detail) return
-    const before = detail
-    const request = ++latestSave.current
-    setDetail(change(before))
-    setMessage(undefined)
-    save().catch(() => {
-      if (request !== latestSave.current) return
-      setDetail(before)
-      setMessage(SAVE_FAILED)
-    })
+    setDetail((before) => before && change(before))
+    track(save())
   }
 
   function edit(changes: NameAndWhy) {
