@@ -89,6 +89,7 @@ function AddSheetBody({ origin, today, onSaved, onChanged, onClose }: AddSheetBo
           draft={add.task}
           goals={add.goals}
           goalsMessage={add.goalsMessage}
+          today={today}
           canSave={add.canSave}
           message={add.message}
           onChange={add.editTask}
