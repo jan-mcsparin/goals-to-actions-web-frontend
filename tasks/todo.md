@@ -1,9 +1,8 @@
-# 017: Report every failed save
+# 037: A quitting goal's daily answer and urge rating
 
-- [x] 1. onGone in useFleetingMessage
-- [x] 2. Every screen hands over onGone
-- [x] 3. reload() in useLoaded
-- [x] 4. useSavesOnTheirWay and useAspiration
-- [x] 5. useSettings intensity
-- [x] 6. useGoal
-- [x] 7. Docs and check
+- [ ] 1. Queue kinds and real client functions
+- [ ] 2. The mock's quit days
+- [ ] 3. domain/quitting.ts
+- [ ] 4. The row on Today and an opened day
+- [ ] 5. The goal page's record
+- [ ] 6. Docs and check
