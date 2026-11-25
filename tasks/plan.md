@@ -30,7 +30,7 @@ A task, a milestone, a goal, an aspiration or a recurring item can be deleted. D
 
 ## Settled with Jan, 2026-11-25
 
-1. **Fixed-day tasks, which today have no ⋯ menu, get one holding only Delete.** Decision 5 says Delete is offered on tasks the app placed, and this is the only way to reach them. Done tasks still have no menu, as today.
+1. **Fixed-day tasks, which today have no ⋯ menu, get one holding only Delete.** Decision 5 says Delete is offered on tasks the app placed, and this is the only way to reach them. Done tasks still have no menu, as today. Moving a fixed-day task once (a holiday moves trash day) goes in #82's spec and joins this menu.
 2. **A goal's Delete shows in every state** (current, paused, reached, ended), always last.
 3. **A task's Delete is offered on Today and an opened day, past days included**, wherever its menu shows.
 
