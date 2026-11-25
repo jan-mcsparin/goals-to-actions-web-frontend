@@ -80,4 +80,21 @@ describe('useFleetingMessage', () => {
     rerender({ message: undefined, sticky: false })
     expect(result.current.shown).toBeUndefined()
   })
+
+  it('says when the message fades, so the screen can let it go', () => {
+    const onGone = vi.fn()
+    renderHook(() => useFleetingMessage(SAVE_FAILED, { onGone }))
+    act(() => vi.advanceTimersByTime(4999))
+    expect(onGone).not.toHaveBeenCalled()
+
+    act(() => vi.advanceTimersByTime(1))
+    expect(onGone).toHaveBeenCalledOnce()
+  })
+
+  it('says when the message is tapped away', () => {
+    const onGone = vi.fn()
+    const { result } = renderHook(() => useFleetingMessage(LOAD_FAILED, { sticky: true, onGone }))
+    act(() => result.current.dismiss())
+    expect(onGone).toHaveBeenCalledOnce()
+  })
 })
