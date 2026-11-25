@@ -15,6 +15,11 @@ import {
   checkIn,
   checkOffTask,
   createGoal,
+  deleteAspiration,
+  deleteGoal,
+  deleteMilestone,
+  deleteRecurringItem,
+  deleteTask,
   endGoal,
   getAspiration,
   getAspirations,
@@ -1941,5 +1946,82 @@ describe('turnOffRecurringItem and turnOnRecurringItem', () => {
   it('rejects an unknown item', async () => {
     await expect(turnOffRecurringItem('rec-nope')).rejects.toThrow()
     await expect(turnOnRecurringItem('rec-nope')).rejects.toThrow()
+  })
+})
+
+// As api/specs/delete.md's table: what goes with each, and what stays.
+describe('the deletes', () => {
+  async function weekTaskIds(): Promise<string[]> {
+    return (await getWeek()).tasks.map((task) => task.id)
+  }
+
+  it('deleteTask takes the task off the week', async () => {
+    await deleteTask('task-move-car')
+
+    expect(await weekTaskIds()).not.toContain('task-move-car')
+  })
+
+  it("deleteMilestone takes its check-ins, renumbers the rest and returns the goal's page", async () => {
+    store.checkIns.push({ id: 'ci-1', goalId: 'goal-strong', milestoneId: 'ms-strong-1', outcome: 'notYet', result: null, checkedInOn: '2026-11-10' })
+
+    const before = (await getGoal('goal-strong')).milestones.map((milestone) => milestone.id)
+
+    const page = await deleteMilestone('ms-strong-1')
+
+    expect(page.milestones.map((milestone) => [milestone.id, milestone.position])).toEqual(
+      before.filter((id) => id !== 'ms-strong-1').map((id, index) => [id, index + 1]),
+    )
+    expect(store.checkIns.some((checkIn) => checkIn.milestoneId === 'ms-strong-1')).toBe(false)
+  })
+
+  it('deleteGoal takes its tasks, milestones, check-ins and targets, and leaves an item continued from it', async () => {
+    store.recurringItems[0].fromGoalId = 'goal-strong'
+
+    await deleteGoal('goal-strong')
+
+    await expect(getGoal('goal-strong')).rejects.toBeInstanceOf(NotFoundError)
+    expect((await getWeek()).tasks.some((task) => task.goalId === 'goal-strong')).toBe(false)
+    expect(store.milestones.some((milestone) => milestone.goalId === 'goal-strong')).toBe(false)
+    expect(store.checkIns.some((checkIn) => checkIn.goalId === 'goal-strong')).toBe(false)
+    expect(store.weeklyTargets.some((target) => target.goalId === 'goal-strong')).toBe(false)
+    expect(store.recurringItems[0].fromGoalId).toBeNull()
+    expect((await getAspirations()).goals.map((goal) => goal.id)).not.toContain('goal-strong')
+  })
+
+  it('deleteAspiration leaves its goals and items with none, and renumbers the rest', async () => {
+    const active = (await getAspirations()).aspirations.filter((aspiration) => aspiration.position !== null).length
+
+    await deleteAspiration('asp-fit')
+
+    const overview = await getAspirations()
+    expect(overview.aspirations.map((aspiration) => aspiration.id)).not.toContain('asp-fit')
+    expect(overview.aspirations.filter((aspiration) => aspiration.position !== null).map((aspiration) => aspiration.position)).toEqual(
+      Array.from({ length: active - 1 }, (_, index) => index + 1),
+    )
+    expect(overview.goals.find((goal) => goal.id === 'goal-strong')?.aspirationId).toBeNull()
+    expect((await getUpkeep()).recurringItems.map((item) => item.id)).toContain('rec-stretch')
+  })
+
+  it('deleteRecurringItem takes its open tasks and keeps its done ones, unlinked', async () => {
+    const done = store.tasks.find((task) => task.id === 'task-trash')!
+    done.state = 'done'
+    done.completedAt = '2026-11-17T07:00:00Z'
+    done.completedOn = '2026-11-17'
+
+    await deleteRecurringItem('rec-laundry')
+    await deleteRecurringItem('rec-trash')
+
+    const tasks = (await getWeek()).tasks
+    expect(tasks.some((task) => task.id === 'task-laundry')).toBe(false)
+    expect(tasks.find((task) => task.id === 'task-trash')?.recurringItemId).toBeNull()
+    expect((await getAspiration('asp-home')).recurringItems.map((item) => item.id)).not.toContain('rec-trash')
+  })
+
+  it('answers 404 for what is not there', async () => {
+    await expect(deleteTask('nope')).rejects.toBeInstanceOf(NotFoundError)
+    await expect(deleteMilestone('nope')).rejects.toBeInstanceOf(NotFoundError)
+    await expect(deleteGoal('nope')).rejects.toBeInstanceOf(NotFoundError)
+    await expect(deleteAspiration('nope')).rejects.toBeInstanceOf(NotFoundError)
+    await expect(deleteRecurringItem('nope')).rejects.toBeInstanceOf(NotFoundError)
   })
 })

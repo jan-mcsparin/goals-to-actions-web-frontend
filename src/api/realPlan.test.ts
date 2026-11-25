@@ -7,6 +7,8 @@ import {
   answerStillMatters,
   checkOffTask,
   createRecurringItem,
+  deleteRecurringItem,
+  deleteTask,
   turnOffRecurringItem,
   turnOnRecurringItem,
   updateRecurringItem,
@@ -224,5 +226,21 @@ describe('getUpkeep', () => {
     serve({ nextWeekOpen: true, next: [aTask('insurance', { week: '2026-11-23' })] })
 
     expect((await getUpkeep()).tasks.map((task) => task.id)).toEqual(['groceries', 'insurance', 'passport'])
+  })
+})
+
+describe('deleteTask and deleteRecurringItem', () => {
+  it('deletes a task', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }))
+
+    await expect(deleteTask('t1')).resolves.toBeUndefined()
+    expect(sent()).toEqual({ url: '/api/tasks/t1', method: 'DELETE', body: undefined })
+  })
+
+  it('deletes a recurring item', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }))
+
+    await expect(deleteRecurringItem('r1')).resolves.toBeUndefined()
+    expect(sent()).toEqual({ url: '/api/recurring-items/r1', method: 'DELETE', body: undefined })
   })
 })

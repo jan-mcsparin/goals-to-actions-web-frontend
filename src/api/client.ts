@@ -743,6 +743,55 @@ function checkDay(day: string, week: string) {
   if (toLocalDay(mondayOf(fromLocalDay(day))) !== week) throw new RefusedError('A task goes on a day in its own week')
 }
 
+// The deletes (spec 038), as api/specs/delete.md's table: what goes with each is removed from
+// the store, so a second delete is a 404, which the screens count as done.
+export async function deleteTask(taskId: string): Promise<void> {
+  if (realApi) return realPlan.deleteTask(taskId)
+  const task = findTask(taskId)
+  store.tasks = store.tasks.filter((candidate) => candidate !== task)
+}
+
+// Its check-ins go; the goal's other milestones move up (positions are worked out from the order).
+export async function deleteMilestone(milestoneId: string): Promise<GoalDetail> {
+  if (realApi) return realGoals.deleteMilestone(milestoneId)
+  const milestone = findMilestone(milestoneId)
+  store.milestones = store.milestones.filter((candidate) => candidate !== milestone)
+  store.checkIns = store.checkIns.filter((checkIn) => checkIn.milestoneId !== milestoneId)
+  return getGoal(milestone.goalId)
+}
+
+// Everything of the goal's goes; a recurring item continued from it stays, from no goal.
+export async function deleteGoal(goalId: string): Promise<void> {
+  if (realApi) return realGoals.deleteGoal(goalId)
+  const goal = findGoal(goalId)
+  store.goals = store.goals.filter((candidate) => candidate !== goal)
+  store.tasks = store.tasks.filter((task) => task.goalId !== goalId)
+  store.milestones = store.milestones.filter((milestone) => milestone.goalId !== goalId)
+  store.checkIns = store.checkIns.filter((checkIn) => checkIn.goalId !== goalId)
+  store.weeklyTargets = store.weeklyTargets.filter((target) => target.goalId !== goalId)
+  store.quitDays = store.quitDays.filter((quitDay) => quitDay.goalId !== goalId)
+  for (const item of store.recurringItems) if (item.fromGoalId === goalId) item.fromGoalId = null
+}
+
+// Its goals and recurring items stay, with no aspiration; the other active ones move up.
+export async function deleteAspiration(aspirationId: string): Promise<void> {
+  if (realApi) return real.deleteAspiration(aspirationId)
+  const aspiration = findAspiration(aspirationId)
+  store.aspirations = store.aspirations.filter((candidate) => candidate !== aspiration)
+  for (const goal of store.goals) if (goal.aspirationId === aspirationId) goal.aspirationId = null
+  for (const item of store.recurringItems) if (item.aspirationId === aspirationId) item.aspirationId = null
+  activeAspirations().forEach((active, index) => (active.position = index + 1))
+}
+
+// Its open tasks go; its done, dropped and lapsed ones stay in history, no longer linked to it.
+export async function deleteRecurringItem(itemId: string): Promise<void> {
+  if (realApi) return realPlan.deleteRecurringItem(itemId)
+  const item = findRecurringItem(itemId)
+  store.recurringItems = store.recurringItems.filter((candidate) => candidate !== item)
+  store.tasks = store.tasks.filter((task) => !(task.recurringItemId === itemId && task.state === 'open'))
+  for (const task of store.tasks) if (task.recurringItemId === itemId) task.recurringItemId = null
+}
+
 // The mock keeps one object per task, so a change made on a copy is put back on it.
 function replaceTask(stored: StoredTask, next: Task) {
   Object.assign(stored, next)

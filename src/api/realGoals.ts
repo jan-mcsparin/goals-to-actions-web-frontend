@@ -85,3 +85,13 @@ export async function rateUrge(goalId: string, day: string, level: UrgeLevel): P
 export async function clearUrgeRating(goalId: string, day: string): Promise<QuitDay> {
   return request('POST', `/goals/${goalId}/urges/${day}/clear`, undefined, QUEUED)
 }
+
+// For a mistake (spec 038): not queued. Its tasks, milestones, check-ins, targets and quit days go with it.
+export async function deleteGoal(goalId: string): Promise<void> {
+  return request('DELETE', `/goals/${goalId}`)
+}
+
+// Its check-ins go with it. Returns the goal's page, as every milestone write does.
+export async function deleteMilestone(milestoneId: string): Promise<GoalDetail> {
+  return request('DELETE', `/milestones/${milestoneId}`)
+}

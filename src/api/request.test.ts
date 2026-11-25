@@ -49,6 +49,16 @@ describe('request', () => {
     expect(result).toEqual(reply)
   })
 
+  it('sends a DELETE with no body', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
+
+    await expect(request('DELETE', '/tasks/t1')).resolves.toBeUndefined()
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/tasks/t1')
+    expect(init?.method).toBe('DELETE')
+    expect(init?.body).toBeUndefined()
+  })
+
   it('returns nothing for a 204', async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
 

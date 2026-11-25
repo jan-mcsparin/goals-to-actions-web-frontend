@@ -8,7 +8,7 @@ import { NotFoundError, RefusedError, SignedOutError } from './errors.ts'
 import { afterQueue } from './sendOrder.ts'
 import { signedOut, signIns } from './session.ts'
 
-export type Method = 'GET' | 'PUT' | 'PATCH' | 'POST'
+export type Method = 'GET' | 'PUT' | 'PATCH' | 'POST' | 'DELETE'
 
 // `queued`: one of the queue's own writes (api/queue.ts). Every other write
 // waits for the queue's send under way first; the queue's own get a time limit,
