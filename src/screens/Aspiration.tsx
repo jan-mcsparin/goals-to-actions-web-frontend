@@ -34,12 +34,12 @@ export function Aspiration({
   onAddGoal,
   onAddRecurring,
 }: AspirationProps) {
-  const { page, editing, message, notFound, edit, retire, bringBack, move } = useAspiration(
+  const { page, editing, message, clearMessage, notFound, edit, retire, bringBack, move } = useAspiration(
     aspirationId,
     today,
   )
   // With nothing loaded, the message is all there is, so it stays.
-  const shownMessage = useFleetingMessage(message, { sticky: !page })
+  const shownMessage = useFleetingMessage(message, { sticky: !page, onGone: clearMessage })
   const [sheet, setSheet] = useState<OpenSheet>()
 
   useEffect(() => {

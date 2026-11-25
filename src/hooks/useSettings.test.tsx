@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getSettings, setIntensity } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { Settings } from '../api/types.ts'
+import { useFleetingMessage } from './useFleetingMessage.ts'
 import { useSettings } from './useSettings.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
@@ -84,6 +85,24 @@ describe('useSettings', () => {
     act(() => result.current.exportData())
 
     await waitFor(() => expect(result.current.message).toBe('Coming later.'))
+  })
+
+  it('says export is coming later again on a second tap, once the first has gone', async () => {
+    const { result } = renderHook(() => {
+      const settings = useSettings()
+      const shown = useFleetingMessage(settings.message, { onGone: settings.clearMessage })
+      return { settings, shown }
+    })
+    await waitFor(() => expect(result.current.settings.loaded).toBe(true))
+    vi.useFakeTimers()
+
+    act(() => result.current.settings.exportData())
+    expect(result.current.shown.shown).toBe('Coming later.')
+    act(() => vi.advanceTimersByTime(5000))
+    expect(result.current.shown.shown).toBeUndefined()
+
+    act(() => result.current.settings.exportData())
+    expect(result.current.shown.shown).toBe('Coming later.')
   })
 
   it('says so when settings fail to load', async () => {

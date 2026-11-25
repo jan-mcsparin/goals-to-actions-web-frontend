@@ -21,9 +21,9 @@ type SettingsProps = {
 
 export function Settings({ onBack, onSignOut, signingOut, unsent, onCancelSignOut }: SettingsProps) {
   const [askingToSignOut, setAskingToSignOut] = useState(false)
-  const { loaded, intensity, chooseIntensity, exportData, message } = useSettings()
+  const { loaded, intensity, chooseIntensity, exportData, message, clearMessage } = useSettings()
   // With nothing loaded, the message stays.
-  const shownMessage = useFleetingMessage(message, { sticky: !loaded })
+  const shownMessage = useFleetingMessage(message, { sticky: !loaded, onGone: clearMessage })
 
   return (
     <main className="settings" aria-busy={!loaded && !message}>

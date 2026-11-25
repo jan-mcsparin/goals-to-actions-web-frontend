@@ -29,6 +29,9 @@ export type UseAspiration = {
   // What the edit sheet starts from.
   editing?: NameAndWhy
   message?: string
+  // Lets the message go once it has gone from the screen, so the same text set
+  // again shows again.
+  clearMessage: () => void
   notFound: boolean
   edit: (changes: NameAndWhy) => void
   retire: (itsWork: ItsWork) => Promise<boolean>
@@ -114,6 +117,7 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
     page: detail && aspirationPage(detail, today),
     editing: detail && { name: detail.aspiration.name, why: detail.aspiration.why ?? '' },
     message,
+    clearMessage: () => setMessage(undefined),
     notFound,
     edit,
     retire,

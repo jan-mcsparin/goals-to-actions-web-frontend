@@ -17,6 +17,9 @@ export type UseSettings = {
   loaded: boolean
   intensity?: Intensity
   message?: string
+  // Lets the message go once it has gone from the screen, so the same text set
+  // again shows again.
+  clearMessage: () => void
   chooseIntensity: (intensity: Intensity) => void
   exportData: () => void
 }
@@ -38,13 +41,17 @@ export function useSettings(): UseSettings {
     })
   }
 
-  // Cleared first and set a moment later, so a second tap after the line has
-  // gone counts as a new message and shows again.
   function exportData() {
     if (!settings) return
-    setMessage(undefined)
-    queueMicrotask(() => setMessage(EXPORT_LATER))
+    setMessage(EXPORT_LATER)
   }
 
-  return { loaded: settings !== undefined, intensity: settings?.intensity, message, chooseIntensity, exportData }
+  return {
+    loaded: settings !== undefined,
+    intensity: settings?.intensity,
+    message,
+    clearMessage: () => setMessage(undefined),
+    chooseIntensity,
+    exportData,
+  }
 }

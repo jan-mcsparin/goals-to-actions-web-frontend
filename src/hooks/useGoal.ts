@@ -64,6 +64,9 @@ export type UseGoal = {
   // "Milestone hit: …" after a hit, until the next change.
   justHit?: string
   message?: string
+  // Lets the message go once it has gone from the screen, so the same text set
+  // again shows again.
+  clearMessage: () => void
   notFound: boolean
   expand: () => void
   collapse: () => void
@@ -211,6 +214,7 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
     reopenDraftFor: (milestoneId) => (detail ? reopenDraft(detail, milestoneId) : { measurableLine: '', targetDate: '' }),
     justHit,
     message,
+    clearMessage: () => setMessage(undefined),
     notFound,
     expand: () => showAll(true),
     collapse: () => showAll(false),

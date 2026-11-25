@@ -1,7 +1,7 @@
 # 017: Report every failed save
 
 - [x] 1. onGone in useFleetingMessage
-- [ ] 2. Every screen hands over onGone
+- [x] 2. Every screen hands over onGone
 - [ ] 3. reload() in useLoaded
 - [ ] 4. useSavesOnTheirWay and useAspiration
 - [ ] 5. useSettings intensity

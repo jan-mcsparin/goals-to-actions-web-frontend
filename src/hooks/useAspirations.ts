@@ -9,10 +9,13 @@ const LOAD_FAILED = "Couldn't load your aspirations. Try again in a moment."
 export type UseAspirations = {
   view?: AspirationsView
   message?: string
+  // Lets the message go once it has gone from the screen, so the same text set
+  // again shows again.
+  clearMessage: () => void
 }
 
 export function useAspirations(): UseAspirations {
-  const { data: overview, message } = useLoaded('aspirations', getAspirations, LOAD_FAILED)
+  const { data: overview, message, setMessage } = useLoaded('aspirations', getAspirations, LOAD_FAILED)
 
-  return { view: overview && aspirationsView(overview), message }
+  return { view: overview && aspirationsView(overview), message, clearMessage: () => setMessage(undefined) }
 }

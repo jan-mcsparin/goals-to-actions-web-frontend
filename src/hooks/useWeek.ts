@@ -39,6 +39,9 @@ export type UseWeek = {
   range: string
   week?: WeekView
   message?: string
+  // Lets the message go once it has gone from the screen, so the same text set
+  // again shows again.
+  clearMessage: () => void
   // The toggle shows once next week is open; `view` is the one on show.
   view: WeekViewMode
   canViewNext: boolean
@@ -104,7 +107,18 @@ export function useWeek(today: string): UseWeek {
   const monday = view === 'next' ? weekAfter(mondayOfDay(today)) : mondayOfDay(today)
   const range = weekRange(plan?.week ?? monday)
   const title = view === 'next' ? 'Next week' : 'This week'
-  return { title, range, week: plan && viewOf(plan, today), message, view, canViewNext, setView, place, wrapUp }
+  return {
+    title,
+    range,
+    week: plan && viewOf(plan, today),
+    message,
+    clearMessage: () => setMessage(undefined),
+    view,
+    canViewNext,
+    setView,
+    place,
+    wrapUp,
+  }
 }
 
 function viewOf(plan: Week, today: string): WeekView {

@@ -12,9 +12,9 @@ type UpkeepProps = {
 }
 
 export function Upkeep({ today, onBack }: UpkeepProps) {
-  const { view, message } = useUpkeep(today)
+  const { view, message, clearMessage } = useUpkeep(today)
   // With nothing loaded, the message is all there is, so it stays.
-  const shownMessage = useFleetingMessage(message, { sticky: !view })
+  const shownMessage = useFleetingMessage(message, { sticky: !view, onGone: clearMessage })
 
   return (
     <main className="upkeep" aria-busy={!view && !message}>
