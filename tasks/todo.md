@@ -5,5 +5,5 @@
 - [x] 3. reload() in useLoaded
 - [x] 4. useSavesOnTheirWay and useAspiration
 - [x] 5. useSettings intensity
-- [ ] 6. useGoal
+- [x] 6. useGoal
 - [ ] 7. Docs and check

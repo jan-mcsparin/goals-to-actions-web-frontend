@@ -42,9 +42,9 @@ import {
 import { readTimelineExpanded, saveTimelineExpanded } from '../storage/timelinePreference.ts'
 import type { GoalOrigin } from './useNavigation.ts'
 import { useLoaded } from './useLoaded.ts'
+import { SAVE_FAILED, useSavesOnTheirWay } from './useSavesOnTheirWay.ts'
 
 const LOAD_FAILED = "Couldn't load this goal. Try again in a moment."
-const SAVE_FAILED = "Couldn't save that. Try again."
 
 export type ShownTimeline = {
   rows: ShownRow[]
@@ -82,13 +82,14 @@ export type UseGoal = {
 }
 
 export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoal {
-  const { data: detail, setData: setDetail, message, setMessage, notFound } = useLoaded(
+  const { data: detail, setData: setDetail, message, setMessage, notFound, reload } = useLoaded(
     `goal/${goalId}`,
     useCallback(() => getGoal(goalId), [goalId]),
     LOAD_FAILED,
   )
   const [expanded, setExpanded] = useState(() => readTimelineExpanded(goalId))
   const [justHit, setJustHit] = useState<string>()
+  const track = useSavesOnTheirWay(reload, setMessage)
   const pendingCount = useRef(0)
   const lastSave = useRef(0)
   const waiting = useRef(false)
@@ -100,8 +101,8 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
 
   // Shows the change, then saves it, then shows what the save returned. Only
   // the latest save is shown, so a slow first save can't flash over a quick
-  // second one. If a save fails, the goal is loaded again from the API and
-  // the message shows, whichever save it was.
+  // second one. If a save fails, the message shows, whichever save it was, and
+  // the goal is read again once no saves are on their way (useSavesOnTheirWay).
   function saveOptimistically<T>(
     change: (before: GoalDetail) => GoalDetail,
     save: () => Promise<T>,
@@ -109,18 +110,12 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
   ) {
     const thisSave = ++lastSave.current
     setDetail((before) => before && change(before))
-    setMessage(undefined)
-    save()
-      .then((saved) => thisSave === lastSave.current && setDetail((shown) => shown && settle(shown, saved)))
-      .catch(() => {
-        setJustHit(undefined)
-        setMessage(SAVE_FAILED)
-        getGoal(goalId)
-          .then(setDetail)
-          .catch(() => {
-            // Keeps what's shown; the message already says to try again.
-          })
-      })
+    const saving = save()
+    track(saving)
+    saving.then(
+      (saved) => thisSave === lastSave.current && setDetail((shown) => shown && settle(shown, saved)),
+      () => setJustHit(undefined),
+    )
   }
 
   // The goal that comes back has the target as saved, so a change waiting
