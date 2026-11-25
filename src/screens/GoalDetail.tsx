@@ -6,7 +6,9 @@ import { useEffect, useState } from 'react'
 import { AddMilestoneSheet } from '../components/AddMilestoneSheet.tsx'
 import { BackLink } from '../components/BackLink.tsx'
 import { CheckInSheet } from '../components/CheckInSheet.tsx'
+import { DeleteSheet } from '../components/DeleteSheet.tsx'
 import { EndGoalSheet } from '../components/EndGoalSheet.tsx'
+import { MilestoneSheet } from '../components/MilestoneSheet.tsx'
 import { QuitDaySheet } from '../components/QuitDaySheet.tsx'
 import { ReopenSheet } from '../components/ReopenSheet.tsx'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
@@ -15,10 +17,12 @@ import {
   shownRowKey,
   type CurrentPage,
   type GoalPage,
+  type MilestoneRow,
   type NotYetCard,
   type RecordSection,
   type ShownRow,
 } from '../domain/goalDetail.ts'
+import { deleteMilestoneLine } from '../domain/deleting.ts'
 import { useGoal, type ShownTimeline } from '../hooks/useGoal.ts'
 import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
 import type { GoalOrigin } from '../hooks/useNavigation.ts'
@@ -34,7 +38,7 @@ type GoalDetailProps = {
 }
 
 // One sheet at a time, and only from a tap.
-type OpenSheet = 'target' | 'milestone' | 'checkIn' | 'move' | 'adjust' | 'end'
+type OpenSheet = 'target' | 'milestone' | 'milestoneActions' | 'checkIn' | 'move' | 'adjust' | 'end'
 
 // What a check-in is for: a milestone, or the goal itself (no milestoneId).
 type CheckInTarget = { milestoneId?: string; measurableLine: string }
@@ -46,6 +50,8 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
   const shownMessage = useFleetingMessage(message, { sticky: !page, onGone: clearMessage })
   const [sheet, setSheet] = useState<OpenSheet>()
   const [checkingIn, setCheckingIn] = useState<CheckInTarget>()
+  // The milestone row tapped: its sheet offers Check in and Delete.
+  const [openedMilestone, setOpenedMilestone] = useState<MilestoneRow>()
   // The record's day being answered: shown from the page, so a change shows at once.
   const [answeringDay, setAnsweringDay] = useState<string>()
   const answering = page?.record?.days.find((day) => day.day === answeringDay)
@@ -57,12 +63,22 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
     setSheet('checkIn')
   }
 
+  function openMilestone(row: MilestoneRow) {
+    setOpenedMilestone(row)
+    setSheet('milestoneActions')
+  }
+
   useEffect(() => {
     if (notFound) onNotFound()
   }, [notFound, onNotFound])
 
   function closeSheet() {
     setSheet(undefined)
+  }
+
+  // Its dialog's close event comes after Check in has opened the next sheet, so it closes only itself.
+  function closeMilestoneSheet() {
+    setSheet((open) => (open === 'milestoneActions' ? undefined : open))
   }
 
   return (
@@ -105,6 +121,7 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
             onCollapse={collapse}
             onAdd={() => setSheet('milestone')}
             onCheckIn={openCheckIn}
+            onOpenMilestone={openMilestone}
           />
           {page.record && <QuitRecordSection record={page.record} onOpenDay={setAnsweringDay} />}
           {page.kind === 'current' && (
@@ -153,6 +170,27 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
           closeSheet()
         }}
         onClose={closeSheet}
+      />
+      <MilestoneSheet
+        open={sheet === 'milestoneActions'}
+        title={openedMilestone?.measurableLine}
+        noun={steps ? 'step' : 'milestone'}
+        canCheckIn={openedMilestone?.checkable ?? false}
+        onCheckIn={() =>
+          openedMilestone &&
+          openCheckIn({ milestoneId: openedMilestone.milestoneId, measurableLine: openedMilestone.measurableLine })
+        }
+        onDelete={() => {
+          closeSheet()
+          if (openedMilestone) goal.deletingMilestone.ask(openedMilestone.milestoneId)
+        }}
+        onClose={closeMilestoneSheet}
+      />
+      <DeleteSheet
+        open={goal.deletingMilestone.asking !== undefined}
+        question={deleteMilestoneLine(steps ? 'step' : 'milestone')}
+        onDelete={() => void goal.deletingMilestone.confirm()}
+        onClose={goal.deletingMilestone.cancel}
       />
       <CheckInSheet
         open={sheet === 'checkIn'}
@@ -262,9 +300,10 @@ type TimelineSectionProps = {
   onCollapse: () => void
   onAdd: () => void
   onCheckIn: (target: CheckInTarget) => void
+  onOpenMilestone: (row: MilestoneRow) => void
 }
 
-function TimelineSection({ page, timeline, onExpand, onCollapse, onAdd, onCheckIn }: TimelineSectionProps) {
+function TimelineSection({ page, timeline, onExpand, onCollapse, onAdd, onCheckIn, onOpenMilestone }: TimelineSectionProps) {
   const canAdd = page.kind === 'current'
   return (
     <section className="goal-section" aria-labelledby="goal-timeline">
@@ -274,7 +313,13 @@ function TimelineSection({ page, timeline, onExpand, onCollapse, onAdd, onCheckI
       </div>
       <ol className="timeline">
         {timeline.rows.map((row) => (
-          <TimelineItem key={shownRowKey(row)} row={row} onExpand={onExpand} onCheckIn={onCheckIn} />
+          <TimelineItem
+            key={shownRowKey(row)}
+            row={row}
+            onExpand={onExpand}
+            onCheckIn={onCheckIn}
+            onOpenMilestone={onOpenMilestone}
+          />
         ))}
       </ol>
       {(canAdd || timeline.condensable) && (
@@ -299,9 +344,10 @@ type TimelineItemProps = {
   row: ShownRow
   onExpand: () => void
   onCheckIn: (target: CheckInTarget) => void
+  onOpenMilestone: (row: MilestoneRow) => void
 }
 
-function TimelineItem({ row, onExpand, onCheckIn }: TimelineItemProps) {
+function TimelineItem({ row, onExpand, onCheckIn, onOpenMilestone }: TimelineItemProps) {
   if (row.kind === 'fold') {
     return (
       <li className="timeline-row is-fold">
@@ -337,14 +383,22 @@ function TimelineItem({ row, onExpand, onCheckIn }: TimelineItemProps) {
       {row.statusLine && <span className="timeline-status">{row.statusLine}</span>}
     </>
   )
+  // Every milestone row opens its sheet: Check in when it can be, and Delete.
+  if (row.kind === 'milestone') {
+    return (
+      <li className={classes}>
+        <button type="button" className="timeline-check-in" onClick={() => onOpenMilestone(row)}>
+          {content}
+        </button>
+      </li>
+    )
+  }
   if (!row.checkable) return <li className={classes}>{content}</li>
 
-  // A row that can be checked in opens the check-in sheet: Next, or any step
-  // not done on a one-off goal.
-  const target = { measurableLine: row.measurableLine, ...(row.kind === 'milestone' && { milestoneId: row.milestoneId }) }
+  // The goal's own row, once it can be checked in, opens the check-in sheet.
   return (
     <li className={classes}>
-      <button type="button" className="timeline-check-in" onClick={() => onCheckIn(target)}>
+      <button type="button" className="timeline-check-in" onClick={() => onCheckIn({ measurableLine: row.measurableLine })}>
         {content}
       </button>
     </li>

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import {
   addMilestone as saveMilestone,
   checkIn as saveCheckIn,
+  deleteMilestone,
   endGoal,
   getGoal,
   goAgain,
@@ -44,6 +45,7 @@ import {
 import { withQueuedQuitDays } from '../domain/quitting.ts'
 import { readTimelineExpanded, saveTimelineExpanded } from '../storage/timelinePreference.ts'
 import type { GoalOrigin } from './useNavigation.ts'
+import { useDelete, type UseDelete } from './useDelete.ts'
 import { useLoaded } from './useLoaded.ts'
 import { useQueue } from './useQueue.ts'
 import { SAVE_FAILED, useSavesOnTheirWay } from './useSavesOnTheirWay.ts'
@@ -78,6 +80,8 @@ export type UseGoal = {
   addMilestone: (draft: MilestoneDraft) => void
   checkIn: (milestoneId: string | undefined, outcome: 'hit' | 'notYet', result: string) => void
   reopen: (milestoneId: string, changes: ReopenChanges) => void
+  // A milestone made by mistake, by id: asked once, then sent; the goal is read again once it's gone.
+  deletingMilestone: UseDelete<string>
   // These change the goal's status and its tasks, so they wait for the save.
   pause: () => Promise<void>
   // From paused, from ended (Go again), or from reached (Reopen).
@@ -101,6 +105,7 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
   const [expanded, setExpanded] = useState(() => readTimelineExpanded(goalId))
   const [justHit, setJustHit] = useState<string>()
   const track = useSavesOnTheirWay(reload, setMessage)
+  const deletingMilestone = useDelete<string>({ send: deleteMilestone, done: reload, failed: setMessage })
   const pendingCount = useRef(0)
   const lastSave = useRef(0)
   const waiting = useRef(false)
@@ -258,6 +263,7 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
     addMilestone,
     checkIn,
     reopen,
+    deletingMilestone,
     pause: () => saveThenReload(() => pauseGoal(goalId)),
     resume: () => saveThenReload(comeBack),
     end: (outcome) => saveThenReload(() => (outcome === 'reached' ? markGoalReached(goalId) : endGoal(goalId))),
