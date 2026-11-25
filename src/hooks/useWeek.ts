@@ -3,7 +3,7 @@
 // changes replayed on top (ADR-010). Placing a task is queued and shows at once;
 // wrapping up needs a connection, and its answer is kept. Rules come from domain/week.ts.
 import { useState } from 'react'
-import { getWeek, wrapUpWeek } from '../api/client.ts'
+import { deleteTask, getWeek, wrapUpWeek } from '../api/client.ts'
 import { mondayOfDay, weekAfter } from '../api/dates.ts'
 import { newDeviceId } from '../api/ids.ts'
 import { enqueue } from '../api/queue.ts'
@@ -20,6 +20,7 @@ import {
 } from '../domain/week.ts'
 import { storedCurrentAndNext } from '../storage/currentWeek.ts'
 import { readWeekView, saveWeekView, type WeekViewMode } from '../storage/weekView.ts'
+import { useDelete, type UseDelete } from './useDelete.ts'
 import { useStoredWeeks, type WeeksRead } from './useStoredWeeks.ts'
 import { isInBank, weekOf } from '../domain/tasks'
 
@@ -47,6 +48,8 @@ export type UseWeek = {
   canViewNext: boolean
   setView: (view: WeekViewMode) => void
   place: (bankTaskId: string, date: string) => void
+  // A bank task made by mistake: asked once, then sent; the week is read again once it's gone.
+  deleting: UseDelete<Task>
   // What the wrap-up sheet lists (titles), and the wrap-up itself. Next week's view offers it.
   wrapUp: { carriesOver: string[]; ends: string[]; confirm: () => void }
 }
@@ -62,7 +65,8 @@ const CURRENT_AND_NEXT: WeeksRead = {
 }
 
 export function useWeek(today: string): UseWeek {
-  const { weeks, message, setMessage, keep } = useStoredWeeks(CURRENT_AND_NEXT, LOAD_FAILED)
+  const { weeks, message, setMessage, keep, reload } = useStoredWeeks(CURRENT_AND_NEXT, LOAD_FAILED)
+  const deleting = useDelete<Task>({ send: (task) => deleteTask(task.id), done: reload, failed: setMessage })
   const [chosen, setChosen] = useState(readWeekView)
   const current = weeks?.[0]
   const next = weeks?.[1]
@@ -117,6 +121,7 @@ export function useWeek(today: string): UseWeek {
     canViewNext,
     setView,
     place,
+    deleting,
     wrapUp,
   }
 }

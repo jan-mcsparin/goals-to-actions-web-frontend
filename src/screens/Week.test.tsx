@@ -1,14 +1,20 @@
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getWeek, placeTask, wrapUpWeek } from '../api/client.ts'
+import { deleteTask, getWeek, placeTask, wrapUpWeek } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import { Week } from './Week.tsx'
 import { isInBank } from '../domain/tasks.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
-  return { ...actual, getWeek: vi.fn(actual.getWeek), placeTask: vi.fn(actual.placeTask), wrapUpWeek: vi.fn(actual.wrapUpWeek) }
+  return {
+    ...actual,
+    deleteTask: vi.fn(actual.deleteTask),
+    getWeek: vi.fn(actual.getWeek),
+    placeTask: vi.fn(actual.placeTask),
+    wrapUpWeek: vi.fn(actual.wrapUpWeek),
+  }
 })
 
 const WEDNESDAY_DAY = '2026-11-11'
@@ -140,6 +146,34 @@ describe('Week', () => {
     expect(dayButtons()[3].textContent).toContain('Call the dentist')
     expect(screen.getByRole('region', { name: 'Bank · 3 not on a day' })).toBeDefined()
     expect(placeTask).toHaveBeenCalledWith('task-dentist', '2026-11-09', '2026-11-12')
+  })
+
+  it('deletes a bank task made by mistake, from the sheet it opens', async () => {
+    const user = userEvent.setup()
+    render(<Week today={WEDNESDAY_DAY} onOpenDay={() => {}} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Call the dentist' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Put on a day' })
+    await user.click(within(sheet).getByRole('button', { name: 'Delete (made by mistake)' }))
+    const asking = await screen.findByRole('dialog', { name: 'Delete “Call the dentist”? It goes as if it was never made.' })
+    await user.click(within(asking).getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByRole('region', { name: 'Bank · 3 not on a day' })).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Call the dentist' })).toBeNull()
+    expect(deleteTask).toHaveBeenCalledExactlyOnceWith('task-dentist')
+  })
+
+  it("keeps a bank task, with a message, when it can't be deleted", async () => {
+    vi.mocked(deleteTask).mockRejectedValueOnce(new Error('offline'))
+    const user = userEvent.setup()
+    render(<Week today={WEDNESDAY_DAY} onOpenDay={() => {}} />)
+
+    await user.click(await screen.findByRole('button', { name: 'Call the dentist' }))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Put on a day' })).getByRole('button', { name: 'Delete (made by mistake)' }))
+    await user.click(within(await screen.findByRole('dialog', { name: /^Delete “Call the dentist”/ })).getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText("Couldn't delete that. Try again.")).toBeDefined()
+    expect(screen.getByRole('region', { name: 'Bank · 4 not on a day' })).toBeDefined()
   })
 
   it('updates pacing when a goal task is placed', async () => {

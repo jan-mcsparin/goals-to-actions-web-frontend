@@ -3,7 +3,7 @@
 - [x] 1. Client functions and the mock
 - [x] 2. The wording, the hook and the sheet
 - [x] 3. Delete a task on Today and an opened day
-- [ ] 4. Delete a bank task on Week
+- [x] 4. Delete a bank task on Week
 - [ ] 5. Delete a milestone
 - [ ] 6. Delete a goal
 - [ ] 7. Delete an aspiration
