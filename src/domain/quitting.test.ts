@@ -65,10 +65,10 @@ describe('recordDays', () => {
     }
 
     expect(recordDays(record, TODAY)).toEqual([
-      { day: TODAY, dayLabel: 'Today', answerLabel: '–', answered: false, urge: null },
-      { day: '2026-11-10', dayLabel: 'Yesterday', answerLabel: 'Held', answered: true, urge: 'strong', urgeLabel: 'Strong urge' },
-      { day: '2026-11-09', dayLabel: 'Mon, Nov 9', answerLabel: 'Slipped', answered: true, urge: null },
-      { day: '2026-11-08', dayLabel: 'Sun, Nov 8', answerLabel: '–', answered: false, urge: 'some', urgeLabel: 'Some urge' },
+      { day: TODAY, dayLabel: 'Today', answer: 'unanswered', answerLabel: '–', answered: false, urge: null },
+      { day: '2026-11-10', dayLabel: 'Yesterday', answer: 'held', answerLabel: 'Held', answered: true, urge: 'strong', urgeLabel: 'Strong urge' },
+      { day: '2026-11-09', dayLabel: 'Mon, Nov 9', answer: 'slipped', answerLabel: 'Slipped', answered: true, urge: null },
+      { day: '2026-11-08', dayLabel: 'Sun, Nov 8', answer: 'unanswered', answerLabel: '–', answered: false, urge: 'some', urgeLabel: 'Some urge' },
     ])
   })
 })

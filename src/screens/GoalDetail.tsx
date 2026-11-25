@@ -7,6 +7,7 @@ import { AddMilestoneSheet } from '../components/AddMilestoneSheet.tsx'
 import { BackLink } from '../components/BackLink.tsx'
 import { CheckInSheet } from '../components/CheckInSheet.tsx'
 import { EndGoalSheet } from '../components/EndGoalSheet.tsx'
+import { QuitDaySheet } from '../components/QuitDaySheet.tsx'
 import { ReopenSheet } from '../components/ReopenSheet.tsx'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import { TargetSheet } from '../components/TargetSheet.tsx'
@@ -15,6 +16,7 @@ import {
   type CurrentPage,
   type GoalPage,
   type NotYetCard,
+  type RecordSection,
   type ShownRow,
 } from '../domain/goalDetail.ts'
 import { useGoal, type ShownTimeline } from '../hooks/useGoal.ts'
@@ -44,6 +46,9 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
   const shownMessage = useFleetingMessage(message, { sticky: !page, onGone: clearMessage })
   const [sheet, setSheet] = useState<OpenSheet>()
   const [checkingIn, setCheckingIn] = useState<CheckInTarget>()
+  // The record's day being answered: shown from the page, so a change shows at once.
+  const [answeringDay, setAnsweringDay] = useState<string>()
+  const answering = page?.record?.days.find((day) => day.day === answeringDay)
   const steps = page?.timeline.heading === 'Steps'
   const notYet = page?.kind === 'current' ? page.notYet : undefined
 
@@ -101,6 +106,7 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
             onAdd={() => setSheet('milestone')}
             onCheckIn={openCheckIn}
           />
+          {page.record && <QuitRecordSection record={page.record} onOpenDay={setAnsweringDay} />}
           {page.kind === 'current' && (
             <CurrentSections
               page={page}
@@ -185,8 +191,39 @@ export function GoalDetail({ goalId, from, today, onBack, onOpenAspiration, onNo
         />
       )}
 
+      <QuitDaySheet
+        day={answering}
+        onAnswer={(held) => answering && goal.answerQuitDay(answering.day, held)}
+        onClear={() => answering && goal.clearQuitDay(answering.day)}
+        onRate={(level) => answering && goal.rateUrge(answering.day, level)}
+        onClose={() => setAnsweringDay(undefined)}
+      />
+
       <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
     </main>
+  )
+}
+
+// "12 days held" and the last days, newest first; a tap on a day answers, changes or clears it.
+function QuitRecordSection({ record, onOpenDay }: { record: RecordSection; onOpenDay: (day: string) => void }) {
+  return (
+    <section className="goal-section" aria-labelledby="goal-record">
+      <p className="goal-value">{record.runLine}</p>
+      <h2 id="goal-record">Recent days</h2>
+      <ul className="goal-record">
+        {record.days.map((day) => (
+          <li key={day.day}>
+            <button type="button" className="goal-record-day" onClick={() => onOpenDay(day.day)}>
+              <span className="goal-record-date">{day.dayLabel}</span>
+              <span className="goal-record-answer" data-answered={day.answered}>
+                {day.answerLabel}
+              </span>
+              {day.urgeLabel && <span className="goal-record-urge">{day.urgeLabel}</span>}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

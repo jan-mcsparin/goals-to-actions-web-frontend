@@ -20,6 +20,7 @@ export type QuitRow = {
 export type RecordDay = {
   day: string
   dayLabel: string
+  answer: QuitAnswer
   answerLabel: string
   answered: boolean
   urge: UrgeLevel | null
@@ -74,6 +75,7 @@ export function recordDays(record: QuitRecord, today: string): RecordDay[] {
     return {
       day: quitDay.day,
       dayLabel: recordDayLabel(quitDay.day, today),
+      answer,
       answerLabel: answer === 'unanswered' ? UNANSWERED : ANSWER_LABELS[answer],
       answered: answer !== 'unanswered',
       urge: quitDay.urge,

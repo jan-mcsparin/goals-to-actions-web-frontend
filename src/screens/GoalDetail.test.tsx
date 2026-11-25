@@ -1,14 +1,19 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getGoal, setWeeklyTarget } from '../api/client.ts'
+import { answerQuitDay, createGoal, getGoal, setWeeklyTarget } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { GoalOrigin } from '../hooks/useNavigation.ts'
 import { GoalDetail } from './GoalDetail.tsx'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
-  return { ...actual, getGoal: vi.fn(actual.getGoal), setWeeklyTarget: vi.fn(actual.setWeeklyTarget) }
+  return {
+    ...actual,
+    getGoal: vi.fn(actual.getGoal),
+    setWeeklyTarget: vi.fn(actual.setWeeklyTarget),
+    answerQuitDay: vi.fn(actual.answerQuitDay),
+  }
 })
 
 const TODAY = '2026-11-11'
@@ -543,5 +548,52 @@ describe('GoalDetail, a failed load or save', () => {
 
     act(() => vi.advanceTimersByTime(5000))
     expect(screen.queryByRole('status')).toBeNull()
+  })
+})
+
+describe("GoalDetail, a quitting goal's record", () => {
+  let goalId: string
+
+  beforeEach(async () => {
+    goalId = (await createGoal({ label: 'Quit sugar', measurableLine: '30 days', type: 'quitting', startDate: '2026-10-20' })).id
+    await answerQuitDay(goalId, '2026-11-09', true)
+    await answerQuitDay(goalId, '2026-11-10', true)
+    vi.mocked(answerQuitDay).mockClear()
+    vi.mocked(getGoal).mockClear()
+  })
+
+  const record = () => screen.findByRole('region', { name: 'Recent days' })
+
+  it('shows the run and the last days, newest first, a day with no answer as a dash', async () => {
+    renderGoal(goalId, { screen: 'aspirations' })
+    const days = within(await record()).getAllByRole('button')
+
+    expect(screen.getByText('2 days held · 20 not answered')).toBeDefined()
+    expect(screen.queryByText(/^Since/)).toBeNull()
+    expect(days).toHaveLength(23)
+    expect(days.slice(0, 3).map((day) => day.textContent)).toEqual(['Today–', 'YesterdayHeld', 'Mon, Nov 9Held'])
+  })
+
+  it('answers a day two weeks back: it shows at once, and the run comes from the next read', async () => {
+    const user = userEvent.setup()
+    renderGoal(goalId, { screen: 'aspirations' })
+    await user.click(within(await record()).getByRole('button', { name: /^Wed, Oct 28/ }))
+    const sheet = await screen.findByRole('dialog', { name: 'Wed, Oct 28' })
+
+    await user.click(within(sheet).getByRole('button', { name: 'Slipped' }))
+    await user.click(within(sheet).getByRole('button', { name: 'Strong' }))
+
+    expect(answerQuitDay).toHaveBeenCalledWith(goalId, '2026-10-28', false)
+    expect(within(sheet).getByRole('button', { name: 'Strong' }).getAttribute('aria-pressed')).toBe('true')
+    await user.click(within(sheet).getByRole('button', { name: 'Done' }))
+    expect(within(await record()).getByRole('button', { name: /^Wed, Oct 28/ }).textContent).toBe('Wed, Oct 28SlippedStrong urge')
+    expect(await screen.findByText('2 days held · 11 not answered')).toBeDefined()
+  })
+
+  it('shows nothing of the kind for a building goal', async () => {
+    renderGoal()
+    await screen.findByRole('heading', { level: 1, name: 'Be strong' })
+
+    expect(screen.queryByRole('region', { name: 'Recent days' })).toBeNull()
   })
 })

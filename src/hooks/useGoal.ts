@@ -2,7 +2,7 @@
 // the ways to change the goal. Loads through the API client; the layout comes
 // from domain/goalDetail.ts. A goal that isn't there is reported as not
 // found, so the screen can go back quietly.
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import {
   addMilestone as saveMilestone,
   checkIn as saveCheckIn,
@@ -17,7 +17,9 @@ import {
   setWeeklyTarget,
   updateMilestone,
 } from '../api/client.ts'
-import type { Goal, GoalDetail } from '../api/types.ts'
+import { newDeviceId } from '../api/ids.ts'
+import { enqueue, onEmptied } from '../api/queue.ts'
+import type { Goal, GoalDetail, UrgeLevel } from '../api/types.ts'
 import {
   backLabel,
   canCondense,
@@ -39,9 +41,11 @@ import {
   type ShownRow,
   type TargetDraft,
 } from '../domain/goalDetail.ts'
+import { withQueuedQuitDays } from '../domain/quitting.ts'
 import { readTimelineExpanded, saveTimelineExpanded } from '../storage/timelinePreference.ts'
 import type { GoalOrigin } from './useNavigation.ts'
 import { useLoaded } from './useLoaded.ts'
+import { useQueue } from './useQueue.ts'
 import { SAVE_FAILED, useSavesOnTheirWay } from './useSavesOnTheirWay.ts'
 
 const LOAD_FAILED = "Couldn't load this goal. Try again in a moment."
@@ -79,10 +83,17 @@ export type UseGoal = {
   // From paused, from ended (Go again), or from reached (Reopen).
   resume: () => Promise<void>
   end: (outcome: 'reached' | 'ended') => Promise<void>
+  // A quitting goal's day, through the queue (ADR-010): shown on its day at once; the run
+  // is the server's, read again once the queue has sent them.
+  answerQuitDay: (day: string, held: boolean) => void
+  // Back to unknown: the answer and its urge rating.
+  clearQuitDay: (day: string) => void
+  // null clears the rating.
+  rateUrge: (day: string, level: UrgeLevel | null) => void
 }
 
 export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoal {
-  const { data: detail, setData: setDetail, message, setMessage, notFound, reload } = useLoaded(
+  const { data: loaded, setData: setDetail, message, setMessage, notFound, reload } = useLoaded(
     `goal/${goalId}`,
     useCallback(() => getGoal(goalId), [goalId]),
     LOAD_FAILED,
@@ -93,6 +104,36 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
   const pendingCount = useRef(0)
   const lastSave = useRef(0)
   const waiting = useRef(false)
+  const queue = useQueue()
+  const detail = loaded?.quitRecord
+    ? { ...loaded, quitRecord: withQueuedQuitDays(loaded.quitRecord, goalId, queue.changes) }
+    : loaded
+
+  // A quitting goal's run is worked out by the server: read again once answers are sent.
+  const isQuitting = loaded?.goal.type === 'quitting'
+  const readAgain = useEffectEvent(() => void reload())
+  useEffect(() => (isQuitting ? onEmptied(readAgain) : undefined), [isQuitting])
+
+  function answerQuitDay(day: string, held: boolean) {
+    setMessage(undefined)
+    void enqueue({ kind: 'answerQuitDay', id: newDeviceId(), goalId, day, held })
+  }
+
+  function clearQuitDay(day: string) {
+    const urge = detail?.quitRecord?.days.find((candidate) => candidate.day === day)?.urge
+    setMessage(undefined)
+    void enqueue({ kind: 'clearQuitDay', id: newDeviceId(), goalId, day })
+    if (urge) void enqueue({ kind: 'clearUrgeRating', id: newDeviceId(), goalId, day })
+  }
+
+  function rateUrge(day: string, level: UrgeLevel | null) {
+    setMessage(undefined)
+    void enqueue(
+      level === null
+        ? { kind: 'clearUrgeRating', id: newDeviceId(), goalId, day }
+        : { kind: 'rateUrge', id: newDeviceId(), goalId, day, level },
+    )
+  }
 
   function showAll(next: boolean) {
     setExpanded(next)
@@ -220,6 +261,9 @@ export function useGoal(goalId: string, from: GoalOrigin, today: string): UseGoa
     pause: () => saveThenReload(() => pauseGoal(goalId)),
     resume: () => saveThenReload(comeBack),
     end: (outcome) => saveThenReload(() => (outcome === 'reached' ? markGoalReached(goalId) : endGoal(goalId))),
+    answerQuitDay,
+    clearQuitDay,
+    rateUrge,
   }
 }
 

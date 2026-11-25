@@ -12,16 +12,16 @@ type QuitDayRowProps = {
   onAnswer: (held: boolean) => void
   onClear: () => void
   onRate: (level: UrgeLevel | null) => void
-  // Shown as the group's heading; left out where a sheet already names it.
-  showLabel?: boolean
+  // In a sheet: the sheet names the day, and the choices stay out, since that's what it's for.
+  inSheet?: boolean
 }
 
 // A quitting goal's held-or-not for one day, and the urge once answered. Nothing asks:
 // it waits quietly, and an answer can be changed or cleared with a tap on it.
-export function QuitDayRow({ label, answer, answerLabel, urge, onAnswer, onClear, onRate, showLabel = true }: QuitDayRowProps) {
+export function QuitDayRow({ label, answer, answerLabel, urge, onAnswer, onClear, onRate, inSheet = false }: QuitDayRowProps) {
   const [changing, setChanging] = useState(false)
   const answered = answer !== 'unanswered'
-  const choosing = !answered || changing
+  const choosing = !answered || changing || inSheet
 
   function choose(next: () => void) {
     next()
@@ -30,7 +30,7 @@ export function QuitDayRow({ label, answer, answerLabel, urge, onAnswer, onClear
 
   return (
     <div className="quit-day" role="group" aria-label={label}>
-      {showLabel && <span className="quit-day-label">{label}</span>}
+      {!inSheet && <span className="quit-day-label">{label}</span>}
       {choosing ? (
         <div className="quit-day-choices">
           <button type="button" aria-pressed={answer === 'held'} onClick={() => choose(() => onAnswer(true))}>

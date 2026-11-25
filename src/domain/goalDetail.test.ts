@@ -297,6 +297,26 @@ describe('goalPage target', () => {
     expect(current(detail({ goal: goal({ type: 'oneOff' }) })).target).toBeUndefined()
     expect(current(detail({ goal: goal({ type: 'quitting' }) })).target).toEqual({ kind: 'note', line: 'Since Oct 5' })
   })
+
+  it("shows a quitting goal's record in place of when it started", () => {
+    const quitRecord = {
+      days: [
+        { goalId: 'g1', day: '2026-11-11', held: true, urge: 'low' as const },
+        { goalId: 'g1', day: '2026-11-10', held: null, urge: null },
+      ],
+      heldRun: 12,
+      unknownInRun: 2,
+    }
+    const page = current(detail({ goal: goal({ type: 'quitting' }), quitRecord }))
+
+    expect(page.target).toBeUndefined()
+    expect(page.record?.runLine).toBe('12 days held · 2 not answered')
+    expect(page.record?.days.map((row) => [row.dayLabel, row.answerLabel, row.urgeLabel])).toEqual([
+      ['Today', 'Held', 'Low urge'],
+      ['Yesterday', '–', undefined],
+    ])
+    expect(current(detail()).record).toBeUndefined()
+  })
 })
 
 describe('goalPage next check-in', () => {
