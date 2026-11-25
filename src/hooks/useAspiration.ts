@@ -3,9 +3,10 @@
 // aspiration that isn't there is reported as not found, so the screen can go
 // back quietly. Changes show at once; if a save fails, the page is read again
 // once the saves on their way are done (useSavesOnTheirWay).
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import {
   bringBackAspiration,
+  deleteAspiration,
   getAspiration,
   moveAspiration,
   retireAspiration,
@@ -20,6 +21,7 @@ import {
   type ItsWork,
   type NameAndWhy,
 } from '../domain/aspiration.ts'
+import { useDelete, type UseDelete } from './useDelete.ts'
 import { useLoaded } from './useLoaded.ts'
 import { SAVE_FAILED, useSavesOnTheirWay } from './useSavesOnTheirWay.ts'
 
@@ -38,19 +40,32 @@ export type UseAspiration = {
   retire: (itsWork: ItsWork) => Promise<boolean>
   bringBack: () => Promise<void>
   move: (direction: 'up' | 'down') => void
+  // The aspiration made by mistake: asked once, then sent. Once it's gone, `deleted` is true and
+  // the screen goes to the Aspirations tab.
+  deleting: UseDelete<string>
+  deleted: boolean
   // For a recurring item's edit sheet (useRecurringEdit).
   recurringItems?: RecurringItem[]
   reload: () => Promise<void>
 }
 
 export function useAspiration(aspirationId: string, today: string): UseAspiration {
-  const { data: detail, setData: setDetail, message, setMessage, notFound, reload } = useLoaded(
+  const { data: detail, setData: setDetail, message, setMessage, notFound, reload, forget } = useLoaded(
     `aspiration/${aspirationId}`,
     useCallback(() => getAspiration(aspirationId), [aspirationId]),
     LOAD_FAILED,
   )
   const track = useSavesOnTheirWay(reload, setMessage)
   const bringingBack = useRef(false)
+  const [deleted, setDeleted] = useState(false)
+  const deleting = useDelete<string>({
+    send: deleteAspiration,
+    done: async () => {
+      await forget()
+      setDeleted(true)
+    },
+    failed: setMessage,
+  })
 
   function saveOptimistically(change: (before: AspirationDetail) => AspirationDetail, save: () => Promise<unknown>) {
     if (!detail) return
@@ -118,6 +133,8 @@ export function useAspiration(aspirationId: string, today: string): UseAspiratio
     retire,
     bringBack,
     move,
+    deleting,
+    deleted,
     recurringItems: detail?.recurringItems,
     reload,
   }

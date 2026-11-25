@@ -6,6 +6,6 @@
 - [x] 4. Delete a bank task on Week
 - [x] 5. Delete a milestone
 - [x] 6. Delete a goal
-- [ ] 7. Delete an aspiration
+- [x] 7. Delete an aspiration
 - [ ] 8. Delete a recurring item
 - [ ] 9. Docs and the check

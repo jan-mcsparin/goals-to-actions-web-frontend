@@ -2,6 +2,8 @@
 // priority. A retired one shows what it has seen and offers Bring back.
 import { useEffect, useState } from 'react'
 import { AspirationEditSheet } from '../components/AspirationEditSheet.tsx'
+import { DeleteSheet } from '../components/DeleteSheet.tsx'
+import { deleteAspirationLine } from '../domain/deleting.ts'
 import { BackLink } from '../components/BackLink.tsx'
 import { RecurringEditSheet } from '../components/RecurringEditSheet.tsx'
 import { RetireSheet } from '../components/RetireSheet.tsx'
@@ -36,16 +38,30 @@ export function Aspiration({
   onAddGoal,
   onAddRecurring,
 }: AspirationProps) {
-  const { page, editing, message, clearMessage, notFound, edit, retire, bringBack, move, recurringItems, reload } =
-    useAspiration(aspirationId, today)
+  const {
+    page,
+    editing,
+    message,
+    clearMessage,
+    notFound,
+    edit,
+    retire,
+    bringBack,
+    move,
+    deleting,
+    deleted,
+    recurringItems,
+    reload,
+  } = useAspiration(aspirationId, today)
   const recurringEdit = useRecurringEdit(recurringItems, reload)
   // With nothing loaded, the message is all there is, so it stays.
   const shownMessage = useFleetingMessage(message, { sticky: !page, onGone: clearMessage })
   const [sheet, setSheet] = useState<OpenSheet>()
 
+  // Gone, or deleted here: back to the Aspirations tab.
   useEffect(() => {
-    if (notFound) onBack()
-  }, [notFound, onBack])
+    if (notFound || deleted) onBack()
+  }, [notFound, deleted, onBack])
 
   function closeSheet() {
     setSheet(undefined)
@@ -87,6 +103,16 @@ export function Aspiration({
           closeSheet()
         }}
         onClose={() => closeSheet()}
+        onDelete={() => {
+          closeSheet()
+          deleting.ask(aspirationId)
+        }}
+      />
+      <DeleteSheet
+        open={deleting.asking !== undefined}
+        question={page ? deleteAspirationLine(page.name) : ''}
+        onDelete={() => void deleting.confirm()}
+        onClose={deleting.cancel}
       />
       {page?.kind === 'active' && (
         <RetireSheet
