@@ -84,6 +84,82 @@ describe('AddSheet', () => {
     expect(screen.getByRole('radio', { name: 'On today' })).toHaveProperty('checked', true)
   })
 
+  it('offers When as one group of three, in order, with Goal after it', async () => {
+    await openSheet()
+
+    const when = screen.getByRole('group', { name: 'When' })
+    expect(within(when).getAllByRole('radio').map((radio) => radio.closest('label')?.textContent)).toEqual([
+      'On today',
+      'In the bank',
+      'On a day',
+    ])
+    const goal = screen.getByRole('combobox', { name: 'Goal' })
+    expect(when.compareDocumentPosition(goal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('shows Day and Time only on a day, in place of the due date and time of day', async () => {
+    const { user } = await openSheet()
+    expect(screen.queryByLabelText('Day')).toBeNull()
+    expect(screen.getByLabelText('Due date (optional)')).toBeDefined()
+
+    await user.click(screen.getByRole('radio', { name: 'On a day' }))
+
+    expect(screen.getByLabelText('Day')).toHaveProperty('min', TODAY)
+    expect(screen.getByLabelText('Day')).toHaveProperty('value', '')
+    expect(screen.getByLabelText('Time (optional)')).toBeDefined()
+    expect(screen.getByText('It stays on that day, and the rest of the day is planned around it.')).toBeDefined()
+    expect(screen.queryByLabelText('Due date (optional)')).toBeNull()
+    expect(screen.queryByRole('combobox', { name: 'Time of day (optional)' })).toBeNull()
+  })
+
+  it('keeps Save off on a day until there is a day', async () => {
+    const { user } = await openSheet()
+    await user.type(screen.getByRole('textbox', { name: 'Title' }), 'Dentist cleaning')
+    await user.click(screen.getByRole('radio', { name: 'On a day' }))
+
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true)
+    await user.type(screen.getByLabelText('Day'), '2026-12-12')
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', false)
+  })
+
+  it('keeps what was typed in each when switching back and forth', async () => {
+    const { user } = await openSheet()
+    await user.type(screen.getByLabelText('Due date (optional)'), '2026-11-20')
+    await user.click(screen.getByRole('radio', { name: 'On a day' }))
+    await user.type(screen.getByLabelText('Day'), '2026-12-12')
+
+    await user.click(screen.getByRole('radio', { name: 'In the bank' }))
+    expect(screen.getByLabelText('Due date (optional)')).toHaveProperty('value', '2026-11-20')
+    await user.click(screen.getByRole('radio', { name: 'On a day' }))
+    expect(screen.getByLabelText('Day')).toHaveProperty('value', '2026-12-12')
+  })
+
+  it('saves a task on a day at a time, and says which day', async () => {
+    const { user, onSaved } = await openSheet()
+    await user.type(screen.getByRole('textbox', { name: 'Title' }), 'Dentist cleaning')
+    await user.type(screen.getByLabelText('Due date (optional)'), '2026-11-20')
+    await user.click(screen.getByRole('radio', { name: 'On a day' }))
+    await user.type(screen.getByLabelText('Day'), '2026-12-12')
+    await user.type(screen.getByLabelText('Time (optional)'), '15:00')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledWith('Set for Sat, Dec 12.'))
+    expect(vi.mocked(addTask)).toHaveBeenLastCalledWith(
+      { title: 'Dentist cleaning', day: '2026-12-12', timeOfDay: { kind: 'at', time: '15:00' } },
+      expect.any(String),
+    )
+  })
+
+  it('says "Added to today." for a task on a day that is today', async () => {
+    const { user, onSaved } = await openSheet()
+    await user.type(screen.getByRole('textbox', { name: 'Title' }), 'Call the vet')
+    await user.click(screen.getByRole('radio', { name: 'On a day' }))
+    await user.type(screen.getByLabelText('Day'), TODAY)
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(onSaved).toHaveBeenCalledWith('Added to today.')
+  })
+
   it("saves a title alone to this week's bank and closes", async () => {
     const { user, onSaved } = await openSheet()
 

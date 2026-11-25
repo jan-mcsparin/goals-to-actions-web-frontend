@@ -42,6 +42,17 @@ describe('taskConfirmation', () => {
     expect(taskConfirmation({ state: 'open', plannedDay: WEDNESDAY, week: THIS_MONDAY }, WEDNESDAY)).toBe('Added to today.')
   })
 
+  it('says which day a task set on a later day is on', () => {
+    expect(taskConfirmation({ state: 'open', plannedDay: '2026-11-13', week: THIS_MONDAY }, WEDNESDAY)).toBe('Set for Fri, Nov 13.')
+    expect(taskConfirmation({ state: 'open', plannedDay: '2026-12-12', week: '2026-12-07' }, WEDNESDAY)).toBe('Set for Sat, Dec 12.')
+  })
+
+  it('names the year of a day set in another year', () => {
+    expect(taskConfirmation({ state: 'open', plannedDay: '2027-01-02', week: '2026-12-28' }, WEDNESDAY)).toBe(
+      'Set for Sat, Jan 2, 2027.',
+    )
+  })
+
   it("confirms a task in this week's bank", () => {
     expect(taskConfirmation({ state: 'open', plannedDay: null, week: THIS_MONDAY }, WEDNESDAY)).toBe("Added to this week's bank.")
   })
@@ -62,19 +73,40 @@ describe('taskConfirmation', () => {
 })
 
 describe('taskReady', () => {
+  const draft = emptyTaskDraft('inBank')
+
   it('is ready with a title', () => {
-    expect(taskReady({ title: 'Fill out my ballot' })).toBe(true)
+    expect(taskReady({ ...draft, title: 'Fill out my ballot' })).toBe(true)
   })
 
   it('is not ready with a blank title', () => {
-    expect(taskReady({ title: '' })).toBe(false)
-    expect(taskReady({ title: '   ' })).toBe(false)
+    expect(taskReady({ ...draft, title: '' })).toBe(false)
+    expect(taskReady({ ...draft, title: '   ' })).toBe(false)
+  })
+
+  it('needs a day on a day', () => {
+    const onADay = { ...draft, title: 'Dentist cleaning', placement: 'onADay' } as const
+    expect(taskReady(onADay)).toBe(false)
+    expect(taskReady({ ...onADay, day: '2026-12-12' })).toBe(true)
+  })
+
+  it("doesn't need a day elsewhere, even with one typed", () => {
+    expect(taskReady({ ...draft, title: 'Call the vet', placement: 'onToday' })).toBe(true)
   })
 })
 
 describe('emptyTaskDraft', () => {
   it('starts blank, in the given place', () => {
-    expect(emptyTaskDraft('onToday')).toEqual({ title: '', goalId: '', dueDate: '', timeKind: '', time: '', placement: 'onToday' })
+    expect(emptyTaskDraft('onToday')).toEqual({
+      title: '',
+      goalId: '',
+      dueDate: '',
+      timeKind: '',
+      time: '',
+      placement: 'onToday',
+      day: '',
+      atTime: '',
+    })
   })
 })
 
@@ -107,6 +139,34 @@ describe('taskInput', () => {
   // NewTask is the API's now: "On today" sends today as the day, and the server places it.
   it('sends today as its day when "On today" is chosen', () => {
     expect(taskInput({ ...draft, title: 'Call the vet', placement: 'onToday' }, WEDNESDAY).day).toBe(WEDNESDAY)
+  })
+
+  describe('on a day', () => {
+    const onADay = { ...draft, title: 'Dentist cleaning', placement: 'onADay', day: '2026-12-12' } as const
+
+    it('sends the day and the goal', () => {
+      expect(taskInput({ ...onADay, goalId: 'goal-strong' }, WEDNESDAY)).toEqual({
+        title: 'Dentist cleaning',
+        goalId: 'goal-strong',
+        day: '2026-12-12',
+      })
+    })
+
+    it('sends its time as "at"', () => {
+      expect(taskInput({ ...onADay, atTime: '15:00' }, WEDNESDAY).timeOfDay).toEqual({ kind: 'at', time: '15:00' })
+    })
+
+    it('leaves out a due date and time of day typed for the other choices', () => {
+      const input = taskInput({ ...onADay, dueDate: '2026-12-01', timeKind: 'by', time: '18:00' }, WEDNESDAY)
+
+      expect(input).toEqual({ title: 'Dentist cleaning', day: '2026-12-12' })
+    })
+  })
+
+  it("leaves out a day typed for On a day when it's somewhere else", () => {
+    expect(taskInput({ ...draft, title: 'Call the vet', day: '2026-12-12', atTime: '15:00' }, WEDNESDAY)).toEqual({
+      title: 'Call the vet',
+    })
   })
 })
 

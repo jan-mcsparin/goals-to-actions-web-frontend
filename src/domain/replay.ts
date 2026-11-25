@@ -134,14 +134,20 @@ function newTask(id: string, task: NewTask, goalLabel: string | null, place: Pla
 // answer arrives (settled in spec 043b). The server still decides (ADR-008):
 // its answer replaces this. `current` is the current week as last read.
 export function predictedPlace(task: NewTask, current: Week | undefined, today: string): Place | null {
+  if (task.day) return dayPlace(task.day, current, today)
   if (!current) return null
   const open = current.nextWeekOpen ? [current.week, weekAfter(current.week)] : [current.week]
-  if (task.day) {
-    const week = mondayOfDay(task.day)
-    return task.day >= today && open.includes(week) ? { week, day: task.day } : { week: current.week, day: null }
-  }
   if (!task.dueDate) return { week: current.week, day: null }
   const dueWeek = mondayOfDay(task.dueDate)
   if (dueWeek <= current.week) return { week: current.week, day: null }
   return open.includes(dueWeek) ? { week: dueWeek, day: null } : null
+}
+
+// A day from today on, in the current week or later, is pinned there, whether or not its week is
+// open or stored (API #50); a week the phone doesn't store isn't replayed, so then it only gives
+// the line. A day before that goes in the current week's bank.
+function dayPlace(day: string, current: Week | undefined, today: string): Place | null {
+  const week = mondayOfDay(day)
+  if (day >= today && (!current || week >= current.week)) return { week, day }
+  return current ? { week: current.week, day: null } : null
 }

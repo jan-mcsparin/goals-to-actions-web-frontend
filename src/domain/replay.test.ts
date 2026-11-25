@@ -155,9 +155,21 @@ describe('predictedPlace', () => {
     expect(predictedPlace({ ...task, day: '2026-11-17' }, current, TODAY)).toEqual({ week: NEXT, day: '2026-11-17' })
   })
 
-  it("goes in this week's bank for a day no longer allowed", () => {
+  // The server pins it to its day in any week from the current one on (API #50). A week the
+  // phone doesn't store isn't replayed, so this only gives the line.
+  it('goes on its day in a week not yet open, or with no week known', () => {
+    expect(predictedPlace({ ...task, day: '2026-11-17' }, weekOf([]), TODAY)).toEqual({ week: NEXT, day: '2026-11-17' })
+    expect(predictedPlace({ ...task, day: '2026-12-12' }, current, TODAY)).toEqual({ week: '2026-12-07', day: '2026-12-12' })
+    expect(predictedPlace({ ...task, day: '2026-12-12' }, undefined, TODAY)).toEqual({ week: '2026-12-07', day: '2026-12-12' })
+  })
+
+  it("goes in this week's bank for a day before today", () => {
     expect(predictedPlace({ ...task, day: '2026-11-10' }, current, TODAY)).toEqual({ week: WEEK, day: null })
-    expect(predictedPlace({ ...task, day: '2026-11-17' }, weekOf([]), TODAY)).toEqual({ week: WEEK, day: null })
+  })
+
+  it("goes in the current week's bank for a day before it, after a wrap-up", () => {
+    const wrappedUp = weekOf([], { week: NEXT })
+    expect(predictedPlace({ ...task, day: '2026-11-13' }, wrappedUp, TODAY)).toEqual({ week: NEXT, day: null })
   })
 
   it("goes in the bank of its due week, this week's when it's due now or overdue", () => {

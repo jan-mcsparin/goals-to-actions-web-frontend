@@ -1,11 +1,7 @@
-# 038: Delete what was made by mistake
+# 079: On a day, in the Add sheet
 
-- [x] 1. Client functions and the mock
-- [x] 2. The wording, the hook and the sheet
-- [x] 3. Delete a task on Today and an opened day
-- [x] 4. Delete a bank task on Week
-- [x] 5. Delete a milestone
-- [x] 6. Delete a goal
-- [x] 7. Delete an aspiration
-- [x] 8. Delete a recurring item
-- [x] 9. Docs and the check
+- [x] 1. The rules
+- [x] 2. The mock places a later week's day
+- [x] 3. The form
+- [x] 4. A queued add past the stored weeks
+- [x] 5. Types, docs and the check

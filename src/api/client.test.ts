@@ -1438,6 +1438,15 @@ describe('addTask', () => {
     expect(task).toMatchObject({ plannedDay: '2026-11-13', week: '2026-11-09', placedByHand: true })
   })
 
+  it("pins a task to a day in a week that hasn't opened, and leaves it out of this week, as the API does", async () => {
+    const task = await addTask({ title: 'Dentist cleaning', day: '2026-12-05', timeOfDay: { kind: 'at', time: '15:00' } })
+
+    expect(task).toMatchObject({ plannedDay: '2026-12-05', week: '2026-11-30', placedByHand: true })
+    expect(task.timeOfDay).toEqual({ kind: 'at', time: '15:00' })
+    expect(ids((await getWeek()).tasks)).not.toContain(task.id)
+    expectConsistentStore()
+  })
+
   it('gives each new task its own id', async () => {
     const first = await addTask({ title: 'One' })
     const second = await addTask({ title: 'Two' })
