@@ -4,6 +4,6 @@
 - [x] 2. Every screen hands over onGone
 - [x] 3. reload() in useLoaded
 - [x] 4. useSavesOnTheirWay and useAspiration
-- [ ] 5. useSettings intensity
+- [x] 5. useSettings intensity
 - [ ] 6. useGoal
 - [ ] 7. Docs and check

@@ -54,17 +54,17 @@ describe('useSettings', () => {
     expect(await getSettings()).toMatchObject({ intensity: 'goingHard' })
   })
 
-  it('goes back to the earlier intensity, with a message, when the save fails', async () => {
+  it('ends on the intensity the API has, with a message, when the save fails', async () => {
     vi.mocked(setIntensity).mockRejectedValueOnce(new Error('offline'))
     const { result } = await loaded()
 
     act(() => result.current.chooseIntensity('easingOff'))
 
     await waitFor(() => expect(result.current.message).toBe("Couldn't save that. Try again."))
-    expect(result.current.intensity).toBe('normal')
+    await waitFor(() => expect(result.current.intensity).toBe('normal'))
   })
 
-  it('keeps the newest choice when an earlier save fails after it', async () => {
+  it("ends on the API's intensity, with a message, when the first of two quick taps fails", async () => {
     let failFirst: (reason: Error) => void = () => {}
     vi.mocked(setIntensity).mockImplementationOnce(
       () => new Promise<Settings>((_resolve, reject) => (failFirst = reject)),
@@ -75,8 +75,9 @@ describe('useSettings', () => {
     act(() => result.current.chooseIntensity('goingHard'))
     await act(async () => failFirst(new Error('offline')))
 
-    expect(result.current.intensity).toBe('goingHard')
-    expect(result.current.message).toBeUndefined()
+    await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(result.current.intensity).toBe('goingHard'))
+    expect(result.current.message).toBe("Couldn't save that. Try again.")
   })
 
   it('says export is coming later', async () => {
