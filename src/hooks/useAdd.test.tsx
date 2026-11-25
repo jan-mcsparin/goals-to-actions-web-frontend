@@ -1,12 +1,13 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addAspiration, addTask, createGoal, getAspirations, getChoices, getGoal } from '../api/client.ts'
+import { addAspiration, addTask, createGoal, getAspirations, getChoices, getGoal, getWeek } from '../api/client.ts'
 import { readBank, readDay } from '../test/plan.ts'
 import { resetStore, store } from '../api/mockStore.ts'
 import type { Task } from '../api/types.ts'
 import { NEW_ASPIRATION } from '../domain/add.ts'
 import { addOriginFor, useAdd, type AddOrigin } from './useAdd.ts'
-import { waitingCount } from '../api/queue.ts'
+import { queued, waitingCount } from '../api/queue.ts'
+import { replay } from '../domain/replay.ts'
 import { aTask } from '../test/tasks.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
@@ -155,6 +156,39 @@ describe('useAdd', () => {
     expect(result.current.message).toBeUndefined()
     await waitFor(() => expect(waitingCount()).toBe(1))
     vi.mocked(addTask).mockReset()
+  })
+
+  describe('on a day, while it can\'t be sent', () => {
+    beforeEach(() => {
+      vi.mocked(addTask).mockRejectedValue(new Error('offline'))
+    })
+
+    afterEach(() => {
+      vi.mocked(addTask).mockReset()
+    })
+
+    async function queueOnADay(day: string) {
+      const { result, onSaved } = renderAdd()
+      act(() => result.current.editTask({ title: 'Dentist cleaning', placement: 'onADay', day }))
+      await act(async () => result.current.save())
+      await waitFor(() => expect(waitingCount()).toBe(1))
+      const shown = replay(await getWeek(), queued()).tasks.find((task) => task.title === 'Dentist cleaning')
+      return { onSaved, shown }
+    }
+
+    it('says which day for a day past the stored weeks, and shows it on none of them', async () => {
+      const { onSaved, shown } = await queueOnADay('2026-12-12')
+
+      expect(onSaved).toHaveBeenCalledWith('Set for Sat, Dec 12.')
+      expect(shown).toBeUndefined()
+    })
+
+    it('shows it on its day at once when the day is in this week', async () => {
+      const { onSaved, shown } = await queueOnADay('2026-11-13')
+
+      expect(onSaved).toHaveBeenCalledWith('Set for Fri, Nov 13.')
+      expect(shown).toMatchObject({ plannedDay: '2026-11-13', placedByHand: true })
+    })
   })
 
   it('saves once when Save is tapped twice while the first is on its way', async () => {
