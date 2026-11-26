@@ -1,12 +1,13 @@
-# 082: Move or remove a future day's set items
+# 081: Tick off a past day's tasks late
 
-- [x] 1. API: a fixed-day task moves within its week (API repo)
-- [x] 2. Types and the client
-- [x] 3. What's offered, and the move in replay
-- [x] Checkpoint: tests, lint, build
-- [x] 4. The hook
-- [x] 5. The menu and the sheets
-- [x] 6. A day of a week that hasn't opened
-- [x] 7. Checkpoint: full suite, lint, build
-- [x] 8. Docs
-- [x] 9. The check
+- [ ] 1. The wording and what's ticked
+- [ ] 2. Replay tests
+- [ ] 3. The mock
+- [ ] Checkpoint: tests, lint, build
+- [ ] 4. The day's hook
+- [ ] 5. The screen
+- [ ] 6. The quit row on a closed week's day
+- [ ] Checkpoint: the screen end to end on `npm run dev:mock`
+- [ ] 7. Docs
+- [ ] 8. The check
+- [ ] Review, then the PR
