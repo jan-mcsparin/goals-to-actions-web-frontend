@@ -1,49 +1,45 @@
-# Implementation Plan: Move or remove a future day's set items (#82)
+# Implementation Plan: Tick off a past day's tasks late (#81)
 
-Spec: [`../specs/082-move-and-remove.md`](../specs/082-move-and-remove.md). Issue: [#82](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/82). Tasks: [`todo.md`](todo.md). (Plans for earlier specs are in git history.)
+Spec: [`../specs/081-late-check-offs.md`](../specs/081-late-check-offs.md). Issue: [#81](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/81). Tasks: [`todo.md`](todo.md). (Plans for earlier specs are in git history.)
 
 ## Overview
 
-An opened day's set items (hand-added, unfinished, today or later) get **Move to another day** (any week, native date input) and **Remove (not doing it)** (a drop, asked once, not queued). A fixed-day task gets **Move to another day** within its week, with an API change to `place`. A day of a week that hasn't opened shows its set tasks with menus and its known items under "Also that day".
-
-Three PRs, in this order:
-
-1. **API** (`goals-to-actions-api`, branch `move-fixed-day`, "Part of web-frontend#82"): task 1.
-2. **Front end** (`goals-to-actions-web-frontend`, branch `move-and-remove`, closes #82): tasks 2–7, 9. Merges after the API PR.
-3. **Docs** (`goals-to-actions`, branch `move-and-remove-docs`): task 8's `docs/` part.
+A past day shows the note "This day has passed. You can still tick off what you did.", every task that was on it (lapsed and since-dropped ones included), and a line under each unfinished one that ended with its week. A tick counts for the day opened. A closed week's day offers nothing but ticking and the quit row. Front end only: one PR, branch `late-check-offs`, closes #81. Docs in a root-repo PR after it.
 
 ## Architecture decisions
 
-- **The API change is one line of rule:** `place` drops its `keep_on_its_day` call. `move_to_bank` and `swap` keep it. `rework` already leaves a `by_hand` row alone (`app/turnover/rework.py`), so a moved fixed-day task stays put after its item is edited; tests prove it rather than new code. `fixedDay` stays true on the moved task (it's computed from the item and `carried_over`), so the front end still keeps it out of the bank and Swap.
-- **A cross-week move in replay:** a `place` change gains an optional `task` (the task as it was when moved). `replay` on the week named by `change.week`: a day inside that week moves the task as now; a day outside takes the task out. On another stored week whose Monday is the day's: the task is added there from `change.task` (placed by hand, that week), unless the week already has it. Older queued changes have no `task`, which only means they don't land early. Stored weeks are only the current and an open next week, so "lands at once" covers this week ↔ next week; further out, it just leaves.
-- **What's offered is decided in `domain/tasks.ts`:** `isSetItem(task, today)` (as the spec's snippet) and `canMoveInWeek(task, today)` (fixed-day, open, on a day; its week has a day from today on). `TaskRow` gets the domain's answers through `row`-level props, as now with `row.fixed`.
-- **Remove reuses `useDelete`** with a `failure` message passed in (default `DELETE_FAILED`), sending `dropTask` and reloading on done. 404 counts as done, as for Delete. `DeleteSheet` takes `confirmLabel` (default "Delete"); the question comes from `domain/deleting.ts` (`removeTaskLine`).
-- **Move's message** is "Moved to Sat, Dec 19." from 079's day label (`dayLabel` in `domain/goalDetail.ts`), shown through `setMessage` as other screen messages.
-- **The mock's `placeTask`** takes a bank or day task: within its week as now (a fixed-day one too); to another week for `byHand` only (a `ConflictError`/409 otherwise, as the API), keeping the rule that a target week can't already hold it. `dropTask` sets `dropped`.
-- **A not-open day** is drawn in a new `domain/notOpenDay.ts`: `notOpenDayOf(week, date)` → `{ tasks: TaskRow[], alsoThatDay: string[] }`. A check-in reads "Check in: Lift · Milestone 3 of 4" from `CheckInDate`'s `position` and `of`; Week's day line keeps its shorter "Check in: Lift". `Day.tsx` renders it when `week.status === 'notOpen'`.
+- **What the API sends** (checked in `ListWeekTasks`): a past week's row carries that week's `week` and `plannedDay`, its `weekOutcome`, and the task's state now. A rolled-over task reads `open` (or `done` once ticked anywhere, or `dropped`); a lapsed one `lapsed`. A lapsed task ticked late has its row turned to done, so it reads `done` with `weekOutcome: null`; unticked, it lapses again. A rolled-over task ticked late keeps `weekOutcome: 'rolledOver'` and reads `done`.
+- **Showing them:** `visibleTasks` (today.ts) keeps a task on its day when it has a `weekOutcome`, whatever its state; `isOnDay` stays as it is for everything else (the bank, a not-open day, Still matter?).
+- **The line:** `outcomeLine(task)` in `domain/today.ts`, set on the `TaskRow` data as `outcome`. `TaskRow` renders it under the subline, in the subline's style, and adds it to `aria-describedby`.
+- **Ticking:** `canTickLate(task)` is false only for `dropped`. `checkOffAt(now, day)`: `completedOn` is `day`; `useDay.toggleDone` passes the opened day when it's before today, else the phone's day as now (`toLocalDay(now)`), so a tick just after midnight on a stale Today still counts for the new day.
+- **Replay in a closed week** (`domain/replay.ts`, the week's `status`): a check-off of a lapsed task makes it `done` with `weekOutcome: null`; an uncheck of a done task that isn't `rolledOver` makes it `lapsed` with `weekOutcome: 'lapsed'`. A rolled-over task just changes state. In open weeks, nothing changes. The stored current week replays the same check-off by task id, so a rolled-over task leaves its bank at once (already true; tested).
+- **What a day offers:** `DayView` gains `isPast` (the note) and `offersMenu` (false on a closed week's day). Day passes no menu handlers when `offersMenu` is false; a row is disabled when `canCheckOff` is false or `canTickLate` is false (a per-row `canCheck` from the domain).
+- **The mock:** `StoredTask` gains `rolledFrom: { week, plannedDay }[]`, written when a week closes and a task carries over. `closedWeekTasks` adds each task with an entry for that week, with that week and day and `weekOutcome: 'rolledOver'`. `uncheckTask` puts a task back to `lapsed` when its week is before the current week. The seed gets a rolled-over task from last week ("Groceries", as the design), so `npm run dev:mock` shows both cases.
+- **A rolled-over task that was in the bank** when its week ended has no day, so it shows only in that week's bank on Week, not on a day. Ticking it from there is out of scope (spec: only from an opened day).
 
 ## Task list
 
-See [`todo.md`](todo.md). Each task: failing test first, then code, then the checks (front end: `nvm use`, `npm test`, `npm run lint`, `npm run build`; API: ruff check, ruff format --check, mypy, pytest), then one commit.
+Each task leaves tests, lint and build passing and is its own commit.
 
-1. **API: a fixed-day task moves within its week.** Remove `keep_on_its_day` from `place`; `Task.fixedDay` and `placeTask` descriptions; `uv run python -m app.openapi`. Tests: to tomorrow and back; to another week (409); bank and swap still 409; after the move, renaming its item and changing its schedule leave it on the new day; sent twice. Docs in the API repo: `specs/on-a-day.md`, `specs/tasks-week.md`. Files: `app/tasks/rules.py`, `app/tasks/models.py`, `openapi.json`, `tests/test_tasks*.py`, `tests/test_recurring_edit*.py`, `tests/test_repeats.py` if needed, two specs.
-2. **Types and the client.** `npm run api:types`; `dropTask` in `realPlan.ts` and `client.ts`; the mock's `placeTask` as above. Files: `openapi.ts`, `realPlan.ts`, `client.ts`, `client.test.ts`, `realPlan.test.ts`.
-3. **What's offered, and the move in replay.** `isSetItem`, `canMoveInWeek`; `place`'s optional `task` and the cross-week rule. Files: `domain/tasks.ts`, `tasks.test.ts`, `domain/replay.ts`, `replay.test.ts`.
-4. **The hook.** `useDay`'s `move(taskId, day)` (queued `place`, with `task` when the day is in another week; the "Moved to …" message) and `removing` (`useDelete` with `dropTask` and its own failure). Files: `useDay.ts`, `useDelete.ts`, `domain/deleting.ts`, `useDay.test.tsx`, `deleting.test.ts`.
-5. **The menu and the sheets.** `TaskMenu`'s `onMove`/`onRemove` in the spec's order; `MoveSheet` (date input, `min` today, Move off until the day differs); `DayPickerSheet`'s `title`; `DeleteSheet`'s `confirmLabel`; `TaskRow` and `Day.tsx` wiring, a fixed-day task's Move opening the day picker with its week's days from today on. Files: `TaskMenu.tsx`, `MoveSheet.tsx`, `DayPickerSheet.tsx`, `DeleteSheet.tsx`, `TaskRow.tsx`, `Day.tsx`, `Day.test.tsx`.
-6. **A day of a week that hasn't opened.** `notOpenDay.ts`; `useDay` gives it; `Day.tsx` shows the note, set tasks with menus, "Also that day", "Nothing set yet", no progress, check-off, Pull or Swap. Files: `domain/notOpenDay.ts` (+ test), `useDay.ts`, `Day.tsx`, `Day.css`, `Day.test.tsx`.
-7. **Checkpoint:** full suite, lint, build; the flows on `npm run dev:mock` by test only (Jan runs the dev servers).
-8. **Docs.** Root repo: `docs/screens/README.md` (Today's menu, Week's opened day, Remove beside Delete), `docs/flows.md` flow 3 ("Later weeks"), flow 7 (Remove is a drop), line 73 (a moved fixed-day task stays), `docs/data-model.md` line 296, the brief's status line and its FE 4 note. Front end: `specs/README.md`, the spec's status, `CLAUDE.md` (place can move across weeks; Remove beside Delete in the deletes rule).
-9. **The check.** A sonnet agent at 390 px against the local API and dev server (already running), as the spec's Testing says; findings fixed or reported; a "Checked" note in the spec.
+1. **The wording and what's ticked.** `visibleTasks` keeps `weekOutcome` rows; `outcomeLine`; `canTickLate`; `checkOffAt(now, day)`. Files: `domain/today.ts`, `domain/tasks.ts`, their tests.
+2. **Replay in a closed week.** Lapsed ↔ done with `weekOutcome`; a rolled-over task's tick over the current week leaves its bank. Files: `domain/replay.ts`, `domain/replay.test.ts`.
+3. **The mock.** `rolledFrom`, written on close; closed weeks list rolled-over tasks; uncheck lapses again; the seed's rolled-over task. Files: `api/mockData.ts`, `api/client.ts`, `api/client.test.ts`.
+4. **The day's hook.** `isPast`, `offersMenu`, per-row ticking, the day sent with a tick. Files: `hooks/useDay.ts`, `hooks/useDay.test.tsx`, `domain/today.ts` if the row's `canCheck` lives there.
+5. **The screen.** The note; the outcome line in `TaskRow`; no menus on a closed week's day; disabled rows. Files: `screens/Day.tsx`, `components/TaskRow.tsx`, `TaskRow.css`, `screens/Day.test.tsx`.
+6. **The quit row on a closed week's day.** Tests first; code only if it doesn't already show. Files: `screens/Day.test.tsx`, maybe `domain/quitting.ts`.
+7. **Docs.** `docs/screens/README.md` (opened past day; "A past day" built), `docs/flows.md` flow 9, `docs/data-model.md` (late check-offs from any past day, completedOn is that day), the brief's status line, `specs/README.md`, the spec's status, `CLAUDE.md` if the queue line needs it.
+8. **The check.** A Sonnet agent at 390 px against the local API and dev server (already running), as the spec's Testing says; findings fixed or reported; a "Checked" note in the spec.
+
+Checkpoints: after 3 (full suite, lint, build), after 6 (the screen end to end on `npm run dev:mock`), after 8. Then a review step before the PR is merged.
 
 ## Risks and mitigations
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| The front end's types need the API branch before it merges | Med | Generate from the local `move-fixed-day` branch; the FE PR says it merges after the API PR. |
-| A queued cross-week move whose task was already in the other week (two devices) shows twice | Low | The receiving week adds it only when it doesn't have that id. |
-| Remove sent offline | Low | Not queued: it fails and says "Couldn't remove that. Try again.", as Delete. |
-| The live check needs the API branch running | Med | The agent checks against the local API on `move-fixed-day`; I'll say if the running API isn't on it. |
+| The local API has no rolled-over or lapsed task to tick | Med | The agent makes them: adds a "Verification: …" task to an earlier day of this week, or uses last week's real rows; if none exist, it reports that and checks with `npm run dev:mock` instead. |
+| Replay's lapsed rule guesses wrong for a case the API handles differently | Low | The next read settles it; the rule only covers the two cases the API spec tests (rolled over, lapsed). |
+| Sending the opened day changes this week's past-day ticks | Low | Nothing on screen reads `completedOn` today (Week's "done" goes by the day); covered by a hook test. |
+| Removing menus on closed weeks hides Delete for a task made by mistake | Low | Agreed (decision 4): delete it from where it lives now. |
 
 ## Open questions
 
