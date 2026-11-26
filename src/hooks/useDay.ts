@@ -26,7 +26,7 @@ import {
 import { weekdayAndDate } from '../domain/add.ts'
 import { REMOVE_FAILED } from '../domain/deleting.ts'
 import { quitRows, type QuitRow } from '../domain/quitting.ts'
-import { checkOffAt, isDone, weekOf } from '../domain/tasks'
+import { canMoveInWeek, checkOffAt, isDone, isSetItem, weekOf } from '../domain/tasks'
 import { pickableDays, weekTitle, type PickableDay } from '../domain/week.ts'
 import { planStore } from '../storage/planStore.ts'
 import { readNotNow, saveNotNow } from '../storage/stillMattersNotNow.ts'
@@ -63,6 +63,10 @@ export type StillMattersAsk = {
   notNow: () => void
 }
 
+// Where a task can move (spec 082): a set item to any day from today on; a fixed-day task to
+// the other days of its week, from today on.
+export type MoveOffer = { kind: 'anyDay'; from: string; min: string } | { kind: 'inWeek'; days: PickableDay[] }
+
 export type UseDay = {
   // Known without loading, so it shows even when the day can't load.
   heading: string
@@ -84,6 +88,9 @@ export type UseDay = {
   pull: (bankTaskId: string) => void
   sendToBank: (taskId: string) => void
   swap: (taskId: string, bankTaskId: string) => void
+  // What a task's menu offers beyond Back to bank and Swap.
+  moveOffer: (task: Task) => MoveOffer | undefined
+  canRemove: (task: Task) => boolean
   // To another day, in any week (a fixed-day task: within its week). Queued as a place.
   move: (taskId: string, day: string) => void
   // A task made by mistake: asked once, then sent; the week is read again once it's gone.
@@ -165,6 +172,12 @@ export function useDay(date: string, today: string): UseDay {
     if (!taskWeek) return
     setMessage(undefined)
     void enqueue({ kind: 'toBank', id: newDeviceId(), taskId, week: taskWeek })
+  }
+
+  function moveOffer(task: Task): MoveOffer | undefined {
+    if (isSetItem(task, today)) return { kind: 'anyDay', from: task.plannedDay!, min: today }
+    if (!canMoveInWeek(task, today)) return undefined
+    return { kind: 'inWeek', days: pickableDays(task.week!, today).filter((day) => day.date !== task.plannedDay) }
   }
 
   // A move to another week carries the task, so that week shows it before the server answers.
@@ -254,6 +267,8 @@ export function useDay(date: string, today: string): UseDay {
     pull,
     sendToBank,
     swap,
+    moveOffer,
+    canRemove: (task) => isSetItem(task, today),
     move,
     deleting,
     removing,

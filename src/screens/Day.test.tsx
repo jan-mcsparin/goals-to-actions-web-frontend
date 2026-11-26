@@ -9,6 +9,7 @@ import {
   clearUrgeRating,
   createGoal,
   deleteTask,
+  dropTask,
   getWeek,
   placeTask,
   rateUrge,
@@ -27,6 +28,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     moveTaskToBank: vi.fn(actual.moveTaskToBank),
     swapTasks: vi.fn(actual.swapTasks),
     deleteTask: vi.fn(actual.deleteTask),
+    dropTask: vi.fn(actual.dropTask),
     answerStillMatters: vi.fn(actual.answerStillMatters),
     answerQuitDay: vi.fn(actual.answerQuitDay),
     clearQuitDay: vi.fn(actual.clearQuitDay),
@@ -746,5 +748,102 @@ describe('Day, Still matter?', () => {
 
       await waitFor(() => expect(screen.queryByRole('checkbox', { name: 'Take out the trash' })).toBeNull())
     })
+  })
+})
+
+describe('Day, moving or removing a set item', () => {
+  function menuActions() {
+    return screen
+      .getAllByRole('button')
+      .filter((button) => button.closest('.task-menu-actions'))
+      .map((button) => button.textContent)
+  }
+
+  it("offers a set item's moves in order, Delete last", async () => {
+    const user = userEvent.setup()
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+
+    await user.click(await screen.findByRole('button', { name: 'More for Move the car for street sweeping' }))
+
+    expect(menuActions()).toEqual([
+      'Back to bank',
+      'Swap',
+      'Move to another day',
+      'Remove (not doing it)',
+      'Delete (made by mistake)',
+    ])
+  })
+
+  it('offers a goal session what it did before', async () => {
+    const user = userEvent.setup()
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+
+    await user.click(await screen.findByRole('button', { name: 'More for Lift: bench day' }))
+
+    expect(menuActions()).toEqual(['Back to bank', 'Swap', 'Delete (made by mistake)'])
+  })
+
+  it('moves it to the day picked, once the day differs, and says where it went', async () => {
+    const user = userEvent.setup()
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+
+    await user.click(await screen.findByRole('button', { name: 'More for Move the car for street sweeping' }))
+    await user.click(screen.getByRole('button', { name: 'Move to another day' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Move to another day' })
+    const input = within(sheet).getByLabelText('Day') as HTMLInputElement
+    expect(within(sheet).getByText('Move the car for street sweeping')).toBeDefined()
+    expect([input.value, input.min, input.max]).toEqual([WEDNESDAY_DAY, WEDNESDAY_DAY, ''])
+    const move = within(sheet).getByRole('button', { name: 'Move' }) as HTMLButtonElement
+    expect(move.disabled).toBe(true)
+
+    fireEvent.change(input, { target: { value: '2026-12-19' } })
+    await user.click(move)
+
+    expect(screen.queryByRole('checkbox', { name: 'Move the car for street sweeping' })).toBeNull()
+    expect(await screen.findByText('Moved to Sat, Dec 19.')).toBeDefined()
+    await waitFor(() => expect(placeTask).toHaveBeenCalledWith('task-move-car', '2026-11-09', '2026-12-19'))
+  })
+
+  it('asks once before removing, Cancel first, then drops it', async () => {
+    const user = userEvent.setup()
+    render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+
+    await user.click(await screen.findByRole('button', { name: 'More for Move the car for street sweeping' }))
+    await user.click(screen.getByRole('button', { name: 'Remove (not doing it)' }))
+    const sheet = await screen.findByRole('dialog', {
+      name: "Remove “Move the car for street sweeping”? It's not done, and nothing counts against you.",
+    })
+    expect(within(sheet).getAllByRole('button').map((button) => button.textContent)).toEqual(['Cancel', 'Remove'])
+    expect(dropTask).not.toHaveBeenCalled()
+
+    await user.click(within(sheet).getByRole('button', { name: 'Remove' }))
+
+    await waitFor(() => expect(screen.queryByRole('checkbox', { name: 'Move the car for street sweeping' })).toBeNull())
+    expect(dropTask).toHaveBeenCalledExactlyOnceWith('task-move-car')
+  })
+
+  it('moves a fixed-day task within its week only, from the day picker', async () => {
+    vi.setSystemTime(new Date(2026, 10, 9, 9, 0))
+    resetStore()
+    const user = userEvent.setup()
+    render(<Day date="2026-11-10" today="2026-11-09" />)
+
+    await user.click(await screen.findByRole('button', { name: 'More for Take out the trash' }))
+    expect(menuActions()).toEqual(['Move to another day', 'Delete (made by mistake)'])
+    await user.click(screen.getByRole('button', { name: 'Move to another day' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Move to another day' })
+    expect(within(sheet).getAllByRole('button', { name: /day$/ }).map((button) => button.textContent)).toEqual([
+      'Today',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ])
+
+    await user.click(within(sheet).getByRole('button', { name: 'Thursday' }))
+
+    expect(screen.queryByRole('checkbox', { name: 'Take out the trash' })).toBeNull()
+    await waitFor(() => expect(placeTask).toHaveBeenCalledWith('task-trash', '2026-11-09', '2026-11-12'))
   })
 })

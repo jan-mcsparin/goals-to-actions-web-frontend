@@ -8,13 +8,15 @@ type DeleteSheetProps = {
   open: boolean
   // What it asks, naming the thing and what goes with it (domain/deleting.ts).
   question: string
+  // "Delete" unless said otherwise: Remove's sheet says "Remove" (spec 082).
+  confirmLabel?: string
   onDelete: () => void
   onClose: () => void
 }
 
 // Asks once before deleting. Cancel comes first and takes the focus, so Delete is never the
 // default; Delete is plain, never a red button.
-export function DeleteSheet({ open, question, onDelete, onClose }: DeleteSheetProps) {
+export function DeleteSheet({ open, question, confirmLabel = 'Delete', onDelete, onClose }: DeleteSheetProps) {
   const dialog = useModalDialog(open)
   const backdropClose = useBackdropClose(onClose)
   const titleId = useId()
@@ -29,7 +31,7 @@ export function DeleteSheet({ open, question, onDelete, onClose }: DeleteSheetPr
           Cancel
         </button>
         <button type="button" className="edit-form-save" onClick={onDelete}>
-          Delete
+          {confirmLabel}
         </button>
       </div>
     </dialog>

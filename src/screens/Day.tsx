@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { BankSheet } from '../components/BankSheet.tsx'
 import { DayPickerSheet } from '../components/DayPickerSheet.tsx'
 import { DeleteSheet } from '../components/DeleteSheet.tsx'
+import { MoveSheet } from '../components/MoveSheet.tsx'
 import { QuitDayRow } from '../components/QuitDayRow.tsx'
 import { StillMattersCard } from '../components/StillMattersCard.tsx'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
@@ -10,9 +11,9 @@ import { ViewToggle, type ViewOption } from '../components/ViewToggle.tsx'
 import type { TodayViewMode } from '../storage/viewPreference.ts'
 import '../components/progressBar.css'
 import type { Task } from '../api/types.ts'
-import { deleteTaskLine } from '../domain/deleting.ts'
+import { deleteTaskLine, removeTaskLine } from '../domain/deleting.ts'
 import type { Section } from '../domain/today.ts'
-import { useDay, type StillMattersAsk } from '../hooks/useDay.ts'
+import { useDay, type MoveOffer, type StillMattersAsk } from '../hooks/useDay.ts'
 import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
 import './Day.css'
 
@@ -38,7 +39,11 @@ export function Day({ date, today, onBack }: DayProps) {
     pull,
     sendToBank,
     swap,
+    moveOffer,
+    canRemove,
+    move,
     deleting,
+    removing,
     answerQuitDay,
     clearQuitDay,
     rateUrge,
@@ -47,6 +52,7 @@ export function Day({ date, today, onBack }: DayProps) {
   const shownMessage = useFleetingMessage(message, { sticky: !day, onGone: clearMessage })
   const [sheet, setSheet] = useState<Sheet>()
   const [rescheduling, setRescheduling] = useState<StillMattersAsk>()
+  const [moving, setMoving] = useState<{ task: Task; offer: MoveOffer }>()
   const focusAfterSwap = useRef<string>(undefined)
 
   // After a swap the button that opened the sheet is gone, so focus goes to
@@ -88,6 +94,16 @@ export function Day({ date, today, onBack }: DayProps) {
   const swapTask = canPlace
     ? (task: Task) => openSheet({ kind: 'swap', taskId: task.id, taskTitle: task.title })
     : undefined
+  const moveTask = (task: Task) => {
+    const offer = moveOffer(task)
+    return offer && (() => setMoving({ task, offer }))
+  }
+  const removeTask = (task: Task) => (canRemove(task) ? () => removing.ask(task) : undefined)
+
+  function moveTo(picked: string) {
+    if (moving) move(moving.task.id, picked)
+    setMoving(undefined)
+  }
 
   return (
     <main className="today" data-view={view}>
@@ -125,6 +141,8 @@ export function Day({ date, today, onBack }: DayProps) {
             onToggle={toggleDone}
             onSendToBank={sendToBank}
             onSwap={swapTask}
+            onMove={moveTask}
+            onRemove={removeTask}
             onDelete={deleting.ask}
           />
         ))
@@ -177,6 +195,32 @@ export function Day({ date, today, onBack }: DayProps) {
           setRescheduling(undefined)
         }}
         onClose={() => setRescheduling(undefined)}
+      />
+
+      <MoveSheet
+        open={moving?.offer.kind === 'anyDay'}
+        taskTitle={moving?.task.title}
+        from={moving?.offer.kind === 'anyDay' ? moving.offer.from : undefined}
+        min={moving?.offer.kind === 'anyDay' ? moving.offer.min : undefined}
+        onMove={moveTo}
+        onClose={() => setMoving(undefined)}
+      />
+
+      <DayPickerSheet
+        open={moving?.offer.kind === 'inWeek'}
+        title="Move to another day"
+        taskTitle={moving?.task.title}
+        days={moving?.offer.kind === 'inWeek' ? moving.offer.days : []}
+        onPick={moveTo}
+        onClose={() => setMoving(undefined)}
+      />
+
+      <DeleteSheet
+        open={removing.asking !== undefined}
+        question={removing.asking ? removeTaskLine(removing.asking.title) : ''}
+        confirmLabel="Remove"
+        onDelete={() => void removing.confirm()}
+        onClose={removing.cancel}
       />
 
       <DeleteSheet
@@ -234,10 +278,13 @@ type TaskGroupProps = {
   onToggle: (taskId: string) => void
   onSendToBank: (taskId: string) => void
   onSwap?: (task: Task) => void
+  // What the task's menu offers, if anything.
+  onMove: (task: Task) => (() => void) | undefined
+  onRemove: (task: Task) => (() => void) | undefined
   onDelete: (task: Task) => void
 }
 
-function TaskGroup({ section, doneLabel, canCheck, onToggle, onSendToBank, onSwap, onDelete }: TaskGroupProps) {
+function TaskGroup({ section, doneLabel, canCheck, onToggle, onSendToBank, onSwap, onMove, onRemove, onDelete }: TaskGroupProps) {
   const headingId = `group-${section.id}`
   return (
     <section className="today-group" aria-labelledby={headingId}>
@@ -259,6 +306,8 @@ function TaskGroup({ section, doneLabel, canCheck, onToggle, onSendToBank, onSwa
             onToggle={() => onToggle(row.task.id)}
             onSendToBank={() => onSendToBank(row.task.id)}
             onSwap={onSwap && (() => onSwap(row.task))}
+            onMove={onMove(row.task)}
+            onRemove={onRemove(row.task)}
             onDelete={() => onDelete(row.task)}
           />
         ))}

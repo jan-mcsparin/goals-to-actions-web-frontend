@@ -140,11 +140,16 @@ describe('isSetItem', () => {
 })
 
 describe('canMoveInWeek', () => {
-  const trash = aTask('trash', { recurringItemId: 'rec-trash', fixedDay: true, plannedDay: '2026-11-10' })
+  const trash = aTask('trash', { recurringItemId: 'rec-trash', fixedDay: true, plannedDay: '2026-11-12' })
 
-  it('is a fixed-day task on a day, with another day of its week from today on', () => {
+  it('is a fixed-day task on a day from today on, with another day of its week from today on', () => {
     expect(canMoveInWeek(trash, '2026-11-11')).toBe(true)
+    expect(canMoveInWeek(trash, '2026-11-12')).toBe(true)
     expect(canMoveInWeek({ ...trash, plannedDay: '2026-11-15' }, '2026-11-15')).toBe(false)
+  })
+
+  it("isn't one on a past day", () => {
+    expect(canMoveInWeek({ ...trash, plannedDay: '2026-11-10' }, '2026-11-11')).toBe(false)
   })
 
   it("isn't a task that isn't fixed-day, nor a done one", () => {

@@ -31,9 +31,10 @@ export function isSetItem(task: Task, today: string): boolean {
   return task.origin === 'byHand' && isPlanned(task) && task.plannedDay !== null && task.plannedDay >= today
 }
 
-// A fixed-day task moves only to another day of its week, from today on (spec 082).
+// A fixed-day task on a day from today on moves only to another day of its week, from today
+// on (spec 082). A past day's is #81's.
 export function canMoveInWeek(task: Task, today: string): boolean {
-  if (!task.fixedDay || !isPlanned(task) || task.week === null) return false
+  if (!task.fixedDay || !isPlanned(task) || task.week === null || task.plannedDay! < today) return false
   const monday = fromLocalDay(task.week)
   return Array.from({ length: 7 }, (_, offset) => toLocalDay(addDays(monday, offset))).some(
     (day) => day >= today && day !== task.plannedDay,

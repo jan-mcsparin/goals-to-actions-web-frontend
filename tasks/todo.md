@@ -5,7 +5,7 @@
 - [x] 3. What's offered, and the move in replay
 - [x] Checkpoint: tests, lint, build
 - [x] 4. The hook
-- [ ] 5. The menu and the sheets
+- [x] 5. The menu and the sheets
 - [ ] 6. A day of a week that hasn't opened
 - [ ] 7. Checkpoint: full suite, lint, build
 - [ ] 8. Docs
