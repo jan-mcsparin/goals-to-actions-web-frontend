@@ -9,6 +9,7 @@ import { planStore, resetPlanStore } from '../storage/planStore.ts'
 import { aTask } from '../test/tasks.ts'
 import { DataRevision } from './dataRevision.ts'
 import { useStoredWeeks, type WeeksRead } from './useStoredWeeks.ts'
+import { aWeekRead } from '../test/weeks.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
@@ -20,7 +21,7 @@ const LOAD_FAILED = "Couldn't load today."
 const CHECK_OFF = { completedAt: '2026-11-11T16:00:00.000Z', completedOn: '2026-11-11', valueLogged: null }
 
 function aWeek(tasks: Task[]): Week {
-  return { week: WEEK, isCurrent: true, nextWeekOpen: false, tasks, goals: [], days: [], quittingGoals: [] }
+  return aWeekRead({ week: WEEK, tasks })
 }
 
 function deferred<T>() {

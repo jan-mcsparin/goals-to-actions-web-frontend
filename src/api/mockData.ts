@@ -506,6 +506,7 @@ function storedTask(fields: TaskFields): StoredTask {
     carriedOver: 0,
     atClose: null,
     stillMatters: false,
+    weekOutcome: null,
     setAside: false,
     ...fields,
   }

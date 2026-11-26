@@ -11,6 +11,7 @@ import { NotFoundError, RefusedError, SignedOutError } from './errors.ts'
 import { newDeviceId } from './ids.ts'
 import type { StoredCheckIn, StoredGoal, StoredMilestone, StoredTask } from './mockData.ts'
 import { store } from './mockStore.ts'
+import { countsOf, dayCountsOf, fixedDayIn } from './mockWeek.ts'
 import { realApi } from './mode.ts'
 import * as real from './realAspirations.ts'
 import * as realGoals from './realGoals.ts'
@@ -43,6 +44,10 @@ import type {
   Upkeep,
   UrgeLevel,
   Week,
+  WeekCounts,
+  CheckInDate,
+  GoalDeadline,
+  Occurrence,
   WeekGoal,
   WeekQuitGoal,
   WeeklyTarget,
@@ -69,27 +74,107 @@ export async function uncheckTask(taskId: string): Promise<Task> {
   return taskOut(task)
 }
 
-// Any week, as the API reads it: one that hasn't opened yet has nothing in it (the mock keeps
-// next week's tasks ready before then). Its goals are the active building goals with a target
-// that week.
+// Any week, as the API reads it. A past week is closed, with its lapsed tasks; the current one
+// and an open next week are open; a later week hasn't opened, and shows only what's known: tasks
+// placed on it by hand, fixed-day items, check-ins and deadlines (the mock keeps next week's
+// tasks ready before then). Counts are actual once a week has opened, else expected, roughly.
 export async function getWeek(asked?: string): Promise<Week> {
   if (realApi) return realPlan.getWeek(asked)
   const week = asked ?? thisWeek()
   const current = thisWeek()
-  const isCurrent = week === current
   const open = nextWeekOpen()
-  const notOpenYet = week > current && !(open && week === weekAfter(current))
+  const status: Week['status'] =
+    week < current ? 'closed' : week === current || (open && week === weekAfter(current)) ? 'open' : 'notOpen'
 
-  const tasks = notOpenYet ? [] : shown(store.tasks.filter((task) => task.week === week))
+  const inWeek = store.tasks.filter((task) => task.week === week)
+  const tasks =
+    status === 'notOpen'
+      ? shown(inWeek.filter((task) => task.origin === 'byHand' && task.placedByHand))
+      : status === 'closed'
+        ? closedWeekTasks(inWeek)
+        : shown(inWeek)
   return structuredClone({
     week,
-    isCurrent,
+    isCurrent: week === current,
     nextWeekOpen: open,
+    status,
+    firstWeek: firstWeek(),
+    counts: status === 'notOpen' ? expectedCounts(week, tasks) : countsOf(tasks),
     tasks,
-    goals: weekGoals(week, tasks),
-    days: dayMarks(week, tasks),
+    goals: status === 'notOpen' ? [] : weekGoals(week, tasks),
+    days: dayMarks(week, tasks, status !== 'notOpen'),
+    occurrences: status === 'notOpen' ? occurrencesIn(week) : [],
+    checkIns: checkInsIn(week),
+    deadlines: deadlinesIn(week),
     quittingGoals: weekQuitGoals(week),
   })
+}
+
+// Done, still open, and lapsed, each as the week ended it.
+function closedWeekTasks(tasks: StoredTask[]): Task[] {
+  const lapsed = tasks.filter((task) => task.state === 'lapsed' && !task.setAside)
+  return [...shown(tasks), ...lapsed.map((task) => ({ ...taskOut(task), weekOutcome: 'lapsed' as const }))]
+}
+
+function firstWeek(): string | null {
+  return store.tasks.flatMap((task) => (task.week ? [task.week] : [])).sort()[0] ?? null
+}
+
+function weekDays(week: string): string[] {
+  return Array.from({ length: 7 }, (_, offset) => toLocalDay(addDays(fromLocalDay(week), offset)))
+}
+
+// What opening the week would bring: each active building goal's sessions, each item that's
+// on (a fixed one if it's due that week), and the tasks pinned to it or due in it.
+function expectedCounts(week: string, pinned: Task[]): WeekCounts {
+  const sessions = store.goals.flatMap((goal) =>
+    goal.status === 'active' && goal.type === 'building' ? [targetIn(goal.id, week)?.sessions ?? 0] : [],
+  )
+  const items = store.recurringItems.filter((item) => item.active && item.startsOn <= week)
+  const upkeep = items.reduce((sum, item) => {
+    if (item.schedule.kind !== 'flexible') return sum + (fixedDayIn(item.schedule, week) ? 1 : 0)
+    return sum + (item.schedule.period === 'week' ? item.schedule.times : 0)
+  }, 0)
+  const days = weekDays(week)
+  const due = store.tasks.filter(
+    (task) => task.origin === 'byHand' && task.week === null && task.dueDate !== null && days.includes(task.dueDate),
+  )
+  return {
+    goalSessions: sessions.reduce((sum, count) => sum + count, 0),
+    goals: sessions.filter((count) => count > 0).length,
+    upkeep,
+    added: pinned.length + due.length,
+  }
+}
+
+function occurrencesIn(week: string): Occurrence[] {
+  return store.recurringItems.flatMap((item) => {
+    const day = item.active ? fixedDayIn(item.schedule, week) : null
+    return day && item.startsOn <= day ? [{ recurringItemId: item.id, title: item.name, day }] : []
+  })
+}
+
+// Dated milestones not hit yet, under active goals.
+function checkInsIn(week: string): CheckInDate[] {
+  const days = weekDays(week)
+  return store.goals.flatMap((goal) => {
+    if (goal.status !== 'active') return []
+    const milestones = milestonesOf(goal.id)
+    return milestones.flatMap((milestone, index) =>
+      milestone.status !== 'hit' && milestone.targetDate && days.includes(milestone.targetDate)
+        ? [{ goalId: goal.id, goalLabel: goal.label, milestoneId: milestone.id, position: index + 1, of: milestones.length + 1, day: milestone.targetDate }]
+        : [],
+    )
+  })
+}
+
+function deadlinesIn(week: string): GoalDeadline[] {
+  const days = weekDays(week)
+  return store.goals.flatMap((goal) =>
+    goal.status === 'active' && goal.deadline && days.includes(goal.deadline)
+      ? [{ goalId: goal.id, goalLabel: goal.label, day: goal.deadline }]
+      : [],
+  )
 }
 
 // The current week's goals, as its read sends them.
@@ -110,12 +195,14 @@ function weekGoals(week: string, tasks: Task[]): WeekGoal[] {
 // Tasks a day holds at each intensity, as the API counts them: open or done, on the day.
 const CAPS: Record<Intensity, number> = { easingOff: 3, normal: 4, goingHard: 6 }
 
-function dayMarks(week: string, tasks: Task[]): Week['days'] {
+function dayMarks(week: string, tasks: Task[], counted: boolean): Week['days'] {
   const cap = CAPS[store.settings.intensity]
-  return Array.from({ length: 7 }, (_, offset) => {
-    const day = toLocalDay(addDays(fromLocalDay(week), offset))
-    return { day, cap, full: tasks.filter((task) => task.plannedDay === day).length >= cap }
-  })
+  return weekDays(week).map((day) => ({
+    day,
+    cap,
+    full: tasks.filter((task) => task.plannedDay === day).length >= cap,
+    counts: counted ? dayCountsOf(tasks, day) : null,
+  }))
 }
 
 // Closes the current week early, once next week is open, as the API does: what carries over
@@ -858,6 +945,7 @@ function newStoredTask(fields: Pick<StoredTask, 'title' | 'origin'> & Partial<St
     carriedOver: 0,
     atClose: null,
     stillMatters: false,
+    weekOutcome: null,
     setAside: false,
     ...fields,
   }

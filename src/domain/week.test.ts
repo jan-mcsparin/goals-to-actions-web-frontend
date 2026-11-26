@@ -3,6 +3,7 @@ import { countTarget } from '../test/goals.ts'
 import type { Task, Week, WeekGoal } from '../api/types.ts'
 import { daySummaries, pacingLine, pickableDays, weekProgress, weekRange, wrapUpLists } from './week.ts'
 import { aTask } from '../test/tasks.ts'
+import { aWeekRead } from '../test/weeks.ts'
 
 const MONDAY = '2026-11-09'
 const WEDNESDAY = '2026-11-11'
@@ -23,7 +24,7 @@ function weekGoal(id: string, label: string, aspiration: WeekGoal['aspiration'],
 const strong = weekGoal('goal-strong', 'Be strong', fit)
 
 function week(tasks: Task[], goals: WeekGoal[] = [strong]): Week {
-  return { week: MONDAY, isCurrent: true, nextWeekOpen: false, tasks, goals, days: [], quittingGoals: [] }
+  return aWeekRead({ week: MONDAY, tasks, goals })
 }
 
 describe('pacingLine', () => {
@@ -126,8 +127,8 @@ describe('daySummaries', () => {
 
   it("marks a day full when the week read says so, whatever's on it", () => {
     const marks = [
-      { day: '2026-11-10', cap: 3, full: true },
-      { day: '2026-11-12', cap: 3, full: false },
+      { day: '2026-11-10', cap: 3, full: true, counts: null },
+      { day: '2026-11-12', cap: 3, full: false, counts: null },
     ]
     const full = daySummaries({ ...plan, days: marks }, WEDNESDAY).map((day) => day.full)
     expect(full).toEqual([false, true, false, false, false, false, false])

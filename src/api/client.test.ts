@@ -469,6 +469,44 @@ describe('getWeek', () => {
     expect(lift).toMatchObject({ state: 'open', plannedDay: '2026-11-14', placedByHand: true })
   })
 
+  it('says the current week is open, with its counts by origin and per day', async () => {
+    const week = await getWeek()
+
+    expect(week.status).toBe('open')
+    const sessions = week.tasks.filter((task) => task.origin === 'weeklyTarget').length
+    expect(week.counts.goalSessions).toBe(sessions)
+    const onDays = week.days.reduce((sum, day) => sum + (day.counts?.goalSessions ?? 0), 0)
+    expect(onDays).toBe(week.tasks.filter((task) => task.origin === 'weeklyTarget' && task.plannedDay !== null).length)
+    expect(week.occurrences).toEqual([])
+  })
+
+  it('says a past week is closed', async () => {
+    expect((await getWeek('2026-11-02')).status).toBe('closed')
+  })
+
+  it('names the first week with any task', async () => {
+    const weeks = store.tasks.flatMap((task) => (task.week ? [task.week] : [])).sort()
+
+    expect((await getWeek()).firstWeek).toBe(weeks[0])
+  })
+
+  it("reads a week that hasn't opened as what's known: pinned tasks, fixed-day items, check-ins and deadlines", async () => {
+    await addTask({ title: 'Dentist', day: '2026-12-02' }, 'task-dentist-cleaning')
+
+    const week = await getWeek('2026-11-30')
+
+    expect(week.status).toBe('notOpen')
+    expect(week.tasks.map((task) => task.id)).toEqual(['task-dentist-cleaning'])
+    expect(week.occurrences).toContainEqual({ recurringItemId: 'rec-trash', title: 'Take out the trash', day: '2026-12-01' })
+    expect(week.checkIns).toContainEqual(expect.objectContaining({ milestoneId: 'ms-strong-3', goalId: 'goal-strong', day: '2026-11-30' }))
+    expect(week.deadlines).toContainEqual(expect.objectContaining({ goalId: 'goal-garage', day: '2026-12-04' }))
+    expect(week.days.every((day) => day.counts === null)).toBe(true)
+    expect(week.goals).toEqual([])
+    expect(week.counts.added).toBe(1)
+    expect(week.counts.upkeep).toBeGreaterThanOrEqual(week.occurrences.length)
+    expect(week.counts).toMatchObject({ goalSessions: 5, goals: 2 })
+  })
+
   it('returns copies, so changing them does not change the store', async () => {
     const first = await getWeek()
     first.tasks[0].title = 'changed'

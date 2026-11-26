@@ -127,6 +127,7 @@ function newTask(id: string, task: NewTask, goalLabel: string | null, place: Pla
     carriedOver: 0,
     atClose: 'carriesOver',
     stillMatters: false,
+    weekOutcome: null,
   }
 }
 

@@ -88,6 +88,14 @@ export type Intensity = Settings['intensity']
 export type Week = Schemas['Week']
 export type WeekGoal = Schemas['WeekGoal']
 
+// How full a week is (product rule 11), and each day of an opened week. A week that hasn't
+// opened also lists what's known: its fixed-day items, check-in dates and deadlines.
+export type WeekCounts = Schemas['WeekCounts']
+export type DayCounts = Schemas['DayCounts']
+export type Occurrence = Schemas['Occurrence']
+export type CheckInDate = Schemas['CheckInDate']
+export type GoalDeadline = Schemas['GoalDeadline']
+
 // A quitting goal's day: held or not, and the urge, each empty when not given. Empty is
 // unknown, never a slip. The week read carries each active quitting goal's days of the week.
 export type QuitDay = Schemas['QuitDay']
