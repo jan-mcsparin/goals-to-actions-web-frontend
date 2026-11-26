@@ -1,7 +1,7 @@
 # 080: Any week on Week, with how full it is
 
 - [x] 1. Types and the mock
-- [ ] 2. The wording
+- [x] 2. The wording
 - [ ] 3. Only open weeks stored
 - [ ] Checkpoint: tests, lint, build
 - [ ] 4. The week shown, in the open screen
