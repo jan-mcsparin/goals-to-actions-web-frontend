@@ -89,7 +89,7 @@ export function Day({ date, today, onBack }: DayProps) {
     )
   }
 
-  const { isToday, canPlace, canCheckOff, progress, sections, quitRows, notOpen } = day
+  const { isToday, canPlace, canCheckOff, isPast, offersMenu, progress, sections, quitRows, notOpen } = day
   const isEmpty = progress.total === 0
   const emptyLine = isToday ? 'Nothing planned today. The day is yours.' : 'Nothing planned. The day is yours.'
   const swapTask = canPlace
@@ -128,6 +128,8 @@ export function Day({ date, today, onBack }: DayProps) {
         />
       ))}
 
+      {isPast && <p className="today-note">This day has passed. You can still tick off what you did.</p>}
+
       {!notOpen && !isEmpty && <ViewToggle label="View" view={view} options={DAY_VIEWS} onChange={setView} />}
 
       {notOpen ? (
@@ -142,11 +144,13 @@ export function Day({ date, today, onBack }: DayProps) {
             doneLabel={isToday ? 'done today' : 'done this day'}
             canCheck={canCheckOff}
             onToggle={toggleDone}
-            onSendToBank={sendToBank}
-            onSwap={swapTask}
-            onMove={moveTask}
-            onRemove={removeTask}
-            onDelete={deleting.ask}
+            {...(offersMenu && {
+              onSendToBank: sendToBank,
+              onSwap: swapTask,
+              onMove: moveTask,
+              onRemove: removeTask,
+              onDelete: deleting.ask,
+            })}
           />
         ))
       )}
@@ -323,12 +327,13 @@ type TaskGroupProps = {
   doneLabel: string
   canCheck: boolean
   onToggle: (taskId: string) => void
-  onSendToBank: (taskId: string) => void
+  // All left out on a closed week's day: it offers only ticking (spec 081).
+  onSendToBank?: (taskId: string) => void
   onSwap?: (task: Task) => void
   // What the task's menu offers, if anything.
-  onMove: (task: Task) => (() => void) | undefined
-  onRemove: (task: Task) => (() => void) | undefined
-  onDelete: (task: Task) => void
+  onMove?: (task: Task) => (() => void) | undefined
+  onRemove?: (task: Task) => (() => void) | undefined
+  onDelete?: (task: Task) => void
 }
 
 function TaskGroup({ section, doneLabel, canCheck, onToggle, onSendToBank, onSwap, onMove, onRemove, onDelete }: TaskGroupProps) {
@@ -351,11 +356,11 @@ function TaskGroup({ section, doneLabel, canCheck, onToggle, onSendToBank, onSwa
             row={row}
             canCheck={canCheck}
             onToggle={() => onToggle(row.task.id)}
-            onSendToBank={() => onSendToBank(row.task.id)}
+            onSendToBank={onSendToBank && (() => onSendToBank(row.task.id))}
             onSwap={onSwap && (() => onSwap(row.task))}
-            onMove={onMove(row.task)}
-            onRemove={onRemove(row.task)}
-            onDelete={() => onDelete(row.task)}
+            onMove={onMove?.(row.task)}
+            onRemove={onRemove?.(row.task)}
+            onDelete={onDelete && (() => onDelete(row.task))}
           />
         ))}
       </ul>

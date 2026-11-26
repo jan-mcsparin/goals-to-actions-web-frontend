@@ -57,8 +57,16 @@ export function inTheBank(task: Task): Task {
 }
 
 // One reading of the clock, so the moment and the day can't disagree.
-export function checkOffAt(now: Date): CheckOff {
-  return { completedAt: now.toISOString(), completedOn: toLocalDay(now) }
+// The moment of the tap, counted for the day it's on: the phone's day, or a past day ticked late
+// (spec 081).
+export function checkOffAt(now: Date, day = toLocalDay(now)): CheckOff {
+  return { completedAt: now.toISOString(), completedOn: day }
+}
+
+// A task that ended with its week can still be ticked off from its day, unless it was dropped
+// since (the API refuses that).
+export function canTickLate(task: State): boolean {
+  return task.state !== 'dropped'
 }
 
 // No value logged is null, as the API stores it.

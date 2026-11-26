@@ -52,6 +52,7 @@ import { resetStore, store } from './mockStore.ts'
 import { readBank, readDay } from '../test/plan.ts'
 import type { Goal, ListedGoal, NewGoal, NewRecurringItem, Task, WeeklyTargetInput } from './types.ts'
 import { aTask, whereIs } from '../test/tasks.ts'
+import { isInBank } from '../domain/tasks.ts'
 
 // A task as the mock stores it.
 function aStoredTask(id: string, fields: Partial<StoredTask> = {}): StoredTask {
@@ -524,6 +525,59 @@ describe('getWeek', () => {
 
   it('says a past week is closed', async () => {
     expect((await getWeek('2026-11-02')).status).toBe('closed')
+  })
+
+  describe('a past week, ticked off late (spec 081)', () => {
+    const LAST_WEEK = '2026-11-02'
+    const LAST_THURSDAY = '2026-11-05'
+    const late = { completedAt: '2026-11-11T16:00:00.000Z', completedOn: LAST_THURSDAY, valueLogged: null }
+    const inLastWeek = async (id: string) => (await getWeek(LAST_WEEK)).tasks.find((task) => task.id === id)
+    const inBank = async (id: string) => (await getWeek()).tasks.some((task) => task.id === id && isInBank(task))
+
+    it('lists a task that rolled over on its day, as rolled over', async () => {
+      expect(await inLastWeek('task-dentist')).toMatchObject({
+        week: LAST_WEEK,
+        plannedDay: LAST_THURSDAY,
+        weekOutcome: 'rolledOver',
+        state: 'open',
+      })
+      expect(await inBank('task-dentist')).toBe(true)
+    })
+
+    it('ticks a rolled-over task off in the week it moved to, and back', async () => {
+      await checkOffTask('task-dentist', late)
+
+      expect(await inBank('task-dentist')).toBe(false)
+      expect(await inLastWeek('task-dentist')).toMatchObject({ state: 'done', weekOutcome: 'rolledOver', completedOn: LAST_THURSDAY })
+
+      await uncheckTask('task-dentist')
+      expect(await inBank('task-dentist')).toBe(true)
+    })
+
+    it('ticks a lapsed task off on its row, and lapses it again when unticked', async () => {
+      await checkOffTask('task-last-lift', late)
+      expect(await inLastWeek('task-last-lift')).toMatchObject({ state: 'done', weekOutcome: null })
+
+      await uncheckTask('task-last-lift')
+      expect(await inLastWeek('task-last-lift')).toMatchObject({ state: 'lapsed', weekOutcome: 'lapsed' })
+    })
+
+    it('gives a task done on time and unticked now the ending its week would have', async () => {
+      store.tasks.push(aStoredTask('task-paint', { state: 'done', week: LAST_WEEK, plannedDay: LAST_THURSDAY, completedOn: LAST_THURSDAY }))
+
+      await uncheckTask('task-paint')
+      await uncheckTask('task-last-run')
+
+      expect(await inLastWeek('task-paint')).toMatchObject({ weekOutcome: 'rolledOver', plannedDay: LAST_THURSDAY })
+      expect(await inBank('task-paint')).toBe(true)
+      expect(await inLastWeek('task-last-run')).toMatchObject({ state: 'lapsed', weekOutcome: 'lapsed' })
+    })
+
+    it('refuses to tick off a task dropped since', async () => {
+      await dropTask('task-dentist')
+
+      await expect(checkOffTask('task-dentist', late)).rejects.toThrow()
+    })
   })
 
   it('names the first week with any task', async () => {

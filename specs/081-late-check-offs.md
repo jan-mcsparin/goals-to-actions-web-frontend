@@ -1,6 +1,6 @@
 # Spec: Tick off a past day's tasks late
 
-Status: approved 2026-11-25, decisions 1 to 6 agreed with Jan as recommended; plan in `tasks/plan.md`. Issue: [#81](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/81). The fourth front-end piece of the scheduling brief, after [080](080-any-week.md) and [082](082-move-and-remove.md). Needs API [#51](https://github.com/jan-mcsparin/goals-to-actions-api/issues/51) ([`api/specs/any-week.md`](../../api/specs/any-week.md), built): the past week's read carries every row with its `weekOutcome`, and late check-offs needed no API code. No API change and no new types.
+Status: built 2026-11-25, decisions 1 to 6 agreed with Jan as recommended; plan in `tasks/plan.md`. Issue: [#81](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/81). The fourth front-end piece of the scheduling brief, after [080](080-any-week.md) and [082](082-move-and-remove.md). Needs API [#51](https://github.com/jan-mcsparin/goals-to-actions-api/issues/51) ([`api/specs/any-week.md`](../../api/specs/any-week.md), built): the past week's read carries every row with its `weekOutcome`, and late check-offs needed no API code. No API change and no new types.
 
 ## Objective
 
@@ -110,3 +110,15 @@ export function checkOffAt(now: Date, day: string): CheckOff {
 ## Open questions
 
 None.
+
+## What changed while building
+
+- **The mock's rolled-over task is "Call the dentist"**, already seeded as rolled over twice, now with last Thursday as its day there. A new seeded task would have changed this week's lists that many tests count, and the seed already had a "Groceries".
+- **No code for the quit row:** it already showed on a closed week's day; a test covers it.
+- **`checkOffAt(now, day)`'s day is optional,** the phone's day by default, so Today and the tests that call it are unchanged.
+- **A row's ⋯ shows only when it has an action,** so a closed week's day passes none and shows none.
+- **From the review: today, once its week is wrapped up early, is a closed week's day too.** It had no menus already; Pull from bank went as well (a day can be placed on only while its week is open), as flow 6 says nothing goes onto today until Monday.
+
+## Checked
+
+By a Sonnet agent at 390px against the local API, 2026-11-25 (a Wednesday). Last week (Nov 16–22): Fri Nov 20 and Sat Nov 21 showed the note, their done tasks ticked, the rolled-over "Verification: on today" and "Verification: in the bank" with "Moved on to the next week · tap if you did it", and the lapsed goal session "Run a 10k" with "Tap if you did it"; no ⋯ menus and no Pull from bank. Ticking "Verification: in the bank" on Sat Nov 21 sent `completedOn: "2026-11-21"`, its line went, and This week's bank went from 8 to 7; unticked, the line and the bank task came back. Ticking "Run a 10k" on Fri Nov 20 sent `completedOn: "2026-11-20"` and last week's Progress went from 0 of 3 to 1 of 3; unticked, back to 0 of 3. A quitting goal's Held / Slipped row showed on both of last week's days. This week's Monday had the note and its ⋯ menus; today and Thursday had no note. No dropped task was there to see (covered by `Day.test.tsx`). No horizontal scroll; no app errors in the console.

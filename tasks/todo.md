@@ -1,13 +1,13 @@
 # 081: Tick off a past day's tasks late
 
-- [ ] 1. The wording and what's ticked
-- [ ] 2. Replay tests
-- [ ] 3. The mock
-- [ ] Checkpoint: tests, lint, build
-- [ ] 4. The day's hook
-- [ ] 5. The screen
-- [ ] 6. The quit row on a closed week's day
-- [ ] Checkpoint: the screen end to end on `npm run dev:mock`
-- [ ] 7. Docs
-- [ ] 8. The check
-- [ ] Review, then the PR
+- [x] 1. The wording and what's ticked
+- [x] 2. Replay tests
+- [x] 3. The mock
+- [x] Checkpoint: tests, lint, build
+- [x] 4. The day's hook
+- [x] 5. The screen
+- [x] 6. The quit row on a closed week's day
+- [x] Checkpoint: the screen end to end (tests; the check below runs it live)
+- [x] 7. Docs
+- [x] 8. The check
+- [x] Review, then the PR

@@ -2,7 +2,7 @@
 // sections as they come; all grouping, ordering and wording lives here.
 import { fromLocalDay } from '../api/dates.ts'
 import type { Task, TimeOfDay, Week } from '../api/types.ts'
-import { isDone, isInBank, isOnDay } from './tasks'
+import { canTickLate, isDone, isInBank, isOnDay } from './tasks'
 
 export type TaskRow = {
   task: Task
@@ -10,6 +10,8 @@ export type TaskRow = {
   subline?: string
   // From a fixed-day recurring item (trash on Tuesday): it stays on its day.
   fixed?: true
+  // How an unfinished task ended with its week, on a past day (spec 081).
+  outcome?: string
 }
 
 export type Progress = { done: number; total: number }
@@ -115,9 +117,18 @@ export function bankRows(tasks: Task[]): TaskRow[] {
   return tasks.map((task) => rowFor(task, goalSubline(task)))
 }
 
-// A task that went back to the bank is no longer part of today.
+// A task that went back to the bank is no longer part of today. One that ended with its week
+// (rolled over or lapsed) still shows on its day, whatever it became since (spec 081).
 function visibleTasks(plan: Day): Task[] {
-  return plan.tasks.filter((task) => isOnDay(task))
+  return plan.tasks.filter((task) => isOnDay(task) || task.weekOutcome !== null)
+}
+
+// "Moved on to the next week · tap if you did it": how an unfinished task ended with its week.
+// Nothing once it's done, or while it's still in play.
+export function outcomeLine(task: Task): string | undefined {
+  if (isDone(task) || task.weekOutcome === null) return undefined
+  if (!canTickLate(task)) return 'Moved on to the next week'
+  return task.weekOutcome === 'rolledOver' ? 'Moved on to the next week · tap if you did it' : 'Tap if you did it'
 }
 
 // Under no goal and no aspiration: it keeps life running.
@@ -141,11 +152,13 @@ export function inDayOrder(tasks: Task[]): Task[] {
 }
 
 function rowFor(task: Task, subline?: string): TaskRow {
+  const outcome = outcomeLine(task)
   return {
     task,
     ...(task.timeOfDay && { timeLabel: timeLabel(task.timeOfDay) }),
     ...(subline && { subline }),
     ...(task.fixedDay && { fixed: true as const }),
+    ...(outcome && { outcome }),
   }
 }
 

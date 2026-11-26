@@ -56,6 +56,7 @@ export { NotFoundError, RefusedError, SignedOutError }
 export async function checkOffTask(taskId: string, checkOff: CheckOff): Promise<Task> {
   if (realApi) return realPlan.checkOffTask(taskId, checkOff)
   const task = findTask(taskId)
+  if (task.state === 'dropped') throw new RefusedError("A dropped task can't be checked off.")
   if (task.week !== null && task.week > thisWeek()) throw new RefusedError("Can't check off a task in a week that hasn't started")
   replaceTask(task, checkedOff(task, checkOff))
   return taskOut(task)
@@ -67,7 +68,19 @@ export async function uncheckTask(taskId: string): Promise<Task> {
   if (task.state !== 'done') throw new RefusedError(`Task ${taskId} is not done`)
 
   replaceTask(task, uncheckedOff(task))
+  if (task.week !== null && task.week < thisWeek()) endWithItsWeek(task, thisWeek())
   return taskOut(task)
+}
+
+// The ending closing gives a task left open: carried over into the week after, as the API keeps
+// it (its row in the week it left, rolled over), or lapsed.
+function endWithItsWeek(task: StoredTask, into: string) {
+  if (atCloseOf(task) !== 'carriesOver') {
+    task.state = 'lapsed'
+    return
+  }
+  const rolledFrom = [...(task.rolledFrom ?? []), { week: task.week!, plannedDay: task.plannedDay }]
+  Object.assign(task, { week: into, plannedDay: null, placedByHand: false, carriedOver: task.carriedOver + 1, rolledFrom })
 }
 
 // Any week, as the API reads it. A past week is closed, with its lapsed tasks; the current one
@@ -87,7 +100,7 @@ export async function getWeek(asked?: string): Promise<Week> {
     status === 'notOpen'
       ? shown(inWeek.filter((task) => task.origin === 'byHand' && task.placedByHand))
       : status === 'closed'
-        ? closedWeekTasks(inWeek)
+        ? closedWeekTasks(week, inWeek)
         : shown(inWeek)
   return structuredClone({
     week,
@@ -109,10 +122,18 @@ export async function getWeek(asked?: string): Promise<Week> {
   })
 }
 
-// Done, still open, and lapsed, each as the week ended it.
-function closedWeekTasks(tasks: StoredTask[]): Task[] {
+// Done, still open, lapsed, and rolled over to a later week, each as the week ended it.
+function closedWeekTasks(week: string, tasks: StoredTask[]): Task[] {
   const lapsed = tasks.filter((task) => task.state === 'lapsed' && !task.setAside)
-  return [...shown(tasks), ...lapsed.map((task) => ({ ...taskOut(task), weekOutcome: 'lapsed' as const }))]
+  const rolled = store.tasks.flatMap((task) => {
+    const from = task.rolledFrom?.find((entry) => entry.week === week)
+    return from ? [{ ...taskOut(task), week, plannedDay: from.plannedDay, weekOutcome: 'rolledOver' as const }] : []
+  })
+  return [
+    ...shown(tasks),
+    ...lapsed.map((task) => ({ ...taskOut(task), weekOutcome: 'lapsed' as const })),
+    ...rolled,
+  ]
 }
 
 function firstWeek(): string | null {
@@ -159,11 +180,7 @@ export async function wrapUpWeek(week: string): Promise<Week> {
 
   const next = weekAfter(current)
   for (const task of store.tasks.filter((candidate) => candidate.week === week && isWaiting(candidate))) {
-    if (atCloseOf(task) === 'carriesOver') {
-      Object.assign(task, { week: next, plannedDay: null, placedByHand: false, carriedOver: task.carriedOver + 1 })
-    } else {
-      task.state = 'lapsed'
-    }
+    endWithItsWeek(task, next)
   }
   store.closedThrough = week
   return getWeek()
@@ -843,7 +860,7 @@ function replaceTask(stored: StoredTask, next: Task) {
 
 // A task as the API sends it: without what only the mock keeps, and with its goal's label and
 // aspiration, what closing would do, and whether it stays on its day.
-function taskOut({ setAside: _setAside, ...task }: StoredTask): Task {
+function taskOut({ setAside: _setAside, rolledFrom: _rolledFrom, ...task }: StoredTask): Task {
   return structuredClone({
     ...task,
     goalLabel: store.goals.find((goal) => goal.id === task.goalId)?.label ?? null,

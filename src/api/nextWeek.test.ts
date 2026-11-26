@@ -118,6 +118,15 @@ describe('wrapUpWeek', () => {
     expect((await getWeek()).week).toBe(NEXT_WEEK)
   })
 
+  it('keeps a rolled-over task on its old day in the week it closed, as rolled over (spec 081)', async () => {
+    at(SUNDAY_EVENING)
+    await placeTask('task-dentist', THIS_WEEK, '2026-11-15')
+    await wrapUpWeek(THIS_WEEK)
+
+    const closed = (await getWeek(THIS_WEEK)).tasks.find((task) => task.id === 'task-dentist')
+    expect(closed).toMatchObject({ week: THIS_WEEK, plannedDay: '2026-11-15', weekOutcome: 'rolledOver', state: 'open' })
+  })
+
   // Today on that Sunday reads the week it's in, which has just closed.
   it('still reads the week it closed, as no longer current', async () => {
     at(SUNDAY_EVENING)

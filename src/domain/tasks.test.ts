@@ -3,6 +3,7 @@ import { aTask } from '../test/tasks'
 import {
   canMoveInWeek,
   checkedOff,
+  canTickLate,
   checkOffAt,
   inTheBank,
   isDone,
@@ -86,6 +87,21 @@ describe('checkOffAt', () => {
 
   it('counts just after midnight as the new day', () => {
     expect(checkOffAt(new Date(2026, 10, 12, 0, 30)).completedOn).toBe('2026-11-12')
+  })
+
+  it('counts for the day given: a past day ticked late (spec 081)', () => {
+    const tap = new Date(2026, 10, 25, 9, 0)
+
+    expect(checkOffAt(tap, '2026-11-12')).toEqual({ completedAt: tap.toISOString(), completedOn: '2026-11-12' })
+  })
+})
+
+describe('canTickLate', () => {
+  it('is any task that ended with its week, unless it was dropped since', () => {
+    expect(canTickLate(aTask('open', { weekOutcome: 'rolledOver' }))).toBe(true)
+    expect(canTickLate(aTask('lapsed', { state: 'lapsed', weekOutcome: 'lapsed' }))).toBe(true)
+    expect(canTickLate(aTask('done', { state: 'done', weekOutcome: 'rolledOver' }))).toBe(true)
+    expect(canTickLate(aTask('dropped', { state: 'dropped', weekOutcome: 'rolledOver' }))).toBe(false)
   })
 })
 

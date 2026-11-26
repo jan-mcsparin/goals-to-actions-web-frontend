@@ -37,7 +37,11 @@ export type StoredCheckIn = {
 // set-aside task with no week, like one that's waiting, and the mock needs to tell them apart.
 // Like atClose, its aspiration and whether it's fixed to its day are stored empty and worked
 // out when it's read, as the API does.
-export type StoredTask = Task & { setAside: boolean }
+// It also keeps the weeks a task rolled over out of, and its day in each, which the API keeps as
+// rows, so a closed week can still list it (spec 081).
+export type StoredTask = Task & { setAside: boolean; rolledFrom?: RolledFrom[] }
+
+export type RolledFrom = { week: string; plannedDay: string | null }
 
 // A quitting goal's day, as the API's quit_days and urge_ratings rows together: one per
 // goal and day, kept while either half is given.
@@ -461,6 +465,8 @@ export function buildMockData(today: Date): MockData {
       week: weekOf,
       carriedOver: 2,
       stillMatters: true,
+      // Last Thursday it was on a day, so that past day has a task to tick off late (spec 081).
+      rolledFrom: [{ week: day(-7), plannedDay: day(-4) }],
     },
     {
       id: 'task-run-bank',
