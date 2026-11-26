@@ -20,6 +20,7 @@ import {
   deleteMilestone,
   deleteRecurringItem,
   deleteTask,
+  dropTask,
   endGoal,
   getAspiration,
   getAspirations,
@@ -284,8 +285,39 @@ describe('placeTask', () => {
     await expect(placeTask('no-such-task', THIS_WEEK, WEDNESDAY_DAY)).rejects.toThrow('no-such-task')
   })
 
-  it('rejects a task that is not in the bank', async () => {
-    await expect(placeTask('task-laundry', THIS_WEEK, WEDNESDAY_DAY)).rejects.toThrow('not in the bank')
+  it('rejects a task that is done', async () => {
+    await expect(placeTask('task-run-mon', THIS_WEEK, WEDNESDAY_DAY)).rejects.toThrow('not in play')
+  })
+
+  it('moves a task on a day to another day of its week', async () => {
+    const task = await placeTask('task-laundry', THIS_WEEK, '2026-11-13')
+
+    expect(task).toMatchObject({ plannedDay: '2026-11-13', placedByHand: true })
+  })
+
+  it('moves a fixed-day task within its week, still fixed-day', async () => {
+    const task = await placeTask('task-trash', THIS_WEEK, '2026-11-12')
+
+    expect(task).toMatchObject({ plannedDay: '2026-11-12', placedByHand: true, fixedDay: true })
+  })
+
+  it('moves a task added by hand to a day in another week', async () => {
+    const task = await placeTask('task-move-car', THIS_WEEK, '2026-12-02')
+
+    expect(task).toMatchObject({ week: '2026-11-30', plannedDay: '2026-12-02', placedByHand: true })
+    expect((await getWeek('2026-11-30')).tasks.map((t) => t.id)).toContain('task-move-car')
+    expect((await readDay(WEDNESDAY_DAY)).tasks.map((t) => t.id)).not.toContain('task-move-car')
+  })
+
+  it('takes a move sent again as done', async () => {
+    await placeTask('task-move-car', THIS_WEEK, '2026-12-02')
+
+    await expect(placeTask('task-move-car', THIS_WEEK, '2026-12-02')).resolves.toMatchObject({ plannedDay: '2026-12-02' })
+  })
+
+  it('keeps a goal session or a recurring task in its own week, as the API refuses it', async () => {
+    await expect(placeTask('task-lift-today', THIS_WEEK, '2026-12-02')).rejects.toBeInstanceOf(RefusedError)
+    await expect(placeTask('task-trash', THIS_WEEK, '2026-11-17')).rejects.toThrow('stays in its own week')
   })
 
   it('refuses a past day, and a day outside the week', async () => {
@@ -298,6 +330,16 @@ describe('placeTask', () => {
     await expect(placeTask('task-lift-bank', NEXT_WEEK, '2026-11-17')).rejects.toThrow('another week')
 
     expect(statusIn((await readBank()).tasks, 'task-lift-bank')).toBe('inBank')
+  })
+})
+
+describe('dropTask', () => {
+  it("ends a task as not being done: it's gone from its day, and the next drop is a 404", async () => {
+    const task = await dropTask('task-move-car')
+
+    expect(task.state).toBe('dropped')
+    expect((await readDay(WEDNESDAY_DAY)).tasks.map((t) => t.id)).not.toContain('task-move-car')
+    await expect(dropTask('no-such-task')).rejects.toBeInstanceOf(NotFoundError)
   })
 })
 

@@ -9,6 +9,7 @@ import {
   createRecurringItem,
   deleteRecurringItem,
   deleteTask,
+  dropTask,
   turnOffRecurringItem,
   turnOnRecurringItem,
   updateRecurringItem,
@@ -118,6 +119,7 @@ describe('what the person does to a task', () => {
       '/api/tasks/t1/still-matters',
       { answer: 'schedule', week: '2026-11-16', day: '2026-11-20' },
     ],
+    ['drop', () => dropTask('t1'), 'POST', '/api/tasks/t1/drop', undefined],
     ['wrap up', () => wrapUpWeek('2026-11-16'), 'POST', '/api/weeks/2026-11-16/wrap-up', undefined],
   ] as const)('%s', async (_name, send, method, url, body) => {
     expect(await send()).toEqual(ANSWER)
