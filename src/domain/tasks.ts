@@ -1,6 +1,6 @@
 // How a task's state is read and changed. Everything else asks here instead of reading the
 // task's fields, so a change to the task type touches this file, the client and the mock.
-import { toLocalDay } from '../api/dates.ts'
+import { addDays, fromLocalDay, toLocalDay } from '../api/dates.ts'
 import type { CheckOff, Task } from '../api/types.ts'
 
 type State = Pick<Task, 'state'>
@@ -24,6 +24,20 @@ export function isPlanned(task: Pick<Task, 'state' | 'plannedDay'>): boolean {
 export function isOnDay(task: Pick<Task, 'state' | 'plannedDay'>, day?: string): boolean {
   if (task.state !== 'open' && task.state !== 'done') return false
   return day === undefined ? task.plannedDay !== null : task.plannedDay === day
+}
+
+// Added by hand, unfinished, on a day from today on: it can be moved or removed (spec 082).
+export function isSetItem(task: Task, today: string): boolean {
+  return task.origin === 'byHand' && isPlanned(task) && task.plannedDay !== null && task.plannedDay >= today
+}
+
+// A fixed-day task moves only to another day of its week, from today on (spec 082).
+export function canMoveInWeek(task: Task, today: string): boolean {
+  if (!task.fixedDay || !isPlanned(task) || task.week === null) return false
+  const monday = fromLocalDay(task.week)
+  return Array.from({ length: 7 }, (_, offset) => toLocalDay(addDays(monday, offset))).some(
+    (day) => day >= today && day !== task.plannedDay,
+  )
 }
 
 // The week the task is in; none while it waits for a due week.

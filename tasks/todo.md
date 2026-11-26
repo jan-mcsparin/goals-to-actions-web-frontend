@@ -2,8 +2,8 @@
 
 - [x] 1. API: a fixed-day task moves within its week (API repo)
 - [x] 2. Types and the client
-- [ ] 3. What's offered, and the move in replay
-- [ ] Checkpoint: tests, lint, build
+- [x] 3. What's offered, and the move in replay
+- [x] Checkpoint: tests, lint, build
 - [ ] 4. The hook
 - [ ] 5. The menu and the sheets
 - [ ] 6. A day of a week that hasn't opened

@@ -14,7 +14,8 @@ export type Place = { week: string; day: string | null }
 export type Change =
   | { kind: 'checkOff'; id: string; taskId: string; checkOff: CheckOff }
   | { kind: 'uncheck'; id: string; taskId: string }
-  | { kind: 'place'; id: string; taskId: string; week: string; day: string }
+  // `task` is the task as it was, sent with a move to another week so that week can show it.
+  | { kind: 'place'; id: string; taskId: string; week: string; day: string; task?: Task }
   | { kind: 'toBank'; id: string; taskId: string; week: string }
   | { kind: 'swap'; id: string; taskId: string; week: string; bankTaskId: string; day: string }
   | { kind: 'addTask'; id: string; taskId: string; task: NewTask; goalLabel: string | null; place: Place | null }
@@ -38,7 +39,7 @@ function applyChange(week: Week, change: Change): Week {
     case 'uncheck':
       return withTask(week, change.taskId, uncheckedOff)
     case 'place':
-      return change.week === week.week ? withTask(week, change.taskId, (task) => placedOnDay(task, change.day)) : week
+      return placed(week, change)
     case 'toBank':
       return change.week === week.week ? withTask(week, change.taskId, inTheBank) : week
     case 'swap':
@@ -84,6 +85,19 @@ function withQuitDay(week: Week, change: QuitChange): Week {
 function withTask(week: Week, taskId: string, change: (task: Task) => Task): Week {
   if (!week.tasks.some((task) => task.id === taskId)) return week
   return { ...week, tasks: week.tasks.map((task) => (task.id === taskId ? change(task) : task)) }
+}
+
+// Within the week it was made in, the task moves to its day. To a day in another week: it leaves
+// the week it was in, and shows in the day's week when that's stored (spec 082).
+function placed(week: Week, change: Extract<Change, { kind: 'place' }>): Week {
+  const dayWeek = mondayOfDay(change.day)
+  if (dayWeek === week.week) {
+    if (change.week === week.week) return withTask(week, change.taskId, (task) => placedOnDay(task, change.day))
+    if (!change.task || week.tasks.some((task) => task.id === change.taskId)) return week
+    return { ...week, tasks: [...week.tasks, placedOnDay({ ...change.task, week: dayWeek }, change.day)] }
+  }
+  if (change.week !== week.week) return week
+  return { ...week, tasks: week.tasks.filter((task) => task.id !== change.taskId) }
 }
 
 // The bank task takes the day task's place in the order, and the other way round.

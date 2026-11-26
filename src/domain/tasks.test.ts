@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { aTask } from '../test/tasks'
 import {
+  canMoveInWeek,
   checkedOff,
   checkOffAt,
   inTheBank,
@@ -8,6 +9,7 @@ import {
   isInBank,
   isOnDay,
   isPlanned,
+  isSetItem,
   placedOnDay,
   uncheckedOff,
   weekOf,
@@ -109,5 +111,44 @@ describe('checkedOff and uncheckedOff', () => {
 
   it('unchecks a done task, clearing what the check-off recorded', () => {
     expect(uncheckedOff(done)).toEqual(planned)
+  })
+})
+
+describe('isSetItem', () => {
+  const TODAY = '2026-11-11'
+
+  it('is a task added by hand, open, on a day from today on', () => {
+    expect(isSetItem(aTask('t1', { plannedDay: TODAY }), TODAY)).toBe(true)
+    expect(isSetItem(aTask('t1', { plannedDay: '2026-12-02', week: '2026-11-30' }), TODAY)).toBe(true)
+  })
+
+  it("isn't a goal session, a recurring task, a done task, a bank task or yesterday's", () => {
+    const notSet = [
+      aTask('t1', { plannedDay: TODAY, goalId: 'goal-strong' }),
+      aTask('t1', { plannedDay: TODAY, recurringItemId: 'rec-trash', fixedDay: true }),
+      { ...done, plannedDay: TODAY },
+      banked,
+      aTask('t1', { plannedDay: '2026-11-10' }),
+    ]
+
+    expect(notSet.map((task) => isSetItem(task, TODAY))).toEqual([false, false, false, false, false])
+  })
+
+  it("counts a one-off goal's step added by hand", () => {
+    expect(isSetItem(aTask('t1', { plannedDay: TODAY, goalId: 'goal-trip', origin: 'byHand' }), TODAY)).toBe(true)
+  })
+})
+
+describe('canMoveInWeek', () => {
+  const trash = aTask('trash', { recurringItemId: 'rec-trash', fixedDay: true, plannedDay: '2026-11-10' })
+
+  it('is a fixed-day task on a day, with another day of its week from today on', () => {
+    expect(canMoveInWeek(trash, '2026-11-11')).toBe(true)
+    expect(canMoveInWeek({ ...trash, plannedDay: '2026-11-15' }, '2026-11-15')).toBe(false)
+  })
+
+  it("isn't a task that isn't fixed-day, nor a done one", () => {
+    expect(canMoveInWeek({ ...trash, fixedDay: false }, '2026-11-11')).toBe(false)
+    expect(canMoveInWeek({ ...trash, state: 'done' }, '2026-11-11')).toBe(false)
   })
 })

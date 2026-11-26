@@ -76,6 +76,34 @@ describe('replay', () => {
     expect(shown).toEqual(stored)
   })
 
+  it('takes a task moved to a day in another week out of its week', () => {
+    const shown = replay(weekOf([laundry, ballot]), [
+      { kind: 'place', id: 'c1', taskId: 'laundry', week: WEEK, day: '2026-12-02', task: laundry },
+    ])
+
+    expect(where(shown)).toEqual({ ballot: 'bank' })
+  })
+
+  it('puts a task moved from another week on its day, when this week is the day\'s', () => {
+    const next = aWeekRead({ week: NEXT, tasks: [] })
+    const moved = { ...laundry, title: 'Laundry' }
+
+    const shown = replay(next, [{ kind: 'place', id: 'c1', taskId: 'laundry', week: WEEK, day: '2026-11-17', task: moved }])
+
+    expect(shown.tasks).toEqual([{ ...moved, week: NEXT, plannedDay: '2026-11-17', placedByHand: true }])
+  })
+
+  it("doesn't add a moved task twice, nor one queued without its task", () => {
+    const next = aWeekRead({ week: NEXT, tasks: [aTask('laundry', { week: NEXT, plannedDay: '2026-11-18' })] })
+
+    const shown = replay(next, [
+      { kind: 'place', id: 'c1', taskId: 'laundry', week: WEEK, day: '2026-11-17', task: laundry },
+      { kind: 'place', id: 'c2', taskId: 'lift', week: WEEK, day: '2026-11-17' },
+    ])
+
+    expect(where(shown)).toEqual({ laundry: '2026-11-18' })
+  })
+
   it('adds a new task where it was expected to go, once', () => {
     const add: Change = {
       kind: 'addTask',
