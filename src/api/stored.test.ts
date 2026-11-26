@@ -6,13 +6,14 @@ import { SignedOutError } from './errors.ts'
 import { planStore, resetPlanStore } from '../storage/planStore.ts'
 import type { Change } from '../domain/replay.ts'
 import type { Week } from './types.ts'
+import { aWeekRead } from '../test/weeks.ts'
 
 vi.mock('./client.ts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./client.ts')>()),
   checkOffTask: vi.fn(),
 }))
 
-const WEEK: Week = { week: '2026-11-16', isCurrent: true, nextWeekOpen: false, tasks: [], goals: [], days: [], quittingGoals: [] }
+const WEEK: Week = aWeekRead({ week: '2026-11-16' })
 const CHANGE: Change = {
   kind: 'checkOff',
   id: 'c1',

@@ -1,6 +1,6 @@
 # Spec: Any week on Week, with how full it is
 
-Status: draft, 2026-11-25; decisions 1 to 6 agreed with Jan the same day, settled when the plan is written. Issue: [#80](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/80). The second front-end piece of the scheduling brief, written with [082](082-move-and-remove.md). Needs API [#51](https://github.com/jan-mcsparin/goals-to-actions-api/issues/51) ([`api/specs/any-week.md`](../../api/specs/any-week.md), built). This PR regenerates the types for it.
+Status: built 2026-11-25 (plan in `tasks/plan.md`); decisions 1 to 6 agreed with Jan the same day. Issue: [#80](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/80). The second front-end piece of the scheduling brief, written with [082](082-move-and-remove.md). Needs API [#51](https://github.com/jan-mcsparin/goals-to-actions-api/issues/51) ([`api/specs/any-week.md`](../../api/specs/any-week.md), built). This PR regenerates the types for it.
 
 ## Objective
 
@@ -111,3 +111,9 @@ export function barSegments(counts: DayCounts, against: number): Segment[] { ...
 ## Open questions
 
 None.
+
+## Checked
+
+By a Sonnet agent at 390px against the local API, 2026-11-25. This week (Nov 23–29) showed the counts line on one line with the week bar flush right, and a day bar on each day ("1 of 4 for a day" …), with "done" and "Full" where they applied. ‹ reached Last week (Nov 16–22) and stopped there, the first week with rows: Progress, dimmed days and the bank. › gave Next week (not open on a Wednesday): the note, "Nothing set yet" on empty days, no Progress, bank or day bars, and its expected counts. "Verification: dentist at 3 p.m." showed on Wed of Week of Dec 14; › stopped at Week of Feb 15, 12 weeks out. A day there read "‹ Week of Dec 14", had no Pull from bank, and went back to that week; a reload kept it; the Week tab went to This week. Offline, Next week kept its header and said "Other weeks need a connection. They'll show once you're back online.", and This week still showed from the phone. No horizontal scroll; no app errors in the console.
+
+Then the review's fixes, rechecked the same way: the gap from the "This week" link's text to the next section is 32px, with the link still 44px tall. A day of another week now says the same offline line (it said "Couldn't load today"); that one is covered by `Day.test.tsx` only, since the dev server has no service worker and an offline reload never reaches the app. Also from the review, tested but not checked live: a day's back label after an early wrap-up, and a remembered week out of reach isn't read.

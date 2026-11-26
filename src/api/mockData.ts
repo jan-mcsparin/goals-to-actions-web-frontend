@@ -474,6 +474,17 @@ export function buildMockData(today: Date): MockData {
     { id: 'task-next-lift-2', title: 'Lift: deadlift day', week: nextWeekOf, goalId: 'goal-strong' },
     { id: 'task-next-run', title: 'Run: easy 5k', week: nextWeekOf, goalId: 'goal-endurance' },
     { id: 'task-next-trash', title: 'Take out the trash', week: nextWeekOf, recurringItemId: 'rec-trash' },
+    // Last week, closed: a run done and a lift that lapsed, so Week has a week to step back to.
+    {
+      id: 'task-last-run',
+      title: 'Run: long 8k',
+      state: 'done',
+      week: day(-7),
+      plannedDay: day(-5),
+      goalId: 'goal-endurance',
+      completedAt: atTime(addDays(monday, -5), 7, 0),
+    },
+    { id: 'task-last-lift', title: 'Lift: pull day', state: 'lapsed', week: day(-7), plannedDay: day(-4), goalId: 'goal-strong' },
   ]
   const tasks = taskRows.map(storedTask)
 
@@ -506,6 +517,7 @@ function storedTask(fields: TaskFields): StoredTask {
     carriedOver: 0,
     atClose: null,
     stillMatters: false,
+    weekOutcome: null,
     setAside: false,
     ...fields,
   }

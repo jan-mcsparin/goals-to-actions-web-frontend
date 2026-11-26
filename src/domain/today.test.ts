@@ -14,6 +14,7 @@ import {
   type Day,
 } from './today.ts'
 import { aTask } from '../test/tasks.ts'
+import { aWeekRead } from '../test/weeks.ts'
 
 const DAY = '2026-11-11'
 
@@ -37,7 +38,7 @@ function plan(tasks: Task[]): Day {
 }
 
 function weekOf(tasks: Task[]): Week {
-  return { week: '2026-11-09', isCurrent: true, nextWeekOpen: false, tasks, goals: [], days: [], quittingGoals: [] }
+  return aWeekRead({ week: '2026-11-09', tasks })
 }
 
 function titles(rows: { task: Task }[]) {

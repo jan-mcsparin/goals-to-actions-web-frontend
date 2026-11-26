@@ -44,10 +44,14 @@ describe.each([
     }
   })
 
-  it("puts every task in the current week, which starts on a Monday, or in the bank of the next", () => {
+  it("puts every task in the current week, which starts on a Monday, in the bank of the next, or on a day of last week", () => {
     for (const task of data.tasks) {
       if (task.week === '2026-11-16') {
         expect(task.plannedDay).toBeNull()
+        continue
+      }
+      if (task.week === '2026-11-02') {
+        expect(task.plannedDay! >= '2026-11-02' && task.plannedDay! <= '2026-11-08').toBe(true)
         continue
       }
       expect(task.week).toBe('2026-11-09')

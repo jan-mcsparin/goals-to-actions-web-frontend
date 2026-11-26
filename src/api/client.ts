@@ -11,6 +11,7 @@ import { NotFoundError, RefusedError, SignedOutError } from './errors.ts'
 import { newDeviceId } from './ids.ts'
 import type { StoredCheckIn, StoredGoal, StoredMilestone, StoredTask } from './mockData.ts'
 import { store } from './mockStore.ts'
+import { checkInsIn, countsOf, dayCountsOf, deadlinesIn, expectedCounts, occurrencesIn, weekDays } from './mockWeek.ts'
 import { realApi } from './mode.ts'
 import * as real from './realAspirations.ts'
 import * as realGoals from './realGoals.ts'
@@ -69,27 +70,53 @@ export async function uncheckTask(taskId: string): Promise<Task> {
   return taskOut(task)
 }
 
-// Any week, as the API reads it: one that hasn't opened yet has nothing in it (the mock keeps
-// next week's tasks ready before then). Its goals are the active building goals with a target
-// that week.
+// Any week, as the API reads it. A past week is closed, with its lapsed tasks; the current one
+// and an open next week are open; a later week hasn't opened, and shows only what's known: tasks
+// placed on it by hand, fixed-day items, check-ins and deadlines (the mock keeps next week's
+// tasks ready before then). Counts are actual once a week has opened, else expected, roughly.
 export async function getWeek(asked?: string): Promise<Week> {
   if (realApi) return realPlan.getWeek(asked)
   const week = asked ?? thisWeek()
   const current = thisWeek()
-  const isCurrent = week === current
   const open = nextWeekOpen()
-  const notOpenYet = week > current && !(open && week === weekAfter(current))
+  const status: Week['status'] =
+    week < current ? 'closed' : week === current || (open && week === weekAfter(current)) ? 'open' : 'notOpen'
 
-  const tasks = notOpenYet ? [] : shown(store.tasks.filter((task) => task.week === week))
+  const inWeek = store.tasks.filter((task) => task.week === week)
+  const tasks =
+    status === 'notOpen'
+      ? shown(inWeek.filter((task) => task.origin === 'byHand' && task.placedByHand))
+      : status === 'closed'
+        ? closedWeekTasks(inWeek)
+        : shown(inWeek)
   return structuredClone({
     week,
-    isCurrent,
+    isCurrent: week === current,
     nextWeekOpen: open,
+    status,
+    firstWeek: firstWeek(),
+    counts:
+      status === 'notOpen'
+        ? expectedCounts(store, week, tasks, (goalId) => targetIn(goalId, week)?.sessions ?? 0)
+        : countsOf(tasks),
     tasks,
-    goals: weekGoals(week, tasks),
-    days: dayMarks(week, tasks),
+    goals: status === 'notOpen' ? [] : weekGoals(week, tasks),
+    days: dayMarks(week, tasks, status !== 'notOpen'),
+    occurrences: status === 'notOpen' ? occurrencesIn(store, week) : [],
+    checkIns: checkInsIn(store, week),
+    deadlines: deadlinesIn(store, week),
     quittingGoals: weekQuitGoals(week),
   })
+}
+
+// Done, still open, and lapsed, each as the week ended it.
+function closedWeekTasks(tasks: StoredTask[]): Task[] {
+  const lapsed = tasks.filter((task) => task.state === 'lapsed' && !task.setAside)
+  return [...shown(tasks), ...lapsed.map((task) => ({ ...taskOut(task), weekOutcome: 'lapsed' as const }))]
+}
+
+function firstWeek(): string | null {
+  return store.tasks.flatMap((task) => (task.week ? [task.week] : [])).sort()[0] ?? null
 }
 
 // The current week's goals, as its read sends them.
@@ -110,12 +137,14 @@ function weekGoals(week: string, tasks: Task[]): WeekGoal[] {
 // Tasks a day holds at each intensity, as the API counts them: open or done, on the day.
 const CAPS: Record<Intensity, number> = { easingOff: 3, normal: 4, goingHard: 6 }
 
-function dayMarks(week: string, tasks: Task[]): Week['days'] {
+function dayMarks(week: string, tasks: Task[], counted: boolean): Week['days'] {
   const cap = CAPS[store.settings.intensity]
-  return Array.from({ length: 7 }, (_, offset) => {
-    const day = toLocalDay(addDays(fromLocalDay(week), offset))
-    return { day, cap, full: tasks.filter((task) => task.plannedDay === day).length >= cap }
-  })
+  return weekDays(week).map((day) => ({
+    day,
+    cap,
+    full: tasks.filter((task) => task.plannedDay === day).length >= cap,
+    counts: counted ? dayCountsOf(tasks, day) : null,
+  }))
 }
 
 // Closes the current week early, once next week is open, as the API does: what carries over
@@ -858,6 +887,7 @@ function newStoredTask(fields: Pick<StoredTask, 'title' | 'origin'> & Partial<St
     carriedOver: 0,
     atClose: null,
     stillMatters: false,
+    weekOutcome: null,
     setAside: false,
     ...fields,
   }

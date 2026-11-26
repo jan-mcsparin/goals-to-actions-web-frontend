@@ -955,6 +955,36 @@ export interface components {
             name: string;
         };
         /**
+         * CheckInDate
+         * @description A milestone dated in the week that isn't hit yet, under an active goal.
+         */
+        CheckInDate: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /**
+             * Goalid
+             * Format: uuid
+             */
+            goalId: string;
+            /** Goallabel */
+            goalLabel: string;
+            /**
+             * Milestoneid
+             * Format: uuid
+             */
+            milestoneId: string;
+            /**
+             * Of
+             * @description Out of the goal's milestones and the goal, as its page counts them: "Milestone 3 of 4".
+             */
+            of: number;
+            /** Position */
+            position: number;
+        };
+        /**
          * CheckOff
          * @description What the phone saw when the task was checked off. Its day wins, even for a week that
          *     has since closed.
@@ -979,6 +1009,18 @@ export interface components {
             valueLogged?: number | null;
         };
         /**
+         * DayCounts
+         * @description A day's tasks by origin, as `WeekCounts` counts them.
+         */
+        DayCounts: {
+            /** Added */
+            added: number;
+            /** Goalsessions */
+            goalSessions: number;
+            /** Upkeep */
+            upkeep: number;
+        };
+        /**
          * DayMark
          * @description A day's cap and whether it's reached: a guide shown on Week, never enforced (ADR-013).
          */
@@ -988,6 +1030,8 @@ export interface components {
              * @description Tasks a day holds at the person's intensity: 3, 4 or 6.
              */
             cap: number;
+            /** @description The day's tasks by origin. Empty for a week that hasn't opened. */
+            counts: components["schemas"]["DayCounts"] | null;
             /**
              * Day
              * Format: date
@@ -995,7 +1039,7 @@ export interface components {
             day: string;
             /**
              * Full
-             * @description The day holds at least `cap` tasks, open or done.
+             * @description The day holds at least `cap` of the tasks the week read returns: open or done, and in a closed week also rolled over or lapsed.
              */
             full: boolean;
         };
@@ -1079,6 +1123,24 @@ export interface components {
             type: "building" | "quitting" | "oneOff";
             /** @description The latest target. Its effectiveFrom is after this week when a change waits for next week. Empty for quitting and one-off goals. */
             weeklyTarget: components["schemas"]["WeeklyTarget"] | null;
+        };
+        /**
+         * GoalDeadline
+         * @description An active goal's deadline in the week.
+         */
+        GoalDeadline: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /**
+             * Goalid
+             * Format: uuid
+             */
+            goalId: string;
+            /** Goallabel */
+            goalLabel: string;
         };
         /**
          * GoalEdit
@@ -1368,6 +1430,25 @@ export interface components {
             /** Goalid */
             goalId?: string | null;
             timeOfDay?: components["schemas"]["TimeOfDay"] | null;
+            /** Title */
+            title: string;
+        };
+        /**
+         * Occurrence
+         * @description A fixed-day recurring item due in a week that hasn't opened: worked out from its
+         *     schedule, not stored.
+         */
+        Occurrence: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /**
+             * Recurringitemid
+             * Format: uuid
+             */
+            recurringItemId: string;
             /** Title */
             title: string;
         };
@@ -1705,6 +1786,11 @@ export interface components {
              * @description The week of its row in play, or of its done row. Empty while it waits (the upcoming list, a one-off goal's waiting steps) or is set aside.
              */
             week: string | null;
+            /**
+             * Weekoutcome
+             * @description How the week read's row ended for this task: it rolled over, or lapsed. Empty for a row in play or done, and in every other read and write. A task that rolled over and was checked off late reads `rolledOver` here and `done` in `state`.
+             */
+            weekOutcome: ("rolledOver" | "lapsed") | null;
         };
         /**
          * TaskEdit
@@ -1778,13 +1864,29 @@ export interface components {
          */
         Week: {
             /**
+             * Checkins
+             * @description Milestones dated in the week that aren't hit yet, under active goals, by day. Never counted.
+             */
+            checkIns: components["schemas"]["CheckInDate"][];
+            counts: components["schemas"]["WeekCounts"];
+            /**
              * Days
              * @description Monday to Sunday, each with the full-day mark.
              */
             days: components["schemas"]["DayMark"][];
             /**
+             * Deadlines
+             * @description Active goals whose deadline falls in the week, by day. Never counted.
+             */
+            deadlines: components["schemas"]["GoalDeadline"][];
+            /**
+             * Firstweek
+             * @description The Monday of the earliest week with any row, whatever its outcome: how far back Week can go. Empty when there are none.
+             */
+            firstWeek: string | null;
+            /**
              * Goals
-             * @description Every active building goal with a target that week, and its progress.
+             * @description An open week: every active building goal with a target that week. A closed week: every goal with a target and a session row that week, whatever its status now. A week that hasn't opened: none.
              */
             goals: components["schemas"]["WeekGoal"][];
             /** Iscurrent */
@@ -1795,13 +1897,24 @@ export interface components {
              */
             nextWeekOpen: boolean;
             /**
+             * Occurrences
+             * @description A week that hasn't opened: each fixed-day recurring item due in it. Empty for every other week.
+             */
+            occurrences: components["schemas"]["Occurrence"][];
+            /**
              * Quittinggoals
              * @description Every active quitting goal started by the week's end, with its days.
              */
             quittingGoals: components["schemas"]["WeekQuitGoal"][];
             /**
+             * Status
+             * @description `closed` before the current week, `open` for the current week and next week once open, `notOpen` for every later week.
+             * @enum {string}
+             */
+            status: "closed" | "open" | "notOpen";
+            /**
              * Tasks
-             * @description On a day, then in the bank; with no outcome or done. Set-aside rows aren't shown.
+             * @description On a day, then in the bank: in play or done, and in a closed week also rolled over or lapsed (`weekOutcome`). A week that hasn't opened has only the tasks placed on it by hand. Set-aside and dropped rows aren't shown.
              */
             tasks: components["schemas"]["Task"][];
             /**
@@ -1809,6 +1922,34 @@ export interface components {
              * Format: date
              */
             week: string;
+        };
+        /**
+         * WeekCounts
+         * @description How full a week is (product rule 11): its tasks by origin. Actual for a week that has
+         *     opened (every task the read returns); expected for one that hasn't (what opening it would
+         *     bring). Check-ins, deadlines and quit days are never counted.
+         */
+        WeekCounts: {
+            /**
+             * Added
+             * @description Tasks added by hand, a one-off goal's steps included.
+             */
+            added: number;
+            /**
+             * Goalsessions
+             * @description Tasks a goal's weekly target made.
+             */
+            goalSessions: number;
+            /**
+             * Goals
+             * @description How many goals the goal sessions are for.
+             */
+            goals: number;
+            /**
+             * Upkeep
+             * @description Tasks a recurring item made.
+             */
+            upkeep: number;
         };
         /**
          * WeekGoal

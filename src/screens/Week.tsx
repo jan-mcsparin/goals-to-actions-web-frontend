@@ -4,22 +4,26 @@ import { DayPickerSheet } from '../components/DayPickerSheet.tsx'
 import { DeleteSheet } from '../components/DeleteSheet.tsx'
 import { deleteTaskLine } from '../domain/deleting.ts'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
-import type { DaySummary, ProgressRow } from '../domain/week.ts'
+import { CountsLine } from '../components/CountsLine.tsx'
+import { FullnessBar } from '../components/FullnessBar.tsx'
+import { dayBarLabel, TYPICAL_WEEK, weekBarLabel, type DaySummary, type ProgressRow } from '../domain/week.ts'
 import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
 import { WrapUpSheet } from '../components/WrapUpSheet.tsx'
-import { ViewToggle, type ViewOption } from '../components/ViewToggle.tsx'
-import { useWeek } from '../hooks/useWeek.ts'
-import type { WeekViewMode } from '../storage/weekView.ts'
+import { useWeek, type UseWeek } from '../hooks/useWeek.ts'
 import '../components/progressBar.css'
 import './Week.css'
 
 type WeekProps = {
   today: string
+  // The Monday of the week on show; none is this week.
+  week?: string
+  onShowWeek: (week?: string) => void
   onOpenDay: (date: string) => void
 }
 
-export function Week({ today, onOpenDay }: WeekProps) {
-  const { title, range, week, message, clearMessage, view, canViewNext, setView, place, deleting, wrapUp } = useWeek(today)
+export function Week({ today, week: shown, onShowWeek, onOpenDay }: WeekProps) {
+  const stepping = useWeek(today, shown, onShowWeek)
+  const { week, message, clearMessage, place, deleting, wrapUp } = stepping
   const [wrapping, setWrapping] = useState(false)
   const [placing, setPlacing] = useState<Task>()
   // With nothing loaded, the message is all there is, so it stays.
@@ -28,7 +32,7 @@ export function Week({ today, onOpenDay }: WeekProps) {
   if (!week) {
     return (
       <main className="week" aria-busy={!message}>
-        {message && <WeekTop title={title} range={range} />}
+        <WeekTop stepping={stepping} />
         <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
       </main>
     )
@@ -36,9 +40,21 @@ export function Week({ today, onOpenDay }: WeekProps) {
 
   return (
     <main className="week">
-      <WeekTop title={title} range={range}>
-        {canViewNext && <ViewToggle label="Week" view={view} options={WEEK_VIEWS} onChange={setView} />}
+      <WeekTop stepping={stepping}>
+        {week.counts && (
+          <div className="week-fullness">
+            <CountsLine counts={week.counts} />
+            <FullnessBar counts={week.counts} against={TYPICAL_WEEK} size="week" label={weekBarLabel(week.counts)} />
+          </div>
+        )}
       </WeekTop>
+
+      {week.status === 'notOpen' && (
+        <p className="week-note">
+          Only what's set to a day shows here. Recurring work is placed when this week opens, on the Sunday evening
+          before.
+        </p>
+      )}
 
       {week.progress.length > 0 && (
         <section className="week-section" aria-labelledby="week-progress">
@@ -58,39 +74,50 @@ export function Week({ today, onOpenDay }: WeekProps) {
         </ul>
       </section>
 
-      <section className="week-section" aria-labelledby="week-bank">
-        <h2 id="week-bank">{week.bank.length ? `Bank · ${week.bank.length} not on a day` : 'Bank'}</h2>
-        {week.bank.length === 0 ? (
-          <p className="week-bank-note">Nothing in the bank.</p>
-        ) : (
-          <>
+      {week.status !== 'notOpen' && (
+        <section className="week-section" aria-labelledby="week-bank">
+          <h2 id="week-bank">{week.bank.length ? `Bank · ${week.bank.length} not on a day` : 'Bank'}</h2>
+          {week.bank.length === 0 ? (
+            <p className="week-bank-note">Nothing in the bank.</p>
+          ) : week.status === 'closed' ? (
+            // The week has passed: there's no day left to put these on.
             <ul className="week-bank">
               {week.bank.map((task) => (
-                <li key={task.id}>
-                  <button type="button" className="week-chip" onClick={() => setPlacing(task)}>
-                    {task.title}
-                  </button>
+                <li key={task.id} className="week-chip" data-past="true">
+                  {task.title}
                 </li>
               ))}
             </ul>
-            <p className="week-bank-note">Tap to put on a day.</p>
-          </>
-        )}
-      </section>
+          ) : (
+            <>
+              <ul className="week-bank">
+                {week.bank.map((task) => (
+                  <li key={task.id}>
+                    <button type="button" className="week-chip" onClick={() => setPlacing(task)}>
+                      {task.title}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="week-bank-note">Tap to put on a day.</p>
+            </>
+          )}
+        </section>
+      )}
 
-      {view === 'next' && (
+      {wrapUp && (
         <button type="button" className="week-wrap-up" onClick={() => setWrapping(true)}>
           Wrap up this week
         </button>
       )}
 
       <WrapUpSheet
-        open={wrapping}
-        carriesOver={wrapUp.carriesOver}
-        ends={wrapUp.ends}
+        open={wrapping && wrapUp !== undefined}
+        carriesOver={wrapUp?.carriesOver ?? []}
+        ends={wrapUp?.ends ?? []}
         onConfirm={() => {
           setWrapping(false)
-          wrapUp.confirm()
+          wrapUp?.confirm()
         }}
         onClose={() => setWrapping(false)}
       />
@@ -122,17 +149,41 @@ export function Week({ today, onOpenDay }: WeekProps) {
   )
 }
 
-const WEEK_VIEWS: ViewOption<WeekViewMode>[] = [
-  { view: 'this', label: 'This week' },
-  { view: 'next', label: 'Next week' },
-]
-
-function WeekTop({ title, range, children }: { title: string; range: string; children?: ReactNode }) {
+// The pinned top: ‹ the week's title ›, its range, and the way back to this week.
+function WeekTop({ stepping, children }: { stepping: UseWeek; children?: ReactNode }) {
+  const { title, range, canGoBack, canGoForward, step, toThisWeek } = stepping
   return (
     <header className="screen-top week-header">
-      <h1>{title}</h1>
+      <div className="week-title-row">
+        <button
+          type="button"
+          className="week-arrow"
+          aria-label="Previous week"
+          disabled={!canGoBack}
+          onClick={() => step(-1)}
+        >
+          ‹
+        </button>
+        <h1>{title}</h1>
+        <button
+          type="button"
+          className="week-arrow"
+          aria-label="Next week"
+          disabled={!canGoForward}
+          onClick={() => step(1)}
+        >
+          ›
+        </button>
+      </div>
       <p className="week-range">{range}</p>
       {children}
+      {toThisWeek && (
+        <div className="week-links">
+          <button type="button" className="week-link" onClick={toThisWeek}>
+            This week
+          </button>
+        </div>
+      )}
     </header>
   )
 }
@@ -169,6 +220,14 @@ function DayRow({ day, onOpen }: { day: DaySummary; onOpen: () => void }) {
         <span className="week-day-name">{day.weekday}</span>
         <span className="week-day-summary">{day.summary}</span>
         {day.allDone ? <span className="week-day-mark">done</span> : day.full && <span className="week-day-mark">Full</span>}
+        {day.fullness && (
+          <FullnessBar
+            counts={day.fullness.counts}
+            against={day.fullness.cap}
+            size="day"
+            label={dayBarLabel(day.fullness.counts, day.fullness.cap)}
+          />
+        )}
       </button>
     </li>
   )

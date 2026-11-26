@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { planStore, resetPlanStore } from './planStore.ts'
 import type { Week } from '../api/types.ts'
+import { aWeekRead } from '../test/weeks.ts'
 
 function aWeek(week: string): Week {
-  return { week, isCurrent: true, nextWeekOpen: false, tasks: [], goals: [], days: [], quittingGoals: [] }
+  return aWeekRead({ week })
 }
 
 beforeEach(() => {

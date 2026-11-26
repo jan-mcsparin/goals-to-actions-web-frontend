@@ -9,6 +9,7 @@ import { planStore, resetPlanStore } from '../storage/planStore.ts'
 import { aTask } from '../test/tasks.ts'
 import { DataRevision } from './dataRevision.ts'
 import { useStoredWeeks, type WeeksRead } from './useStoredWeeks.ts'
+import { aWeekRead } from '../test/weeks.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
@@ -20,7 +21,7 @@ const LOAD_FAILED = "Couldn't load today."
 const CHECK_OFF = { completedAt: '2026-11-11T16:00:00.000Z', completedOn: '2026-11-11', valueLogged: null }
 
 function aWeek(tasks: Task[]): Week {
-  return { week: WEEK, isCurrent: true, nextWeekOpen: false, tasks, goals: [], days: [], quittingGoals: [] }
+  return aWeekRead({ week: WEEK, tasks })
 }
 
 function deferred<T>() {
@@ -61,6 +62,38 @@ describe('useStoredWeeks', () => {
     await act(async () => answer.resolve([aWeek([aTask('fresh', { title: 'As it is' })])]))
     expect(titlesOf(result.current.weeks)).toEqual(['As it is'])
     expect((await planStore().weeks.get(WEEK))?.tasks[0].title).toBe('As it is')
+  })
+
+  it("shows a week that isn't open but never stores it: other weeks are read online (ADR-010)", async () => {
+    for (const status of ['closed', 'notOpen'] as const) {
+      const read = reading(async () => [aWeekRead({ week: WEEK, status, tasks: [laundry] })])
+
+      const { result, unmount } = renderHook(() => useStoredWeeks(read, LOAD_FAILED))
+
+      await waitFor(() => expect(titlesOf(result.current.weeks)).toEqual(['laundry']))
+      expect(await planStore().weeks.get(WEEK)).toBeUndefined()
+      unmount()
+    }
+  })
+
+  it("ignores a stored copy of a week that isn't open, kept before only open weeks were stored", async () => {
+    await planStore().weeks.put(WEEK, aWeekRead({ week: WEEK, status: 'closed', tasks: [aTask('old')] }))
+    const read = reading(() => new Promise(() => {}))
+
+    const { result } = renderHook(() => useStoredWeeks(read, LOAD_FAILED))
+
+    await act(async () => {})
+    expect(result.current.weeks).toBeUndefined()
+  })
+
+  it('shows a stored week from before weeks had a status', async () => {
+    const { status: _status, ...withoutStatus } = aWeek([aTask('stored', { title: 'As it was' })])
+    await planStore().weeks.put(WEEK, withoutStatus as Week)
+    const read = reading(() => new Promise(() => {}))
+
+    const { result } = renderHook(() => useStoredWeeks(read, LOAD_FAILED))
+
+    await waitFor(() => expect(titlesOf(result.current.weeks)).toEqual(['As it was']))
   })
 
   it('replays the queue on top, and the stored week stays as the server sent it', async () => {

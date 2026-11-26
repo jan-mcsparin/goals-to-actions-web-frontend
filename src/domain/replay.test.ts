@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Task, Week } from '../api/types.ts'
 import { aTask } from '../test/tasks.ts'
 import { predictedPlace, replay, type Change } from './replay.ts'
+import { aWeekRead } from '../test/weeks.ts'
 
 const WEEK = '2026-11-09'
 const NEXT = '2026-11-16'
@@ -9,7 +10,7 @@ const TODAY = '2026-11-11'
 const CHECK_OFF = { completedAt: '2026-11-11T16:00:00.000Z', completedOn: TODAY, valueLogged: null }
 
 function weekOf(tasks: Task[], fields: Partial<Week> = {}): Week {
-  return { week: WEEK, isCurrent: true, nextWeekOpen: false, tasks, goals: [], days: [], quittingGoals: [], ...fields }
+  return aWeekRead({ week: WEEK, tasks, ...fields })
 }
 
 const laundry = aTask('laundry', { plannedDay: TODAY, placedByHand: true })

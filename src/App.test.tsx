@@ -70,9 +70,21 @@ it('restores an opened day under the Week tab, with a way back', async () => {
   expect(await screen.findByRole('heading', { level: 1, name: 'Thursday · Nov 12' })).toBeDefined()
   expect(currentTab()).toBe('Week')
 
-  await user.click(screen.getByRole('button', { name: 'Back to Week' }))
+  await user.click(screen.getByRole('button', { name: 'Back to This week' }))
 
   expect(await screen.findByRole('heading', { level: 1, name: 'This week' })).toBeDefined()
+})
+
+it("goes back from a later week's day to that week, not this one", async () => {
+  localStorage.setItem('gta.screen', JSON.stringify({ screen: 'week', week: '2026-12-07' }))
+  const user = userEvent.setup()
+  render(<App />)
+  await screen.findByRole('heading', { level: 1, name: 'Week of Dec 7' })
+
+  await user.click((await screen.findAllByRole('button', { name: /^Tue/ }))[0])
+  await user.click(await screen.findByRole('button', { name: 'Back to Week of Dec 7' }))
+
+  expect(await screen.findByRole('heading', { level: 1, name: 'Week of Dec 7' })).toBeDefined()
 })
 
 it('opens a day from the Week screen and comes back', async () => {
@@ -84,7 +96,7 @@ it('opens a day from the Week screen and comes back', async () => {
 
   expect(await screen.findByRole('heading', { level: 1, name: 'Thursday · Nov 12' })).toBeDefined()
   expect(currentTab()).toBe('Week')
-  await user.click(screen.getByRole('button', { name: 'Back to Week' }))
+  await user.click(screen.getByRole('button', { name: 'Back to This week' }))
   expect(await screen.findByRole('heading', { level: 1, name: 'This week' })).toBeDefined()
 })
 

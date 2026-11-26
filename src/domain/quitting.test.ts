@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { QuitDay, QuitRecord, Week } from '../api/types.ts'
 import { quitRows, recordDays, runLine, URGE_CHOICES, withQueuedQuitDays } from './quitting.ts'
+import { aWeekRead } from '../test/weeks.ts'
 
 const TODAY = '2026-11-11'
 
@@ -9,7 +10,7 @@ function day(date: string, held: boolean | null = null, urge: QuitDay['urge'] = 
 }
 
 function weekWith(quittingGoals: Week['quittingGoals']): Week {
-  return { week: '2026-11-09', isCurrent: true, nextWeekOpen: false, tasks: [], goals: [], days: [], quittingGoals }
+  return aWeekRead({ week: '2026-11-09', quittingGoals })
 }
 
 const week = weekWith([
