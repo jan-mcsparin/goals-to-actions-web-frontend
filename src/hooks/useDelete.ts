@@ -18,9 +18,11 @@ type DeleteActions<T> = {
   send: (target: T) => Promise<unknown>
   done: (target: T) => void | Promise<void>
   failed: (message: string) => void
+  // What a failure says; Remove has its own words (spec 082).
+  failure?: string
 }
 
-export function useDelete<T>({ send, done, failed }: DeleteActions<T>): UseDelete<T> {
+export function useDelete<T>({ send, done, failed, failure = DELETE_FAILED }: DeleteActions<T>): UseDelete<T> {
   const [asking, setAsking] = useState<T>()
   const sending = useRef(false)
 
@@ -34,7 +36,7 @@ export function useDelete<T>({ send, done, failed }: DeleteActions<T>): UseDelet
       await send(target)
     } catch (error) {
       if (!(error instanceof NotFoundError)) {
-        failed(DELETE_FAILED)
+        failed(failure)
         return
       }
     } finally {

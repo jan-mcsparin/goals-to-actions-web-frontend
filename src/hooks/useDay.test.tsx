@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { addTask, checkOffTask, getWeek, placeTask, moveTaskToBank, swapTasks, uncheckTask } from '../api/client.ts'
+import { addTask, checkOffTask, dropTask, getWeek, placeTask, moveTaskToBank, swapTasks, uncheckTask } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import type { Week } from '../api/types.ts'
 import { queued, waitingCount } from '../api/queue.ts'
@@ -25,6 +25,7 @@ vi.mock('../api/client.ts', async (importOriginal) => {
     placeTask: vi.fn(actual.placeTask),
     moveTaskToBank: vi.fn(actual.moveTaskToBank),
     swapTasks: vi.fn(actual.swapTasks),
+    dropTask: vi.fn(actual.dropTask),
   }
 })
 
@@ -194,6 +195,66 @@ describe('useDay sendToBank', () => {
     await waitFor(() => expect(moveTaskToBank).toHaveBeenCalled())
     expect(statusOf(result.current, 'task-laundry')).toBeUndefined()
     expect(result.current.message).toBeUndefined()
+  })
+})
+
+describe('useDay move', () => {
+  it('moves a task to another day of its week at once, and says where it went', async () => {
+    vi.mocked(placeTask).mockReturnValueOnce(new Promise(() => {}))
+    const { result } = await renderLoaded()
+
+    act(() => result.current.move('task-move-car', '2026-11-14'))
+
+    expect(statusOf(result.current, 'task-move-car')).toBeUndefined()
+    expect(result.current.message).toBe('Moved to Sat, Nov 14.')
+    await waitFor(() => expect(placeTask).toHaveBeenCalledWith('task-move-car', '2026-11-09', '2026-11-14'))
+  })
+
+  it('takes a task moved to another week off the day at once, sending the week it was in', async () => {
+    vi.mocked(placeTask).mockReturnValueOnce(new Promise(() => {}))
+    const { result } = await renderLoaded()
+
+    act(() => result.current.move('task-move-car', '2026-12-19'))
+
+    expect(statusOf(result.current, 'task-move-car')).toBeUndefined()
+    expect(result.current.message).toBe('Moved to Sat, Dec 19.')
+    await waitFor(() => expect(placeTask).toHaveBeenCalledWith('task-move-car', '2026-11-09', '2026-12-19'))
+    expect(queued()).toEqual([expect.objectContaining({ kind: 'place', task: expect.objectContaining({ id: 'task-move-car' }) })])
+  })
+})
+
+describe('useDay removing', () => {
+  it('asks, then sends, and the task goes once the server has it', async () => {
+    const sent = deferred<Awaited<ReturnType<typeof dropTask>>>()
+    vi.mocked(dropTask).mockReturnValueOnce(sent.promise)
+    const { result } = await renderLoaded()
+    const task = result.current.day!.sections.flatMap((section) => section.rows).find((row) => row.task.id === 'task-move-car')!.task
+
+    act(() => result.current.removing.ask(task))
+    expect(result.current.removing.asking).toBe(task)
+    let confirmed!: Promise<void>
+    act(() => {
+      confirmed = result.current.removing.confirm()
+    })
+
+    expect(statusOf(result.current, 'task-move-car')).toBe('planned')
+    const actual = await vi.importActual<typeof import('../api/client.ts')>('../api/client.ts')
+    sent.resolve(await actual.dropTask('task-move-car'))
+    await act(() => confirmed)
+    await waitFor(() => expect(statusOf(result.current, 'task-move-car')).toBeUndefined())
+    expect(dropTask).toHaveBeenCalledExactlyOnceWith('task-move-car')
+  })
+
+  it("keeps the task when the remove fails, and says so", async () => {
+    vi.mocked(dropTask).mockRejectedValueOnce(new Error('offline'))
+    const { result } = await renderLoaded()
+    const task = result.current.day!.sections.flatMap((section) => section.rows).find((row) => row.task.id === 'task-move-car')!.task
+
+    act(() => result.current.removing.ask(task))
+    await act(() => result.current.removing.confirm())
+
+    expect(statusOf(result.current, 'task-move-car')).toBe('planned')
+    expect(result.current.message).toBe("Couldn't remove that. Try again.")
   })
 })
 

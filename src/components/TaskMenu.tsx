@@ -6,6 +6,10 @@ type TaskMenuProps = {
   // Left out for a fixed-day task, which stays on its day.
   onSendToBank?: () => void
   onSwap?: () => void
+  // A set item, or a fixed-day task within its week (spec 082).
+  onMove?: () => void
+  // A set item not being done: a drop, never worded like Delete.
+  onRemove?: () => void
   // Always last: for a task made by mistake (spec 038).
   onDelete?: () => void
 }
@@ -13,7 +17,7 @@ type TaskMenuProps = {
 // A disclosure: "⋯" shows its actions below it, Delete always last. The first tap anywhere else
 // only closes it, so it can't also check off a task or open another menu.
 // Escape closes it and puts focus back on the button.
-export function TaskMenu({ taskTitle, onSendToBank, onSwap, onDelete }: TaskMenuProps) {
+export function TaskMenu({ taskTitle, onSendToBank, onSwap, onMove, onRemove, onDelete }: TaskMenuProps) {
   const [open, setOpen] = useState(false)
   const container = useRef<HTMLDivElement>(null)
   const toggle = useRef<HTMLButtonElement>(null)
@@ -66,6 +70,16 @@ export function TaskMenu({ taskTitle, onSendToBank, onSwap, onDelete }: TaskMenu
           {onSwap && (
             <button type="button" onClick={() => choose(onSwap)}>
               Swap
+            </button>
+          )}
+          {onMove && (
+            <button type="button" onClick={() => choose(onMove)}>
+              Move to another day
+            </button>
+          )}
+          {onRemove && (
+            <button type="button" onClick={() => choose(onRemove)}>
+              Remove (not doing it)
             </button>
           )}
           {onDelete && (

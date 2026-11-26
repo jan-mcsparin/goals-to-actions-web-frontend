@@ -102,6 +102,24 @@
   margin: 0;
 }
 
+/* A day of a week that hasn't opened: the note, as Week's, and what's known of it. */
+.today-note {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--text) 6%, var(--bg));
+}
+
+.today-known {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+}
+
 .today-pull {
   margin-top: auto;
   min-height: 2.75rem;

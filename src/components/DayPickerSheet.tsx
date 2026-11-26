@@ -7,6 +7,8 @@ import { useModalDialog } from './useModalDialog.ts'
 
 type DayPickerSheetProps = {
   open: boolean
+  // "Put on a day" unless said otherwise.
+  title?: string
   taskTitle?: string
   days: PickableDay[]
   onPick: (date: string) => void
@@ -15,7 +17,7 @@ type DayPickerSheetProps = {
   onDelete?: () => void
 }
 
-export function DayPickerSheet({ open, taskTitle, days, onPick, onClose, onDelete }: DayPickerSheetProps) {
+export function DayPickerSheet({ open, title = 'Put on a day', taskTitle, days, onPick, onClose, onDelete }: DayPickerSheetProps) {
   const dialog = useModalDialog(open)
   const backdropClose = useBackdropClose(onClose)
   const titleId = useId()
@@ -23,7 +25,7 @@ export function DayPickerSheet({ open, taskTitle, days, onPick, onClose, onDelet
   return (
     <dialog ref={dialog} className="sheet" aria-labelledby={titleId} onClose={onClose} {...backdropClose}>
       <header className="sheet-header">
-        <h2 id={titleId}>Put on a day</h2>
+        <h2 id={titleId}>{title}</h2>
         <button type="button" className="sheet-close" onClick={onClose}>
           Close
         </button>

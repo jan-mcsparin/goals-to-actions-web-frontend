@@ -733,13 +733,31 @@ export async function moveTaskToBank(taskId: string, week: string): Promise<Task
   return taskOut(task)
 }
 
-// Onto a day of its week, placed by hand.
+// Onto a day, placed by hand: from the bank, or from another day. Within its week for any task
+// (a fixed-day one too); a task added by hand can go to a day in another week. A move sent again
+// is a repeat, as the API takes it.
 export async function placeTask(taskId: string, week: string, day: string): Promise<Task> {
   if (realApi) return realPlan.placeTask(taskId, week, day)
-  const task = findBankTask(taskId)
+  const task = findWaitingTask(taskId)
+  if (task.plannedDay === day && task.placedByHand) return taskOut(task)
   checkWeek(task, week)
-  checkDay(day, week)
+  const dayWeek = toLocalDay(mondayOf(fromLocalDay(day)))
+  if (dayWeek === week) {
+    checkDay(day, week)
+  } else {
+    if (task.origin !== 'byHand') throw new RefusedError('A goal session or a recurring task stays in its own week.')
+    if (day < toLocalDay(new Date())) throw new RefusedError("Can't place a task on a past day")
+    task.week = dayWeek
+  }
   replaceTask(task, placedOnDay(task, day))
+  return taskOut(task)
+}
+
+// "I decided not to do this": it stays in history, and leaves its day.
+export async function dropTask(taskId: string): Promise<Task> {
+  if (realApi) return realPlan.dropTask(taskId)
+  const task = findWaitingTask(taskId)
+  task.state = 'dropped'
   return taskOut(task)
 }
 
@@ -896,6 +914,12 @@ function newStoredTask(fields: Pick<StoredTask, 'title' | 'origin'> & Partial<St
 function findPlannedTask(taskId: string): StoredTask {
   const task = findTask(taskId)
   if (!isPlanned(task) || task.setAside) throw new RefusedError(`Task ${taskId} is not planned`)
+  return task
+}
+
+function findWaitingTask(taskId: string): StoredTask {
+  const task = findTask(taskId)
+  if (!isWaiting(task)) throw new RefusedError(`Task ${taskId} is not in play`)
   return task
 }
 

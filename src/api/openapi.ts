@@ -1740,7 +1740,7 @@ export interface components {
             dueDate: string | null;
             /**
              * Fixedday
-             * @description From a weekly or monthly recurring item, in the week it was due: it stays on its day. One that carried over is placed like any task.
+             * @description From a weekly or monthly recurring item, in the week it was due: it doesn't go to the bank, and moves only within its week. One that carried over is placed like any task.
              */
             fixedDay: boolean;
             /** Goalid */

@@ -53,6 +53,11 @@ export async function placeTask(taskId: string, week: string, day: string): Prom
   return request('POST', `/tasks/${taskId}/place`, { week, day }, QUEUED)
 }
 
+// "I decided not to do this": kept in history, gone from its day. Not a delete.
+export async function dropTask(taskId: string): Promise<Task> {
+  return request('POST', `/tasks/${taskId}/drop`)
+}
+
 export async function swapTasks(
   taskId: string,
   swap: { week: string; bankTaskId: string; day: string },

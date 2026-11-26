@@ -6,6 +6,7 @@ import {
   deleteMilestoneLine,
   deleteRecurringLine,
   deleteTaskLine,
+  removeTaskLine,
 } from './deleting.ts'
 
 describe('what each delete asks', () => {
@@ -36,5 +37,11 @@ describe('what each delete asks', () => {
 
   it('has one failure message', () => {
     expect(DELETE_FAILED).toBe("Couldn't delete that. Try again.")
+  })
+})
+
+describe('what Remove asks', () => {
+  it('names the task and says nothing counts against you, never worded like Delete', () => {
+    expect(removeTaskLine('Dentist cleaning')).toBe("Remove “Dentist cleaning”? It's not done, and nothing counts against you.")
   })
 })
