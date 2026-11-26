@@ -116,6 +116,10 @@ export function isSetItem(task: Task, today: string): boolean {
 - Goal sessions and flexible recurring tasks offer exactly what they did before.
 - Tests, lint and build pass.
 
+## Checked
+
+By a Sonnet agent at 390px against the local API (on the `move-fixed-day` branch), 2026-11-25. "Verification: dentist" on Fri Nov 27 had Back to bank, Swap, Move to another day, Remove (not doing it), Delete (made by mistake). Move: the sheet had its title, the task and a date preset to its day, Move off until the day changed; moved to Dec 16 it left Friday at once with "Moved to Wed, Dec 16.", showed on Wed of Week of Dec 14, and the read had it there, placed by hand. That day (not open) showed the note, the task with Move, Remove and Delete only, no progress bar, Pull from bank or check-off; Tue Dec 15 listed "Take out the trash" under Also that day. Moved back to Friday: "Moved to Fri, Nov 27." and there. Remove asked "Remove “Verification: remove me”? It's not done, and nothing counts against you." with Cancel first; the task left the day and the read. A fixed-day item (every Friday) had Move to another day and Delete only; the picker listed Today, Thursday, Saturday and Sunday; moved to Saturday, it stayed there after its item was renamed, with the new name, and next week had no copy. A goal session had no Move or Remove. No horizontal scroll; no app errors in the console.
+
 ## Open questions
 
 None.
