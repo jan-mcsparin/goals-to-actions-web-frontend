@@ -1,6 +1,6 @@
 # Spec: Move or remove a future day's set items
 
-Status: draft, 2026-11-25; the fixed-day move is in (Jan, 2026-11-25), other decisions agreed as proposed. Issue: [#82](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/82). The third front-end piece of the scheduling brief, written with [080](080-any-week.md) and built after it. Needs API [#50](https://github.com/jan-mcsparin/goals-to-actions-api/issues/50) (a move across weeks, `placeTask`; `dropTask`) and [#51](https://github.com/jan-mcsparin/goals-to-actions-api/issues/51) (reading the week it's in), both built, and one small API change made with it (below). Follows 038.
+Status: built, 2026-11-25 (plan in `tasks/plan.md`); the fixed-day move is in (Jan, 2026-11-25), other decisions agreed as proposed. One choice made in building: a fixed-day task's Move shows only on today or a later day, like a set item's (past days are #81). Issue: [#82](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/82). The third front-end piece of the scheduling brief, written with [080](080-any-week.md) and built after it. Needs API [#50](https://github.com/jan-mcsparin/goals-to-actions-api/issues/50) (a move across weeks, `placeTask`; `dropTask`) and [#51](https://github.com/jan-mcsparin/goals-to-actions-api/issues/51) (reading the week it's in), both built, and one small API change made with it (below). Follows 038.
 
 ## Objective
 

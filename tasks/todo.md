@@ -8,5 +8,5 @@
 - [x] 5. The menu and the sheets
 - [x] 6. A day of a week that hasn't opened
 - [x] 7. Checkpoint: full suite, lint, build
-- [ ] 8. Docs
+- [x] 8. Docs
 - [ ] 9. The check
