@@ -11,7 +11,7 @@ import { NotFoundError, RefusedError, SignedOutError } from './errors.ts'
 import { newDeviceId } from './ids.ts'
 import type { StoredCheckIn, StoredGoal, StoredMilestone, StoredTask } from './mockData.ts'
 import { store } from './mockStore.ts'
-import { countsOf, dayCountsOf, fixedDayIn } from './mockWeek.ts'
+import { checkInsIn, countsOf, dayCountsOf, deadlinesIn, expectedCounts, occurrencesIn, weekDays } from './mockWeek.ts'
 import { realApi } from './mode.ts'
 import * as real from './realAspirations.ts'
 import * as realGoals from './realGoals.ts'
@@ -44,10 +44,6 @@ import type {
   Upkeep,
   UrgeLevel,
   Week,
-  WeekCounts,
-  CheckInDate,
-  GoalDeadline,
-  Occurrence,
   WeekGoal,
   WeekQuitGoal,
   WeeklyTarget,
@@ -99,13 +95,16 @@ export async function getWeek(asked?: string): Promise<Week> {
     nextWeekOpen: open,
     status,
     firstWeek: firstWeek(),
-    counts: status === 'notOpen' ? expectedCounts(week, tasks) : countsOf(tasks),
+    counts:
+      status === 'notOpen'
+        ? expectedCounts(store, week, tasks, (goalId) => targetIn(goalId, week)?.sessions ?? 0)
+        : countsOf(tasks),
     tasks,
     goals: status === 'notOpen' ? [] : weekGoals(week, tasks),
     days: dayMarks(week, tasks, status !== 'notOpen'),
-    occurrences: status === 'notOpen' ? occurrencesIn(week) : [],
-    checkIns: checkInsIn(week),
-    deadlines: deadlinesIn(week),
+    occurrences: status === 'notOpen' ? occurrencesIn(store, week) : [],
+    checkIns: checkInsIn(store, week),
+    deadlines: deadlinesIn(store, week),
     quittingGoals: weekQuitGoals(week),
   })
 }
@@ -118,63 +117,6 @@ function closedWeekTasks(tasks: StoredTask[]): Task[] {
 
 function firstWeek(): string | null {
   return store.tasks.flatMap((task) => (task.week ? [task.week] : [])).sort()[0] ?? null
-}
-
-function weekDays(week: string): string[] {
-  return Array.from({ length: 7 }, (_, offset) => toLocalDay(addDays(fromLocalDay(week), offset)))
-}
-
-// What opening the week would bring: each active building goal's sessions, each item that's
-// on (a fixed one if it's due that week), and the tasks pinned to it or due in it.
-function expectedCounts(week: string, pinned: Task[]): WeekCounts {
-  const sessions = store.goals.flatMap((goal) =>
-    goal.status === 'active' && goal.type === 'building' ? [targetIn(goal.id, week)?.sessions ?? 0] : [],
-  )
-  const items = store.recurringItems.filter((item) => item.active && item.startsOn <= week)
-  const upkeep = items.reduce((sum, item) => {
-    if (item.schedule.kind !== 'flexible') return sum + (fixedDayIn(item.schedule, week) ? 1 : 0)
-    return sum + (item.schedule.period === 'week' ? item.schedule.times : 0)
-  }, 0)
-  const days = weekDays(week)
-  const due = store.tasks.filter(
-    (task) => task.origin === 'byHand' && task.week === null && task.dueDate !== null && days.includes(task.dueDate),
-  )
-  return {
-    goalSessions: sessions.reduce((sum, count) => sum + count, 0),
-    goals: sessions.filter((count) => count > 0).length,
-    upkeep,
-    added: pinned.length + due.length,
-  }
-}
-
-function occurrencesIn(week: string): Occurrence[] {
-  return store.recurringItems.flatMap((item) => {
-    const day = item.active ? fixedDayIn(item.schedule, week) : null
-    return day && item.startsOn <= day ? [{ recurringItemId: item.id, title: item.name, day }] : []
-  })
-}
-
-// Dated milestones not hit yet, under active goals.
-function checkInsIn(week: string): CheckInDate[] {
-  const days = weekDays(week)
-  return store.goals.flatMap((goal) => {
-    if (goal.status !== 'active') return []
-    const milestones = milestonesOf(goal.id)
-    return milestones.flatMap((milestone, index) =>
-      milestone.status !== 'hit' && milestone.targetDate && days.includes(milestone.targetDate)
-        ? [{ goalId: goal.id, goalLabel: goal.label, milestoneId: milestone.id, position: index + 1, of: milestones.length + 1, day: milestone.targetDate }]
-        : [],
-    )
-  })
-}
-
-function deadlinesIn(week: string): GoalDeadline[] {
-  const days = weekDays(week)
-  return store.goals.flatMap((goal) =>
-    goal.status === 'active' && goal.deadline && days.includes(goal.deadline)
-      ? [{ goalId: goal.id, goalLabel: goal.label, day: goal.deadline }]
-      : [],
-  )
 }
 
 // The current week's goals, as its read sends them.
