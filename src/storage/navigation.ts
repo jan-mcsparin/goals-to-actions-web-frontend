@@ -7,7 +7,8 @@ export type GoalOrigin = { screen: 'aspirations' } | { screen: 'aspiration'; asp
 
 export type Screen =
   | { screen: 'today' }
-  | { screen: 'week' }
+  // Without a week, this week (the Week tab).
+  | { screen: 'week'; week?: string }
   | { screen: 'day'; date: string }
   | { screen: 'aspirations' }
   | { screen: 'aspiration'; aspirationId: string }
@@ -21,7 +22,7 @@ const KEY = 'gta.screen'
 const TODAY: Screen = { screen: 'today' }
 const LOCAL_DAY = /^\d{4}-\d{2}-\d{2}$/
 // The screens that need nothing but their name.
-const PLAIN_SCREENS = ['today', 'week', 'aspirations', 'upkeep', 'settings'] as const
+const PLAIN_SCREENS = ['today', 'aspirations', 'upkeep', 'settings'] as const
 type PlainScreen = (typeof PLAIN_SCREENS)[number]
 
 export function readScreen(): Screen {
@@ -50,8 +51,9 @@ export function tabOf(screen: Screen): Tab {
 
 function parseScreen(value: unknown): Screen | undefined {
   if (!isRecord(value)) return undefined
-  const { screen, date, aspirationId, goalId } = value
+  const { screen, date, week, aspirationId, goalId } = value
   if (isPlainScreen(screen)) return { screen }
+  if (screen === 'week') return typeof week === 'string' && LOCAL_DAY.test(week) ? { screen, week } : { screen }
   if (screen === 'day' && typeof date === 'string' && LOCAL_DAY.test(date)) return { screen, date }
   if (screen === 'aspiration' && isId(aspirationId)) return { screen, aspirationId }
   if (screen === 'goal' && isId(goalId)) {

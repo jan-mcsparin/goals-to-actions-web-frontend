@@ -25,6 +25,7 @@ type DayProps = {
 export function Day({ date, today, onBack }: DayProps) {
   const {
     heading,
+    weekTitle,
     day,
     asking,
     waiting,
@@ -75,7 +76,7 @@ export function Day({ date, today, onBack }: DayProps) {
   if (!day) {
     return (
       <main className="today" aria-busy={!message}>
-        {message && <DayTop heading={heading} onBack={onBack} />}
+        {message && <DayTop heading={heading} weekTitle={weekTitle} onBack={onBack} />}
         <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
       </main>
     )
@@ -92,6 +93,7 @@ export function Day({ date, today, onBack }: DayProps) {
     <main className="today" data-view={view}>
       <DayTop
         heading={heading}
+        weekTitle={weekTitle}
         onBack={onBack}
         progress={isEmpty ? undefined : { ...progress, label: isToday ? 'Done today' : 'Done this day' }}
       />
@@ -191,18 +193,19 @@ export function Day({ date, today, onBack }: DayProps) {
 
 type DayTopProps = {
   heading: string
+  weekTitle: string
   onBack?: () => void
   // Left out while nothing has loaded, or nothing is planned.
   progress?: { done: number; total: number; label: string }
 }
 
 // The pinned top: the way back, the heading, and the count and bar.
-function DayTop({ heading, onBack, progress }: DayTopProps) {
+function DayTop({ heading, weekTitle, onBack, progress }: DayTopProps) {
   return (
     <div className="screen-top today-top">
       {onBack && (
-        <button type="button" className="today-back" aria-label="Back to Week" onClick={onBack}>
-          ‹ Week
+        <button type="button" className="today-back" aria-label={`Back to ${weekTitle}`} onClick={onBack}>
+          {`‹ ${weekTitle}`}
         </button>
       )}
       <header className="today-header">

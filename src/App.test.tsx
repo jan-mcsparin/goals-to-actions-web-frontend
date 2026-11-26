@@ -70,7 +70,7 @@ it('restores an opened day under the Week tab, with a way back', async () => {
   expect(await screen.findByRole('heading', { level: 1, name: 'Thursday · Nov 12' })).toBeDefined()
   expect(currentTab()).toBe('Week')
 
-  await user.click(screen.getByRole('button', { name: 'Back to Week' }))
+  await user.click(screen.getByRole('button', { name: 'Back to This week' }))
 
   expect(await screen.findByRole('heading', { level: 1, name: 'This week' })).toBeDefined()
 })
@@ -84,7 +84,7 @@ it('opens a day from the Week screen and comes back', async () => {
 
   expect(await screen.findByRole('heading', { level: 1, name: 'Thursday · Nov 12' })).toBeDefined()
   expect(currentTab()).toBe('Week')
-  await user.click(screen.getByRole('button', { name: 'Back to Week' }))
+  await user.click(screen.getByRole('button', { name: 'Back to This week' }))
   expect(await screen.findByRole('heading', { level: 1, name: 'This week' })).toBeDefined()
 })
 

@@ -163,7 +163,7 @@ describe('Day', () => {
 
     await screen.findByRole('status')
     expect(screen.getByRole('heading', { level: 1, name: 'Thursday · Nov 12' })).toBeDefined()
-    expect(screen.getByRole('button', { name: 'Back to Week' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Back to This week' })).toBeDefined()
   })
 
   it('switches to goal cards and remembers the choice', async () => {
@@ -413,13 +413,23 @@ describe('Day', () => {
     const user = userEvent.setup()
     const { unmount } = render(<Day date="2026-11-12" today={WEDNESDAY_DAY} onBack={onBack} />)
 
-    await user.click(await screen.findByRole('button', { name: 'Back to Week' }))
+    await user.click(await screen.findByRole('button', { name: 'Back to This week' }))
     expect(onBack).toHaveBeenCalled()
 
     unmount()
     render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
     await screen.findByRole('heading', { level: 1 })
-    expect(screen.queryByRole('button', { name: 'Back to Week' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Back to This week' })).toBeNull()
+  })
+
+  it("names the day's week on the way back", async () => {
+    const { unmount } = render(<Day date="2026-11-03" today={WEDNESDAY_DAY} onBack={() => {}} />)
+    expect(await screen.findByRole('button', { name: 'Back to Last week' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Back to Last week' }).textContent).toBe('‹ Last week')
+    unmount()
+
+    render(<Day date="2026-12-09" today={WEDNESDAY_DAY} onBack={() => {}} />)
+    expect(await screen.findByRole('button', { name: 'Back to Week of Dec 7' })).toBeDefined()
   })
 
   it('pins the back button, heading, count and progress bar together at the top', async () => {
@@ -428,7 +438,7 @@ describe('Day', () => {
     const heading = await screen.findByRole('heading', { level: 1, name: 'Thursday · Nov 12' })
     const pinned = heading.closest('.screen-top')
     expect(pinned).not.toBeNull()
-    expect(pinned?.contains(screen.getByRole('button', { name: 'Back to Week' }))).toBe(true)
+    expect(pinned?.contains(screen.getByRole('button', { name: 'Back to This week' }))).toBe(true)
     expect(pinned?.contains(screen.getByRole('progressbar'))).toBe(true)
     expect(pinned?.textContent).toContain('0 of 11 done')
     expect(pinned?.contains(screen.getByRole('button', { name: 'List' }))).toBe(false)

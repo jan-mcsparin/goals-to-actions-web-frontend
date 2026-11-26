@@ -30,6 +30,20 @@ describe('current screen', () => {
     expect(readScreen()).toEqual({ screen: 'day', date: '2026-11-12' })
   })
 
+  it('remembers which week Week shows', () => {
+    vi.stubGlobal('localStorage', memoryStorage())
+
+    saveScreen({ screen: 'week', week: '2026-12-07' })
+    expect(readScreen()).toEqual({ screen: 'week', week: '2026-12-07' })
+  })
+
+  it('opens this week when the remembered week is no day at all', () => {
+    vi.stubGlobal('localStorage', memoryStorage())
+    localStorage.setItem('gta.screen', '{"screen":"week","week":"next"}')
+
+    expect(readScreen()).toEqual({ screen: 'week' })
+  })
+
   it.each<Screen>([
     { screen: 'aspirations' },
     { screen: 'aspiration', aspirationId: 'asp-fit' },

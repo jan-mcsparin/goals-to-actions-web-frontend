@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { toLocalDay } from './api/dates.ts'
+import { mondayOfDay, toLocalDay } from './api/dates.ts'
 import { flush, installTriggers } from './api/queue.ts'
 import { AddSheet } from './components/AddSheet.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
@@ -80,7 +80,7 @@ function App() {
             <Week today={today} onOpenDay={(date) => goTo({ screen: 'day', date })} />
           )}
           {current.screen === 'day' && (
-            <Day key={current.date} date={current.date} today={today} onBack={() => goTo({ screen: 'week' })} />
+            <Day key={current.date} date={current.date} today={today} onBack={() => goTo({ screen: 'week', week: mondayOfDay(current.date) })} />
           )}
           {current.screen === 'aspirations' && (
             <Aspirations

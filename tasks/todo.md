@@ -4,7 +4,7 @@
 - [x] 2. The wording
 - [x] 3. Only open weeks stored
 - [x] Checkpoint: tests, lint, build
-- [ ] 4. The week shown, in the open screen
+- [x] 4. The week shown, in the open screen
 - [ ] 5. Arrows and any week
 - [ ] 6. Counts line and bars
 - [ ] 7. A week that hasn't opened, and a past week

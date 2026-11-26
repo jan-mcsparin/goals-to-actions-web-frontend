@@ -25,7 +25,7 @@ import {
 } from '../domain/today.ts'
 import { quitRows, type QuitRow } from '../domain/quitting.ts'
 import { checkOffAt, isDone, weekOf } from '../domain/tasks'
-import { pickableDays, type PickableDay } from '../domain/week.ts'
+import { pickableDays, weekTitle, type PickableDay } from '../domain/week.ts'
 import { planStore } from '../storage/planStore.ts'
 import { readNotNow, saveNotNow } from '../storage/stillMattersNotNow.ts'
 import { readTodayView, saveTodayView, type TodayViewMode } from '../storage/viewPreference.ts'
@@ -61,6 +61,8 @@ export type StillMattersAsk = {
 export type UseDay = {
   // Known without loading, so it shows even when the day can't load.
   heading: string
+  // The day's week, as Week titles it: where back goes.
+  weekTitle: string
   day?: DayView
   // On Today only, and only what hasn't been waved off for the day.
   asking: StillMattersAsk[]
@@ -212,6 +214,7 @@ export function useDay(date: string, today: string): UseDay {
   const asked = (plan?.stillMatters ?? []).filter((task) => !notNow.includes(task.id) && !answering.includes(task.id))
   return {
     heading: dayHeading(date, today),
+    weekTitle: weekTitle(monday, week?.isCurrent ? monday : mondayOfDay(today)),
     day: plan && week && viewOf(plan, week, view, today),
     asking: date === today ? asked.map(askAbout) : [],
     waiting: date === today && queue.stalled ? waitingLine(queue.waiting) : undefined,
