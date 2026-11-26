@@ -49,6 +49,13 @@ export function Week({ today, week: shown, onShowWeek, onOpenDay }: WeekProps) {
         )}
       </WeekTop>
 
+      {week.status === 'notOpen' && (
+        <p className="week-note">
+          Only what's set to a day shows here. Recurring work is placed when this week opens, on the Sunday evening
+          before.
+        </p>
+      )}
+
       {week.progress.length > 0 && (
         <section className="week-section" aria-labelledby="week-progress">
           <h2 id="week-progress">Progress</h2>
@@ -67,25 +74,36 @@ export function Week({ today, week: shown, onShowWeek, onOpenDay }: WeekProps) {
         </ul>
       </section>
 
-      <section className="week-section" aria-labelledby="week-bank">
-        <h2 id="week-bank">{week.bank.length ? `Bank · ${week.bank.length} not on a day` : 'Bank'}</h2>
-        {week.bank.length === 0 ? (
-          <p className="week-bank-note">Nothing in the bank.</p>
-        ) : (
-          <>
+      {week.status !== 'notOpen' && (
+        <section className="week-section" aria-labelledby="week-bank">
+          <h2 id="week-bank">{week.bank.length ? `Bank · ${week.bank.length} not on a day` : 'Bank'}</h2>
+          {week.bank.length === 0 ? (
+            <p className="week-bank-note">Nothing in the bank.</p>
+          ) : week.status === 'closed' ? (
+            // The week has passed: there's no day left to put these on.
             <ul className="week-bank">
               {week.bank.map((task) => (
-                <li key={task.id}>
-                  <button type="button" className="week-chip" onClick={() => setPlacing(task)}>
-                    {task.title}
-                  </button>
+                <li key={task.id} className="week-chip" data-past="true">
+                  {task.title}
                 </li>
               ))}
             </ul>
-            <p className="week-bank-note">Tap to put on a day.</p>
-          </>
-        )}
-      </section>
+          ) : (
+            <>
+              <ul className="week-bank">
+                {week.bank.map((task) => (
+                  <li key={task.id}>
+                    <button type="button" className="week-chip" onClick={() => setPlacing(task)}>
+                      {task.title}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="week-bank-note">Tap to put on a day.</p>
+            </>
+          )}
+        </section>
+      )}
 
       {wrapUp && (
         <button type="button" className="week-wrap-up" onClick={() => setWrapping(true)}>

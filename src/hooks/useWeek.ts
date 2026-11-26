@@ -12,6 +12,7 @@ import { enqueue } from '../api/queue.ts'
 import type { Task, Week, WeekCounts } from '../api/types.ts'
 import {
   daySummaries,
+  knownDaySummaries,
   pickableDays,
   weekLimits,
   weekProgress,
@@ -32,6 +33,8 @@ const OTHER_FAILED = "Other weeks need a connection. They'll show once you're ba
 const WRAP_UP_FAILED = "Couldn't wrap up the week. Nothing changed."
 
 export type WeekView = {
+  // A week that hasn't opened shows only what's known; a closed one can't be placed on.
+  status: Week['status']
   // None on a week stored before weeks were counted.
   counts?: WeekCounts
   progress: ProgressRow[]
@@ -140,7 +143,13 @@ export function useWeek(today: string, shown: string | undefined, onShowWeek: (w
 }
 
 function viewOf(plan: Week, today: string): WeekView {
+  // A week stored before weeks had a status is the current one or next, both open.
+  const status = plan.status ?? 'open'
+  if (status === 'notOpen') {
+    return { status, counts: plan.counts, progress: [], days: knownDaySummaries(plan, today), bank: [], pickableDays: [] }
+  }
   return {
+    status,
     counts: plan.counts,
     progress: weekProgress(plan, today),
     days: daySummaries(plan, today),

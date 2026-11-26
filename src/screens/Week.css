@@ -169,9 +169,20 @@
   outline-offset: 2px;
 }
 
-/* The toggle takes its own line under the title and range. */
-.week-header .view-toggle {
-  flex-basis: 100%;
+/* A past week's bank: as it was, not tappable. */
+li.week-chip {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  color: var(--muted);
+}
+
+/* A week that hasn't opened: why it shows so little. */
+.week-note {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--text) 6%, var(--bg));
 }
 
 .week-wrap-up {

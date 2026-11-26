@@ -1,11 +1,12 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import { useState } from 'react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { deleteTask, getWeek, placeTask, wrapUpWeek } from '../api/client.ts'
+import { addTask, deleteTask, getWeek, placeTask, wrapUpWeek } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import { Week } from './Week.tsx'
 import { isInBank } from '../domain/tasks.ts'
+import { aTask } from '../test/tasks.ts'
 
 vi.mock('../api/client.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/client.ts')>()
@@ -20,7 +21,10 @@ vi.mock('../api/client.ts', async (importOriginal) => {
 
 const WEDNESDAY_DAY = '2026-11-11'
 
-beforeEach(() => {
+beforeEach(async () => {
+  // A test that stands in for a week read leaves the real one behind for the next.
+  const actual = await vi.importActual<typeof import('../api/client.ts')>('../api/client.ts')
+  vi.mocked(getWeek).mockImplementation(actual.getWeek)
   localStorage.clear()
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(2026, 10, 11, 9, 0))
@@ -361,6 +365,55 @@ describe('Week, any week', () => {
     expect(await screen.findByText("Other weeks need a connection. They'll show once you're back online.")).toBeDefined()
     expect(title()).toBe('Week of Dec 7')
     expect(screen.getByText('Dec 7–13')).toBeDefined()
+  })
+})
+
+describe("Week, a week that hasn't opened", () => {
+  it("shows the note and only what's known, day by day", async () => {
+    await addTask({ title: 'Dentist cleaning', day: '2026-12-12', timeOfDay: { kind: 'at', time: '15:00' } })
+    render(<Stepping today={WEDNESDAY_DAY} from="2026-12-07" />)
+
+    expect(await screen.findByText(/^Only what's set to a day shows here\. Recurring work is placed when this week opens/)).toBeDefined()
+    const summaries = dayButtons().map((day) => day.querySelector('.week-day-summary')?.textContent)
+    expect(summaries[1]).toBe('Take out the trash')
+    expect(summaries[5]).toBe('Dentist cleaning at 3 p.m.')
+    expect(summaries[2]).toBe('Nothing set yet')
+  })
+
+  it('has no Progress, Bank or day bars, and still its counts line and bar', async () => {
+    render(<Stepping today={WEDNESDAY_DAY} from="2026-12-07" />)
+    await screen.findByRole('region', { name: 'Days' })
+
+    expect(screen.queryByRole('region', { name: 'Progress' })).toBeNull()
+    expect(screen.queryByRole('region', { name: /^Bank/ })).toBeNull()
+    expect(dayButtons().every((day) => within(day).queryByRole('img') === null)).toBe(true)
+    expect(screen.getByRole('img', { name: /against a typical week of 25$/ })).toBeDefined()
+  })
+})
+
+describe('Week, a past week', () => {
+  it('lists its bank as it was, with nothing to put on a day', async () => {
+    const actual = await vi.importActual<typeof import('../api/client.ts')>('../api/client.ts')
+    const last = await actual.getWeek('2026-11-02')
+    vi.mocked(getWeek).mockImplementation(async (week) =>
+      week === '2026-11-02'
+        ? { ...last, tasks: [...last.tasks, aTask('Return the library book', { week: '2026-11-02', weekOutcome: 'rolledOver' })] }
+        : actual.getWeek(week),
+    )
+    render(<Stepping today={WEDNESDAY_DAY} from="2026-11-02" />)
+
+    const bank = await screen.findByRole('region', { name: /^Bank/ })
+    expect(within(bank).getByText('Return the library book')).toBeDefined()
+    expect(within(bank).queryByRole('button')).toBeNull()
+    expect(within(bank).queryByText('Tap to put on a day.')).toBeNull()
+  })
+
+  it('shows what was on each day, lapsed included', async () => {
+    render(<Stepping today={WEDNESDAY_DAY} from="2026-11-02" />)
+    await screen.findByRole('heading', { level: 1, name: 'Last week' })
+
+    await waitFor(() => expect(dayButtons()[3].textContent).toContain('Lift: pull day'))
+    expect(screen.getByRole('region', { name: 'Progress' })).toBeDefined()
   })
 })
 

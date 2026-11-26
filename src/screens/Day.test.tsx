@@ -422,6 +422,13 @@ describe('Day', () => {
     expect(screen.queryByRole('button', { name: 'Back to This week' })).toBeNull()
   })
 
+  it("offers no Pull from bank on a day of a week that hasn't opened", async () => {
+    render(<Day date="2026-12-09" today={WEDNESDAY_DAY} onBack={() => {}} />)
+
+    await screen.findByRole('heading', { level: 1, name: 'Wednesday · Dec 9' })
+    expect(screen.queryByRole('button', { name: 'Pull from bank' })).toBeNull()
+  })
+
   it("names the day's week on the way back", async () => {
     const { unmount } = render(<Day date="2026-11-03" today={WEDNESDAY_DAY} onBack={() => {}} />)
     expect(await screen.findByRole('button', { name: 'Back to Last week' })).toBeDefined()
