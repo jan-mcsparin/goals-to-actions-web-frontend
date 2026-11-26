@@ -45,9 +45,12 @@
   white-space: nowrap;
 }
 
+/* The links keep a 44px tap target, but overlap the header's gap and bottom padding so they
+   don't leave a band of blank space under the header. */
 .week-links {
   display: flex;
   justify-content: space-between;
+  margin: -0.5rem 0 -0.75rem;
 }
 
 .week-link {
