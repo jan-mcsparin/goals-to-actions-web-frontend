@@ -10,4 +10,4 @@
 - [x] 7. A week that hasn't opened, and a past week
 - [x] Checkpoint: the screen end to end (tests; the check below runs it live)
 - [x] 8. Docs
-- [ ] 9. The check
+- [x] 9. The check
