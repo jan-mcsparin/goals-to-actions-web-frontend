@@ -9,7 +9,7 @@ import { deleteTask, getWeek, wrapUpWeek } from '../api/client.ts'
 import { addDays, fromLocalDay, mondayOfDay, toLocalDay, weekAfter } from '../api/dates.ts'
 import { newDeviceId } from '../api/ids.ts'
 import { enqueue } from '../api/queue.ts'
-import type { Task, Week } from '../api/types.ts'
+import type { Task, Week, WeekCounts } from '../api/types.ts'
 import {
   daySummaries,
   pickableDays,
@@ -32,6 +32,8 @@ const OTHER_FAILED = "Other weeks need a connection. They'll show once you're ba
 const WRAP_UP_FAILED = "Couldn't wrap up the week. Nothing changed."
 
 export type WeekView = {
+  // None on a week stored before weeks were counted.
+  counts?: WeekCounts
   progress: ProgressRow[]
   days: DaySummary[]
   bank: Task[]
@@ -139,6 +141,7 @@ export function useWeek(today: string, shown: string | undefined, onShowWeek: (w
 
 function viewOf(plan: Week, today: string): WeekView {
   return {
+    counts: plan.counts,
     progress: weekProgress(plan, today),
     days: daySummaries(plan, today),
     bank: plan.tasks.filter(isInBank),

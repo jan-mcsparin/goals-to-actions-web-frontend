@@ -4,7 +4,9 @@ import { DayPickerSheet } from '../components/DayPickerSheet.tsx'
 import { DeleteSheet } from '../components/DeleteSheet.tsx'
 import { deleteTaskLine } from '../domain/deleting.ts'
 import { ScreenMessage } from '../components/ScreenMessage.tsx'
-import type { DaySummary, ProgressRow } from '../domain/week.ts'
+import { CountsLine } from '../components/CountsLine.tsx'
+import { FullnessBar } from '../components/FullnessBar.tsx'
+import { dayBarLabel, TYPICAL_WEEK, weekBarLabel, type DaySummary, type ProgressRow } from '../domain/week.ts'
 import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
 import { WrapUpSheet } from '../components/WrapUpSheet.tsx'
 import { useWeek, type UseWeek } from '../hooks/useWeek.ts'
@@ -38,7 +40,14 @@ export function Week({ today, week: shown, onShowWeek, onOpenDay }: WeekProps) {
 
   return (
     <main className="week">
-      <WeekTop stepping={stepping} />
+      <WeekTop stepping={stepping}>
+        {week.counts && (
+          <div className="week-fullness">
+            <CountsLine counts={week.counts} />
+            <FullnessBar counts={week.counts} against={TYPICAL_WEEK} size="week" label={weekBarLabel(week.counts)} />
+          </div>
+        )}
+      </WeekTop>
 
       {week.progress.length > 0 && (
         <section className="week-section" aria-labelledby="week-progress">
@@ -193,6 +202,14 @@ function DayRow({ day, onOpen }: { day: DaySummary; onOpen: () => void }) {
         <span className="week-day-name">{day.weekday}</span>
         <span className="week-day-summary">{day.summary}</span>
         {day.allDone ? <span className="week-day-mark">done</span> : day.full && <span className="week-day-mark">Full</span>}
+        {day.fullness && (
+          <FullnessBar
+            counts={day.fullness.counts}
+            against={day.fullness.cap}
+            size="day"
+            label={dayBarLabel(day.fullness.counts, day.fullness.cap)}
+          />
+        )}
       </button>
     </li>
   )

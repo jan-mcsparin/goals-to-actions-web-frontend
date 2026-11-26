@@ -269,6 +269,28 @@ function title() {
   return screen.getByRole('heading', { level: 1 }).textContent
 }
 
+describe('Week, how full', () => {
+  it("shows the week's counts line and bar under its range", async () => {
+    render(<Week today={WEDNESDAY_DAY} onShowWeek={() => {}} onOpenDay={() => {}} />)
+    await screen.findByRole('region', { name: 'Days' })
+
+    const header = screen.getByRole('heading', { level: 1 }).closest('header')!
+    expect(within(header).getByText(/for \d+ goals?|0 for goals/)).toBeDefined()
+    expect(within(header).getByText(/^\d+ upkeep$/)).toBeDefined()
+    expect(within(header).getByText(/^\d+ added$/)).toBeDefined()
+    expect(within(header).getByRole('img', { name: /^About \d+ things, against a typical week of 25$/ })).toBeDefined()
+  })
+
+  it('gives each day of an opened week a bar against its cap', async () => {
+    render(<Week today={WEDNESDAY_DAY} onShowWeek={() => {}} onOpenDay={() => {}} />)
+    await screen.findByRole('region', { name: 'Days' })
+
+    const bars = dayButtons().map((day) => within(day).getByRole('img').getAttribute('aria-label'))
+    expect(bars).toHaveLength(7)
+    expect(bars.every((label) => /^\d+ of 4 for a day$/.test(label ?? ''))).toBe(true)
+  })
+})
+
 describe('Week, any week', () => {
   it('steps back to last week and forward to later ones, with their ranges', async () => {
     const user = userEvent.setup()

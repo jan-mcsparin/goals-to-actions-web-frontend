@@ -29,6 +29,9 @@ export type DaySummary = {
   full: boolean
   isToday: boolean
   isPast: boolean
+  // The day bar: the day's tasks by origin against the intensity cap. None for a week that
+  // hasn't opened.
+  fullness: { counts: DayCounts; cap: number } | null
 }
 
 export type PickableDay = { date: string; label: string }
@@ -75,14 +78,16 @@ function byPriority(goals: WeekGoal[]): WeekGoal[] {
 export function daySummaries(plan: Week, today: string): DaySummary[] {
   return daysOf(plan.week).map((date) => {
     const tasks = inDayOrder(plan.tasks.filter((task) => wasOnDay(task, date)))
+    const mark = plan.days.find((day) => day.day === date)
     return {
       date,
       weekday: weekdayOf(date),
       summary: tasks.length ? tasks.map(summaryTitle).join(' · ') : 'Free day',
       allDone: tasks.length > 0 && tasks.every(isDone),
-      full: plan.days.some((day) => day.day === date && day.full),
+      full: mark?.full ?? false,
       isToday: date === today,
       isPast: date < today,
+      fullness: mark?.counts ? { counts: mark.counts, cap: mark.cap } : null,
     }
   })
 }
@@ -105,6 +110,7 @@ export function knownDaySummaries(plan: Week, today: string): DaySummary[] {
       full: false,
       isToday: date === today,
       isPast: date < today,
+      fullness: null,
     }
   })
 }

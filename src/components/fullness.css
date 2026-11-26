@@ -1,0 +1,56 @@
+/* Fullness (product rule 11): blue, not green, since green means done in the progress bars. */
+:root {
+  --fullness-goal: #1e4e8c;
+  --fullness-upkeep: #4f86c6;
+  --fullness-added: #a9c5e8;
+  --fullness-outline: #9db4d3;
+}
+
+.fullness-bar {
+  display: inline-flex;
+  flex: none;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid var(--fullness-outline);
+  border-radius: 999px;
+}
+
+.fullness-bar[data-size='week'] {
+  width: 64px;
+  height: 10px;
+}
+
+.fullness-bar[data-size='day'] {
+  width: 40px;
+  height: 8px;
+}
+
+.fullness-segment,
+.counts-dot {
+  background: var(--fullness-goal);
+}
+
+.fullness-segment[data-origin='upkeep'],
+.counts-dot[data-origin='upkeep'] {
+  background: var(--fullness-upkeep);
+}
+
+.fullness-segment[data-origin='added'],
+.counts-dot[data-origin='added'] {
+  background: var(--fullness-added);
+}
+
+.counts-line {
+  margin: 0;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.counts-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.25rem;
+  border-radius: 50%;
+  vertical-align: 0.05em;
+}

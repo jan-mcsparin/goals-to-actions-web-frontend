@@ -6,7 +6,7 @@
 - [x] Checkpoint: tests, lint, build
 - [x] 4. The week shown, in the open screen
 - [x] 5. Arrows and any week
-- [ ] 6. Counts line and bars
+- [x] 6. Counts line and bars
 - [ ] 7. A week that hasn't opened, and a past week
 - [ ] Checkpoint: the screen end to end on `npm run dev:mock`
 - [ ] 8. Docs

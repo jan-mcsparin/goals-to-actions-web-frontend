@@ -133,6 +133,16 @@ describe('daySummaries', () => {
     ])
   })
 
+  it("gives each day its counts and cap for the day bar, as the read sends them", () => {
+    const counts = { goalSessions: 1, upkeep: 1, added: 1 }
+    const marks = [{ day: '2026-11-10', cap: 4, full: false, counts }]
+
+    const tuesday = daySummaries({ ...plan, days: marks }, WEDNESDAY)[1]
+
+    expect(tuesday.fullness).toEqual({ counts, cap: 4 })
+    expect(daySummaries(plan, WEDNESDAY)[1].fullness).toBeNull()
+  })
+
   it('marks done days, today and past days', () => {
     expect(days.map((day) => day.allDone)).toEqual([true, false, false, false, false, false, false])
     expect(days.map((day) => day.isToday)).toEqual([false, false, true, false, false, false, false])
@@ -192,8 +202,8 @@ describe('knownDaySummaries', () => {
     expect(knownDaySummaries(both, WEDNESDAY)[5].summary).toBe('Dentist cleaning at 3 p.m. · Take out the trash')
   })
 
-  it('never marks a day full or done', () => {
-    expect(knownDaySummaries(later, WEDNESDAY).every((day) => !day.full && !day.allDone)).toBe(true)
+  it('never marks a day full or done, and gives it no bar', () => {
+    expect(knownDaySummaries(later, WEDNESDAY).every((day) => !day.full && !day.allDone && day.fullness === null)).toBe(true)
   })
 })
 
