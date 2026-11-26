@@ -2,8 +2,8 @@
 
 - [x] 1. Types and the mock
 - [x] 2. The wording
-- [ ] 3. Only open weeks stored
-- [ ] Checkpoint: tests, lint, build
+- [x] 3. Only open weeks stored
+- [x] Checkpoint: tests, lint, build
 - [ ] 4. The week shown, in the open screen
 - [ ] 5. Arrows and any week
 - [ ] 6. Counts line and bars

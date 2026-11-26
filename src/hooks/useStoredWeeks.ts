@@ -1,6 +1,6 @@
 // The plan as screens show it (ADR-010): the weeks the phone stored, shown at
 // once, then the fresh read, which is stored in turn; with the queue's changes
-// replayed on top. The stored weeks are never edited. Reads again on the data
+// replayed on top. Only open weeks are stored, and the stored weeks are never edited. Reads again on the data
 // revision and once the queue has emptied; a read settles the confirmed changes
 // it includes. A failed read keeps what's shown and says so.
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react'
@@ -46,7 +46,8 @@ export function useStoredWeeks(read: WeeksRead, loadFailed: string): StoredWeeks
     let current = true
     read
       .stored()
-      .then((weeks) => {
+      .then((stored) => {
+        const weeks = stored.filter(isOpen)
         if (!current || weeks.length === 0) return
         setServer((shown) => (shown?.read === read ? shown : { read, weeks }))
       })
@@ -87,9 +88,15 @@ export function useStoredWeeks(read: WeeksRead, loadFailed: string): StoredWeeks
   return { weeks: shown?.map((week) => replay(week, changes)), message, setMessage, keep, reload }
 }
 
+// Only the current week and an open next week are kept on the phone; other weeks are read
+// online (ADR-010). A copy stored before weeks had a status is one of those.
+function isOpen(week: Week): boolean {
+  return week.status === undefined || week.status === 'open'
+}
+
 // A copy for next time; if it can't be written, the screen still has it.
 function store(weeks: Week[]) {
-  for (const week of weeks) {
+  for (const week of weeks.filter(isOpen)) {
     planStore()
       .weeks.put(week.week, week)
       .catch(() => {})
