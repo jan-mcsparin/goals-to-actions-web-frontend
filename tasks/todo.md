@@ -1,7 +1,7 @@
 # 081: Tick off a past day's tasks late
 
 - [ ] 1. The wording and what's ticked
-- [ ] 2. Replay in a closed week
+- [ ] 2. Replay tests
 - [ ] 3. The mock
 - [ ] Checkpoint: tests, lint, build
 - [ ] 4. The day's hook

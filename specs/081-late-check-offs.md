@@ -17,7 +17,7 @@ References: [brief](../../docs/briefs/scheduling-and-other-weeks.md) ("A past da
    - `weekOutcome: 'lapsed'`: "Tap if you did it".
    Once ticked, the line goes and the row reads done like any other. An unfinished task on a past day of this week is still in play and gets no line.
 4. **Tapping checks it off for that day:** the check-off's `completedOn` is the day opened, `completedAt` the moment of the tap (decision 3). It goes through the queue as now and shows at once. The server lands it where `data-model.md` says: a rolled-over task is done on its row in the week it moved to, so it leaves this week's bank (the stored current week replays the same change, so that shows at once too); a lapsed one turns its row and task to done.
-5. **Unchecking works the same way round:** a rolled-over task goes back in play in the current week; a lapsed one lapses again. The row shows its line again at once, and the next read settles it.
+5. **Unchecking works the same way round:** a rolled-over task goes back in play in the current week; a lapsed one lapses again. A task done on time in a past week and unticked now gets the ending its week would have given it (the API's `uncheck`): a task added by hand rolls into this week's bank, a goal session lapses. The row shows unticked at once; its line comes back with the read once the queue has sent it, since only the server knows which ending applies (ADR-008).
 6. **Nothing else is offered on a closed week's day:** no ⋯ menu (no Back to bank, Swap, Move, Remove or Delete), no Pull from bank, as the issue says (decision 4). A past day of this week keeps what it offers now: Back to bank and Delete in the menu, no Pull or Swap.
 7. **A quitting goal's row** shows on every past day the week's read has a quit day for, closed weeks included, and works as on Today: answered, changed, cleared, rated, through the queue (decision 5). This is what spec 037 did for opened days of this week; it may already work on closed weeks and only needs tests.
 8. **A task that can't be ticked any more** (rolled over, then dropped since: `state: 'dropped'`) shows "Moved on to the next week" alone and can't be checked (decision 6). A rolled-over task done since, in a later week, shows ticked; unticking it undoes that check-off, since it's one task.
@@ -28,7 +28,7 @@ References: [brief](../../docs/briefs/scheduling-and-other-weeks.md) ("A past da
 **In:**
 
 - `src/domain/tasks.ts`: `checkOffAt(now, day)` takes the day it counts for; `canTickLate(task)`.
-- `src/domain/replay.ts`: in a closed week, a check-off of a lapsed task reads done with no `weekOutcome` (the API turns its row to done), and an uncheck of a task that didn't roll over reads lapsed again, so the replayed row is right until the read settles it.
+- `src/domain/replay.ts`: no change. A tick replays as done, which hides the line; an untick replays as open, and the read settles its ending.
 - `src/domain/today.ts`: `visibleTasks` keeps any task with a `weekOutcome` on its day; a row's `outcome` line (`'Moved on to the next week · tap if you did it'`, `'Tap if you did it'`, `'Moved on to the next week'`), in `TaskRow`.
 - `src/hooks/useDay.ts`: `DayView.isPast` and `isClosed` (or one `pastNote` and `canChange`); `toggleDone` sends the opened day as `completedOn` on a past day.
 - `src/components/TaskRow.tsx`, `TaskRow.css`/`taskText.css`: the outcome line, read with the title (`aria-describedby`); no menu when the day offers none.
@@ -86,7 +86,7 @@ export function checkOffAt(now: Date, day: string): CheckOff {
 
 - `domain/tasks.test.ts`: `checkOffAt` keeps the day given; `canTickLate` for open, lapsed, rolled-over-then-dropped.
 - `domain/today.test.ts`: the outcome line for a rolled-over, a lapsed, a done-late and a dropped task; none for an in-play task.
-- `domain/replay.test.ts`: a late check-off of a rolled-over task replayed over the current week marks it done there, so it leaves the bank; an uncheck returns it.
+- `domain/replay.test.ts`: a late check-off of a rolled-over task replayed over the current week marks it done there, so it leaves the bank; an uncheck returns it; a lapsed task ticked in a closed week's read reads done.
 - `useDay.test.tsx`: a tick on a past day sends that day as `completedOn`; on today, today.
 - `Day.test.tsx`: the note on a past day of this week and of a closed week, not on today or a future day; the outcome lines; tick and untick on a closed week's day; no ⋯ menu there, the menu as now on a past day of this week; the quit row on a closed week's day.
 - `api/client.test.ts`: the mock's late check-off and uncheck, both cases.
