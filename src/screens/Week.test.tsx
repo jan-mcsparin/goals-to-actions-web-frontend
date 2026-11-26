@@ -21,9 +21,11 @@ vi.mock('../api/client.ts', async (importOriginal) => {
 
 const WEDNESDAY_DAY = '2026-11-11'
 
-beforeEach(async () => {
+// The real client, for tests that stand in for one week read and pass the rest through.
+const actual = await vi.importActual<typeof import('../api/client.ts')>('../api/client.ts')
+
+beforeEach(() => {
   // A test that stands in for a week read leaves the real one behind for the next.
-  const actual = await vi.importActual<typeof import('../api/client.ts')>('../api/client.ts')
   vi.mocked(getWeek).mockImplementation(actual.getWeek)
   localStorage.clear()
   vi.useFakeTimers({ toFake: ['Date'] })
@@ -247,7 +249,6 @@ describe('Week', () => {
   })
 
   it('says so when the bank is empty', async () => {
-    const actual = await vi.importActual<typeof import('../api/client.ts')>('../api/client.ts')
     const week = await actual.getWeek()
     vi.mocked(getWeek).mockResolvedValueOnce({ ...week, tasks: week.tasks.filter((task) => !isInBank(task)) })
     render(<Week today={WEDNESDAY_DAY} onShowWeek={() => {}} onOpenDay={() => {}} />)
@@ -331,6 +332,8 @@ describe('Week, any week', () => {
     render(<Stepping today={WEDNESDAY_DAY} from="2026-01-05" />)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'This week' })).toBeDefined()
+    await screen.findByRole('region', { name: 'Days' })
+    expect(getWeek).not.toHaveBeenCalledWith('2026-01-05')
   })
 
   it('goes back to this week from any other', async () => {
@@ -355,7 +358,6 @@ describe('Week, any week', () => {
   })
 
   it('says other weeks need a connection when one fails to load, under its header', async () => {
-    const actual = await vi.importActual<typeof import('../api/client.ts')>('../api/client.ts')
     vi.mocked(getWeek).mockImplementation(async (week) => {
       if (week === '2026-12-07') throw new Error('offline')
       return actual.getWeek(week)
@@ -393,7 +395,6 @@ describe("Week, a week that hasn't opened", () => {
 
 describe('Week, a past week', () => {
   it('lists its bank as it was, with nothing to put on a day', async () => {
-    const actual = await vi.importActual<typeof import('../api/client.ts')>('../api/client.ts')
     const last = await actual.getWeek('2026-11-02')
     vi.mocked(getWeek).mockImplementation(async (week) =>
       week === '2026-11-02'
