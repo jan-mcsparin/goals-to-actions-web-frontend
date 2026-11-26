@@ -8,6 +8,7 @@ import {
   goalSubline,
   groupByGoal,
   groupForList,
+  outcomeLine,
   progress,
   timeLabel,
   waitingLine,
@@ -176,6 +177,40 @@ describe('fixed-day tasks', () => {
         ['Ballot', false],
       ])
     }
+  })
+})
+
+describe('a past week\'s tasks (spec 081)', () => {
+  const rolled = task('Groceries', { weekOutcome: 'rolledOver' })
+  const lapsed = task('Lift', { goalId: 'goal-strong', state: 'lapsed', weekOutcome: 'lapsed' })
+  const dropped = task('Ballot', { state: 'dropped', weekOutcome: 'rolledOver' })
+  const lateDone = task('Paint', { state: 'done', weekOutcome: 'rolledOver' })
+
+  it('shows every task that ended with the week, whatever its state now, and counts it', () => {
+    const dayPlan = plan([rolled, lapsed, dropped, lateDone])
+
+    expect(groupForList(dayPlan).flatMap((section) => section.rows.map((row) => row.task.title))).toEqual([
+      'Groceries',
+      'Ballot',
+      'Paint',
+      'Lift',
+    ])
+    expect(progress(dayPlan)).toEqual({ done: 1, total: 4 })
+  })
+
+  it('says how each unfinished one ended, and nothing once it is done', () => {
+    expect(outcomeLine(rolled)).toBe('Moved on to the next week · tap if you did it')
+    expect(outcomeLine(lapsed)).toBe('Tap if you did it')
+    expect(outcomeLine(dropped)).toBe('Moved on to the next week')
+    expect(outcomeLine(lateDone)).toBeUndefined()
+    expect(outcomeLine(task('In play'))).toBeUndefined()
+  })
+
+  it('puts the line on the row, in both views', () => {
+    for (const sections of [groupForList(plan([lapsed])), groupByGoal(plan([lapsed]))]) {
+      expect(sections[0].rows[0]).toMatchObject({ outcome: 'Tap if you did it' })
+    }
+    expect(groupForList(plan([lapsed]))[0].rows[0].subline).toBe('Be strong · Be fit')
   })
 })
 
