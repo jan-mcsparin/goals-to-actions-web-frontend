@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Task, Week } from '../api/types.ts'
 import { aTask } from '../test/tasks.ts'
 import { predictedPlace, replay, type Change } from './replay.ts'
+import { bankOf, outcomeLine } from './today.ts'
 import { aWeekRead } from '../test/weeks.ts'
 
 const WEEK = '2026-11-09'
@@ -102,6 +103,32 @@ describe('replay', () => {
     ])
 
     expect(where(shown)).toEqual({ laundry: '2026-11-18' })
+  })
+
+  it('ticks a task off late from a past day in the week it rolled into, so it leaves that bank (spec 081)', () => {
+    const groceries = aTask('groceries', { week: WEEK, carriedOver: 1 })
+    const lastWeeksDay = '2026-11-05'
+    const late: Change = {
+      kind: 'checkOff',
+      id: 'c1',
+      taskId: 'groceries',
+      checkOff: { ...CHECK_OFF, completedOn: lastWeeksDay },
+    }
+    const week = replay(weekOf([groceries, ballot]), [late])
+
+    expect(bankOf(week).map((task) => task.id)).toEqual(['ballot'])
+    expect(week.tasks.find((task) => task.id === 'groceries')?.completedOn).toBe(lastWeeksDay)
+    expect(bankOf(replay(weekOf([groceries, ballot]), [late, { kind: 'uncheck', id: 'c2', taskId: 'groceries' }]))).toHaveLength(2)
+  })
+
+  it("ticks a lapsed task off in a past week's read, so it reads done and its line goes", () => {
+    const lapsed = aTask('lift', { state: 'lapsed', weekOutcome: 'lapsed', week: '2026-11-02', plannedDay: '2026-11-05' })
+    const past = aWeekRead({ week: '2026-11-02', status: 'closed', tasks: [lapsed] })
+
+    const [ticked] = replay(past, [{ kind: 'checkOff', id: 'c1', taskId: 'lift', checkOff: CHECK_OFF }]).tasks
+
+    expect(ticked.state).toBe('done')
+    expect(outcomeLine(ticked)).toBeUndefined()
   })
 
   it('adds a new task where it was expected to go, once', () => {
