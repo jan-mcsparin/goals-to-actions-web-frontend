@@ -25,6 +25,7 @@ import {
 } from '../domain/today.ts'
 import { weekdayAndDate } from '../domain/add.ts'
 import { REMOVE_FAILED } from '../domain/deleting.ts'
+import { notOpenDayOf, type NotOpenDay } from '../domain/notOpenDay.ts'
 import { quitRows, type QuitRow } from '../domain/quitting.ts'
 import { canMoveInWeek, checkOffAt, isDone, isSetItem, weekOf } from '../domain/tasks'
 import { pickableDays, weekTitle, type PickableDay } from '../domain/week.ts'
@@ -51,6 +52,8 @@ export type DayView = {
   sections: Section[]
   // A quitting goal's held-or-not for the day; none on a future day. Not tasks: never counted.
   quitRows: QuitRow[]
+  // A day of a week that hasn't opened shows only what's set and known (spec 082).
+  notOpen?: NotOpenDay
 }
 
 // Today's "Still matter?" card for one task, and what each answer does.
@@ -295,5 +298,6 @@ function viewOf(plan: Day, week: Week, view: TodayViewMode, today: string): DayV
     progress: progress(plan),
     sections,
     quitRows: quitRows(week, plan.date, today),
+    ...(week.status === 'notOpen' && { notOpen: notOpenDayOf(week, plan.date) }),
   }
 }

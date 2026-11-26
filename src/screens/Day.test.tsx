@@ -847,3 +847,41 @@ describe('Day, moving or removing a set item', () => {
     await waitFor(() => expect(placeTask).toHaveBeenCalledWith('task-trash', '2026-11-09', '2026-11-12'))
   })
 })
+
+describe("Day of a week that hasn't opened", () => {
+  const TUESDAY = '2026-12-08'
+
+  async function setOnTuesday() {
+    await placeTask('task-move-car', '2026-11-09', TUESDAY)
+    vi.mocked(placeTask).mockClear()
+  }
+
+  it("shows the note, its set tasks with their menus, what's known under Also that day, and no check-off", async () => {
+    await setOnTuesday()
+    const user = userEvent.setup()
+    render(<Day date={TUESDAY} today={WEDNESDAY_DAY} onBack={() => {}} />)
+
+    expect(await screen.findByText("Only what's set to a day shows here. Recurring work is placed when this week opens.")).toBeDefined()
+    const car = screen.getByRole('checkbox', { name: 'Move the car for street sweeping' }) as HTMLButtonElement
+    expect(car.disabled).toBe(true)
+    const also = screen.getByRole('region', { name: 'Also that day' })
+    expect(within(also).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['Take out the trash'])
+    expect(screen.queryByRole('progressbar')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Pull from bank' })).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'More for Move the car for street sweeping' }))
+    expect(
+      screen
+        .getAllByRole('button')
+        .filter((button) => button.closest('.task-menu-actions'))
+        .map((button) => button.textContent),
+    ).toEqual(['Move to another day', 'Remove (not doing it)', 'Delete (made by mistake)'])
+  })
+
+  it('says Nothing set yet on a day with nothing known', async () => {
+    render(<Day date="2026-12-09" today={WEDNESDAY_DAY} onBack={() => {}} />)
+
+    expect(await screen.findByText('Nothing set yet')).toBeDefined()
+    expect(screen.queryByRole('region', { name: 'Also that day' })).toBeNull()
+  })
+})

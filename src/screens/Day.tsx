@@ -12,6 +12,7 @@ import type { TodayViewMode } from '../storage/viewPreference.ts'
 import '../components/progressBar.css'
 import type { Task } from '../api/types.ts'
 import { deleteTaskLine, removeTaskLine } from '../domain/deleting.ts'
+import type { NotOpenDay } from '../domain/notOpenDay.ts'
 import type { Section } from '../domain/today.ts'
 import { useDay, type MoveOffer, type StillMattersAsk } from '../hooks/useDay.ts'
 import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
@@ -88,7 +89,7 @@ export function Day({ date, today, onBack }: DayProps) {
     )
   }
 
-  const { isToday, canPlace, canCheckOff, progress, sections, quitRows } = day
+  const { isToday, canPlace, canCheckOff, progress, sections, quitRows, notOpen } = day
   const isEmpty = progress.total === 0
   const emptyLine = isToday ? 'Nothing planned today. The day is yours.' : 'Nothing planned. The day is yours.'
   const swapTask = canPlace
@@ -111,7 +112,7 @@ export function Day({ date, today, onBack }: DayProps) {
         heading={heading}
         weekTitle={weekTitle}
         onBack={onBack}
-        progress={isEmpty ? undefined : { ...progress, label: isToday ? 'Done today' : 'Done this day' }}
+        progress={isEmpty || notOpen ? undefined : { ...progress, label: isToday ? 'Done today' : 'Done this day' }}
       />
 
       {waiting && <p className="today-waiting">{waiting}</p>}
@@ -127,9 +128,11 @@ export function Day({ date, today, onBack }: DayProps) {
         />
       ))}
 
-      {!isEmpty && <ViewToggle label="View" view={view} options={DAY_VIEWS} onChange={setView} />}
+      {!notOpen && !isEmpty && <ViewToggle label="View" view={view} options={DAY_VIEWS} onChange={setView} />}
 
-      {isEmpty ? (
+      {notOpen ? (
+        <NotOpenDayBody day={notOpen} onMove={moveTask} onRemove={removeTask} onDelete={deleting.ask} />
+      ) : isEmpty ? (
         <p className="today-empty">{emptyLine}</p>
       ) : (
         sections.map((section) => (
@@ -165,7 +168,7 @@ export function Day({ date, today, onBack }: DayProps) {
         </div>
       )}
 
-      {!isEmpty && (
+      {!notOpen && !isEmpty && (
         <section className="today-free-time" aria-labelledby="free-time">
           <h2 id="free-time">Free time</h2>
           <p className="today-free">The rest is yours.</p>
@@ -232,6 +235,50 @@ export function Day({ date, today, onBack }: DayProps) {
 
       <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
     </main>
+  )
+}
+
+type NotOpenDayBodyProps = {
+  day: NotOpenDay
+  onMove: (task: Task) => (() => void) | undefined
+  onRemove: (task: Task) => (() => void) | undefined
+  onDelete: (task: Task) => void
+}
+
+// What's set to the day, each with its menu, then what's known of it, read-only. No bank, so no
+// Back to bank, Pull or Swap; nothing can be checked off before the week starts.
+function NotOpenDayBody({ day, onMove, onRemove, onDelete }: NotOpenDayBodyProps) {
+  const { rows, alsoThatDay } = day
+  return (
+    <>
+      <p className="today-note">Only what's set to a day shows here. Recurring work is placed when this week opens.</p>
+      {rows.length === 0 && alsoThatDay.length === 0 && <p className="today-empty">Nothing set yet</p>}
+      {rows.length > 0 && (
+        <ul className="task-list">
+          {rows.map((row) => (
+            <TaskRow
+              key={row.task.id}
+              row={row}
+              canCheck={false}
+              onToggle={() => {}}
+              onMove={onMove(row.task)}
+              onRemove={onRemove(row.task)}
+              onDelete={() => onDelete(row.task)}
+            />
+          ))}
+        </ul>
+      )}
+      {alsoThatDay.length > 0 && (
+        <section className="today-group" aria-labelledby="also-that-day">
+          <h2 id="also-that-day">Also that day</h2>
+          <ul className="today-known">
+            {alsoThatDay.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
   )
 }
 

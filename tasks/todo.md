@@ -6,7 +6,7 @@
 - [x] Checkpoint: tests, lint, build
 - [x] 4. The hook
 - [x] 5. The menu and the sheets
-- [ ] 6. A day of a week that hasn't opened
-- [ ] 7. Checkpoint: full suite, lint, build
+- [x] 6. A day of a week that hasn't opened
+- [x] 7. Checkpoint: full suite, lint, build
 - [ ] 8. Docs
 - [ ] 9. The check

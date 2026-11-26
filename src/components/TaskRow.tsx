@@ -7,7 +7,8 @@ import { isDone } from '../domain/tasks'
 type TaskRowProps = {
   row: TaskRowData
   onToggle: () => void
-  onSendToBank: () => void
+  // Left out where there's no bank: a week that hasn't opened.
+  onSendToBank?: () => void
   onSwap?: () => void
   onMove?: () => void
   onRemove?: () => void
