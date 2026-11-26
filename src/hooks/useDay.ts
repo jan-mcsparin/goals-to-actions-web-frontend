@@ -6,7 +6,7 @@
 // comes back if the answer can't be saved. Rules come from domain/.
 import { useMemo, useState } from 'react'
 import { answerStillMatters, deleteTask, getWeek } from '../api/client.ts'
-import { mondayOfDay } from '../api/dates.ts'
+import { mondayOfDay, weekAfter } from '../api/dates.ts'
 import { newDeviceId } from '../api/ids.ts'
 import { enqueue } from '../api/queue.ts'
 import type { StillMattersAnswer, Task, UrgeLevel, Week } from '../api/types.ts'
@@ -34,6 +34,8 @@ import { useQueue } from './useQueue.ts'
 import { useStoredWeeks, type WeeksRead } from './useStoredWeeks.ts'
 
 const LOAD_FAILED = "Couldn't load today. Try again in a moment."
+// Only this week and next are kept on the phone; a day in any other is read online (ADR-010).
+const OTHER_WEEK_FAILED = "Other weeks need a connection. They'll show once you're back online."
 const SAVE_FAILED = "Couldn't save that. Try again."
 
 export type DayView = {
@@ -103,7 +105,9 @@ function weekRead(monday: string): WeeksRead {
 export function useDay(date: string, today: string): UseDay {
   const monday = mondayOfDay(date)
   const read = useMemo(() => weekRead(monday), [monday])
-  const { weeks, message, setMessage, reload } = useStoredWeeks(read, LOAD_FAILED)
+  const phonesWeek = mondayOfDay(today)
+  const isOtherWeek = monday < phonesWeek || monday > weekAfter(phonesWeek)
+  const { weeks, message, setMessage, reload } = useStoredWeeks(read, isOtherWeek ? OTHER_WEEK_FAILED : LOAD_FAILED)
   const queue = useQueue()
   const [view, setViewState] = useState(readTodayView)
   const [notNow, setNotNow] = useState(() => readNotNow(today))
@@ -215,7 +219,7 @@ export function useDay(date: string, today: string): UseDay {
   const asked = (plan?.stillMatters ?? []).filter((task) => !notNow.includes(task.id) && !answering.includes(task.id))
   return {
     heading: dayHeading(date, today),
-    weekTitle: weekTitle(monday, week?.isCurrent ? monday : mondayOfDay(today)),
+    weekTitle: weekTitle(monday, currentWeek(monday, week, today)),
     day: plan && week && viewOf(plan, week, view, today),
     asking: date === today ? asked.map(askAbout) : [],
     waiting: date === today && queue.stalled ? waitingLine(queue.waiting) : undefined,
@@ -233,6 +237,14 @@ export function useDay(date: string, today: string): UseDay {
     clearQuitDay,
     rateUrge,
   }
+}
+
+// The current week, as Week counts it: the phone's, or the one after once the phone's week has
+// been wrapped up early (it reads closed).
+function currentWeek(monday: string, week: Week | undefined, today: string): string {
+  if (week?.isCurrent) return monday
+  const phonesWeek = mondayOfDay(today)
+  return week?.status === 'closed' && monday === phonesWeek ? weekAfter(phonesWeek) : phonesWeek
 }
 
 function viewOf(plan: Day, week: Week, view: TodayViewMode, today: string): DayView {

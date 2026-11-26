@@ -12,6 +12,7 @@ import {
   getWeek,
   placeTask,
   rateUrge,
+  wrapUpWeek,
 } from '../api/client.ts'
 import { resetStore } from '../api/mockStore.ts'
 import { Day } from './Day.tsx'
@@ -427,6 +428,22 @@ describe('Day', () => {
 
     await screen.findByRole('heading', { level: 1, name: 'Wednesday · Dec 9' })
     expect(screen.queryByRole('button', { name: 'Pull from bank' })).toBeNull()
+  })
+
+  it('says a day in another week needs a connection when it can\'t load', async () => {
+    vi.mocked(getWeek).mockRejectedValueOnce(new Error('offline'))
+    render(<Day date="2026-12-09" today={WEDNESDAY_DAY} onBack={() => {}} />)
+
+    expect(await screen.findByText("Other weeks need a connection. They'll show once you're back online.")).toBeDefined()
+  })
+
+  it('calls the week just wrapped up early last week, on its days', async () => {
+    vi.setSystemTime(new Date(2026, 10, 15, 18, 0))
+    await wrapUpWeek('2026-11-09')
+
+    render(<Day date="2026-11-13" today="2026-11-15" onBack={() => {}} />)
+
+    expect(await screen.findByRole('button', { name: 'Back to Last week' })).toBeDefined()
   })
 
   it("names the day's week on the way back", async () => {
