@@ -28,7 +28,7 @@ export function taskConfirmation(task: Pick<Task, 'state' | 'plannedDay' | 'week
 }
 
 // "Sat, Dec 12", with the year when it isn't this year's.
-function weekdayAndDate(day: string, today: string): string {
+export function weekdayAndDate(day: string, today: string): string {
   const date = fromLocalDay(day)
   const sameYear = date.getFullYear() === fromLocalDay(today).getFullYear()
   return date.toLocaleDateString('en-US', {

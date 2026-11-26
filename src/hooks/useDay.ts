@@ -5,7 +5,7 @@
 // a failed send, they wait. So do a quitting goal's answer and urge rating. "Still matter?" needs a connection: its card goes at once, and
 // comes back if the answer can't be saved. Rules come from domain/.
 import { useMemo, useState } from 'react'
-import { answerStillMatters, deleteTask, getWeek } from '../api/client.ts'
+import { answerStillMatters, deleteTask, dropTask, getWeek } from '../api/client.ts'
 import { mondayOfDay, weekAfter } from '../api/dates.ts'
 import { newDeviceId } from '../api/ids.ts'
 import { enqueue } from '../api/queue.ts'
@@ -23,6 +23,8 @@ import {
   type TaskRow,
   waitingLine,
 } from '../domain/today.ts'
+import { weekdayAndDate } from '../domain/add.ts'
+import { REMOVE_FAILED } from '../domain/deleting.ts'
 import { quitRows, type QuitRow } from '../domain/quitting.ts'
 import { checkOffAt, isDone, weekOf } from '../domain/tasks'
 import { pickableDays, weekTitle, type PickableDay } from '../domain/week.ts'
@@ -82,8 +84,12 @@ export type UseDay = {
   pull: (bankTaskId: string) => void
   sendToBank: (taskId: string) => void
   swap: (taskId: string, bankTaskId: string) => void
+  // To another day, in any week (a fixed-day task: within its week). Queued as a place.
+  move: (taskId: string, day: string) => void
   // A task made by mistake: asked once, then sent; the week is read again once it's gone.
   deleting: UseDelete<Task>
+  // A set item not being done: a drop, asked once and sent as Delete is (spec 082).
+  removing: UseDelete<Task>
   answerQuitDay: (goalId: string, held: boolean) => void
   // Back to unknown: the answer and its urge rating.
   clearQuitDay: (goalId: string) => void
@@ -121,6 +127,12 @@ export function useDay(date: string, today: string): UseDay {
     done: reload,
     failed: setMessage,
   })
+  const removing = useDelete<Task>({
+    send: (task) => dropTask(task.id),
+    done: reload,
+    failed: setMessage,
+    failure: REMOVE_FAILED,
+  })
 
   function setView(next: TodayViewMode) {
     setViewState(next)
@@ -153,6 +165,16 @@ export function useDay(date: string, today: string): UseDay {
     if (!taskWeek) return
     setMessage(undefined)
     void enqueue({ kind: 'toBank', id: newDeviceId(), taskId, week: taskWeek })
+  }
+
+  // A move to another week carries the task, so that week shows it before the server answers.
+  function move(taskId: string, day: string) {
+    const task = plan?.tasks.find((candidate) => candidate.id === taskId)
+    const taskWeek = task && weekOf(task)
+    if (!task || !taskWeek || task.plannedDay === day) return
+    const otherWeek = mondayOfDay(day) !== taskWeek
+    void enqueue({ kind: 'place', id: newDeviceId(), taskId, week: taskWeek, day, ...(otherWeek && { task }) })
+    setMessage(`Moved to ${weekdayAndDate(day, today)}.`)
   }
 
   // The bank task takes the swapped task's place, so the day keeps its order.
@@ -232,7 +254,9 @@ export function useDay(date: string, today: string): UseDay {
     pull,
     sendToBank,
     swap,
+    move,
     deleting,
+    removing,
     answerQuitDay,
     clearQuitDay,
     rateUrge,

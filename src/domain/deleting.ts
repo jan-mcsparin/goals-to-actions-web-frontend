@@ -3,6 +3,13 @@
 
 export const DELETE_FAILED = "Couldn't delete that. Try again."
 
+export const REMOVE_FAILED = "Couldn't remove that. Try again."
+
+// Remove is a drop (spec 082): a decision kept in history, worded apart from Delete.
+export function removeTaskLine(title: string): string {
+  return `Remove “${title}”? It's not done, and nothing counts against you.`
+}
+
 export function deleteTaskLine(title: string): string {
   return `Delete “${title}”? It goes as if it was never made.`
 }
