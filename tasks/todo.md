@@ -1,13 +1,12 @@
-# 080: Any week on Week, with how full it is
+# 082: Move or remove a future day's set items
 
-- [x] 1. Types and the mock
-- [x] 2. The wording
-- [x] 3. Only open weeks stored
-- [x] Checkpoint: tests, lint, build
-- [x] 4. The week shown, in the open screen
-- [x] 5. Arrows and any week
-- [x] 6. Counts line and bars
-- [x] 7. A week that hasn't opened, and a past week
-- [x] Checkpoint: the screen end to end (tests; the check below runs it live)
-- [x] 8. Docs
-- [x] 9. The check
+- [ ] 1. API: a fixed-day task moves within its week (API repo)
+- [ ] 2. Types and the client
+- [ ] 3. What's offered, and the move in replay
+- [ ] Checkpoint: tests, lint, build
+- [ ] 4. The hook
+- [ ] 5. The menu and the sheets
+- [ ] 6. A day of a week that hasn't opened
+- [ ] 7. Checkpoint: full suite, lint, build
+- [ ] 8. Docs
+- [ ] 9. The check

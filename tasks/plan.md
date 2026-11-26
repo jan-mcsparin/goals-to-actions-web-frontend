@@ -1,48 +1,49 @@
-# Implementation Plan: Any week on Week, with how full it is (#80)
+# Implementation Plan: Move or remove a future day's set items (#82)
 
-Spec: [`../specs/080-any-week.md`](../specs/080-any-week.md). Issue: [#80](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/80). Tasks: [`todo.md`](todo.md). (Plans for earlier specs are in git history.)
+Spec: [`../specs/082-move-and-remove.md`](../specs/082-move-and-remove.md). Issue: [#82](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/82). Tasks: [`todo.md`](todo.md). (Plans for earlier specs are in git history.)
 
 ## Overview
 
-Week gets ‹ › arrows from the first week with rows to 12 weeks ahead, a title ("This week", "Last week", "Next week", "Week of Dec 7"), a counts line and week bar on every week, and day bars on opened weeks. A week that hasn't opened shows the note and only what's known. The This week | Next week toggle goes. Only the current week and an open next week are stored; other weeks are read online.
+An opened day's set items (hand-added, unfinished, today or later) get **Move to another day** (any week, native date input) and **Remove (not doing it)** (a drop, asked once, not queued). A fixed-day task gets **Move to another day** within its week, with an API change to `place`. A day of a week that hasn't opened shows its set tasks with menus and its known items under "Also that day".
+
+Three PRs, in this order:
+
+1. **API** (`goals-to-actions-api`, branch `move-fixed-day`, "Part of web-frontend#82"): task 1.
+2. **Front end** (`goals-to-actions-web-frontend`, branch `move-and-remove`, closes #82): tasks 2–7, 9. Merges after the API PR.
+3. **Docs** (`goals-to-actions`, branch `move-and-remove-docs`): task 8's `docs/` part.
 
 ## Architecture decisions
 
-- **Types first.** `npm run api:types` from `../api/openapi.json`, which is API #51's (`any-week` branch, PR #57, open). `api/types.ts` names `WeekCounts`, `DayCounts`, `Occurrence`, `CheckInDate`, `GoalDeadline`. The mock fills every new field so the build compiles from the first commit.
-- **The week shown is in the open screen:** `{ screen: 'week'; week?: string }`. No `week` means this week (the Week tab). `Week` gets `week` and `onShowWeek(monday)`; App passes `goTo`. A day's back goes to `{ screen: 'week', week: mondayOf(date) }`, labelled by the week's title. `storage/weekView.ts` is removed.
-- **Which read:** `useWeek(today, shown)` always reads the current week (and an open next week) the stored way, as now: it gives `firstWeek`, `nextWeekOpen` and the wrap-up. When the week shown is neither of those, it also reads that week fresh, with nothing stored and nothing from storage. Its failure shows "Other weeks need a connection. They'll show once you're back online." under the header.
-- **Only open weeks are stored.** `useStoredWeeks`'s `store()` writes only weeks with `status === 'open'`, and `useDay`'s stored read ignores a stored week that isn't open (copies saved before this change). That one rule covers Week and a day of another week alike.
-- **Limits:** back to `mondayOf(firstWeek)` (this week when `null`), forward to this week + 12. "This week" here is the current week's `week` from the read (it can be the one after the phone's week, after an early wrap-up). A remembered week outside the limits shows this week.
-- **Wording and bars in `domain/week.ts`:** `weekTitle`, `countsLine`, `barSegments` (each segment's share of the bar, full past `against`), `weekLimits`, `knownDaySummaries` (a not-open week's day lines), and `daySummaries` counting a row with a `weekOutcome` on its day (it reads as not done). Accessible labels: "About 16 things, against a typical week of 25"; a day "3 of 4 for a day".
-- **Components:** `FullnessBar` (size `week` | `day`, plain spans, `role="img"` with the label) and `CountsLine`. Colours as CSS custom properties in `Week.css`.
-- **A closed week:** Progress and Days as now; bank chips as plain text, not buttons. Wrap up only when the week shown is the week after the current one and next week is open.
-- **A not-open week's day** (opened from Week): Pull from bank and Swap hidden (`canPlace` false when the week's `status` is `notOpen`). Everything else on that day is 082's.
+- **The API change is one line of rule:** `place` drops its `keep_on_its_day` call. `move_to_bank` and `swap` keep it. `rework` already leaves a `by_hand` row alone (`app/turnover/rework.py`), so a moved fixed-day task stays put after its item is edited; tests prove it rather than new code. `fixedDay` stays true on the moved task (it's computed from the item and `carried_over`), so the front end still keeps it out of the bank and Swap.
+- **A cross-week move in replay:** a `place` change gains an optional `task` (the task as it was when moved). `replay` on the week named by `change.week`: a day inside that week moves the task as now; a day outside takes the task out. On another stored week whose Monday is the day's: the task is added there from `change.task` (placed by hand, that week), unless the week already has it. Older queued changes have no `task`, which only means they don't land early. Stored weeks are only the current and an open next week, so "lands at once" covers this week ↔ next week; further out, it just leaves.
+- **What's offered is decided in `domain/tasks.ts`:** `isSetItem(task, today)` (as the spec's snippet) and `canMoveInWeek(task, today)` (fixed-day, open, on a day; its week has a day from today on). `TaskRow` gets the domain's answers through `row`-level props, as now with `row.fixed`.
+- **Remove reuses `useDelete`** with a `failure` message passed in (default `DELETE_FAILED`), sending `dropTask` and reloading on done. 404 counts as done, as for Delete. `DeleteSheet` takes `confirmLabel` (default "Delete"); the question comes from `domain/deleting.ts` (`removeTaskLine`).
+- **Move's message** is "Moved to Sat, Dec 19." from 079's day label (`dayLabel` in `domain/goalDetail.ts`), shown through `setMessage` as other screen messages.
+- **The mock's `placeTask`** takes a bank or day task: within its week as now (a fixed-day one too); to another week for `byHand` only (a `ConflictError`/409 otherwise, as the API), keeping the rule that a target week can't already hold it. `dropTask` sets `dropped`.
+- **A not-open day** is drawn in a new `domain/notOpenDay.ts`: `notOpenDayOf(week, date)` → `{ tasks: TaskRow[], alsoThatDay: string[] }`. A check-in reads "Check in: Lift · Milestone 3 of 4" from `CheckInDate`'s `position` and `of`; Week's day line keeps its shorter "Check in: Lift". `Day.tsx` renders it when `week.status === 'notOpen'`.
 
 ## Task list
 
-See [`todo.md`](todo.md) for the checklist. Each task leaves tests, lint and build passing and is its own commit.
+See [`todo.md`](todo.md). Each task: failing test first, then code, then the checks (front end: `nvm use`, `npm test`, `npm run lint`, `npm run build`; API: ruff check, ruff format --check, mypy, pytest), then one commit.
 
-1. **Types and the mock.** Regenerate; name the types; the mock's `getWeek` fills `status` (closed before the current week, open for it and an open next week, else notOpen), `firstWeek` (earliest week of any stored task), `counts` (actual from the tasks returned; expected from pinned tasks, fixed-day items and each building goal's target, decision 6), `days[].counts` (null when notOpen), `occurrences` (fixed-day items due that week, notOpen only), `checkIns` (dated upcoming milestones of active goals), `deadlines`, and `weekOutcome` (null; `lapsed` for the mock's lapsed tasks in a past week). Files: `openapi.ts`, `types.ts`, `client.ts`, `mockStore.ts` or a new `mockWeek.ts`, `client.test.ts`.
-2. **The wording.** `weekTitle`, `countsLine`, `barSegments`, `weekLimits`, `knownDaySummaries`, `daySummaries` with `weekOutcome`. Files: `domain/week.ts`, `domain/week.test.ts`.
-3. **Only open weeks stored.** `store()` filters; `useDay`'s stored read ignores a non-open week. Files: `useStoredWeeks.ts`, `useDay.ts`, `useStoredWeeks.test.tsx`.
-4. **The week shown, in the open screen.** `Screen`'s `week`; `readScreen` validates it; App wires `week` and `onShowWeek`; a day's back goes to its week with the title as label; `weekView.ts` goes. Files: `navigation.ts`, `navigation.test.ts`, `App.tsx`, `Day.tsx`, `useDay.ts` (the back label), `weekView*.ts`.
-5. **Arrows and any week.** `useWeek(today, shown)`: the stored current/next read, the fresh read of another week, limits, `step`, `toThisWeek`, the offline line; the header with ‹ title › range and This week; the toggle removed; Wrap up on an open next week. Files: `useWeek.ts`, `Week.tsx`, `Week.css`, `Week.test.tsx`.
-6. **Counts line and bars.** `CountsLine`, `FullnessBar`; the header row; a day bar on each day of an opened week. Files: `components/CountsLine.tsx`, `components/FullnessBar.tsx` (+ css), `Week.tsx`, `Week.test.tsx`.
-7. **A week that hasn't opened, and a past week.** The note, the known day lines and "Nothing set yet", no Progress/Bank/day bars; a closed week's bank as text; no Pull or Swap on a not-open week's day. Files: `Week.tsx`, `useWeek.ts`, `Week.test.tsx`, `useDay.ts`, `Day.test.tsx`.
-8. **Docs.** `docs/screens/README.md`, `docs/flows.md` flow 9, `docs/product-rules.md` rules 11 and 12, ADR-010 (a note), the brief's status line, `specs/README.md`, the spec's status, `CLAUDE.md` (the stored weeks line).
-9. **The check.** A sonnet agent at 390 px against the local API and dev server (already running), as the spec's Testing says; its findings fixed or reported; a "Checked" note in the spec.
-
-Checkpoints: after 3 (the foundations: full suite, lint, build), after 7 (the screen end to end on `npm run dev:mock`), after 9.
+1. **API: a fixed-day task moves within its week.** Remove `keep_on_its_day` from `place`; `Task.fixedDay` and `placeTask` descriptions; `uv run python -m app.openapi`. Tests: to tomorrow and back; to another week (409); bank and swap still 409; after the move, renaming its item and changing its schedule leave it on the new day; sent twice. Docs in the API repo: `specs/on-a-day.md`, `specs/tasks-week.md`. Files: `app/tasks/rules.py`, `app/tasks/models.py`, `openapi.json`, `tests/test_tasks*.py`, `tests/test_recurring_edit*.py`, `tests/test_repeats.py` if needed, two specs.
+2. **Types and the client.** `npm run api:types`; `dropTask` in `realPlan.ts` and `client.ts`; the mock's `placeTask` as above. Files: `openapi.ts`, `realPlan.ts`, `client.ts`, `client.test.ts`, `realPlan.test.ts`.
+3. **What's offered, and the move in replay.** `isSetItem`, `canMoveInWeek`; `place`'s optional `task` and the cross-week rule. Files: `domain/tasks.ts`, `tasks.test.ts`, `domain/replay.ts`, `replay.test.ts`.
+4. **The hook.** `useDay`'s `move(taskId, day)` (queued `place`, with `task` when the day is in another week; the "Moved to …" message) and `removing` (`useDelete` with `dropTask` and its own failure). Files: `useDay.ts`, `useDelete.ts`, `domain/deleting.ts`, `useDay.test.tsx`, `deleting.test.ts`.
+5. **The menu and the sheets.** `TaskMenu`'s `onMove`/`onRemove` in the spec's order; `MoveSheet` (date input, `min` today, Move off until the day differs); `DayPickerSheet`'s `title`; `DeleteSheet`'s `confirmLabel`; `TaskRow` and `Day.tsx` wiring, a fixed-day task's Move opening the day picker with its week's days from today on. Files: `TaskMenu.tsx`, `MoveSheet.tsx`, `DayPickerSheet.tsx`, `DeleteSheet.tsx`, `TaskRow.tsx`, `Day.tsx`, `Day.test.tsx`.
+6. **A day of a week that hasn't opened.** `notOpenDay.ts`; `useDay` gives it; `Day.tsx` shows the note, set tasks with menus, "Also that day", "Nothing set yet", no progress, check-off, Pull or Swap. Files: `domain/notOpenDay.ts` (+ test), `useDay.ts`, `Day.tsx`, `Day.css`, `Day.test.tsx`.
+7. **Checkpoint:** full suite, lint, build; the flows on `npm run dev:mock` by test only (Jan runs the dev servers).
+8. **Docs.** Root repo: `docs/screens/README.md` (Today's menu, Week's opened day, Remove beside Delete), `docs/flows.md` flow 3 ("Later weeks"), flow 7 (Remove is a drop), line 73 (a moved fixed-day task stays), `docs/data-model.md` line 296, the brief's status line and its FE 4 note. Front end: `specs/README.md`, the spec's status, `CLAUDE.md` (place can move across weeks; Remove beside Delete in the deletes rule).
+9. **The check.** A sonnet agent at 390 px against the local API and dev server (already running), as the spec's Testing says; findings fixed or reported; a "Checked" note in the spec.
 
 ## Risks and mitigations
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| API PR #57 isn't merged; the types come from the local `any-week` branch | Med | The front-end PR says so and merges after #57. |
-| This branch stacks on the specs PR #91 | Low | Merge #91 first, or retarget this PR to `main` before deleting #91's branch. |
-| Week stored before this change lacks `status`, so "open only" would hide this week offline | High | Treat a stored week with no `status` as open when it's the current or next week (`storedCurrentAndNext` reads only those); `useDay` ignores only a stored week whose `status` is set and isn't open. Tested. |
-| The counts line wraps at 390 px | Low | `nowrap`, smaller dots; checked at 390 px with the longest real line. |
-| The mock's expected counts drift from the API's | Low | They're rough by decision; the real rules are tested in the API. |
+| The front end's types need the API branch before it merges | Med | Generate from the local `move-fixed-day` branch; the FE PR says it merges after the API PR. |
+| A queued cross-week move whose task was already in the other week (two devices) shows twice | Low | The receiving week adds it only when it doesn't have that id. |
+| Remove sent offline | Low | Not queued: it fails and says "Couldn't remove that. Try again.", as Delete. |
+| The live check needs the API branch running | Med | The agent checks against the local API on `move-fixed-day`; I'll say if the running API isn't on it. |
 
 ## Open questions
 
