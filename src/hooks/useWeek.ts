@@ -91,8 +91,9 @@ export function useWeek(today: string, shown: string | undefined, onShowWeek: (w
   const limits = current && weekLimits(thisWeek, current.firstWeek ?? null)
   const outOfReach = limits && shown !== undefined && (shown < limits.first || shown > limits.last)
   const monday = shown === undefined || outOfReach ? thisWeek : shown
-  // Next week counts as stored until the current week says it isn't open.
-  const isStored = monday === thisWeek || (monday === weekAfter(thisWeek) && (!current || next !== undefined))
+  // Until the current week is in, its read is the one shown: it says how far back to go and
+  // whether next week is open, so another week isn't read before it's known to be in reach.
+  const isStored = !current || monday === thisWeek || (monday === weekAfter(thisWeek) && next !== undefined)
   const otherRead = useMemo(() => (isStored ? NOTHING : otherWeek(monday)), [isStored, monday])
   const other = useStoredWeeks(otherRead, OTHER_FAILED)
   const source = isStored ? stored : other
