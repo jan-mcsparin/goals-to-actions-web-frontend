@@ -2,7 +2,7 @@ import type { TaskRow as TaskRowData } from '../domain/today.ts'
 import { TaskMenu } from './TaskMenu.tsx'
 import './TaskRow.css'
 import './taskText.css'
-import { isDone } from '../domain/tasks'
+import { canTickLate, isDone } from '../domain/tasks'
 
 type TaskRowProps = {
   row: TaskRowData
@@ -18,15 +18,21 @@ type TaskRowProps = {
 }
 
 // The whole row is the checkbox, so a tap anywhere on it checks the task off.
-// Done tasks have no menu (tapping again undoes them). A fixed-day item never goes to the bank,
-// so its menu only moves it within its week and deletes.
+// Done tasks have no menu (tapping again undoes them), and neither does a row given no actions (a
+// closed week's day). A fixed-day item never goes to the bank, so its menu only moves it within
+// its week and deletes. On a past day, a line under the title says how the task ended with its
+// week (spec 081); one dropped since can't be ticked.
 export function TaskRow({ row, onToggle, onSendToBank, onSwap, onMove, onRemove, onDelete, canCheck = true }: TaskRowProps) {
-  const { task, timeLabel, subline } = row
+  const { task, timeLabel, subline, outcome } = row
   const done = isDone(task)
+  const sendToBank = row.fixed ? undefined : onSendToBank
+  const swap = row.fixed ? undefined : onSwap
+  const hasMenu = !done && [sendToBank, swap, onMove, onRemove, onDelete].some(Boolean)
   const titleId = `task-${task.id}-title`
   const timeId = `task-${task.id}-time`
   const sublineId = `task-${task.id}-subline`
-  const describedBy = [timeLabel && timeId, subline && sublineId].filter(Boolean).join(' ')
+  const outcomeId = `task-${task.id}-outcome`
+  const describedBy = [timeLabel && timeId, subline && sublineId, outcome && outcomeId].filter(Boolean).join(' ')
 
   return (
     <li className="task-item">
@@ -38,7 +44,7 @@ export function TaskRow({ row, onToggle, onSendToBank, onSwap, onMove, onRemove,
         aria-labelledby={titleId}
         aria-describedby={describedBy || undefined}
         className="task-row"
-        disabled={!canCheck}
+        disabled={!canCheck || !canTickLate(task)}
         onClick={onToggle}
       >
         <span className="task-check" aria-hidden="true" />
@@ -51,6 +57,11 @@ export function TaskRow({ row, onToggle, onSendToBank, onSwap, onMove, onRemove,
               {subline}
             </span>
           )}
+          {outcome && (
+            <span id={outcomeId} className="task-subline">
+              {outcome}
+            </span>
+          )}
         </span>
         {timeLabel && (
           <span id={timeId} className="task-time">
@@ -58,11 +69,11 @@ export function TaskRow({ row, onToggle, onSendToBank, onSwap, onMove, onRemove,
           </span>
         )}
       </button>
-      {!done && (onDelete || !row.fixed) && (
+      {hasMenu && (
         <TaskMenu
           taskTitle={task.title}
-          onSendToBank={row.fixed ? undefined : onSendToBank}
-          onSwap={row.fixed ? undefined : onSwap}
+          onSendToBank={sendToBank}
+          onSwap={swap}
           onMove={onMove}
           onRemove={onRemove}
           onDelete={onDelete}

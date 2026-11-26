@@ -583,6 +583,74 @@ describe("Day, a quitting goal's answer", () => {
   })
 })
 
+describe('Day, a past day (spec 081)', () => {
+  const NOTE = 'This day has passed. You can still tick off what you did.'
+  const LAST_THURSDAY = '2026-11-05'
+  const rowFor = (title: string) => screen.getByRole('checkbox', { name: title })
+
+  it("shows a closed week's day with the note, how each unfinished task ended, and no menus", async () => {
+    render(<Day date={LAST_THURSDAY} today={WEDNESDAY_DAY} />)
+
+    expect(await screen.findByText(NOTE)).toBeDefined()
+    expect(rowFor('Call the dentist').getAttribute('aria-describedby')).toBeTruthy()
+    expect(screen.getByText('Moved on to the next week · tap if you did it')).toBeDefined()
+    expect(screen.getByText('Tap if you did it')).toBeDefined()
+    expect(screen.queryByRole('button', { name: /^More for/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Pull from bank' })).toBeNull()
+  })
+
+  it('ticks a task off for that day, and its line goes', async () => {
+    const user = userEvent.setup()
+    render(<Day date={LAST_THURSDAY} today={WEDNESDAY_DAY} />)
+    await screen.findByText(NOTE)
+
+    await user.click(rowFor('Lift: pull day'))
+
+    expect(rowFor('Lift: pull day').getAttribute('aria-checked')).toBe('true')
+    expect(screen.queryByText('Tap if you did it')).toBeNull()
+    await waitFor(() =>
+      expect(checkOffTask).toHaveBeenLastCalledWith('task-last-lift', expect.objectContaining({ completedOn: LAST_THURSDAY })),
+    )
+  })
+
+  it("can't tick a task dropped since", async () => {
+    await dropTask('task-dentist')
+    render(<Day date={LAST_THURSDAY} today={WEDNESDAY_DAY} />)
+
+    expect(await screen.findByText('Moved on to the next week')).toBeDefined()
+    expect(rowFor('Call the dentist').hasAttribute('disabled')).toBe(true)
+  })
+
+  it("keeps a past day of this week's menus, with the note", async () => {
+    render(<Day date="2026-11-10" today={WEDNESDAY_DAY} />)
+
+    expect(await screen.findByText(NOTE)).toBeDefined()
+    expect(screen.getAllByRole('button', { name: /^More for/ }).length).toBeGreaterThan(0)
+  })
+
+  it('has no note today or on a later day', async () => {
+    const { unmount } = render(<Day date={WEDNESDAY_DAY} today={WEDNESDAY_DAY} />)
+    await screen.findByText('0 of 4 done')
+    expect(screen.queryByText(NOTE)).toBeNull()
+    unmount()
+
+    render(<Day date="2026-11-12" today={WEDNESDAY_DAY} />)
+    await screen.findByRole('heading', { level: 1, name: 'Thursday · Nov 12' })
+    expect(screen.queryByText(NOTE)).toBeNull()
+  })
+
+  it("answers a quitting goal's day in a closed week", async () => {
+    const goalId = (await createGoal({ label: 'Quit sugar', measurableLine: '30 days', type: 'quitting', startDate: '2026-11-07' })).id
+    vi.mocked(answerQuitDay).mockClear()
+    const user = userEvent.setup()
+    render(<Day date="2026-11-07" today={WEDNESDAY_DAY} />)
+
+    await user.click(within(await screen.findByRole('group', { name: 'Quit sugar' })).getByRole('button', { name: 'Held' }))
+
+    expect(answerQuitDay).toHaveBeenCalledWith(goalId, '2026-11-07', true)
+  })
+})
+
 describe('Day in next week', () => {
   const TUESDAY_AFTER = '2026-11-17'
 
