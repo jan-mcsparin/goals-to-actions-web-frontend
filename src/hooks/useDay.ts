@@ -43,8 +43,8 @@ const SAVE_FAILED = "Couldn't save that. Try again."
 
 export type DayView = {
   isToday: boolean
-  // Tasks can be placed on today and later days, not on past ones, nor in a week that hasn't
-  // opened (it has no bank).
+  // Tasks can be placed on today and later days of an open week: not on past days, nor in a week
+  // that hasn't opened (it has no bank) or one wrapped up early (its bank has moved on).
   canPlace: boolean
   // A day in a week that hasn't started can't be checked off.
   canCheckOff: boolean
@@ -298,7 +298,7 @@ function viewOf(plan: Day, week: Week, view: TodayViewMode, today: string): DayV
   const sections = view === 'byGoal' ? groupByGoal(plan) : groupForList(plan)
   return {
     isToday: plan.date === today,
-    canPlace: plan.date >= today && week.status !== 'notOpen',
+    canPlace: plan.date >= today && week.status === 'open',
     canCheckOff: mondayOfDay(plan.date) <= mondayOfDay(today),
     isPast: plan.date < today,
     offersMenu: week.status !== 'closed',

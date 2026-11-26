@@ -10,4 +10,4 @@
 - [x] Checkpoint: the screen end to end (tests; the check below runs it live)
 - [x] 7. Docs
 - [x] 8. The check
-- [ ] Review, then the PR
+- [x] Review, then the PR

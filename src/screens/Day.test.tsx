@@ -613,6 +613,18 @@ describe('Day, a past day (spec 081)', () => {
     )
   })
 
+  it('offers only ticking on today once its week is wrapped up early', async () => {
+    vi.setSystemTime(new Date(2026, 10, 15, 18, 0))
+    await placeTask('task-dentist', '2026-11-09', '2026-11-15')
+    await wrapUpWeek('2026-11-09')
+
+    render(<Day date="2026-11-15" today="2026-11-15" />)
+
+    expect(await screen.findByText('Moved on to the next week · tap if you did it')).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Pull from bank' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^More for/ })).toBeNull()
+  })
+
   it("can't tick a task dropped since", async () => {
     await dropTask('task-dentist')
     render(<Day date={LAST_THURSDAY} today={WEDNESDAY_DAY} />)

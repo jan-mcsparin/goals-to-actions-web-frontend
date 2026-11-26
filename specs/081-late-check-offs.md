@@ -117,6 +117,7 @@ None.
 - **No code for the quit row:** it already showed on a closed week's day; a test covers it.
 - **`checkOffAt(now, day)`'s day is optional,** the phone's day by default, so Today and the tests that call it are unchanged.
 - **A row's ⋯ shows only when it has an action,** so a closed week's day passes none and shows none.
+- **From the review: today, once its week is wrapped up early, is a closed week's day too.** It had no menus already; Pull from bank went as well (a day can be placed on only while its week is open), as flow 6 says nothing goes onto today until Monday.
 
 ## Checked
 
