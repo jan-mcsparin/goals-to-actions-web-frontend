@@ -9,5 +9,5 @@
 - [x] 6. The quit row on a closed week's day
 - [x] Checkpoint: the screen end to end (tests; the check below runs it live)
 - [x] 7. Docs
-- [ ] 8. The check
+- [x] 8. The check
 - [ ] Review, then the PR

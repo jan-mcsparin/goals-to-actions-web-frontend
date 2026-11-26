@@ -117,3 +117,7 @@ None.
 - **No code for the quit row:** it already showed on a closed week's day; a test covers it.
 - **`checkOffAt(now, day)`'s day is optional,** the phone's day by default, so Today and the tests that call it are unchanged.
 - **A row's ⋯ shows only when it has an action,** so a closed week's day passes none and shows none.
+
+## Checked
+
+By a Sonnet agent at 390px against the local API, 2026-11-25 (a Wednesday). Last week (Nov 16–22): Fri Nov 20 and Sat Nov 21 showed the note, their done tasks ticked, the rolled-over "Verification: on today" and "Verification: in the bank" with "Moved on to the next week · tap if you did it", and the lapsed goal session "Run a 10k" with "Tap if you did it"; no ⋯ menus and no Pull from bank. Ticking "Verification: in the bank" on Sat Nov 21 sent `completedOn: "2026-11-21"`, its line went, and This week's bank went from 8 to 7; unticked, the line and the bank task came back. Ticking "Run a 10k" on Fri Nov 20 sent `completedOn: "2026-11-20"` and last week's Progress went from 0 of 3 to 1 of 3; unticked, back to 0 of 3. A quitting goal's Held / Slipped row showed on both of last week's days. This week's Monday had the note and its ⋯ menus; today and Thursday had no note. No dropped task was there to see (covered by `Day.test.tsx`). No horizontal scroll; no app errors in the console.
