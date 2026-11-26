@@ -361,3 +361,47 @@ describe('useDay when the data revision changes', () => {
     expect(titlesOf(hook.result.current)).toEqual(['Newer'])
   })
 })
+
+describe('a past day (spec 081)', () => {
+  async function renderDay(date: string) {
+    const hook = renderHook(() => useDay(date, '2026-11-11'))
+    await waitFor(() => expect(hook.result.current.day).toBeDefined())
+    return hook
+  }
+
+  it("shows a closed week's day as past, with its ended tasks and nothing but ticking", async () => {
+    const { result } = await renderDay('2026-11-05')
+
+    expect(result.current.day).toMatchObject({ isPast: true, offersMenu: false, canCheckOff: true })
+    const rows = result.current.day!.sections.flatMap((section) => section.rows)
+    expect(rows.find((row) => row.task.id === 'task-dentist')?.outcome).toBe('Moved on to the next week · tap if you did it')
+    expect(rows.find((row) => row.task.id === 'task-last-lift')?.outcome).toBe('Tap if you did it')
+  })
+
+  it('ticks a task off for the day it was on, not the day of the tap', async () => {
+    const { result } = await renderDay('2026-11-05')
+
+    act(() => result.current.toggleDone('task-last-lift'))
+
+    await waitFor(() =>
+      expect(vi.mocked(checkOffTask)).toHaveBeenLastCalledWith('task-last-lift', expect.objectContaining({ completedOn: '2026-11-05' })),
+    )
+    expect(statusOf(result.current, 'task-last-lift')).toBe('done')
+  })
+
+  it("keeps this week's past day's menu, and sends its day too", async () => {
+    const { result } = await renderDay('2026-11-10')
+
+    expect(result.current.day).toMatchObject({ isPast: true, offersMenu: true })
+    const open = result.current.day!.sections.flatMap((section) => section.rows).find((row) => row.task.state === 'open')!
+    act(() => result.current.toggleDone(open.task.id))
+    await waitFor(() =>
+      expect(vi.mocked(checkOffTask)).toHaveBeenLastCalledWith(open.task.id, expect.objectContaining({ completedOn: '2026-11-10' })),
+    )
+  })
+
+  it('reads today and later days as not past', async () => {
+    expect((await renderDay('2026-11-11')).result.current.day?.isPast).toBe(false)
+    expect((await renderDay('2026-11-13')).result.current.day?.isPast).toBe(false)
+  })
+})

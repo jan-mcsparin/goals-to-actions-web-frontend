@@ -48,6 +48,10 @@ export type DayView = {
   canPlace: boolean
   // A day in a week that hasn't started can't be checked off.
   canCheckOff: boolean
+  // Before today: "This day has passed. You can still tick off what you did." (spec 081)
+  isPast: boolean
+  // A closed week's day offers only ticking: no ⋯ menu (spec 081).
+  offersMenu: boolean
   progress: { done: number; total: number }
   sections: Section[]
   // A quitting goal's held-or-not for the day; none on a future day. Not tasks: never counted.
@@ -149,7 +153,8 @@ export function useDay(date: string, today: string): UseDay {
     saveTodayView(next)
   }
 
-  // A check-off reads the clock once: the moment shown is the one sent.
+  // A check-off reads the clock once: the moment shown is the one sent. On a past day it counts
+  // for that day (spec 081).
   function toggleDone(taskId: string) {
     const task = plan?.tasks.find((candidate) => candidate.id === taskId)
     if (!task) return
@@ -157,7 +162,7 @@ export function useDay(date: string, today: string): UseDay {
     void enqueue(
       isDone(task)
         ? { kind: 'uncheck', id: newDeviceId(), taskId }
-        : { kind: 'checkOff', id: newDeviceId(), taskId, checkOff: checkOffAt(new Date()) },
+        : { kind: 'checkOff', id: newDeviceId(), taskId, checkOff: checkOffAt(new Date(), date < today ? date : undefined) },
     )
   }
 
@@ -295,6 +300,8 @@ function viewOf(plan: Day, week: Week, view: TodayViewMode, today: string): DayV
     isToday: plan.date === today,
     canPlace: plan.date >= today && week.status !== 'notOpen',
     canCheckOff: mondayOfDay(plan.date) <= mondayOfDay(today),
+    isPast: plan.date < today,
+    offersMenu: week.status !== 'closed',
     progress: progress(plan),
     sections,
     quitRows: quitRows(week, plan.date, today),
