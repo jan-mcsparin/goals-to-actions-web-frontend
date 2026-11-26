@@ -6,21 +6,57 @@
 
 .week-header {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* ‹ title ›: the arrows at the edges, the title centred between them. */
+.week-title-row {
+  display: grid;
+  grid-template-columns: 2.75rem 1fr 2.75rem;
+  align-items: center;
 }
 
 .week-header h1 {
   margin: 0;
   font-size: 1.25rem;
+  text-align: center;
+}
+
+.week-arrow {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 1.5rem;
+}
+
+.week-arrow:disabled {
+  color: var(--line);
 }
 
 .week-range {
   margin: 0;
   color: var(--muted);
+  text-align: center;
   white-space: nowrap;
+}
+
+.week-links {
+  display: flex;
+  justify-content: space-between;
+}
+
+.week-link {
+  min-height: 2.75rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
 }
 
 .week-section h2 {

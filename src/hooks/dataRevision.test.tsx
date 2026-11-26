@@ -80,7 +80,7 @@ describe('useRevisionCounter', () => {
 
 describe('useWeek when the data revision changes', () => {
   it('loads the week again, showing the old one until the new one arrives', async () => {
-    const hook = renderWithRevision(() => useWeek(TODAY))
+    const hook = renderWithRevision(() => useWeek(TODAY, undefined, () => {}))
     await waitFor(() => expect(hook.result.current.week).toBeDefined())
     await addTask({ title: 'Fill out my ballot' })
 
@@ -108,7 +108,7 @@ describe('useAspirations when the data revision changes', () => {
 
 describe.each([
   ['useDay', getWeek, () => useDay(TODAY, TODAY)],
-  ['useWeek', getWeek, () => useWeek(TODAY)],
+  ['useWeek', getWeek, () => useWeek(TODAY, undefined, () => {})],
   ['useAspirations', getAspirations, () => useAspirations()],
   ['useAspiration', getAspiration, () => useAspiration('asp-fit', TODAY)],
   ['useUpkeep', getUpkeep, () => useUpkeep(TODAY)],
@@ -129,10 +129,10 @@ describe('useWeek after a failed save', () => {
   it('keeps the save message through a reload, since the reload does not redo the save', async () => {
     // Sunday evening, so the week can be wrapped up; placing a task is queued and never fails.
     vi.setSystemTime(new Date(2026, 10, 15, 18, 0))
-    const hook = renderWithRevision(() => useWeek('2026-11-15'))
+    const hook = renderWithRevision(() => useWeek('2026-11-15', '2026-11-16', () => {}))
     await waitFor(() => expect(hook.result.current.week).toBeDefined())
     vi.mocked(wrapUpWeek).mockRejectedValueOnce(new Error('offline'))
-    await act(async () => hook.result.current.wrapUp.confirm())
+    await act(async () => hook.result.current.wrapUp?.confirm())
     expect(hook.result.current.message).toBe("Couldn't wrap up the week. Nothing changed.")
     const reloaded = await getWeek()
     let finishReload!: (plan: Week) => void

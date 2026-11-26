@@ -7,19 +7,21 @@ import { ScreenMessage } from '../components/ScreenMessage.tsx'
 import type { DaySummary, ProgressRow } from '../domain/week.ts'
 import { useFleetingMessage } from '../hooks/useFleetingMessage.ts'
 import { WrapUpSheet } from '../components/WrapUpSheet.tsx'
-import { ViewToggle, type ViewOption } from '../components/ViewToggle.tsx'
-import { useWeek } from '../hooks/useWeek.ts'
-import type { WeekViewMode } from '../storage/weekView.ts'
+import { useWeek, type UseWeek } from '../hooks/useWeek.ts'
 import '../components/progressBar.css'
 import './Week.css'
 
 type WeekProps = {
   today: string
+  // The Monday of the week on show; none is this week.
+  week?: string
+  onShowWeek: (week?: string) => void
   onOpenDay: (date: string) => void
 }
 
-export function Week({ today, onOpenDay }: WeekProps) {
-  const { title, range, week, message, clearMessage, view, canViewNext, setView, place, deleting, wrapUp } = useWeek(today)
+export function Week({ today, week: shown, onShowWeek, onOpenDay }: WeekProps) {
+  const stepping = useWeek(today, shown, onShowWeek)
+  const { week, message, clearMessage, place, deleting, wrapUp } = stepping
   const [wrapping, setWrapping] = useState(false)
   const [placing, setPlacing] = useState<Task>()
   // With nothing loaded, the message is all there is, so it stays.
@@ -28,7 +30,7 @@ export function Week({ today, onOpenDay }: WeekProps) {
   if (!week) {
     return (
       <main className="week" aria-busy={!message}>
-        {message && <WeekTop title={title} range={range} />}
+        <WeekTop stepping={stepping} />
         <ScreenMessage message={shownMessage.shown} onDismiss={shownMessage.dismiss} />
       </main>
     )
@@ -36,9 +38,7 @@ export function Week({ today, onOpenDay }: WeekProps) {
 
   return (
     <main className="week">
-      <WeekTop title={title} range={range}>
-        {canViewNext && <ViewToggle label="Week" view={view} options={WEEK_VIEWS} onChange={setView} />}
-      </WeekTop>
+      <WeekTop stepping={stepping} />
 
       {week.progress.length > 0 && (
         <section className="week-section" aria-labelledby="week-progress">
@@ -78,19 +78,19 @@ export function Week({ today, onOpenDay }: WeekProps) {
         )}
       </section>
 
-      {view === 'next' && (
+      {wrapUp && (
         <button type="button" className="week-wrap-up" onClick={() => setWrapping(true)}>
           Wrap up this week
         </button>
       )}
 
       <WrapUpSheet
-        open={wrapping}
-        carriesOver={wrapUp.carriesOver}
-        ends={wrapUp.ends}
+        open={wrapping && wrapUp !== undefined}
+        carriesOver={wrapUp?.carriesOver ?? []}
+        ends={wrapUp?.ends ?? []}
         onConfirm={() => {
           setWrapping(false)
-          wrapUp.confirm()
+          wrapUp?.confirm()
         }}
         onClose={() => setWrapping(false)}
       />
@@ -122,17 +122,41 @@ export function Week({ today, onOpenDay }: WeekProps) {
   )
 }
 
-const WEEK_VIEWS: ViewOption<WeekViewMode>[] = [
-  { view: 'this', label: 'This week' },
-  { view: 'next', label: 'Next week' },
-]
-
-function WeekTop({ title, range, children }: { title: string; range: string; children?: ReactNode }) {
+// The pinned top: ‹ the week's title ›, its range, and the way back to this week.
+function WeekTop({ stepping, children }: { stepping: UseWeek; children?: ReactNode }) {
+  const { title, range, canGoBack, canGoForward, step, toThisWeek } = stepping
   return (
     <header className="screen-top week-header">
-      <h1>{title}</h1>
+      <div className="week-title-row">
+        <button
+          type="button"
+          className="week-arrow"
+          aria-label="Previous week"
+          disabled={!canGoBack}
+          onClick={() => step(-1)}
+        >
+          ‹
+        </button>
+        <h1>{title}</h1>
+        <button
+          type="button"
+          className="week-arrow"
+          aria-label="Next week"
+          disabled={!canGoForward}
+          onClick={() => step(1)}
+        >
+          ›
+        </button>
+      </div>
       <p className="week-range">{range}</p>
       {children}
+      {toThisWeek && (
+        <div className="week-links">
+          <button type="button" className="week-link" onClick={toThisWeek}>
+            This week
+          </button>
+        </div>
+      )}
     </header>
   )
 }
