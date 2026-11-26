@@ -1,6 +1,6 @@
 # Spec: Any week on Week, with how full it is
 
-Status: draft, 2026-11-25; decisions 1 to 6 agreed with Jan the same day, settled when the plan is written. Issue: [#80](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/80). The second front-end piece of the scheduling brief, written with [082](082-move-and-remove.md). Needs API [#51](https://github.com/jan-mcsparin/goals-to-actions-api/issues/51) ([`api/specs/any-week.md`](../../api/specs/any-week.md), built). This PR regenerates the types for it.
+Status: built 2026-11-25 (plan in `tasks/plan.md`); decisions 1 to 6 agreed with Jan the same day. Issue: [#80](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/80). The second front-end piece of the scheduling brief, written with [082](082-move-and-remove.md). Needs API [#51](https://github.com/jan-mcsparin/goals-to-actions-api/issues/51) ([`api/specs/any-week.md`](../../api/specs/any-week.md), built). This PR regenerates the types for it.
 
 ## Objective
 

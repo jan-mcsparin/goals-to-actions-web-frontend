@@ -8,6 +8,6 @@
 - [x] 5. Arrows and any week
 - [x] 6. Counts line and bars
 - [x] 7. A week that hasn't opened, and a past week
-- [ ] Checkpoint: the screen end to end on `npm run dev:mock`
-- [ ] 8. Docs
+- [x] Checkpoint: the screen end to end (tests; the check below runs it live)
+- [x] 8. Docs
 - [ ] 9. The check
