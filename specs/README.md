@@ -78,7 +78,7 @@ From the [brief](../../docs/briefs/scheduling-and-other-weeks.md), after step 5 
 | `on-a-day` | [079](079-on-a-day.md) | #79 | The Add sheet's When: On today · In the bank · On a day (done) | API #50 |
 | `any-week` | [080](080-any-week.md) | #80 | Week's ‹ › arrows, any week, counts line and bars (done) | API #51 |
 | `move-and-remove` | [082](082-move-and-remove.md) | #82 | A set item (added by hand, on a day) moved to any day or removed; a fixed-day task moved within its week; an opened day of a later week (done) | API #50, #51; an API change to `place` |
-| `late-check-offs` | [081](081-late-check-offs.md) | #81 | A past day: the note, how each unfinished task ended, ticking off late for that day | API #51 |
+| `late-check-offs` | [081](081-late-check-offs.md) | #81 | A past day: the note, how each unfinished task ended, ticking off late for that day (done) | API #51 |
 | `coming-up` | to come | #83 | The Coming up page, linked from Week and Today | API #52 |
 
 Order: 079 → 080 and 082 → 081 → 083.

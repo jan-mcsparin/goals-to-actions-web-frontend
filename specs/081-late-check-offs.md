@@ -1,6 +1,6 @@
 # Spec: Tick off a past day's tasks late
 
-Status: approved 2026-11-25, decisions 1 to 6 agreed with Jan as recommended; plan in `tasks/plan.md`. Issue: [#81](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/81). The fourth front-end piece of the scheduling brief, after [080](080-any-week.md) and [082](082-move-and-remove.md). Needs API [#51](https://github.com/jan-mcsparin/goals-to-actions-api/issues/51) ([`api/specs/any-week.md`](../../api/specs/any-week.md), built): the past week's read carries every row with its `weekOutcome`, and late check-offs needed no API code. No API change and no new types.
+Status: built 2026-11-25, decisions 1 to 6 agreed with Jan as recommended; plan in `tasks/plan.md`. Issue: [#81](https://github.com/jan-mcsparin/goals-to-actions-web-frontend/issues/81). The fourth front-end piece of the scheduling brief, after [080](080-any-week.md) and [082](082-move-and-remove.md). Needs API [#51](https://github.com/jan-mcsparin/goals-to-actions-api/issues/51) ([`api/specs/any-week.md`](../../api/specs/any-week.md), built): the past week's read carries every row with its `weekOutcome`, and late check-offs needed no API code. No API change and no new types.
 
 ## Objective
 
@@ -110,3 +110,10 @@ export function checkOffAt(now: Date, day: string): CheckOff {
 ## Open questions
 
 None.
+
+## What changed while building
+
+- **The mock's rolled-over task is "Call the dentist"**, already seeded as rolled over twice, now with last Thursday as its day there. A new seeded task would have changed this week's lists that many tests count, and the seed already had a "Groceries".
+- **No code for the quit row:** it already showed on a closed week's day; a test covers it.
+- **`checkOffAt(now, day)`'s day is optional,** the phone's day by default, so Today and the tests that call it are unchanged.
+- **A row's ⋯ shows only when it has an action,** so a closed week's day passes none and shows none.
